@@ -43,6 +43,7 @@
     <Compile Include="..\Common\CommonAssemblyInfo.fs">
       <Link>CommonAssemblyInfo.fs</Link>
     </Compile>
+    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Pervasive.fs" />
   </ItemGroup>
   <ItemGroup>
