@@ -1,5 +1,7 @@
 ﻿(*
 
+Copyright 1998 University of Cambridge
+Copyright 1998-2007 John Harrison
 Copyright 2013 Jack Pappas
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +18,7 @@ limitations under the License.
 
 *)
 
-//
+/// First order automation: MESON (model elimination).
 [<AutoOpen>]
-module NHol.Pervasive
+module NHol.meson
 
-type Class1() = 
-    member this.X = "F#"
