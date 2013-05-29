@@ -43,6 +43,7 @@ let C f x y = f y x;;
 
 let W f x = f x x;;
 
+// OPTIMIZE : Replace all uses of (0) with (<<).
 let (o) = fun f g x -> f (g x);;
 
 let (F_F) = fun f g (x,y) -> (f x, g y);;
@@ -226,14 +227,14 @@ let rec forall p l =
 let rec forall2 p l1 l2 =
   match (l1,l2) with
     [],[] -> true
-  | (h1::t1,h2::t2) -> p h1 h2 & forall2 p t1 t2
+  | (h1::t1,h2::t2) -> p h1 h2 && forall2 p t1 t2
   | _ -> false;;
 
 // OPTIMIZE : Make this an alias for List.exists.
 let rec exists p l =
   match l with
     [] -> false
-  | h::t -> p(h) or exists p t;;
+  | h::t -> p(h) || exists p t;;
 
 // OPTIMIZE : Make this an alias for List.length.
 let length =
@@ -298,7 +299,7 @@ let index x =
   let rec ind n l =
     match l with
       [] -> failwith "index"
-    | (h::t) -> if Pervasives.compare x h = 0 then n else ind (n + 1) t in
+    | (h::t) -> if compare x h = 0 then n else ind (n + 1) t in
   ind 0;;
 
 (* ------------------------------------------------------------------------- *)
@@ -308,7 +309,7 @@ let index x =
 let rec mem x lis =
   match lis with
     [] -> false
-  | (h::t) -> Pervasives.compare x h = 0 or mem x t;;
+  | (h::t) -> compare x h = 0 || mem x t;;
 
 let insert x l =
   if mem x l then l else x::l;;
@@ -323,7 +324,7 @@ let subtract l1 l2 = filter (fun x -> not (mem x l2)) l1;;
 
 let subset l1 l2 = forall (fun t -> mem t l2) l1;;
 
-let set_eq l1 l2 = subset l1 l2 & subset l2 l1;;
+let set_eq l1 l2 = subset l1 l2 && subset l2 l1;;
 
 (* ------------------------------------------------------------------------- *)
 (* Association lists.                                                        *)
@@ -331,12 +332,12 @@ let set_eq l1 l2 = subset l1 l2 & subset l2 l1;;
 
 let rec assoc a l =
   match l with
-    (x,y)::t -> if Pervasives.compare x a = 0 then y else assoc a t
+    (x,y)::t -> if compare x a = 0 then y else assoc a t
   | [] -> failwith "find";;
 
 let rec rev_assoc a l =
   match l with
-    (x,y)::t -> if Pervasives.compare y a = 0 then x else rev_assoc a t
+    (x,y)::t -> if compare y a = 0 then x else rev_assoc a t
   | [] -> failwith "find";;
 
 (* ------------------------------------------------------------------------- *)
@@ -393,22 +394,22 @@ let rec sort cmp lis =
 
 let rec uniq l =
   match l with
-    x::(y::_ as t) -> let t' = uniq t in
-                      if Pervasives.compare x y = 0 then t' else
+  | x::(y::_ as t) -> let t' = uniq t in
+                      if compare x y = 0 then t' else
                       if t'==t then l else x::t'
- | _ -> l;;
+  | _ -> l;;
 
 (* ------------------------------------------------------------------------- *)
 (* Convert list into set by eliminating duplicates.                          *)
 (* ------------------------------------------------------------------------- *)
 
-let setify s = uniq (sort (fun x y -> Pervasives.compare x y <= 0) s);;
+let setify s = uniq (sort (fun x y -> compare x y <= 0) s);;
 
 (* ------------------------------------------------------------------------- *)
 (* String operations (surely there is a better way...)                       *)
 (* ------------------------------------------------------------------------- *)
 
-
+// OPTIMIZE : Make this an alias for List.sortWith.
 let implode l = itlist (^) l "";;
 
 let explode s =
@@ -424,17 +425,19 @@ let explode s =
 let gcd =
   let rec gxd x y =
     if y = 0 then x else gxd y (x mod y) in
-  fun x y -> let x' = abs x and y' = abs y in
-              if x' < y' then gxd y' x' else gxd x' y';;
+  fun x y ->
+    let x' = abs x
+    let y' = abs y in
+    if x' < y' then gxd y' x' else gxd x' y';;
 
 (* ------------------------------------------------------------------------- *)
 (* Some useful functions on "num" type.                                      *)
 (* ------------------------------------------------------------------------- *)
 
 let num_0 = Int 0
-and num_1 = Int 1
-and num_2 = Int 2
-and num_10 = Int 10;;
+let num_1 = Int 1
+let num_2 = Int 2
+let num_10 = Int 10;;
 
 let pow2 n = power_num num_2 (Int n);;
 let pow10 n = power_num num_10 (Int n);;
@@ -445,14 +448,14 @@ let numdom r =
   num_of_big_int(Ratio.denominator_ratio r');;
 
 let numerator = fst o numdom
-and denominator = snd o numdom;;
+let denominator = snd o numdom;;
 
 let gcd_num n1 n2 =
   num_of_big_int(Big_int.gcd_big_int (big_int_of_num n1) (big_int_of_num n2));;
 
 let lcm_num x y =
   if x =/ num_0 & y =/ num_0 then num_0
-  else abs_num((x */ y) // gcd_num x y);;
+  else abs_num((x */ y) / gcd_num x y);;
 
 (* ------------------------------------------------------------------------- *)
 (* All pairs arising from applying a function over two lists.                *)
@@ -515,12 +518,12 @@ let time f x =
 let rec assocd a l d =
   match l with
     [] -> d
-  | (x,y)::t -> if Pervasives.compare x a = 0 then y else assocd a t d;;
+  | (x,y)::t -> if compare x a = 0 then y else assocd a t d;;
 
 let rec rev_assocd a l d =
   match l with
     [] -> d
-  | (x,y)::t -> if Pervasives.compare y a = 0 then x else rev_assocd a t d;;
+  | (x,y)::t -> if compare y a = 0 then x else rev_assocd a t d;;
 
 (* ------------------------------------------------------------------------- *)
 (* Version of map that avoids rebuilding unchanged subterms.                 *)
@@ -528,8 +531,10 @@ let rec rev_assocd a l d =
 
 let rec qmap f l =
   match l with
-    h::t -> let h' = f h and t' = qmap f t in
-            if h' == h & t' == t then l else h'::t'
+    h::t ->
+        let h' = f h
+        let t' = qmap f t in
+        if h' == h && t' == t then l else h'::t'
   | _ -> l;;
 
 (* ------------------------------------------------------------------------- *)
@@ -557,9 +562,9 @@ let mergesort ord =
 (* Common measure predicates to use with "sort".                             *)
 (* ------------------------------------------------------------------------- *)
 
-let increasing f x y = Pervasives.compare (f x) (f y) < 0;;
+let increasing f x y = compare (f x) (f y) < 0;;
 
-let decreasing f x y = Pervasives.compare (f x) (f y) > 0;;
+let decreasing f x y = compare (f x) (f y) > 0;;
 
 (* ------------------------------------------------------------------------- *)
 (* Polymorphic finite partial functions via Patricia trees.                  *)
@@ -570,6 +575,7 @@ let decreasing f x y = Pervasives.compare (f x) (f y) > 0;;
 (* Idea due to Diego Olivier Fernandez Pons (OCaml list, 2003/11/10).        *)
 (* ------------------------------------------------------------------------- *)
 
+// OPTIMIZE : Replace with IntMap type from ExtCore.
 type ('a,'b)func =
    Empty
  | Leaf of int * ('a*'b)list
@@ -651,7 +657,7 @@ let ran f = setify(foldl (fun a x y -> y::a) [] f);;
 let applyd =
   let rec apply_listd l d x =
     match l with
-      (a,b)::t -> let c = Pervasives.compare x a in
+      (a,b)::t -> let c = compare x a in
                   if c = 0 then b else if c > 0 then apply_listd t d x else d x
     | [] -> d x in
   fun f d x ->
@@ -678,7 +684,7 @@ let undefine =
   let rec undefine_list x l =
     match l with
       (a,b as ab)::t ->
-          let c = Pervasives.compare x a in
+          let c = compare x a in
           if c = 0 then t
           else if c < 0 then l else
           let t' = undefine_list x t in
