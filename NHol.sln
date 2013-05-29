@@ -12,10 +12,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{A4D224
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "NHol.Tests", "NHol.Tests\NHol.Tests.fsproj", "{BC5955AF-A558-4F95-B4FA-717C06936FC1}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "NHol.Light.Syntax", "NHol.Light.Syntax\NHol.Light.Syntax.fsproj", "{7F41D14A-D4D4-41A1-B6ED-49B19D41DC9B}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "NHol.Light.Syntax.Tests", "NHol.Light.Syntax.Tests\NHol.Light.Syntax.Tests.fsproj", "{4D372C85-99DE-41BE-857A-7D6FCF0AF6D9}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,14 +26,6 @@ Global
 		{BC5955AF-A558-4F95-B4FA-717C06936FC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BC5955AF-A558-4F95-B4FA-717C06936FC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BC5955AF-A558-4F95-B4FA-717C06936FC1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7F41D14A-D4D4-41A1-B6ED-49B19D41DC9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7F41D14A-D4D4-41A1-B6ED-49B19D41DC9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7F41D14A-D4D4-41A1-B6ED-49B19D41DC9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7F41D14A-D4D4-41A1-B6ED-49B19D41DC9B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4D372C85-99DE-41BE-857A-7D6FCF0AF6D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4D372C85-99DE-41BE-857A-7D6FCF0AF6D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4D372C85-99DE-41BE-857A-7D6FCF0AF6D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4D372C85-99DE-41BE-857A-7D6FCF0AF6D9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
