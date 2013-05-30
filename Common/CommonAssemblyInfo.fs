@@ -23,6 +23,8 @@ open System.Reflection
 open System.Runtime.CompilerServices
 open System.Runtime.InteropServices
 
+let [<Literal>] version = "0.0.1"
+
 /// <summary>A subset of the conditional compilation symbols
 /// specified when this assembly was compiled.</summary>
 /// <remarks>Used for diagnostics purposes, e.g., to mark traced
@@ -56,9 +58,9 @@ let [<Literal>] private assemblyConfig =
 [<assembly: ComVisible(false)>]
 
 // Version information
-[<assembly: AssemblyVersion("0.8.1")>]
-[<assembly: AssemblyFileVersion("0.8.1")>]
-[<assembly: AssemblyInformationalVersion("0.8.1")>]
+[<assembly: AssemblyVersion(version)>]
+[<assembly: AssemblyFileVersion(version)>]
+[<assembly: AssemblyInformationalVersion(version)>]
 
 // Only allow types derived from System.Exception to be thrown --
 // any other types should be automatically wrapped.
