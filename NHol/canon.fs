@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Tools for putting terms in canonical forms.
-[<AutoOpen>]
 module NHol.canon
 

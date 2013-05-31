@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Definition of integers.
-[<AutoOpen>]
 module NHol.int
 

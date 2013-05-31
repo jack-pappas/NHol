@@ -21,8 +21,11 @@ limitations under the License.
 *)
 
 /// Preterms and pretypes; typechecking; translation to types and terms.
-[<AutoOpen>]
 module NHol.preterm
+
+open NHol
+
+(*
 
 (* ------------------------------------------------------------------------- *)
 (* Flag to say whether to treat varstruct "\const. bod" as variable.         *)
@@ -56,8 +59,8 @@ let make_overloadable s gty =
   else the_overload_skeletons := (s,gty)::(!the_overload_skeletons);;
 
 let remove_interface sym =
-  let interface = filter ((<>)sym o fst) (!the_interface) in
-  the_interface := interface;;
+  let ``interface`` = filter ((<>)sym o fst) (!the_interface) in
+  the_interface := ``interface``;;
 
 let reduce_interface (sym,tm) =
   let namty = try dest_const tm with Failure _ -> dest_var tm in
@@ -65,8 +68,8 @@ let reduce_interface (sym,tm) =
 
 let override_interface (sym,tm) =
   let namty = try dest_const tm with Failure _ -> dest_var tm in
-  let interface = filter ((<>)sym o fst) (!the_interface) in
-  the_interface := (sym,namty)::interface;;
+  let ``interface`` = filter ((<>)sym o fst) (!the_interface) in
+  the_interface := (sym,namty)::``interface``;;
 
 let overload_interface (sym,tm) =
   let gty = try assoc sym (!the_overload_skeletons) with Failure _ ->
@@ -74,8 +77,8 @@ let overload_interface (sym,tm) =
   let (name,ty) as namty = try dest_const tm with Failure _ -> dest_var tm in
   if not (can (type_match gty ty) [])
   then failwith "Not an instance of type skeleton" else
-  let interface = filter ((<>) (sym,namty)) (!the_interface) in
-  the_interface := (sym,namty)::interface;;
+  let ``interface`` = filter ((<>) (sym,namty)) (!the_interface) in
+  the_interface := (sym,namty)::``interface``;;
 
 let prioritize_overload ty =
   do_list
@@ -109,8 +112,8 @@ let new_type_abbrev,remove_type_abbrev,type_abbrevs =
 let hide_constant,unhide_constant,is_hidden =
   let hcs = ref ([]:string list) in
   let hide_constant c = hcs := union [c] (!hcs)
-  and unhide_constant c = hcs := subtract (!hcs) [c]
-  and is_hidden c = mem c (!hcs) in
+  let unhide_constant c = hcs := subtract (!hcs) [c]
+  let is_hidden c = mem c (!hcs) in
   hide_constant,unhide_constant,is_hidden;;
 
 (* ------------------------------------------------------------------------- *)
@@ -461,4 +464,6 @@ let type_of_pretype,term_of_preterm,retypecheck =
     ptm'' in
 
   type_of_pretype,term_of_preterm,retypecheck;;
+
+*)
 

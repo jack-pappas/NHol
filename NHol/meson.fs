@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// First order automation: MESON (model elimination).
-[<AutoOpen>]
 module NHol.meson
 

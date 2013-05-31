@@ -19,8 +19,9 @@ limitations under the License.
 *)
 
 /// Term nets: reasonably fast lookup based on term matchability.
-[<AutoOpen>]
 module NHol.nets
+
+(*
 
 (* ------------------------------------------------------------------------- *)
 (* Term nets are a finitely branching tree structure; at each level we       *)
@@ -131,4 +132,6 @@ let merge_nets =
     Netnode(itlist add_node l2 (itlist add_node l1 []),
             set_merge data1 data2) in
   merge_nets;;
+
+*)
 

@@ -19,9 +19,9 @@ limitations under the License.
 *)
 
 /// Intuitionistic theorem prover (complete for propositional fragment).
-[<AutoOpen>]
 module NHol.itab
 
+(*
 
 (* ------------------------------------------------------------------------- *)
 (* Accept a theorem modulo unification.                                      *)
@@ -86,3 +86,4 @@ let ITAUT_TAC =
 
 let ITAUT tm = prove(tm,ITAUT_TAC);;
 
+*)

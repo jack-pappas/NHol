@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Theory of lists.
-[<AutoOpen>]
 module NHol.lists
 

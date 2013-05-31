@@ -19,8 +19,11 @@ limitations under the License.
 *)
 
 /// Simplistic HOL Light prettyprinter, using the OCaml "Format" library.
-[<AutoOpen>]
 module NHol.printer
+
+open FSharp.Compatibility.OCaml
+
+(*
 
 (* ------------------------------------------------------------------------- *)
 (* Character discrimination.                                                 *)
@@ -29,11 +32,11 @@ module NHol.printer
 let isspace,issep,isbra,issymb,isalpha,isnum,isalnum =
   let charcode s = Char.code(String.get s 0) in
   let spaces = " \t\n\r"
-  and separators = ",;"
-  and brackets = "()[]{}"
-  and symbs = "\\!@#$%^&*-+|\\<=>/?~.:"
-  and alphas = "'abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  and nums = "0123456789" in
+  let separators = ",;"
+  let brackets = "()[]{}"
+  let symbs = "\\!@#$%^&*-+|\\<=>/?~.:"
+  let alphas = "'abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  let nums = "0123456789" in
   let allchars = spaces^separators^brackets^symbs^alphas^nums in
   let csetsize = itlist (max o charcode) (explode allchars) 256 in
   let ctable = Array.make csetsize 0 in
@@ -44,12 +47,12 @@ let isspace,issep,isbra,issymb,isalpha,isnum,isalnum =
   do_list (fun c -> Array.set ctable (charcode c) 16) (explode alphas);
   do_list (fun c -> Array.set ctable (charcode c) 32) (explode nums);
   let isspace c = Array.get ctable (charcode c) = 1
-  and issep c  = Array.get ctable (charcode c) = 2
-  and isbra c  = Array.get ctable (charcode c) = 4
-  and issymb c = Array.get ctable (charcode c) = 8
-  and isalpha c = Array.get ctable (charcode c) = 16
-  and isnum c = Array.get ctable (charcode c) = 32
-  and isalnum c = Array.get ctable (charcode c) >= 16 in
+  let issep c  = Array.get ctable (charcode c) = 2
+  let isbra c  = Array.get ctable (charcode c) = 4
+  let issymb c = Array.get ctable (charcode c) = 8
+  let isalpha c = Array.get ctable (charcode c) = 16
+  let isnum c = Array.get ctable (charcode c) = 32
+  let isalnum c = Array.get ctable (charcode c) >= 16 in
   isspace,issep,isbra,issymb,isalpha,isnum,isalnum;;
 
 (* ------------------------------------------------------------------------- *)
@@ -550,4 +553,6 @@ let print_to_string printer =
 let string_of_type = print_to_string pp_print_type;;
 let string_of_term = print_to_string pp_print_term;;
 let string_of_thm = print_to_string pp_print_thm;;
+
+*)
 

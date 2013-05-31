@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Definition of real numbers.
-[<AutoOpen>]
 module NHol.realax
 

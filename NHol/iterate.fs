@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Iterated operations.
-[<AutoOpen>]
 module NHol.iterate
 

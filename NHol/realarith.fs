@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Universal linear real decision procedure.
-[<AutoOpen>]
 module NHol.realarith
 

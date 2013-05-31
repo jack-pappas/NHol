@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Basic rewriting and simplification tools.
-[<AutoOpen>]
 module NHol.simp
 

@@ -19,8 +19,9 @@ limitations under the License.
 *)
 
 /// Lexical analyzer, type and preterm parsers.
-[<AutoOpen>]
 module NHol.parser
+
+(*
 
 (* ------------------------------------------------------------------------- *)
 (* Need to have this now for set enums, since "," isn't a reserved word.     *)
@@ -511,4 +512,6 @@ let parse_term s =
   if l = [] then
    (term_of_preterm o (retypecheck [])) ptm
   else failwith "Unparsed input following term";;
+
+*)
 

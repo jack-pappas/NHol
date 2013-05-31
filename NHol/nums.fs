@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Axiom of Infinity, definition of natural numbers.
-[<AutoOpen>]
 module NHol.nums
 

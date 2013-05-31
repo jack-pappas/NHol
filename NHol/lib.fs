@@ -19,34 +19,32 @@ limitations under the License.
 *)
 
 /// Various useful general library functions.
-[<AutoOpen>]
 module NHol.lib
 
 open FSharp.Compatibility.OCaml
 
 
-let fail() = failwith "";;
+let fail() = raise <| exn ()
 
 (* ------------------------------------------------------------------------- *)
 (* Combinators.                                                              *)
 (* ------------------------------------------------------------------------- *)
 
-let curry f x y = f(x,y);;
+let curry f x y = f(x,y)
 
-let uncurry f (x,y) = f x y;;
+let uncurry f (x,y) = f x y
 
-let I x = x;;
+let I x = x
 
-let K x y = x;;
+let K x y = x
 
-let C f x y = f y x;;
+let C f x y = f y x
 
-let W f x = f x x;;
+let W f x = f x x
 
-// OPTIMIZE : Replace all uses of (0) with (<<).
-let (o) = fun f g x -> f (g x);;
+// NOTE : Replaced all uses of (o) with (<<) since F# does not allow (o) to be used as an infix operator.
 
-let (F_F) = fun f g (x,y) -> (f x, g y);;
+let (F_F) = fun f g (x,y) -> (f x, g y)
 
 (* ------------------------------------------------------------------------- *)
 (* List basics.                                                              *)

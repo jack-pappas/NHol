@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Calculation with natural numbers.
-[<AutoOpen>]
 module NHol.calc_num
 

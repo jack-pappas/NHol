@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Groebner basis procedure for most semirings.
-[<AutoOpen>]
 module NHol.grobner
 

@@ -19,8 +19,9 @@ limitations under the License.
 *)
 
 /// More sophisticated derived rules including definitions and rewriting.
-[<AutoOpen>]
 module NHol.drule
+
+(*
 
 (* ------------------------------------------------------------------------- *)
 (* Type of instantiations, with terms, types and higher-order data.          *)
@@ -499,4 +500,6 @@ let new_definition tm =
                   TRANS ith (BETA_CONV(rand(concl ith)))) largs th1 in
   let rvs = filter (not o C mem avs) largs in
   itlist GEN rvs (itlist GEN avs th2);;
+
+*)
 

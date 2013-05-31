@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Derived properties of reals.
-[<AutoOpen>]
 module NHol.real
 

@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Theory of wellfounded relations.
-[<AutoOpen>]
 module NHol.wf
 

@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Support for general recursive definitions.
-[<AutoOpen>]
 module NHol.define
 

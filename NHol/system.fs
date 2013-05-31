@@ -18,7 +18,7 @@ limitations under the License.
 *)
 
 /// Set up proper parsing and load bignums.
-[<AutoOpen>]
+
 module NHol.system
 
 (*

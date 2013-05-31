@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Basic set theory.
-[<AutoOpen>]
 module NHol.sets
 

@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Derived rules for inductive definitions.
-[<AutoOpen>]
 module NHol.ind_defs
 

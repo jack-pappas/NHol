@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Finite Cartesian products.
-[<AutoOpen>]
 module NHol.cart
 

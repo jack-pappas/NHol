@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Some very basic theories, e.g. type ":1".
-[<AutoOpen>]
 module NHol.trivia
 

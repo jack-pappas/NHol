@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Derived rules for defining quotient types.
-[<AutoOpen>]
 module NHol.quot
 

@@ -19,8 +19,9 @@ limitations under the License.
 *)
 
 /// Boolean theory including (intuitionistic) defs of logical connectives.
-[<AutoOpen>]
 module NHol.bool
+
+(*
 
 (* ------------------------------------------------------------------------- *)
 (* Set up parse status of basic and derived logical constants.               *)
@@ -473,4 +474,6 @@ let EXISTENCE =
         let ty = snd(dest_var(bndvar abs)) in
         MP (PINST [ty,aty] [abs,P] pth) th
     with Failure _ -> failwith "EXISTENCE";;
+
+*)
 

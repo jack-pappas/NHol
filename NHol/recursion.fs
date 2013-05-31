@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Tools for primitive recursion on inductive types.
-[<AutoOpen>]
 module NHol.recursion
 

@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Theory of pairs.
-[<AutoOpen>]
 module NHol.pair
 

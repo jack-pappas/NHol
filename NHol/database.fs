@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// List of name-theorem pairs for search system.
-[<AutoOpen>]
 module NHol.database
 

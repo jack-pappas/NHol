@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Tools for defining inductive types.
-[<AutoOpen>]
 module NHol.ind_types
 

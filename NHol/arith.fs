@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Natural number arithmetic.
-[<AutoOpen>]
 module NHol.arith
 

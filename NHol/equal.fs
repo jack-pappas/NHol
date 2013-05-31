@@ -19,8 +19,9 @@ limitations under the License.
 *)
 
 /// Basic equality reasoning including conversionals.
-[<AutoOpen>]
 module NHol.equal
+
+(*
 
 (* ------------------------------------------------------------------------- *)
 (* Type abbreviation for conversions.                                        *)
@@ -333,4 +334,6 @@ let CACHE_CONV =
               with Failure _ ->
                   let th = conv tm in
                   (net := enter [] (tm,ALPHA_HACK th) (!net); th);;
+
+*)
 

@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Classical reasoning: Choice and Extensionality.
-[<AutoOpen>]
 module NHol.``class``
 

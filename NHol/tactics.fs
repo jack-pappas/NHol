@@ -20,8 +20,9 @@ limitations under the License.
 *)
 
 /// System of tactics (slightly different from any traditional LCF method).
-[<AutoOpen>]
 module NHol.tactics
+
+(*
 
 (* ------------------------------------------------------------------------- *)
 (* The common case of trivial instantiations.                                *)
@@ -924,3 +925,4 @@ let top_thm() =
 #install_printer print_goal;;
 #install_printer print_goalstack;;
 
+*)

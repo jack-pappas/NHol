@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Additional theorems (mainly for quantifiers) etc.
-[<AutoOpen>]
 module NHol.theorems
 

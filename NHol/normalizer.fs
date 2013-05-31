@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Polynomial normalizer for rings and semirings.
-[<AutoOpen>]
 module NHol.normalizer
 

@@ -19,6 +19,5 @@ limitations under the License.
 *)
 
 /// Calculation with rational-valued reals.
-[<AutoOpen>]
 module NHol.calc_rat
 
