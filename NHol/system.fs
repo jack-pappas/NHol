@@ -18,56 +18,57 @@ limitations under the License.
 *)
 
 /// Set up proper parsing and load bignums.
-
 module NHol.system
 
 (*
 
-Gc.set { (Gc.get()) with Gc.stack_limit = 16777216 };;
+Gc.set { (Gc.get()) with Gc.stack_limit = 16777216 }
+
 
 (* ------------------------------------------------------------------------- *)
 (* Make sure user interrupts generate an exception, not kill the process.    *)
 (* ------------------------------------------------------------------------- *)
 
-Sys.catch_break true;;
+Sys.catch_break true
 
 (* ------------------------------------------------------------------------- *)
 (* Set up a quotation expander for the `...` quotes.                         *)
 (* This includes the case `;...` to support miz3, even if that isn't loaded. *)
 (* ------------------------------------------------------------------------- *)
 
-let quotexpander s =
-  if s = "" then failwith "Empty quotation" else
-  let c = String.sub s 0 1 in
-  if c = ":" then
-    "parse_type \""^
-    (String.escaped (String.sub s 1 (String.length s - 1)))^"\""
-  else if c = ";" then "parse_qproof \""^(String.escaped s)^"\""
-  else "parse_term \""^(String.escaped s)^"\"";;
+let quotexpander s = 
+    if s = ""
+    then failwith "Empty quotation"
+    else 
+        let c = String.sub s 0 1
+        if c = ":"
+        then "parse_type \"" ^ (String.escaped(String.sub s 1 (String.length s - 1))) ^ "\""
+        elif c = ";"
+        then "parse_qproof \"" ^ (String.escaped s) ^ "\""
+        else "parse_term \"" ^ (String.escaped s) ^ "\""
 
-Quotation.add "tot" (Quotation.ExStr (fun x -> quotexpander));;
+Quotation.add "tot" (Quotation.ExStr(fun x -> quotexpander))
 
 (* ------------------------------------------------------------------------- *)
 (* Modify the lexical analysis of uppercase identifiers.                     *)
 (* ------------------------------------------------------------------------- *)
 
-set_jrh_lexer;;
+set_jrh_lexer
 
 (* ------------------------------------------------------------------------- *)
 (* Load in the bignum library and set up printing in the toplevel.           *)
 (* ------------------------------------------------------------------------- *)
 
-#load "nums.cma";;
+#load "nums.cma"
 
-include Num;;
+include Num
 
-let print_num n =
-  Format.open_hbox();
-  Format.print_string(string_of_num n);
-  Format.close_box();;
+let print_num n = 
+    Format.open_hbox()
+    Format.print_string(string_of_num n)
+    Format.close_box()
 
-#install_printer print_num;;
-
+fsi.AddPrinter print_num
 
 *)
 
