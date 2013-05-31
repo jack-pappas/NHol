@@ -19,25 +19,24 @@ limitations under the License.
 *)
 
 /// Various useful general library functions.
-[<AutoOpen>]
 module NHol.lib
 
 open FSharp.Compatibility.OCaml
 
-let fail() = failwith ""
+let fail() = raise <| exn ()
 
 (* ------------------------------------------------------------------------- *)
 (* Combinators.                                                              *)
 (* ------------------------------------------------------------------------- *)
-let curry f x y = f(x, y)
 
+let curry f x y = f(x, y)
 let uncurry f (x, y) = f x y
 let I x = x
 let K x y = x
 let C f x y = f y x
 let W f x = f x x
 
-// OPTIMIZE : Replace all uses of (0) with (<<).
+// NOTE : Replaced all uses of (o) with (<<) since F# does not allow (o) to be used as an infix operator.
 let (o) = fun f g x -> f(g x)
 
 let (F_F) = fun f g (x, y) -> (f x, g y)
@@ -45,6 +44,7 @@ let (F_F) = fun f g (x, y) -> (f x, g y)
 (* ------------------------------------------------------------------------- *)
 (* List basics.                                                              *)
 (* ------------------------------------------------------------------------- *)
+
 // OPTIMIZE : Make this an alias for List.head.
 let hd l = 
     match l with
@@ -107,6 +107,7 @@ let rec map2 f l1 l2 =
 (* ------------------------------------------------------------------------- *)
 (* Attempting function or predicate applications.                            *)
 (* ------------------------------------------------------------------------- *)
+
 let can f x = 
     try 
         (f x
@@ -122,6 +123,7 @@ let check p x =
 (* ------------------------------------------------------------------------- *)
 (* Repetition of a function.                                                 *)
 (* ------------------------------------------------------------------------- *)
+
 let rec funpow n f x = 
     if n < 1
     then x
@@ -138,11 +140,13 @@ let rec repeat f x =
 (* To avoid consing in various situations, we propagate this exception.      *)
 (* I should probably eliminate this and use pointer EQ tests instead.        *)
 (* ------------------------------------------------------------------------- *)
+
 exception Unchanged
 
 (* ------------------------------------------------------------------------- *)
 (* Various versions of list iteration.                                       *)
 (* ------------------------------------------------------------------------- *)
+
 // OPTIMIZE : Make this an alias for List.fold.
 let rec itlist f l b = 
     match l with
@@ -179,6 +183,7 @@ let rec rev_itlist2 f l1 l2 b =
 (* ------------------------------------------------------------------------- *)
 (* Iterative splitting (list) and stripping (tree) via destructor.           *)
 (* ------------------------------------------------------------------------- *)
+
 let rec splitlist dest x = 
     try 
         let l, r = dest x
@@ -208,6 +213,7 @@ let striplist dest =
 (* ------------------------------------------------------------------------- *)
 (* Apply a destructor as many times as elements in list.                     *)
 (* ------------------------------------------------------------------------- *)
+
 let rec nsplit dest clist x = 
     if clist = []
     then [], x
@@ -219,6 +225,7 @@ let rec nsplit dest clist x =
 (* ------------------------------------------------------------------------- *)
 (* Replication and sequences.                                                *)
 (* ------------------------------------------------------------------------- *)
+
 // OPTIMIZE : Make this an alias for List.replicate.
 let rec replicate x n = 
     if n < 1
@@ -235,6 +242,7 @@ let rec (--) =
 (* ------------------------------------------------------------------------- *)
 (* Various useful list operations.                                           *)
 (* ------------------------------------------------------------------------- *)
+
 // OPTIMIZE : Make this an alias for List.forall.
 let rec forall p l = 
     match l with
@@ -380,6 +388,7 @@ let set_eq l1 l2 = subset l1 l2 && subset l2 l1
 (* ------------------------------------------------------------------------- *)
 (* Association lists.                                                        *)
 (* ------------------------------------------------------------------------- *)
+
 let rec assoc a l = 
     match l with
     | (x, y) :: t -> 
@@ -399,6 +408,7 @@ let rec rev_assoc a l =
 (* ------------------------------------------------------------------------- *)
 (* Zipping, unzipping etc.                                                   *)
 (* ------------------------------------------------------------------------- *)
+
 // OPTIMIZE : Make this an alias for List.zip.
 let rec zip l1 l2 = 
     match (l1, l2) with
@@ -417,6 +427,7 @@ let rec unzip =
 (* ------------------------------------------------------------------------- *)
 (* Sharing out a list according to pattern in list-of-lists.                 *)
 (* ------------------------------------------------------------------------- *)
+
 let rec shareout pat all = 
     if pat = []
     then []
@@ -438,6 +449,7 @@ let rec do_list f l =
 (* ------------------------------------------------------------------------- *)
 (* Sorting.                                                                  *)
 (* ------------------------------------------------------------------------- *)
+
 // OPTIMIZE : Make this an alias for List.sortWith.
 let rec sort cmp lis = 
     match lis with
@@ -449,6 +461,7 @@ let rec sort cmp lis =
 (* ------------------------------------------------------------------------- *)
 (* Removing adjacent (NB!) equal elements from list.                         *)
 (* ------------------------------------------------------------------------- *)
+
 let rec uniq l = 
     match l with
     | x :: (y :: _ as t) -> 
@@ -463,11 +476,13 @@ let rec uniq l =
 (* ------------------------------------------------------------------------- *)
 (* Convert list into set by eliminating duplicates.                          *)
 (* ------------------------------------------------------------------------- *)
+
 let setify s = uniq(sort (fun x y -> compare x y <= 0) s)
 
 (* ------------------------------------------------------------------------- *)
 (* String operations (surely there is a better way...)                       *)
 (* ------------------------------------------------------------------------- *)
+
 // OPTIMIZE : Make this an alias for List.sortWith.
 let implode l = itlist (^) l ""
 
@@ -481,6 +496,7 @@ let explode s =
 (* ------------------------------------------------------------------------- *)
 (* Greatest common divisor.                                                  *)
 (* ------------------------------------------------------------------------- *)
+
 let gcd = 
     let rec gxd x y = 
         if y = 0
@@ -496,11 +512,12 @@ let gcd =
 (* ------------------------------------------------------------------------- *)
 (* Some useful functions on "num" type.                                      *)
 (* ------------------------------------------------------------------------- *)
-let num_0 = Int 0
 
+let num_0 = Int 0
 let num_1 = Int 1
 let num_2 = Int 2
 let num_10 = Int 10
+
 let pow2 n = power_num num_2 (Int n)
 let pow10 n = power_num num_10 (Int n)
 
@@ -520,6 +537,7 @@ let lcm_num x y =
 (* ------------------------------------------------------------------------- *)
 (* All pairs arising from applying a function over two lists.                *)
 (* ------------------------------------------------------------------------- *)
+
 let rec allpairs f l1 l2 = 
     match l1 with
     | h1 :: t1 -> itlist (fun x a -> f h1 x :: a) l2 (allpairs f t1 l2)
@@ -528,6 +546,7 @@ let rec allpairs f l1 l2 =
 (* ------------------------------------------------------------------------- *)
 (* Issue a report with a newline.                                            *)
 (* ------------------------------------------------------------------------- *)
+
 let report s = 
     Format.print_string s
     Format.print_newline()
@@ -535,6 +554,7 @@ let report s =
 (* ------------------------------------------------------------------------- *)
 (* Convenient function for issuing a warning.                                *)
 (* ------------------------------------------------------------------------- *)
+
 let warn cond s = 
     if cond
     then report("Warning: " ^ s)
@@ -543,6 +563,7 @@ let warn cond s =
 (* ------------------------------------------------------------------------- *)
 (* Flags to switch on verbose mode.                                          *)
 (* ------------------------------------------------------------------------- *)
+
 let verbose = ref true
 
 let report_timing = ref true
@@ -550,6 +571,7 @@ let report_timing = ref true
 (* ------------------------------------------------------------------------- *)
 (* Switchable version of "report".                                           *)
 (* ------------------------------------------------------------------------- *)
+
 let remark s = 
     if !verbose
     then report s
@@ -558,6 +580,7 @@ let remark s =
 (* ------------------------------------------------------------------------- *)
 (* Time a function.                                                          *)
 (* ------------------------------------------------------------------------- *)
+
 let time f x = 
     if not(!report_timing)
     then f x
@@ -578,6 +601,7 @@ let time f x =
 (* ------------------------------------------------------------------------- *)
 (* Versions of assoc and rev_assoc with default rather than failure.         *)
 (* ------------------------------------------------------------------------- *)
+
 let rec assocd a l d = 
     match l with
     | [] -> d
@@ -597,6 +621,7 @@ let rec rev_assocd a l d =
 (* ------------------------------------------------------------------------- *)
 (* Version of map that avoids rebuilding unchanged subterms.                 *)
 (* ------------------------------------------------------------------------- *)
+
 let rec qmap f l = 
     match l with
     | h :: t -> 
@@ -610,6 +635,7 @@ let rec qmap f l =
 (* ------------------------------------------------------------------------- *)
 (* Merging and bottom-up mergesort.                                          *)
 (* ------------------------------------------------------------------------- *)
+
 let rec merge ord l1 l2 = 
     match l1 with
     | [] -> l2
@@ -636,6 +662,7 @@ let mergesort ord =
 (* ------------------------------------------------------------------------- *)
 (* Common measure predicates to use with "sort".                             *)
 (* ------------------------------------------------------------------------- *)
+
 let increasing f x y = compare (f x) (f y) < 0
 
 let decreasing f x y = compare (f x) (f y) > 0
@@ -650,19 +677,21 @@ let decreasing f x y = compare (f x) (f y) > 0
 (* ------------------------------------------------------------------------- *)
 
 // OPTIMIZE : Replace with IntMap type from ExtCore.
-type ('a,'b)func =
+type func<'a, 'b> =
    Empty
- | Leaf of int * ('a*'b)list
- | Branch of int * int * ('a,'b)func * ('a,'b)func;;
+ | Leaf of int * ('a * 'b) list
+ | Branch of int * int * func<'a, 'b> * func<'a, 'b>
 
 (* ------------------------------------------------------------------------- *)
 (* Undefined function.                                                       *)
 (* ------------------------------------------------------------------------- *)
+
 let undefined = Empty
 
 (* ------------------------------------------------------------------------- *)
 (* In case of equality comparison worries, better use this.                  *)
 (* ------------------------------------------------------------------------- *)
+
 let is_undefined f = 
     match f with
     | Empty -> true
@@ -671,6 +700,7 @@ let is_undefined f =
 (* ------------------------------------------------------------------------- *)
 (* Operation analagous to "map" for lists.                                   *)
 (* ------------------------------------------------------------------------- *)
+
 let mapf = 
     let rec map_list f l = 
         match l with
@@ -686,6 +716,7 @@ let mapf =
 (* ------------------------------------------------------------------------- *)
 (* Operations analogous to "fold" for lists.                                 *)
 (* ------------------------------------------------------------------------- *)
+
 let foldl = 
     let rec foldl_list f a l = 
         match l with
@@ -713,6 +744,7 @@ let foldr =
 (* ------------------------------------------------------------------------- *)
 (* Mapping to sorted-list representation of the graph, domain and range.     *)
 (* ------------------------------------------------------------------------- *)
+
 let graph f = setify(foldl (fun a x y -> (x, y) :: a) [] f)
 
 let dom f = setify(foldl (fun a x y -> x :: a) [] f)
@@ -721,6 +753,7 @@ let ran f = setify(foldl (fun a x y -> y :: a) [] f)
 (* ------------------------------------------------------------------------- *)
 (* Application.                                                              *)
 (* ------------------------------------------------------------------------- *)
+
 let applyd = 
     let rec apply_listd l d x = 
         match l with
@@ -757,6 +790,7 @@ let defined f x =
 (* ------------------------------------------------------------------------- *)
 (* Undefinition.                                                             *)
 (* ------------------------------------------------------------------------- *)
+
 let undefine = 
     let rec undefine_list x l = 
         match l with
@@ -808,6 +842,7 @@ let undefine =
 (* Redefinition and combination.                                             *)
 (* ------------------------------------------------------------------------- *)
 
+// TODO: revise this
 let (|->),combine =
   let newbranch p1 t1 p2 t2 =
     let zp = p1 lxor p2
@@ -830,9 +865,11 @@ let (|->),combine =
     | ((x1,y1 as xy1)::t1,(x2,y2 as xy2)::t2) ->
           let c = Pervasives.compare x1 x2
           if c < 0 then xy1::(combine_list op z t1 l2)
-          else if c > 0 then xy2::(combine_list op z l1 t2) else
-          let rec y = op y1 y2 and l = combine_list op z t1 t2
-          if z(y) then l else (x1,y)::l
+          else 
+            if c > 0 then xy2::(combine_list op z l1 t2) 
+            else
+              let rec y = op y1 y2 and l = combine_list op z t1 t2
+              if z(y) then l else (x1,y)::l
 
   let (|->) x y =
     let k = Hashtbl.hash x
@@ -903,11 +940,13 @@ let (|->),combine =
 (* ------------------------------------------------------------------------- *)
 (* Special case of point function.                                           *)
 (* ------------------------------------------------------------------------- *)
+
 let (|=>) = fun x y -> (x |-> y) undefined
 
 (* ------------------------------------------------------------------------- *)
 (* Grab an arbitrary element.                                                *)
 (* ------------------------------------------------------------------------- *)
+
 let rec choose t = 
     match t with
     | Empty -> failwith "choose: completely undefined function"
@@ -917,18 +956,20 @@ let rec choose t =
 (* ------------------------------------------------------------------------- *)
 (* Install a trivial printer for the general polymorphic case.               *)
 (* ------------------------------------------------------------------------- *)
-let print_fpf(f : ('a, 'b)func) = Format.print_string "<func>"
+
+let print_fpf(f : func<'a, 'b>) = Format.print_string "<func>"
 
 fsi.AddPrinter print_fpf
 
 (* ------------------------------------------------------------------------- *)
 (* Set operations parametrized by equality (from Steven Obua).               *)
 (* ------------------------------------------------------------------------- *)
+
 let rec mem' eq = 
     let rec mem x lis = 
         match lis with
         | [] -> false
-        | (h :: t) -> eq x h or mem x t
+        | (h :: t) -> eq x h || mem x t
     mem
 
 let insert' eq x l = 
