@@ -21,17 +21,20 @@ limitations under the License.
 /// More syntax constructors, and prelogical utilities like matching.
 module NHol.basics
 
-(*
+open NHol.lib
+open NHol.fusion
+open NHol.fusion.Hol_kernel
 
 (* ------------------------------------------------------------------------- *)
 (* Create probably-fresh variable                                            *)
 (* ------------------------------------------------------------------------- *)
 
 let genvar =
-  let gcounter = ref 0 in
-  fun ty -> let count = !gcounter in
-             (gcounter := count + 1;
-              mk_var("_"^(string_of_int count),ty));;
+  let gcounter = ref 0
+  fun ty -> 
+      let count = !gcounter
+      gcounter := count + 1
+      mk_var("_" + (string count),ty)
 
 (* ------------------------------------------------------------------------- *)
 (* Convenient functions for manipulating types.                              *)
@@ -39,12 +42,12 @@ let genvar =
 
 let dest_fun_ty ty =
   match ty with
-    Tyapp("fun",[ty1;ty2]) -> (ty1,ty2)
+  | Tyapp("fun",[ty1;ty2]) -> (ty1,ty2)
   | _ -> failwith "dest_fun_ty";;
 
 let rec occurs_in ty bigty =
-  bigty = ty or
-  is_type bigty & exists (occurs_in ty) (snd(dest_type bigty));;
+  bigty = ty ||
+  is_type bigty && exists (occurs_in ty) (snd(dest_type bigty));;
 
 let rec tysubst alist ty =
   try rev_assoc ty alist with Failure _ ->
@@ -124,20 +127,21 @@ let variables =
 let subst =
   let rec ssubst ilist tm =
     if ilist = [] then tm else
-    try fst (find ((aconv tm) o snd) ilist) with Failure _ ->
+    try fst (find ((aconv tm) << snd) ilist) with Failure _ ->
     match tm with
-      Comb(f,x) -> let f' = ssubst ilist f and x' = ssubst ilist x in
-                   if f' == f & x' == x then tm else mk_comb(f',x')
+      Comb(f,x) -> let f' = ssubst ilist f
+                   let x' = ssubst ilist x in
+                   if f' == f && x' == x then tm else mk_comb(f',x')
     | Abs(v,bod) ->
-          let ilist' = filter (not o (vfree_in v) o snd) ilist in
+          let ilist' = filter (not << (vfree_in v) << snd) ilist in
           mk_abs(v,ssubst ilist' bod)
     | _ -> tm in
   fun ilist ->
-    let theta = filter (fun (s,t) -> Pervasives.compare s t <> 0) ilist in
+    let theta = filter (fun (s,t) -> compare s t <> 0) ilist in
     if theta = [] then (fun tm -> tm) else
     let ts,xs = unzip theta in
     fun tm ->
-      let gs = variants (variables tm) (map (genvar o type_of) xs) in
+      let gs = variants (variables tm) (map (genvar << type_of) xs) in
       let tm' = ssubst (zip gs xs) tm in
       if tm' == tm then tm else vsubst (zip ts gs) tm';;
 
@@ -149,7 +153,7 @@ let alpha v tm =
   let v0,bod = try dest_abs tm
                with Failure _ -> failwith "alpha: Not an abstraction"in
   if v = v0 then tm else
-  if type_of v = type_of v0 & not (vfree_in v bod) then
+  if type_of v = type_of v0 && not (vfree_in v bod) then
     mk_abs(v,vsubst[v,v0]bod)
   else failwith "alpha: Invalid new variable";;
 
@@ -162,7 +166,8 @@ let rec type_match vty cty sofar =
      try if rev_assoc vty sofar = cty then sofar else failwith "type_match"
      with Failure "find" -> (cty,vty)::sofar
   else
-     let vop,vargs = dest_type vty and cop,cargs = dest_type cty in
+     let vop,vargs = dest_type vty 
+     let cop,cargs = dest_type cty in
      if vop = cop then itlist2 type_match vargs cargs sofar
      else failwith "type_match";;
 
@@ -201,7 +206,7 @@ let list_mk_icomb cname args =
 
 let thm_frees th =
   let asl,c = dest_thm th in
-  itlist (union o frees) asl (frees c);;
+  itlist (union << frees) asl (frees c);;
 
 (* ------------------------------------------------------------------------- *)
 (* Is one term free in another?                                              *)
@@ -210,10 +215,10 @@ let thm_frees th =
 let rec free_in tm1 tm2 =
   if aconv tm1 tm2 then true
   else if is_comb tm2 then
-    let l,r = dest_comb tm2 in free_in tm1 l or free_in tm1 r
+    let l,r = dest_comb tm2 in free_in tm1 l || free_in tm1 r
   else if is_abs tm2 then
     let bv,bod = dest_abs tm2 in
-    not (vfree_in bv tm1) & free_in tm1 bod
+    not (vfree_in bv tm1) && free_in tm1 bod
   else false;;
 
 (* ------------------------------------------------------------------------- *)
@@ -329,13 +334,18 @@ let is_list = can dest_list;;
 
 let dest_numeral =
   let rec dest_num tm =
-    if try fst(dest_const tm) = "_0" with Failure _ -> false then num_0 else
-    let l,r = dest_comb tm in
-    let n = num_2 */ dest_num r in
-    let cn = fst(dest_const l) in
-    if cn = "BIT0" then n
-    else if cn = "BIT1" then n +/ num_1
-    else fail() in
+    if 
+      try fst(dest_const tm) = "_0" 
+      with 
+      | Failure _ -> false 
+    then num_0 
+    else
+      let l,r = dest_comb tm in
+      let n = num_2 * dest_num r in
+      let cn = fst(dest_const l) in
+      if cn = "BIT0" then n
+      else if cn = "BIT1" then n + num_1
+      else fail() in
   fun tm -> try let l,r = dest_comb tm in
                 if fst(dest_const l) = "NUMERAL" then dest_num r else fail()
             with Failure _ -> failwith "dest_numeral";;
@@ -411,7 +421,7 @@ let mk_let(assigs,bod) =
 let make_args =
   let rec margs n s avoid tys =
     if tys = [] then [] else
-    let v = variant avoid (mk_var(s^(string_of_int n),hd tys)) in
+    let v = variant avoid (mk_var(s^(string n),hd tys)) in
     v::(margs (n + 1) s (v::avoid) (tl tys)) in
   fun s avoid tys ->
     if length tys = 1 then
@@ -439,5 +449,3 @@ let follow_path =
     | "r"::t -> follow_path t (rand tm)
     | _::t -> follow_path t (body tm) in
   fun s tm -> follow_path (explode s) tm;;
-
-*)
