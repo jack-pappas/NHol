@@ -181,6 +181,7 @@ module Hol_kernel =
         | Abs(Var(_, ty), t) -> 
             Tyapp("fun", [ty
                           type_of t])
+        | _ -> failwith "type_of: not a type of a term"
 
     (* ------------------------------------------------------------------------- *)
     (* Primitive discriminators.                                                 *)
@@ -297,6 +298,7 @@ module Hol_kernel =
         | Const(_, ty) -> tyvars ty
         | Comb(s, t) -> union (type_vars_in_term s) (type_vars_in_term t)
         | Abs(Var(_, ty), t) -> union (tyvars ty) (type_vars_in_term t)
+        | _ -> failwith "type_vars_in_term: not a type variable"
 
     (* ------------------------------------------------------------------------- *)
     (* For name-carrying syntax, we need this early.                             *)
@@ -464,6 +466,7 @@ module Hol_kernel =
             | _, Var(_, _) -> 1
             | Comb(_, _), _ -> -1
             | _, Comb(_, _) -> 1
+            | _ -> failwith "orda: unexpacted pattern"
 
     let alphaorder = orda []
 

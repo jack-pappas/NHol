@@ -29,7 +29,9 @@ open FSharp.Compatibility.OCaml.Num
 (* ------------------------------------------------------------------------- *)
 
 module Ratio =
+    // NOTE : not sure what kind of normalization should be done here
     let normalize_ratio x = x
+
     let numerator_ratio (r : Ratio.ratio) = r.Numerator
     let denominator_ratio (r : Ratio.ratio) = r.Denominator
 
