@@ -1,6 +1,6 @@
 ﻿(*
 
-Copyright 2013 Jack Pappas
+Copyright 2013 Jack Pappas, Anh-Dung Phan
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,14 +16,16 @@ limitations under the License.
 
 *)
 
-/// Tests for functions in the NHol.Pervasive module.
-module Tests.NHol.Pervasive
+/// Tests for functions in the NHol.fusion module.
+module Tests.NHol.fusion
 
 open NUnit.Framework
 open FsUnit
 
-
-//
 [<Test>]
 let dummy () : unit =
     Assert.Ignore "Test not yet implemented."
+
+
+
+
