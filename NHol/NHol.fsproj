@@ -102,6 +102,10 @@
       <HintPath>..\packages\FSharp.Compatibility.OCaml.Format.0.1.9\lib\net40\FSharp.Compatibility.OCaml.Format.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="FSharp.Compatibility.OCaml.System">
+      <HintPath>..\packages\FSharp.Compatibility.OCaml.System.0.1.9\lib\net40\FSharp.Compatibility.OCaml.System.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="FSharp.PowerPack, Version=2.0.0.0, Culture=neutral, PublicKeyToken=a19089b1c74d0809">
       <Private>True</Private>
     </Reference>

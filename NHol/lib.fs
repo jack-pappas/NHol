@@ -22,6 +22,18 @@ limitations under the License.
 module NHol.lib
 
 open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+
+(* ------------------------------------------------------------------------- *)
+(* A few missing functions to convert OCaml code to F#.                      *)
+(* ------------------------------------------------------------------------- *)
+
+module Ratio =
+    let normalize_ratio x = x
+    let numerator_ratio (r : Ratio.ratio) = r.Numerator
+    let denominator_ratio (r : Ratio.ratio) = r.Denominator
+
+let (==) (x : 'T) (y : 'T) = obj.ReferenceEquals(x, y)
 
 let fail() = raise <| exn ()
 
@@ -110,7 +122,7 @@ let rec map2 f l1 l2 =
 
 let can f x = 
     try 
-        (f x
+        (f x |> ignore
          true)
     with
     | Failure _ -> false
