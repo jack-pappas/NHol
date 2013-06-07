@@ -41,7 +41,6 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
-    <Compile Include="Pervasive.fs" />
     <Compile Include="lib.fs" />
     <Compile Include="fusion.fs" />
     <Compile Include="basics.fs" />
