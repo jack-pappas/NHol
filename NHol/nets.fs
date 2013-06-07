@@ -21,7 +21,10 @@ limitations under the License.
 /// Term nets: reasonably fast lookup based on term matchability.
 module NHol.nets
 
-(*
+open NHol.lib
+open NHol.fusion
+open NHol.fusion.Hol_kernel
+open NHol.basics
 
 (* ------------------------------------------------------------------------- *)
 (* Term nets are a finitely branching tree structure; at each level we       *)
@@ -60,10 +63,10 @@ let enter =
       Lnet(length args),bod'::args
     else if mem op lconsts then Lcnet(fst(dest_var op),length args),args
     else Vnet,[] in
-  let canon_eq x y =
-    try Pervasives.compare x y = 0 with Invalid_argument _ -> false
+  let rec canon_eq x y =
+    try compare x y = 0 with Failure _ -> false
   and canon_lt x y =
-    try Pervasives.compare x y < 0 with Invalid_argument _ -> false in
+    try compare x y < 0 with Failure _ -> false in
   let rec sinsert x l =
     if l = [] then [x] else
     let h = hd l in
@@ -77,7 +80,7 @@ let enter =
     | (tm::rtms) ->
           let label,ntms = label_to_store lconsts tm in
           let child,others =
-            try (snd F_F I) (remove (fun (x,y) -> x = label) edges)
+            try (snd .>>. I) (remove (fun (x,y) -> x = label) edges)
             with Failure _ -> (empty_net,edges) in
           let new_child = net_update lconsts (elem,ntms@rtms,child) in
           Netnode ((label,new_child)::others,tips) in
@@ -112,15 +115,15 @@ let lookup =
 (* ------------------------------------------------------------------------- *)
 
 let merge_nets =
-  let canon_eq x y =
-    try Pervasives.compare x y = 0 with Invalid_argument _ -> false
+  let rec canon_eq x y =
+    try compare x y = 0 with Failure _ -> false
   and canon_lt x y =
-    try Pervasives.compare x y < 0 with Invalid_argument _ -> false in
+    try compare x y < 0 with Failure _ -> false in
   let rec set_merge l1 l2 =
     if l1 = [] then l2
     else if l2 = [] then l1 else
-    let h1 = hd l1 and t1 = tl l1
-    and h2 = hd l2 and t2 = tl l2 in
+    let h1 = hd l1 in let t1 = tl l1 in
+    let h2 = hd l2 in let t2 = tl l2 in
     if canon_eq h1 h2 then h1::(set_merge t1 t2)
     else if canon_lt h1 h2 then h1::(set_merge t1 l2)
     else h2::(set_merge l1 t2) in
@@ -132,6 +135,4 @@ let merge_nets =
     Netnode(itlist add_node l2 (itlist add_node l1 []),
             set_merge data1 data2) in
   merge_nets;;
-
-*)
 

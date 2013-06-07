@@ -53,7 +53,7 @@ let W f x = f x x
 // NOTE : Replaced all uses of (o) with (<<) since F# does not allow (o) to be used as an infix operator.
 let (o) = fun f g x -> f(g x)
 
-let (F_F) = fun f g (x, y) -> (f x, g y)
+let (.>>.) = fun f g (x, y) -> (f x, g y)
 
 (* ------------------------------------------------------------------------- *)
 (* List basics.                                                              *)
