@@ -796,7 +796,7 @@ let tryapplyd f a d = applyd f (fun x -> d) a
 
 let defined f x = 
     try 
-        apply f x
+        apply f x |> ignore
         true
     with
     | Failure _ -> false

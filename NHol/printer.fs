@@ -23,6 +23,7 @@ module NHol.printer
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
 open NHol.lib
 open NHol.fusion
 open NHol.fusion.Hol_kernel

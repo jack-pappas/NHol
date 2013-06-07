@@ -4,7 +4,7 @@ Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
 Copyright 2012 Marco Maggesi
 Copyright 2012 Vincent Aravantinos
-Copyright 2013 Jack Pappas
+Copyright 2013 Jack Pappas, Anh-Dung Phan
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,9 +23,15 @@ limitations under the License.
 /// Preterms and pretypes; typechecking; translation to types and terms.
 module NHol.preterm
 
-open NHol
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
 
-(*
+open NHol.lib
+open NHol.fusion
+open NHol.fusion.Hol_kernel
+open NHol.basics
+open NHol.nets
+open NHol.printer
 
 (* ------------------------------------------------------------------------- *)
 (* Flag to say whether to treat varstruct "\const. bod" as variable.         *)
@@ -35,7 +41,7 @@ let ignore_constant_varstruct = ref true;;
 
 (* ------------------------------------------------------------------------- *)
 (* Flags controlling the treatment of invented type variables in quotations. *)
-(* It can be treated as an error, result in a warning, or neither of those.  *)
+(* It can be treated as an error, result in a warning, ||  neither of those.  *)
 (* ------------------------------------------------------------------------- *)
 
 let type_invention_warning = ref true;;
@@ -43,7 +49,7 @@ let type_invention_warning = ref true;;
 let type_invention_error = ref false;;
 
 (* ------------------------------------------------------------------------- *)
-(* Implicit types or type schemes for non-constants.                         *)
+(* Implicit types ||  type schemes for non-constants.                         *)
 (* ------------------------------------------------------------------------- *)
 
 let the_implicit_types = ref ([]:(string*hol_type)list);;
@@ -59,7 +65,7 @@ let make_overloadable s gty =
   else the_overload_skeletons := (s,gty)::(!the_overload_skeletons);;
 
 let remove_interface sym =
-  let ``interface`` = filter ((<>)sym o fst) (!the_interface) in
+  let ``interface`` = filter ((<>)sym << fst) (!the_interface) in
   the_interface := ``interface``;;
 
 let reduce_interface (sym,tm) =
@@ -68,7 +74,7 @@ let reduce_interface (sym,tm) =
 
 let override_interface (sym,tm) =
   let namty = try dest_const tm with Failure _ -> dest_var tm in
-  let ``interface`` = filter ((<>)sym o fst) (!the_interface) in
+  let ``interface`` = filter ((<>)sym << fst) (!the_interface) in
   the_interface := (sym,namty)::``interface``;;
 
 let overload_interface (sym,tm) =
@@ -83,8 +89,10 @@ let overload_interface (sym,tm) =
 let prioritize_overload ty =
   do_list
    (fun (s,gty) ->
-      try let _,(n,t) = find
-            (fun (s',(n,t)) -> s' = s & mem ty (map fst (type_match gty t [])))
+      try 
+          let _,(n,t) = 
+           find
+            (fun (s',(n,t)) -> s' = s && mem ty (map fst (type_match gty t [])))
             (!the_interface) in
           overload_interface(s,mk_var(n,t))
       with Failure _ -> ())
@@ -156,10 +164,12 @@ type preterm = Varp of string * pretype       (* Variable           - v      *)
 let rec preterm_of_term tm =
   try let n,ty = dest_var tm in
       Varp(n,pretype_of_type ty)
-  with Failure _ -> try
+  with Failure _ -> 
+  try
       let n,ty = dest_const tm in
       Constp(n,pretype_of_type ty)
-  with Failure _ -> try
+  with Failure _ -> 
+  try
       let v,bod = dest_abs tm in
       Absp(preterm_of_term v,preterm_of_term bod)
   with Failure _ ->
@@ -181,12 +191,12 @@ let type_of_pretype,term_of_preterm,retypecheck =
   let pmk_numeral =
     let num_pty = Ptycon("num",[]) in
     let NUMERAL = Constp("NUMERAL",Ptycon("fun",[num_pty; num_pty]))
-    and BIT0 = Constp("BIT0",Ptycon("fun",[num_pty; num_pty]))
-    and BIT1 = Constp("BIT1",Ptycon("fun",[num_pty; num_pty]))
-    and t_0 = Constp("_0",num_pty) in
+    let BIT0 = Constp("BIT0",Ptycon("fun",[num_pty; num_pty]))
+    let BIT1 = Constp("BIT1",Ptycon("fun",[num_pty; num_pty]))
+    let t_0 = Constp("_0",num_pty) in
     let rec pmk_numeral(n) =
       if n =/ num_0 then t_0 else
-      let m = quo_num n (num_2) and b = mod_num n (num_2) in
+      let m = quo_num n (num_2) in let b = mod_num n (num_2) in
       let op = if b =/ num_0 then BIT0 else BIT1 in
       Combp(op,pmk_numeral(m)) in
     fun n -> Combp(NUMERAL,pmk_numeral n) in
@@ -206,8 +216,8 @@ let type_of_pretype,term_of_preterm,retypecheck =
   (* ----------------------------------------------------------------------- *)
 
   let pretype_instance ty =
-    let gty = pretype_of_type ty
-    and tyvs = map pretype_of_type (tyvars ty) in
+    let gty = pretype_of_type ty in
+    let tyvs = map pretype_of_type (tyvars ty) in
     let subs = map (fun tv -> new_type_var(),tv) tyvs in
     pretype_subst subs gty in
 
@@ -216,7 +226,7 @@ let type_of_pretype,term_of_preterm,retypecheck =
   (* ----------------------------------------------------------------------- *)
 
   let get_generic_type cname =
-    match filter ((=) cname o fst) (!the_interface) with
+    match filter ((=) cname << fst) (!the_interface) with
       [_,(c,ty)] -> ty
     | _::_::_ -> assoc cname (!the_overload_skeletons)
     | [] -> get_const_type cname in
@@ -249,7 +259,7 @@ let type_of_pretype,term_of_preterm,retypecheck =
     |Utv _ -> []
     |Ptycon(_,args) -> flat (map free_stvs args)
     in
-    setify o free_stvs
+    setify << free_stvs
   in
 
   let string_of_pretype stvs =
@@ -258,7 +268,7 @@ let type_of_pretype,term_of_preterm,retypecheck =
       |Utv v -> mk_vartype v
       |Ptycon(con,args) -> mk_type(con,map (type_of_pretype' ns) args)
     in
-    string_of_type o type_of_pretype' stvs
+    string_of_type << type_of_pretype' stvs
   in
 
   let string_of_preterm =
@@ -269,7 +279,7 @@ let type_of_pretype,term_of_preterm,retypecheck =
       |Absp(v,bod) -> mk_gabs(untyped_t_of_pt v,untyped_t_of_pt bod)
       |Typing(ptm,pty) -> untyped_t_of_pt ptm
     in
-    string_of_term o untyped_t_of_pt
+    string_of_term << untyped_t_of_pt
   in
 
   let string_of_ty_error env = function
@@ -277,7 +287,7 @@ let type_of_pretype,term_of_preterm,retypecheck =
         "unify: types cannot be unified "
         ^ "(you should not see this message, please report)"
     |Some(t,ty1,ty2) ->
-        let ty1 = solve env ty1 and ty2 = solve env ty2 in
+        let ty1 = solve env ty1 in let ty2 = solve env ty2 in
         let sty1 = string_of_pretype (free_stvs ty2) ty1 in
         let sty2 = string_of_pretype (free_stvs ty1) ty2 in
         let default_msg s =
@@ -298,7 +308,7 @@ let type_of_pretype,term_of_preterm,retypecheck =
 
   let rec istrivial ptm env x = function
     |Stv y as t ->
-        y = x or defined env y & istrivial ptm env x (apply env y)
+        y = x ||  defined env y && istrivial ptm env x (apply env y)
     |Ptycon(f,args) as t when exists (istrivial ptm env x) args ->
         failwith (string_of_ty_error env ptm)
     |(Ptycon _ | Utv _) -> false
@@ -309,7 +319,7 @@ let type_of_pretype,term_of_preterm,retypecheck =
     |[] -> env
     |(ty1,ty2,_)::oth when ty1 = ty2 -> unify env oth
     |(Ptycon(f,fargs),Ptycon(g,gargs),ptm)::oth ->
-        if f = g & length fargs = length gargs
+        if f = g && length fargs = length gargs
         then unify env (map2 (fun x y -> x,y,ptm) fargs gargs @ oth)
         else failwith (string_of_ty_error env ptm)
     |(Stv x,t,ptm)::oth ->
@@ -335,8 +345,8 @@ let type_of_pretype,term_of_preterm,retypecheck =
         let ty' = Ptycon("num",[]) in
         t,[],unify (Some ptm) uenv ty' ty
     |Varp(s,_) ->
-        warn (s <> "" & isnum s) "Non-numeral begins with a digit";
-          if not(is_hidden s) & can get_generic_type s then
+        warn (s <> "" && isnum s) "Non-numeral begins with a digit";
+          if not(is_hidden s) && can get_generic_type s then
             let pty = pretype_instance(get_generic_type s) in
             let ptm = Constp(s,pty) in
             ptm,[],unify (Some ptm) uenv pty ty
@@ -399,10 +409,13 @@ let type_of_pretype,term_of_preterm,retypecheck =
       Varp(s,ty) -> Varp(s,solve env ty)
     | Combp(f,x) -> Combp(solve_preterm env f,solve_preterm env x)
     | Absp(v,bod) -> Absp(solve_preterm env v,solve_preterm env bod)
-    | Constp(s,ty) -> let tys = solve env ty in
-          try let _,(c',_) = find
+    | Constp(s,ty) -> 
+          let tys = solve env ty in
+          try 
+              let _,(c',_) = 
+               find
                 (fun (s',(c',ty')) ->
-                   s = s' & can (unify None env (pretype_instance ty')) ty)
+                   s = s' && can (unify None env (pretype_instance ty')) ty)
                 (!the_interface) in
               pmk_cv(c',tys)
           with Failure _ -> Constp(s,tys)
@@ -455,8 +468,9 @@ let type_of_pretype,term_of_preterm,retypecheck =
     let ty = new_type_var() in
     let ptm',_,env =
       try typify ty (ptm,venv,undefined)
-      with Failure e -> failwith
-       ("typechecking error (initial type assignment):" ^ e) in
+      with Failure e -> 
+       failwith
+        ("typechecking error (initial type assignment):" ^ e) in
     let env' =
       try resolve_interface ptm' (fun e -> e) env
       with Failure _ -> failwith "typechecking error (overload resolution)" in
@@ -464,6 +478,4 @@ let type_of_pretype,term_of_preterm,retypecheck =
     ptm'' in
 
   type_of_pretype,term_of_preterm,retypecheck;;
-
-*)
 
