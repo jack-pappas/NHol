@@ -46,6 +46,7 @@
     <Compile Include="basics.fs" />
     <Compile Include="nets.fs" />
     <Compile Include="printer.fs" />
+    <Compile Include="preterm.fs" />
     <Compile Include="parser.fs" />
   </ItemGroup>
   <ItemGroup>
