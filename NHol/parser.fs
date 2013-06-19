@@ -443,27 +443,26 @@ let parse_preterm =
      a (Resword "in") .>>.
      preterm
     |>> lmk_let
-  <|> binder .>>. typed_apreterm .>>. many typed_apreterm .>>. a (Resword ".") .>>. preterm |>> lmk_binder
+  <|> (binder .>>. typed_apreterm .>>. many typed_apreterm .>>. a (Resword ".") .>>. preterm |>> lmk_binder)
   <|> atomic_preterm) i
   and typed_apreterm i =
     (atomic_preterm .>>. possibly (a (Resword ":") .>>. pretype |>> snd) |>> lmk_typed) i
   and atomic_preterm i =
     (try_user_parser
-  <|> (a (Resword "(") .>>. a (Resword ":")) .>>. pretype .>>. a (Resword ")") |>> lmk_univ
-  <|> string |>> pmk_string
-  <|> a (Resword "(") .>>. (any_identifier |>> (fun s -> Varp(s,dpty))) .>>. a (Resword ")") |>> (snd << fst)
-  <|> a (Resword "(") .>>. preterm .>>. a (Resword ")") |>> (snd << fst)
-  <|> a (Resword "if") .>>. preterm .>>. a (Resword "then") .>>. preterm .>>. a (Resword "else") .>>. preterm |>> lmk_ite
-  <|> a (Resword "[") .>>. elistof preterm (a (Resword ";")) "term" .>>. a (Resword "]") |>> (pmk_list << snd << fst)
-  <|> a (Resword "{") .>>.
+  <|> ((a (Resword "(") .>>. a (Resword ":")) .>>. pretype .>>. a (Resword ")") |>> lmk_univ)
+  <|> (string |>> pmk_string)
+  <|> ((a (Resword "(")) .>>. (any_identifier |>> (fun s -> Varp(s,dpty))) .>>. a (Resword ")") |>> (snd << fst))
+  <|> ((a (Resword "(")) .>>. preterm .>>. a (Resword ")") |>> (snd << fst))
+  <|> ((a (Resword "if")) .>>. preterm .>>. a (Resword "then") .>>. preterm .>>. a (Resword "else") .>>. preterm |>> lmk_ite)
+  <|> ((a (Resword "[")) .>>. elistof preterm (a (Resword ";")) "term" .>>. a (Resword "]") |>> (pmk_list << snd << fst))
+  <|> ((a (Resword "{")) .>>.
      (elistof nocommapreterm (a (Ident ",")) "term" .>>.  a (Resword "}") |>> lmk_setenum
       <|> preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "}") |>> lmk_setabs
-      <|> preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "}") |>> lmk_setcompr) |>> snd
-  <|> a (Resword "match") .>>. preterm .>>. a (Resword "with") .>>. clauses |>> (fun (((_,e),_),c) -> Combp(Combp(Varp("_MATCH",dpty),e),c))
-  <|> a (Resword "function") .>>. clauses |>> (fun (_,c) -> Combp(Varp("_FUNCTION",dpty),c))
-  <|> a (Ident "#") .>>. identifier .>>. possibly (a (Resword ".") .>>. identifier |>> snd) |>> lmk_decimal
-  <|> identifier
-    |>> (fun s -> Varp(s,dpty))) i
+      <|> preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "}") |>> lmk_setcompr) |>> snd)
+  <|> ((a (Resword "match")) .>>. preterm .>>. a (Resword "with") .>>. clauses |>> (fun (((_,e),_),c) -> Combp(Combp(Varp("_MATCH",dpty),e),c)))
+  <|> ((a (Resword "function")) .>>. clauses |>> (fun (_,c) -> Combp(Varp("_FUNCTION",dpty),c)))
+  <|> ((a (Ident "#")) .>>. identifier .>>. possibly (a (Resword ".") .>>. identifier |>> snd) |>> lmk_decimal)
+  <|> (identifier |>> (fun s -> Varp(s,dpty)))) i
   and pattern i =
     (preterm .>>. possibly (a (Resword "when") .>>. preterm |>> snd)) i
   and clause i =
