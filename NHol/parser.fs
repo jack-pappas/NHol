@@ -253,10 +253,13 @@ let parse_pretype =
 
 let install_parser,delete_parser,installed_parsers,try_user_parser =
   let rec try_parsers ps i =
-    if ps = [] then raise Noparse
-    else
-        try snd(hd ps) i
-        with Noparse -> try_parsers (tl ps) i
+    match ps with
+    | [] ->
+        raise Noparse
+    | hd :: tl ->
+        try (snd hd) i
+        with Noparse ->
+            try_parsers tl i
   let parser_list = ref([]:(string*(lexcode list -> preterm * lexcode list))list)
   (fun dat -> parser_list := dat::(!parser_list)),
   (fun key -> try parser_list := snd (remove (fun (key',_) -> key = key') (!parser_list))
