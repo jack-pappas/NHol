@@ -23,6 +23,7 @@ module NHol.fusion
 
 open NHol.lib
 
+[<AutoOpen>]
 module Hol_kernel =
 
     type hol_type = 
@@ -675,7 +676,6 @@ module Hol_kernel =
                 Sequent([], safe_mk_eq (Comb(abs, mk_comb(rep, a))) a), 
                 Sequent([], safe_mk_eq (Comb(P, r)) (safe_mk_eq (mk_comb(rep, mk_comb(abs, r))) r))
 
-open Hol_kernel
 
 (* ------------------------------------------------------------------------- *)
 (* Stuff that didn't seem worth putting in.                                  *)

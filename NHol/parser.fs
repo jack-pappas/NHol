@@ -21,10 +21,14 @@ limitations under the License.
 /// Lexical analyzer, type and preterm parsers.
 module NHol.parser
 
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
 open NHol.lib
+open NHol.fusion
+open NHol.basics
+open NHol.nets
+open NHol.printer
 open NHol.preterm
-
-(*
 
 (* ------------------------------------------------------------------------- *)
 (* Need to have this now for set enums, since "," isn't a reserved word.     *)
@@ -135,14 +139,14 @@ let lex =
     | (Ident n as tok) ->
         if is_reserved_word n then Resword(n) else tok
     | t -> t
-  let stringof p = atleast 1 p >> end_itlist (^) in
-  let simple_ident = stringof(some isalnum) || stringof(some issymb) in
-  let undertail = stringof (a "_") ++ possibly simple_ident >> collect in
-  let ident = (undertail || simple_ident) ++ many undertail >> collect in
-  let septok = stringof(some issep) in
+  let stringof p = atleast 1 p >> end_itlist (^)
+  let simple_ident = stringof(some isalnum) || stringof(some issymb)
+  let undertail = stringof (a "_") ++ possibly simple_ident >> collect
+  let ident = (undertail || simple_ident) ++ many undertail >> collect
+  let septok = stringof(some issep)
   let escapecode i =
     match i with
-      "\\"::rst -> "\\",rst
+    | "\\"::rst -> "\\",rst
     | "\""::rst -> "\"",rst
     | "\'"::rst -> "\'",rst
     | "n"::rst -> "\n",rst
@@ -154,7 +158,7 @@ let lex =
          String.make 1 (Char.chr(int_of_string("0x"^h^l))),rst
     | a::b::c::rst when forall isnum [a;b;c] ->
          String.make 1 (Char.chr(int_of_string(a^b^c))),rst
-    | _ -> failwith "lex:unrecognized OCaml-style escape in string" in
+    | _ -> failwith "lex:unrecognized OCaml-style escape in string"
   let stringchar =
       some (fun i -> i <> "\\" && i <> "\"")
       || (a "\\" ++ escapecode >> snd) in
@@ -247,14 +251,12 @@ let install_parser,delete_parser,installed_parsers,try_user_parser =
     else
         try snd(hd ps) i
         with Noparse -> try_parsers (tl ps) i
-  let parser_list =
-    ref([]:(string*(lexcode list -> preterm * lexcode list))list) in
+  let parser_list = ref([]:(string*(lexcode list -> preterm * lexcode list))list)
   (fun dat -> parser_list := dat::(!parser_list)),
-  (fun key -> try parser_list := snd (remove (fun (key',_) -> key = key')
-                                                 (!parser_list))
-                  with Failure _ -> ()),
+  (fun key -> try parser_list := snd (remove (fun (key',_) -> key = key') (!parser_list))
+              with Failure _ -> ()),
   (fun () -> !parser_list),
-  (fun i -> try_parsers (!parser_list) i);;
+  (fun i -> try_parsers (!parser_list) i)
 
 (* ------------------------------------------------------------------------- *)
 (* Initial preterm parsing. This uses binder and precedence/associativity/   *)
@@ -422,9 +424,7 @@ let parse_preterm =
     let infs = filter (fun (s,_) -> s <> ",") (infixes()) in
     mk_precedence infs typed_appl_preterm i
   and typed_appl_preterm i =
-    (appl_preterm ++
-     possibly (a (Resword ":") ++ pretype >> snd)
-    >> lmk_typed) i
+    (appl_preterm ++ possibly (a (Resword ":") ++ pretype >> snd) >> lmk_typed) i
   and appl_preterm i =
     (pre_fix ++ appl_preterm
     >> (fun (x,y) -> Combp(Varp(x,dpty),y))
@@ -512,5 +512,4 @@ let parse_term s =
   if l = [] then (term_of_preterm << (retypecheck [])) ptm
   else failwith "Unparsed input following term"
 
-*)
 
