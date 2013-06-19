@@ -366,7 +366,8 @@ let parse_preterm =
     | _ -> prs inp
   let pmk_geq s t = Combp(Combp(Varp("GEQ",dpty),s),t)
   let pmk_pattern ((pat,guards),res) =
-    let x = pgenvar() && y = pgenvar()
+    let x = pgenvar()
+    let y = pgenvar()
     let vs = pfrees pat []
     let bod =
      if guards = [] then
