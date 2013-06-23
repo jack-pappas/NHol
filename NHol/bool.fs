@@ -21,6 +21,16 @@ limitations under the License.
 /// Boolean theory including (intuitionistic) defs of logical connectives.
 module NHol.bool
 
+open FSharp.Compatibility.OCaml
+open lib
+open fusion
+open basics
+open nets
+open printer
+open preterm
+open parser
+open equal
+
 (*
 
 (* ------------------------------------------------------------------------- *)

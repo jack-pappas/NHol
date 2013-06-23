@@ -22,6 +22,18 @@ limitations under the License.
 /// System of tactics (slightly different from any traditional LCF method).
 module NHol.tactics
 
+open FSharp.Compatibility.OCaml
+open lib
+open fusion
+open basics
+open nets
+open printer
+open preterm
+open parser
+open equal
+open bool
+open drule
+
 (*
 
 (* ------------------------------------------------------------------------- *)

@@ -21,6 +21,17 @@ limitations under the License.
 /// More sophisticated derived rules including definitions and rewriting.
 module NHol.drule
 
+open FSharp.Compatibility.OCaml
+open lib
+open fusion
+open basics
+open nets
+open printer
+open preterm
+open parser
+open equal
+open bool
+
 (*
 
 (* ------------------------------------------------------------------------- *)

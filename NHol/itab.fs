@@ -21,6 +21,19 @@ limitations under the License.
 /// Intuitionistic theorem prover (complete for propositional fragment).
 module NHol.itab
 
+open FSharp.Compatibility.OCaml
+open lib
+open fusion
+open basics
+open nets
+open printer
+open preterm
+open parser
+open equal
+open bool
+open drule
+open tactics
+
 (*
 
 (* ------------------------------------------------------------------------- *)
