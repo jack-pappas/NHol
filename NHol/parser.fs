@@ -243,8 +243,8 @@ let parse_pretype =
   and prodtype i = rightbin carttype (a (Ident "#")) (btyop "prod") "type" i
   and carttype i = leftbin apptype (a (Ident "^")) (btyop "cart") "type" i
   and apptype i = (atomictypes .>>. (type_constructor |>> (fun x -> [x]) <|> nothing) |>> mk_apptype) i
-  and atomictypes i = (((a (Resword "(")) .>>. typelist .>>. a (Resword ")") |>> (snd << fst)) <|> type_atom |>> (fun x -> [x])) i
-  and typelist i = listof pretype (a (Ident ",")) "type" i
+  and atomictypes i = (((a (Resword "(")) .>>. typelist .>>. (a (Resword ")")) |>> (snd << fst)) <|> (type_atom |>> (fun x -> [x]))) i
+  and typelist i = (listof pretype (a (Ident ",")) "type") i
   pretype
 
 (* ------------------------------------------------------------------------- *)
