@@ -65,6 +65,7 @@ let mk_primed_var =
 (* General case of beta-conversion.                                          *)
 (* ------------------------------------------------------------------------- *)
 
+/// General case of beta-conversion.
 let BETA_CONV tm =
     try BETA tm
     with Failure _ ->
@@ -300,6 +301,7 @@ let rec DEPTH_BINOP_CONV op conv tm =
 (* Follow a path.                                                            *)
 (* ------------------------------------------------------------------------- *)
 
+/// Follow a path.
 let PATH_CONV =
   let rec path_conv s cnv =
     match s with
@@ -313,6 +315,7 @@ let PATH_CONV =
 (* Follow a pattern                                                          *)
 (* ------------------------------------------------------------------------- *)
 
+/// Follow a pattern.
 let PAT_CONV =
   let rec PCONV xs pat conv =
     if mem pat xs then conv
@@ -329,6 +332,7 @@ let PAT_CONV =
 (* Symmetry conversion.                                                      *)
 (* ------------------------------------------------------------------------- *)
 
+/// Symmetry conversion.
 let SYM_CONV tm =
   try let th1 = SYM(ASSUME tm)
       let tm' = concl th1
@@ -340,6 +344,7 @@ let SYM_CONV tm =
 (* Conversion to a rule.                                                     *)
 (* ------------------------------------------------------------------------- *)
 
+/// Conversion to a rule.
 let CONV_RULE (conv:conv) th =
   EQ_MP (conv(concl th)) th
 
@@ -347,6 +352,7 @@ let CONV_RULE (conv:conv) th =
 (* Substitution conversion.                                                  *)
 (* ------------------------------------------------------------------------- *)
 
+/// Substitution conversion.
 let SUBS_CONV ths tm =
     try
         if ths = [] then REFL tm
@@ -376,6 +382,7 @@ let SUBS ths = CONV_RULE (SUBS_CONV ths)
 (* A cacher for conversions.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
+/// A cacher for conversions.
 let CACHE_CONV =
     let ALPHA_HACK th =
         let tm' = lhand(concl th)
@@ -383,6 +390,7 @@ let CACHE_CONV =
             if tm' = tm then th
             else TRANS (ALPHA tm tm') th
     fun conv ->
+        // NOTE : This is not thread-safe!
         let net = ref empty_net
         fun tm ->
             try tryfind (fun f -> f tm) (lookup tm (!net))

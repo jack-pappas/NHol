@@ -48,12 +48,14 @@ type net<'a> =
 (* The empty net.                                                            *)
 (* ------------------------------------------------------------------------- *)
 
+/// The empty net.
 let empty_net = Netnode([], [])
 
 (* ------------------------------------------------------------------------- *)
 (* Insert a new element into a net.                                          *)
 (* ------------------------------------------------------------------------- *)
 
+/// Insert a new element into a net.
 let enter = 
     let label_to_store lconsts tm = 
         let op, args = strip_comb tm
@@ -113,6 +115,7 @@ let enter =
 (* Look up a term in a net and return possible matches.                      *)
 (* ------------------------------------------------------------------------- *)
 
+/// Look up a term in a net and return possible matches.
 let lookup = 
     let label_for_lookup tm = 
         let op, args = strip_comb tm
@@ -145,6 +148,7 @@ let lookup =
 (* Function to merge two nets (code from Don Syme's hol-lite).               *)
 (* ------------------------------------------------------------------------- *)
 
+/// Function to merge two nets.
 let merge_nets = 
     let rec canon_eq x y = 
         try 
