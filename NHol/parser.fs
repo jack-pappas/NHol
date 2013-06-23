@@ -77,18 +77,18 @@ let fix err prs input =
         failwith (err ^ " expected")
 
 let rec listof prs sep err =
-    prs .>>. many (sep .>>. fix err prs |>> snd) |>> (fun (h, t) -> h :: t)
+    prs .>>. many (sep .>>. (fix err prs) |>> snd) |>> (fun (h, t) -> h :: t)
 
 let nothing input = [], input
 
 let elistof prs sep err =
-    listof prs sep err <|> nothing;;
+    listof prs sep err <|> nothing
 
 let leftbin prs sep cons err =
     prs .>>. many (sep .>>. fix err prs) |>>
     (fun (x,opxs) ->
         let ops, xs = unzip opxs
-        itlist2 (fun op y x -> cons op x y) (rev ops) (rev xs) x);;
+        itlist2 (fun op y x -> cons op x y) (rev ops) (rev xs) x)
 
 let rightbin prs sep cons err =
     prs .>>. many (sep .>>. fix err prs) |>>
@@ -167,18 +167,19 @@ let lex =
     | _ -> failwith "lex:unrecognized OCaml-style escape in string"
   let stringchar =
       some (fun i -> i <> "\\" && i <> "\"")
-      <|> (a "\\" .>>. escapecode |>> snd) in
+      <|> (a "\\" .>>. escapecode |>> snd)
   let string = a "\"" .>>. many stringchar .>>. a "\"" |>> (fun ((_,s),_) -> "\""^implode s^"\"")
   let rawtoken = (string <|> some isbra <|> septok <|> ident) |>> (fun x -> Ident x)
   let simptoken = many (some isspace) .>>. rawtoken |>> (reserve << snd)
   let rec tokens i =
-    try let (t,rst) = simptoken i in
+    try let (t,rst) = simptoken i
         if t = !comment_token then
           (many (fun i -> if i <> [] && hd i <> "\n" then 1,tl i
                           else raise Noparse) .>>. tokens |>> snd) rst
         else
-          let toks,rst1 = tokens rst in t::toks,rst1
-    with Noparse -> [],i in
+          let toks,rst1 = tokens rst
+          t::toks,rst1
+    with Noparse -> [],i
   fst << (tokens .>>. many (some isspace) .>>. finished |>> (fst << fst))
 
 (* ------------------------------------------------------------------------- *)
@@ -236,7 +237,7 @@ let parse_pretype =
       (Ident s)::rest ->
         if (try get_type_arity s > 0 with Failure _ -> false) then s,rest
         else raise Noparse
-    | _ -> raise Noparse in
+    | _ -> raise Noparse
 
   let rec pretype i = rightbin sumtype (a (Resword "->")) (btyop "fun") "type" i
   and sumtype i = rightbin prodtype (a (Ident "+")) (btyop "sum") "type" i
@@ -308,7 +309,7 @@ let parse_preterm =
   let rec pfrees ptm acc =
     match ptm with
       Varp(v,pty) ->
-        if v = "" & pty = dpty then acc
+        if v = "" && pty = dpty then acc
         elif can get_const_type v || can num_of_string v || exists (fun (w,_) -> v = w) (!the_interface) then acc
         else insert ptm acc
     | Constp(_,_) -> acc
@@ -460,9 +461,9 @@ let parse_preterm =
   <|> ((a (Resword "if")) .>>. preterm .>>. a (Resword "then") .>>. preterm .>>. a (Resword "else") .>>. preterm |>> lmk_ite)
   <|> ((a (Resword "[")) .>>. elistof preterm (a (Resword ";")) "term" .>>. a (Resword "]") |>> (pmk_list << snd << fst))
   <|> ((a (Resword "{")) .>>.
-     (elistof nocommapreterm (a (Ident ",")) "term" .>>.  a (Resword "}") |>> lmk_setenum
-      <|> preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "}") |>> lmk_setabs
-      <|> preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "}") |>> lmk_setcompr) |>> snd)
+        (elistof nocommapreterm (a (Ident ",")) "term" .>>.  a (Resword "}") |>> lmk_setenum
+          <|> preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "}") |>> lmk_setabs
+          <|> preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "|") .>>. preterm .>>. a (Resword "}") |>> lmk_setcompr) |>> snd)
   <|> ((a (Resword "match")) .>>. preterm .>>. a (Resword "with") .>>. clauses |>> (fun (((_,e),_),c) -> Combp(Combp(Varp("_MATCH",dpty),e),c)))
   <|> ((a (Resword "function")) .>>. clauses |>> (fun (_,c) -> Combp(Varp("_FUNCTION",dpty),c)))
   <|> ((a (Ident "#")) .>>. identifier .>>. possibly (a (Resword ".") .>>. identifier |>> snd) |>> lmk_decimal)
