@@ -21,10 +21,10 @@ limitations under the License.
 /// Term nets: reasonably fast lookup based on term matchability.
 module NHol.nets
 
-open NHol.lib
-open NHol.fusion
-open NHol.fusion.Hol_kernel
-open NHol.basics
+open lib
+open fusion
+open fusion.Hol_kernel
+open basics
 
 (* ------------------------------------------------------------------------- *)
 (* Term nets are a finitely branching tree structure; at each level we       *)

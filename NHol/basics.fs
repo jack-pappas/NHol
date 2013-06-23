@@ -20,9 +20,9 @@ limitations under the License.
 /// More syntax constructors, and prelogical utilities like matching.
 module NHol.basics
 
-open NHol.lib
-open NHol.fusion
-open NHol.fusion.Hol_kernel
+open lib
+open fusion
+open fusion.Hol_kernel
 
 (* ------------------------------------------------------------------------- *)
 (* Create probably-fresh variable                                            *)

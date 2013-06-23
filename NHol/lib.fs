@@ -35,6 +35,7 @@ module Ratio =
     let numerator_ratio (r : Ratio.ratio) = r.Numerator
     let denominator_ratio (r : Ratio.ratio) = r.Denominator
 
+// TODO : Replace uses of (==) with (===) from ExtCore.
 let (==) (x : 'T) (y : 'T) = obj.ReferenceEquals(x, y)
 
 let fail() = raise <| exn ()

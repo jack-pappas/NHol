@@ -24,11 +24,11 @@ module NHol.printer
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
-open NHol.lib
-open NHol.fusion
-open NHol.fusion.Hol_kernel
-open NHol.basics
-open NHol.nets
+open lib
+open fusion
+open fusion.Hol_kernel
+open basics
+open nets
 
 (* ------------------------------------------------------------------------- *)
 (* Character discrimination.                                                 *)

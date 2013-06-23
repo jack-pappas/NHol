@@ -25,12 +25,12 @@ module NHol.preterm
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
-open NHol.lib
-open NHol.fusion
-open NHol.fusion.Hol_kernel
-open NHol.basics
-open NHol.nets
-open NHol.printer
+open lib
+open fusion
+open fusion.Hol_kernel
+open basics
+open nets
+open printer
 
 (* ------------------------------------------------------------------------- *)
 (* Flag to say whether to treat varstruct "\const. bod" as variable.         *)

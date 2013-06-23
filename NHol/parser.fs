@@ -23,12 +23,12 @@ module NHol.parser
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
-open NHol.lib
-open NHol.fusion
-open NHol.basics
-open NHol.nets
-open NHol.printer
-open NHol.preterm
+open lib
+open fusion
+open basics
+open nets
+open printer
+open preterm
 
 (* TODO :   Re-name operators and functions for parser-combinators (below) to the
             equivalents from fparsec:
