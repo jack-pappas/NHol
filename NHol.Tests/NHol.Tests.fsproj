@@ -48,6 +48,7 @@
     <Compile Include="printer.fs" />
     <Compile Include="preterm.fs" />
     <Compile Include="parser.fs" />
+    <Compile Include="equal.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ExtCore">
