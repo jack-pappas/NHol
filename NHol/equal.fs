@@ -382,22 +382,22 @@ let SUBS ths = CONV_RULE (SUBS_CONV ths)
 (* A cacher for conversions.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
+let private ALPHA_HACK th =
+    let tm' = lhand(concl th)
+    fun tm ->
+        if tm' = tm then th
+        else TRANS (ALPHA tm tm') th
+
 /// A cacher for conversions.
-let CACHE_CONV =
-    let ALPHA_HACK th =
-        let tm' = lhand(concl th)
-        fun tm ->
-            if tm' = tm then th
-            else TRANS (ALPHA tm tm') th
-    fun conv ->
-        // NOTE : This is not thread-safe!
-        let net = ref empty_net
-        fun tm ->
-            try tryfind (fun f -> f tm) (lookup tm (!net))
-            with Failure _ ->
-                let th : thm = conv tm
-                net := enter [] (tm,ALPHA_HACK th) (!net)
-                th
+let CACHE_CONV (conv : conv) : conv =
+    // NOTE : This is not thread-safe!
+    let net = ref empty_net
+    fun tm ->
+        try tryfind (fun f -> f tm) (lookup tm (!net))
+        with Failure _ ->
+            let th : thm = conv tm
+            net := enter [] (tm,ALPHA_HACK th) (!net)
+            th
 
 
 

@@ -59,47 +59,51 @@ let empty_net = Netnode([], [])
 let enter = 
     let label_to_store lconsts tm = 
         let op, args = strip_comb tm
-        if is_const op
-        then Cnet(fst(dest_const op), length args), args
-        elif is_abs op
-        then 
+        if is_const op then
+            Cnet(fst(dest_const op), length args), args
+        elif is_abs op then
             let bv, bod = dest_abs op
             let bod' = 
-                if mem bv lconsts
-                then vsubst [genvar(type_of bv), bv] bod
+                if mem bv lconsts then
+                    vsubst [genvar(type_of bv), bv] bod
                 else bod
             Lnet(length args), bod' :: args
-        elif mem op lconsts
-        then Lcnet(fst(dest_var op), length args), args
+        elif mem op lconsts then
+            Lcnet(fst(dest_var op), length args), args
         else Vnet, []
-    let rec canon_eq x y = 
+
+    let rec canon_eq x y =
         try 
-            compare x y = 0
+            Unchecked.compare x y = 0
         with
         | Failure _ -> false
-    and canon_lt x y = 
+
+    and canon_lt x y =
         try 
-            compare x y < 0
+            Unchecked.compare x y < 0
         with
         | Failure _ -> false
-    let rec sinsert x l = 
-        if l = []
-        then [x]
-        else 
-            let h = hd l
-            if canon_eq h x
-            then failwith "sinsert"
-            elif canon_lt x h
-            then x :: l
-            else h :: (sinsert x (tl l))
-    let set_insert x l = 
+
+    let rec sinsert x l =
+        match l with
+        | [] -> [x]
+        | hd :: tl ->
+            if canon_eq hd x then
+                failwith "sinsert"
+            elif canon_lt x hd then
+                x :: l
+            else hd :: (sinsert x tl)
+
+    let set_insert x l =
         try 
             sinsert x l
         with
         | Failure "sinsert" -> l
-    let rec net_update lconsts (elem, tms, Netnode(edges, tips)) = 
+
+    let rec net_update lconsts (elem, tms, Netnode(edges, tips)) =
         match tms with
-        | [] -> Netnode(edges, set_insert elem tips)
+        | [] ->
+            Netnode(edges, set_insert elem tips)
         | (tm :: rtms) -> 
             let label, ntms = label_to_store lconsts tm
             let child, others = 
@@ -109,7 +113,9 @@ let enter =
                 | Failure _ -> (empty_net, edges)
             let new_child = net_update lconsts (elem, ntms @ rtms, child)
             Netnode((label, new_child) :: others, tips)
-    fun lconsts (tm, elem) net -> net_update lconsts (elem, [tm], net)
+
+    fun lconsts (tm, elem) net ->
+        net_update lconsts (elem, [tm], net)
 
 (* ------------------------------------------------------------------------- *)
 (* Look up a term in a net and return possible matches.                      *)
