@@ -117,10 +117,8 @@ let unparse_as_infix, parse_as_infix, get_infix_status, infixes =
     let cmp (s, (x, a)) (t, (y, b)) = x < y || x = y && a > b || x = y && a = b && s < t
     let infix_list = ref([] : (string * (int * string)) list)
     (fun n -> infix_list := filter (((<>) n) << fst) (!infix_list)), 
-    (fun (n, d) -> 
-        // TODO: revise this
-        infix_list := sort cmp []
-        ((n, d) :: (filter (((<>) n) << fst) (!infix_list)))), 
+    (fun (n, d) ->
+        infix_list := sort cmp ((n, d) :: (filter (((<>) n) << fst) (!infix_list)))), 
     (fun n -> assoc n (!infix_list)), (fun () -> !infix_list)
 
 (* ------------------------------------------------------------------------- *)
