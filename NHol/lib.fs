@@ -61,7 +61,7 @@ let K x y = x
 let C f x y = f y x
 let W f x = f x x
 
-let (.>>.) = fun f g (x, y) -> (f x, g y)
+let (||>>) = fun f g (x, y) -> (f x, g y)
 
 (* ------------------------------------------------------------------------- *)
 (* List basics.                                                              *)

@@ -77,7 +77,7 @@ let mk_iff =
 (* ------------------------------------------------------------------------- *)
 
 let PINST tyin tmin =
-  let iterm_fn = INST (map (fun (x, y) -> (x, inst tyin y)) tmin)
+  let iterm_fn = INST (map (I ||>> (inst tyin)) tmin)
   let itype_fn = INST_TYPE tyin in
   fun th -> try iterm_fn (itype_fn th)
             with Failure _ -> failwith "PINST";;

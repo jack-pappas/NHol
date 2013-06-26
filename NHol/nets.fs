@@ -108,7 +108,7 @@ let enter =
             let label, ntms = label_to_store lconsts tm
             let child, others = 
                 try 
-                    (snd .>>. I)(remove (fun (x, y) -> x = label) edges)
+                    (snd ||>> I)(remove (fun (x, y) -> x = label) edges)
                 with
                 | Failure _ -> (empty_net, edges)
             let new_child = net_update lconsts (elem, ntms @ rtms, child)
