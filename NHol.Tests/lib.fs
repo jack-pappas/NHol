@@ -171,14 +171,14 @@ let ``reversing a list two times gives the list``() =
         rev (rev xs) = xs
 
 [<Test>]
-let ``intersect and subtract can build up the set``() =
+let ``intersect and subtract can build up the setify``() =
     assertProp "intersect-subtract" <| fun (xs : int list) ys ->
-        set (intersect xs ys @ subtract xs ys) = set xs
+        setify (intersect xs ys @ subtract xs ys) = setify xs
 
 [<Test>]
-let ``union and subtract can build up the set``() =
+let ``union and subtract can build up the setify``() =
     assertProp "union-subtract" <| fun (xs : int list) ys ->
-        set (union xs ys) = set (subtract xs ys @ ys)
+        setify (union xs ys) = setify (subtract xs ys @ ys)
 
 [<Test>]
 let ``subset implies intersect``() =
@@ -194,3 +194,13 @@ let ``subset implies union``() =
 let ``explode and implode inverse each other``() =
     assertProp "explode-implode" <| fun s ->
         implode (explode s) = s
+
+[<Test>]
+let ``uniq doesn't contain adjacent equal elements``() =
+    let rec hasAdjacentEqual = function
+        | [] | [_] -> false
+        | x::y::_ when x = y -> true
+        | x::xs -> hasAdjacentEqual xs
+
+    assertProp "uniq" <| fun (xs : int list) ->
+        not <| hasAdjacentEqual (uniq xs)
