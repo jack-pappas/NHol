@@ -40,6 +40,16 @@ let (==) (x : 'T) (y : 'T) = obj.ReferenceEquals(x, y)
 
 let fail() = raise <| exn ()
 
+// The exception fired by failwith is used as a control flow.
+// KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
+// Using exception as a control flow should be eliminated in the future.
+let (|Failure|_|) (exn: exn) =
+    match exn with
+    | :? System.Collections.Generic.KeyNotFoundException as p -> Some p.Message
+    | :? System.ArgumentException as p -> Some p.Message
+    | Failure s -> Some s
+    | _ -> None
+
 (* ------------------------------------------------------------------------- *)
 (* Combinators.                                                              *)
 (* ------------------------------------------------------------------------- *)
@@ -50,9 +60,6 @@ let I x = x
 let K x y = x
 let C f x y = f y x
 let W f x = f x x
-
-// NOTE : Replaced all uses of (o) with (<<) since F# does not allow (o) to be used as an infix operator.
-let (o) = fun f g x -> f(g x)
 
 let (.>>.) = fun f g (x, y) -> (f x, g y)
 
@@ -453,6 +460,7 @@ let rec shareout pat all =
 (* ------------------------------------------------------------------------- *)
 (* Iterating functions over lists.                                           *)
 (* ------------------------------------------------------------------------- *)
+
 // OPTIMIZE : Make this an alias for List.iter.
 let rec do_list f l = 
     match l with
