@@ -23,7 +23,6 @@ module NHol.printer
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
-
 open lib
 open fusion
 open fusion.Hol_kernel
@@ -66,26 +65,26 @@ let isspace, issep, isbra, issymb, isalpha, isnum, isalnum =
 
 let reserve_words, unreserve_words, is_reserved_word, reserved_words = 
     let reswords = 
-        ref ["("
-             ")"
-             "["
-             "]"
-             "{"
-             "}"
-             ":"
-             ";"
-             "."
-             "|"
-             "let"
-             "in"
-             "and"
-             "if"
-             "then"
-             "else"
-             "match"
-             "with"
-             "function"
-             "->"
+        ref ["(";
+             ")";
+             "[";
+             "]";
+             "{";
+             "}";
+             ":";
+             ";";
+             ".";
+             "|";
+             "let";
+             "in";
+             "and";
+             "if";
+             "then";
+             "else";
+             "match";
+             "with";
+             "function";
+             "->";
              "when"]
     (fun ns -> reswords := union (!reswords) ns), (fun ns -> reswords := subtract (!reswords) ns), 
     (fun n -> mem n (!reswords)), (fun () -> !reswords)
@@ -117,8 +116,7 @@ let unparse_as_infix, parse_as_infix, get_infix_status, infixes =
     let cmp (s, (x, a)) (t, (y, b)) = x < y || x = y && a > b || x = y && a = b && s < t
     let infix_list = ref([] : (string * (int * string)) list)
     (fun n -> infix_list := filter (((<>) n) << fst) (!infix_list)), 
-    (fun (n, d) ->
-        infix_list := sort cmp ((n, d) :: (filter (((<>) n) << fst) (!infix_list)))), 
+    (fun (n, d) -> infix_list := sort cmp ((n, d) :: (filter (((<>) n) << fst) (!infix_list)))), 
     (fun n -> assoc n (!infix_list)), (fun () -> !infix_list)
 
 (* ------------------------------------------------------------------------- *)
@@ -143,8 +141,8 @@ let reverse_interface_mapping = ref true
 (* ------------------------------------------------------------------------- *)
 
 let unspaced_binops = 
-    ref [","
-         ".."
+    ref [",";
+         "..";
          "$"]
 
 (* ------------------------------------------------------------------------- *)
@@ -164,7 +162,6 @@ let print_unambiguous_comprehensions = ref false
 (* ------------------------------------------------------------------------- *)
 
 let typify_universal_set = ref true
-
 (* ------------------------------------------------------------------------- *)
 (* Flag controlling whether hypotheses print.                                *)
 (* ------------------------------------------------------------------------- *)
@@ -186,12 +183,10 @@ let name_of tm =
 
 let pp_print_type, pp_print_qtype = 
     let soc sep flag ss = 
-        if ss = []
-        then ""
+        if ss = [] then ""
         else 
             let s = end_itlist (fun s1 s2 -> s1 ^ sep ^ s2) ss
-            if flag
-            then "(" ^ s ^ ")"
+            if flag then "(" ^ s ^ ")"
             else s
     let rec sot pr ty = 
         try 
@@ -201,16 +196,16 @@ let pp_print_type, pp_print_qtype =
             match dest_type ty with
             | con, [] -> con
             | "fun", [ty1; ty2] -> 
-                soc "->" (pr > 0) [sot 1 ty1
+                soc "->" (pr > 0) [sot 1 ty1;
                                    sot 0 ty2]
             | "sum", [ty1; ty2] -> 
-                soc "+" (pr > 2) [sot 3 ty1
+                soc "+" (pr > 2) [sot 3 ty1;
                                   sot 2 ty2]
             | "prod", [ty1; ty2] -> 
-                soc "#" (pr > 4) [sot 5 ty1
+                soc "#" (pr > 4) [sot 5 ty1;
                                   sot 4 ty2]
             | "cart", [ty1; ty2] -> 
-                soc "^" (pr > 6) [sot 6 ty1
+                soc "^" (pr > 6) [sot 6 ty1;
                                   sot 7 ty2]
             | con, args -> (soc "," true (map (sot 0) args)) ^ con
     (fun fmt ty -> pp_print_string fmt (sot 0 ty)), (fun fmt ty -> pp_print_string fmt ("`:" ^ sot 0 ty ^ "`"))
@@ -231,20 +226,18 @@ let install_user_printer, delete_user_printer, try_user_printer =
 
 let pp_print_term = 
     let reverse_interface(s0, ty0) = 
-        if not(!reverse_interface_mapping)
-        then s0
+        if not(!reverse_interface_mapping) then s0
         else 
             try 
-                fst(find (fun (s, (s', ty)) -> 
-                            s' = s0 && can (type_match ty ty0) []) (!the_interface))
+                fst(find (fun (s, (s', ty)) -> s' = s0 && can (type_match ty ty0) []) (!the_interface))
             with
             | Failure _ -> s0
     let rec DEST_BINARY c tm = 
         try 
             let il, r = dest_comb tm
             let i, l = dest_comb il
-            if i = c || (is_const i && is_const c && reverse_interface(dest_const i) = reverse_interface(dest_const c))
-            then l, r
+            if i = c || (is_const i && is_const c && reverse_interface(dest_const i) = reverse_interface(dest_const c)) then 
+                l, r
             else fail()
         with
         | Failure _ -> failwith "DEST_BINARY"
@@ -253,10 +246,8 @@ let pp_print_term =
         | "right" -> true
         | _ -> false
     let rec powerof10 n = 
-        if abs_num n </ Int 1
-        then false
-        elif n =/ Int 1
-        then true
+        if abs_num n </ Int 1 then false
+        elif n =/ Int 1 then true
         else powerof10(n / Int 10)
     let bool_of_term t = 
         match t with
@@ -265,30 +256,25 @@ let pp_print_term =
         | _ -> failwith "bool_of_term"
     let code_of_term t = 
         let f, tms = strip_comb t
-        if not(is_const f && fst(dest_const f) = "ASCII") || not(length tms = 8)
-        then failwith "code_of_term"
+        if not(is_const f && fst(dest_const f) = "ASCII") || not(length tms = 8) then failwith "code_of_term"
         else 
             itlist (fun b f -> 
-                    if b
-                    then 1 + 2 * f
+                    if b then 1 + 2 * f
                     else 2 * f) (map bool_of_term (rev tms)) 0
     let rec dest_clause tm = 
         let pbod = snd(strip_exists(body(body tm)))
         let s, args = strip_comb pbod
-        if name_of s = "_UNGUARDED_PATTERN" && length args = 2
-        then 
-            [rand(rator(hd args))
+        if name_of s = "_UNGUARDED_PATTERN" && length args = 2 then 
+            [rand(rator(hd args));
              rand(rator(hd(tl args)))]
-        elif name_of s = "_GUARDED_PATTERN" && length args = 3
-        then 
-            [rand(rator(hd args))
-             hd(tl args)
+        elif name_of s = "_GUARDED_PATTERN" && length args = 3 then 
+            [rand(rator(hd args));
+             hd(tl args);
              rand(rator(hd(tl(tl args))))]
         else failwith "dest_clause"
     let rec dest_clauses tm = 
         let s, args = strip_comb tm
-        if name_of s = "_SEQPATTERN" && length args = 2
-        then dest_clause(hd args) :: dest_clauses(hd(tl args))
+        if name_of s = "_SEQPATTERN" && length args = 2 then dest_clause(hd args) :: dest_clauses(hd(tl args))
         else [dest_clause tm]
     fun fmt -> 
         let rec print_term prec tm = 
@@ -303,8 +289,7 @@ let pp_print_term =
                     try 
                         (let tms = dest_list tm
                          try 
-                             if fst(dest_type(hd(snd(dest_type(type_of tm))))) <> "char"
-                             then fail()
+                             if fst(dest_type(hd(snd(dest_type(type_of tm))))) <> "char" then fail()
                              else 
                                  let ccs = map (String.make 1 << Char.chr << code_of_term) tms
                                  let s = "\"" ^ String.escaped(implode ccs) ^ "\""
@@ -316,22 +301,19 @@ let pp_print_term =
                              pp_print_string fmt "]")
                     with
                     | Failure _ -> 
-                        if is_gabs tm
-                        then print_binder prec tm
+                        if is_gabs tm then print_binder prec tm
                         else 
                             let hop, args = strip_comb tm
                             let s0 = name_of hop
                             let ty0 = type_of hop
                             let s = reverse_interface(s0, ty0)
                             try 
-                                if s = "EMPTY" && is_const tm && args = []
-                                then pp_print_string fmt "{}"
+                                if s = "EMPTY" && is_const tm && args = [] then pp_print_string fmt "{}"
                                 else fail()
                             with
                             | Failure _ -> 
                                 try 
-                                    if s = "UNIV" && !typify_universal_set && is_const tm && args = []
-                                    then 
+                                    if s = "UNIV" && !typify_universal_set && is_const tm && args = [] then 
                                         let ty = fst(dest_fun_ty(type_of tm))
                                         (pp_print_string fmt "(:"
                                          pp_print_type fmt ty
@@ -340,12 +322,10 @@ let pp_print_term =
                                 with
                                 | Failure _ -> 
                                     try 
-                                        if s <> "INSERT"
-                                        then fail()
+                                        if s <> "INSERT" then fail()
                                         else 
                                             let mems, oth = splitlist (dest_binary "INSERT") tm
-                                            if is_const oth && fst(dest_const oth) = "EMPTY"
-                                            then 
+                                            if is_const oth && fst(dest_const oth) = "EMPTY" then 
                                                 (pp_print_string fmt "{"
                                                  print_term_sequence ", " 14 mems
                                                  pp_print_string fmt "}")
@@ -353,15 +333,13 @@ let pp_print_term =
                                     with
                                     | Failure _ -> 
                                         try 
-                                            if not(s = "GSPEC")
-                                            then fail()
+                                            if not(s = "GSPEC") then fail()
                                             else 
                                                 let evs, bod = strip_exists(body(rand tm))
                                                 let bod1, fabs = dest_comb bod
                                                 let bod2, babs = dest_comb bod1
                                                 let c = rator bod2
-                                                if fst(dest_const c) <> "SETSPEC"
-                                                then fail()
+                                                if fst(dest_const c) <> "SETSPEC" then fail()
                                                 else 
                                                     pp_print_string fmt "{"
                                                     print_term 0 fabs
@@ -369,8 +347,7 @@ let pp_print_term =
                                                     (let fvs = frees fabs
                                                      let bvs = frees babs
                                                      if not(!print_unambiguous_comprehensions) 
-                                                        && set_eq evs (if (length fvs <= 1 || bvs = [])
-                                                                       then fvs
+                                                        && set_eq evs (if (length fvs <= 1 || bvs = []) then fvs
                                                                        else intersect fvs bvs)
                                                      then ()
                                                      else 
@@ -382,8 +359,7 @@ let pp_print_term =
                                         | Failure _ -> 
                                             try 
                                                 let eqs, bod = dest_let tm
-                                                (if prec = 0
-                                                 then pp_open_hvbox fmt 0
+                                                (if prec = 0 then pp_open_hvbox fmt 0
                                                  else 
                                                      (pp_open_hvbox fmt 1
                                                       pp_print_string fmt "(")
@@ -396,20 +372,17 @@ let pp_print_term =
                                                  pp_print_string fmt " in"
                                                  pp_print_break fmt 1 0
                                                  print_term 0 bod
-                                                 if prec = 0
-                                                 then ()
+                                                 if prec = 0 then ()
                                                  else pp_print_string fmt ")"
                                                  pp_close_box fmt ())
                                             with
                                             | Failure _ -> 
                                                 try 
-                                                    if s <> "DECIMAL"
-                                                    then fail()
+                                                    if s <> "DECIMAL" then fail()
                                                     else 
                                                         let n_num = dest_numeral(hd args)
                                                         let n_den = dest_numeral(hd(tl args))
-                                                        if not(powerof10 n_den)
-                                                        then fail()
+                                                        if not(powerof10 n_den) then fail()
                                                         else 
                                                             let s_num = string_of_num(quo_num n_num n_den)
                                                             let s_den = 
@@ -418,18 +391,15 @@ let pp_print_term =
                                                                          (explode
                                                                               (string_of_num
                                                                                    (n_den +/ (mod_num n_num n_den)))))
-                                                            pp_print_string fmt ("#" ^ s_num ^ (if n_den = Int 1
-                                                                                                then ""
+                                                            pp_print_string fmt ("#" ^ s_num ^ (if n_den = Int 1 then ""
                                                                                                 else ".") ^ s_den)
                                                 with
                                                 | Failure _ -> 
                                                     try 
-                                                        if s <> "_MATCH" || length args <> 2
-                                                        then failwith ""
+                                                        if s <> "_MATCH" || length args <> 2 then failwith ""
                                                         else 
                                                             let cls = dest_clauses(hd(tl args))
-                                                            (if prec = 0
-                                                             then ()
+                                                            (if prec = 0 then ()
                                                              else pp_print_string fmt "("
                                                              pp_open_hvbox fmt 0
                                                              pp_print_string fmt "match "
@@ -438,33 +408,27 @@ let pp_print_term =
                                                              pp_print_break fmt 1 2
                                                              print_clauses cls
                                                              pp_close_box fmt ()
-                                                             if prec = 0
-                                                             then ()
+                                                             if prec = 0 then ()
                                                              else pp_print_string fmt ")")
                                                     with
                                                     | Failure _ -> 
                                                         try 
-                                                            if s <> "_FUNCTION" || length args <> 1
-                                                            then failwith ""
+                                                            if s <> "_FUNCTION" || length args <> 1 then failwith ""
                                                             else 
                                                                 let cls = dest_clauses(hd args)
-                                                                (if prec = 0
-                                                                 then ()
+                                                                (if prec = 0 then ()
                                                                  else pp_print_string fmt "("
                                                                  pp_open_hvbox fmt 0
                                                                  pp_print_string fmt "function"
                                                                  pp_print_break fmt 1 2
                                                                  print_clauses cls
                                                                  pp_close_box fmt ()
-                                                                 if prec = 0
-                                                                 then ()
+                                                                 if prec = 0 then ()
                                                                  else pp_print_string fmt ")")
                                                         with
                                                         | Failure _ -> 
-                                                            if s = "COND" && length args = 3
-                                                            then 
-                                                                (if prec = 0
-                                                                 then ()
+                                                            if s = "COND" && length args = 3 then 
+                                                                (if prec = 0 then ()
                                                                  else pp_print_string fmt "("
                                                                  pp_open_hvbox fmt (-1)
                                                                  pp_print_string fmt "if "
@@ -476,13 +440,10 @@ let pp_print_term =
                                                                  pp_print_string fmt " else "
                                                                  print_term 0 (hd(tl(tl args)))
                                                                  pp_close_box fmt ()
-                                                                 if prec = 0
-                                                                 then ()
+                                                                 if prec = 0 then ()
                                                                  else pp_print_string fmt ")")
-                                                            elif is_prefix s && length args = 1
-                                                            then 
-                                                                (if prec = 1000
-                                                                 then pp_print_string fmt "("
+                                                            elif is_prefix s && length args = 1 then 
+                                                                (if prec = 1000 then pp_print_string fmt "("
                                                                  else ()
                                                                  pp_print_string fmt s
                                                                  (if isalnum s 
@@ -493,7 +454,7 @@ let pp_print_term =
                                                                                 let ty0 = type_of l
                                                                                 reverse_interface(s0, ty0) = "--" 
                                                                                 || mem (fst(dest_const l)) 
-                                                                                       ["real_of_num"
+                                                                                       ["real_of_num";
                                                                                         "int_of_num"]
                                                                             with
                                                                             | Failure _ -> false) 
@@ -501,17 +462,13 @@ let pp_print_term =
                                                                   then pp_print_string fmt " "
                                                                   else ())
                                                                  print_term 999 (hd args)
-                                                                 if prec = 1000
-                                                                 then pp_print_string fmt ")"
+                                                                 if prec = 1000 then pp_print_string fmt ")"
                                                                  else ())
                                                             elif parses_as_binder s && length args = 1 
-                                                                 && is_gabs(hd args)
-                                                            then print_binder prec tm
-                                                            elif can get_infix_status s && length args = 2
-                                                            then 
+                                                                 && is_gabs(hd args) then print_binder prec tm
+                                                            elif can get_infix_status s && length args = 2 then 
                                                                 let bargs = 
-                                                                    if ARIGHT s
-                                                                    then 
+                                                                    if ARIGHT s then 
                                                                         let tms, tmt = splitlist (DEST_BINARY hop) tm
                                                                         tms @ [tmt]
                                                                     else 
@@ -519,134 +476,110 @@ let pp_print_term =
                                                                             rev_splitlist (DEST_BINARY hop) tm
                                                                         tmt :: tms
                                                                 let newprec = fst(get_infix_status s)
-                                                                (if newprec <= prec
-                                                                 then 
+                                                                (if newprec <= prec then 
                                                                      (pp_open_hvbox fmt 1
                                                                       pp_print_string fmt "(")
                                                                  else pp_open_hvbox fmt 0
                                                                  print_term newprec (hd bargs)
                                                                  do_list (fun x -> 
-                                                                         if mem s (!unspaced_binops)
-                                                                         then ()
-                                                                         elif mem s (!prebroken_binops)
-                                                                         then pp_print_break fmt 1 0
+                                                                         if mem s (!unspaced_binops) then ()
+                                                                         elif mem s (!prebroken_binops) then 
+                                                                             pp_print_break fmt 1 0
                                                                          else pp_print_string fmt " "
                                                                          pp_print_string fmt s
-                                                                         if mem s (!unspaced_binops)
-                                                                         then pp_print_break fmt 0 0
-                                                                         elif mem s (!prebroken_binops)
-                                                                         then pp_print_string fmt " "
+                                                                         if mem s (!unspaced_binops) then 
+                                                                             pp_print_break fmt 0 0
+                                                                         elif mem s (!prebroken_binops) then 
+                                                                             pp_print_string fmt " "
                                                                          else pp_print_break fmt 1 0
                                                                          print_term newprec x) (tl bargs)
-                                                                 if newprec <= prec
-                                                                 then pp_print_string fmt ")"
+                                                                 if newprec <= prec then pp_print_string fmt ")"
                                                                  else ()
                                                                  pp_close_box fmt ())
-                                                            elif (is_const hop || is_var hop) && args = []
-                                                            then 
+                                                            elif (is_const hop || is_var hop) && args = [] then 
                                                                 let s' = 
                                                                     if parses_as_binder s || can get_infix_status s 
-                                                                       || is_prefix s
-                                                                    then "(" ^ s ^ ")"
+                                                                       || is_prefix s then "(" ^ s ^ ")"
                                                                     else s
                                                                 pp_print_string fmt s'
                                                             else 
                                                                 let l, r = dest_comb tm
                                                                 (pp_open_hvbox fmt 0
-                                                                 if prec = 1000
-                                                                 then pp_print_string fmt "("
+                                                                 if prec = 1000 then pp_print_string fmt "("
                                                                  else ()
                                                                  print_term 999 l
                                                                  (if try 
-                                                                         mem (fst(dest_const l)) ["real_of_num"
+                                                                         mem (fst(dest_const l)) ["real_of_num";
                                                                                                   "int_of_num"]
                                                                      with
                                                                      | Failure _ -> false
                                                                   then ()
                                                                   else pp_print_space fmt ())
                                                                  print_term 1000 r
-                                                                 if prec = 1000
-                                                                 then pp_print_string fmt ")"
+                                                                 if prec = 1000 then pp_print_string fmt ")"
                                                                  else ()
                                                                  pp_close_box fmt ())
         and print_term_sequence sep prec tms = 
-            if tms = []
-            then ()
+            if tms = [] then ()
             else 
                 (print_term prec (hd tms)
                  let ttms = tl tms
-                 if ttms = []
-                 then ()
+                 if ttms = [] then ()
                  else 
                      (pp_print_string fmt sep
                       print_term_sequence sep prec ttms))
         and print_binder prec tm = 
             let absf = is_gabs tm
             let s = 
-                if absf
-                then "\\"
+                if absf then "\\"
                 else name_of(rator tm)
             let rec collectvs tm = 
-                if absf
-                then 
-                    if is_abs tm
-                    then 
+                if absf then 
+                    if is_abs tm then 
                         let v, t = dest_abs tm
                         let vs, bod = collectvs t
                         (false, v) :: vs, bod
-                    elif is_gabs tm
-                    then 
+                    elif is_gabs tm then 
                         let v, t = dest_gabs tm
                         let vs, bod = collectvs t
                         (true, v) :: vs, bod
                     else [], tm
-                elif is_comb tm && name_of(rator tm) = s
-                then 
-                    if is_abs(rand tm)
-                    then 
+                elif is_comb tm && name_of(rator tm) = s then 
+                    if is_abs(rand tm) then 
                         let v, t = dest_abs(rand tm)
                         let vs, bod = collectvs t
                         (false, v) :: vs, bod
-                    elif is_gabs(rand tm)
-                    then 
+                    elif is_gabs(rand tm) then 
                         let v, t = dest_gabs(rand tm)
                         let vs, bod = collectvs t
                         (true, v) :: vs, bod
                     else [], tm
                 else [], tm
             let vs, bod = collectvs tm
-            ((if prec = 0
-              then pp_open_hvbox fmt 4
+            ((if prec = 0 then pp_open_hvbox fmt 4
               else 
                   (pp_open_hvbox fmt 5
                    pp_print_string fmt "("))
              pp_print_string fmt s
-             (if isalnum s
-              then pp_print_string fmt " "
+             (if isalnum s then pp_print_string fmt " "
               else ())
              do_list (fun (b, x) -> 
-                     (if b
-                      then pp_print_string fmt "("
+                     (if b then pp_print_string fmt "("
                       else ())
                      print_term 0 x
-                     (if b
-                      then pp_print_string fmt ")"
+                     (if b then pp_print_string fmt ")"
                       else ())
                      pp_print_string fmt " ") (butlast vs)
-             (if fst(last vs)
-              then pp_print_string fmt "("
+             (if fst(last vs) then pp_print_string fmt "("
               else ())
              print_term 0 (snd(last vs))
-             (if fst(last vs)
-              then pp_print_string fmt ")"
+             (if fst(last vs) then pp_print_string fmt ")"
               else ())
              pp_print_string fmt "."
-             (if length vs = 1
-              then pp_print_string fmt " "
+             (if length vs = 1 then pp_print_string fmt " "
               else pp_print_space fmt ())
              print_term 0 bod
-             (if prec = 0
-              then ()
+             (if prec = 0 then ()
               else pp_print_string fmt ")")
              pp_close_box fmt ())
         and print_clauses cls = 
@@ -686,10 +619,8 @@ let pp_print_qterm fmt tm =
 
 let pp_print_thm fmt th = 
     let asl, tm = dest_thm th
-    (if not(asl = [])
-     then 
-         (if !print_all_thm
-          then 
+    (if not(asl = []) then 
+         (if !print_all_thm then 
               (pp_print_term fmt (hd asl)
                do_list (fun x -> 
                        pp_print_string fmt ","

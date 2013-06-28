@@ -28,22 +28,20 @@ open FSharp.Compatibility.OCaml.Num
 (* A few missing functions to convert OCaml code to F#.                      *)
 (* ------------------------------------------------------------------------- *)
 
-module Ratio =
+module Ratio = 
     // NOTE : not sure what kind of normalization should be done here
     let normalize_ratio x = x
-
-    let numerator_ratio (r : Ratio.ratio) = r.Numerator
-    let denominator_ratio (r : Ratio.ratio) = r.Denominator
+    let numerator_ratio(r : Ratio.ratio) = r.Numerator
+    let denominator_ratio(r : Ratio.ratio) = r.Denominator
 
 // TODO : Replace uses of (==) with (===) from ExtCore.
 let (==) (x : 'T) (y : 'T) = obj.ReferenceEquals(x, y)
-
-let fail() = raise <| exn ()
+let fail() = raise <| exn()
 
 // The exception fired by failwith is used as a control flow.
 // KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
 // Using exception as a control flow should be eliminated in the future.
-let (|Failure|_|) (exn: exn) =
+let (|Failure|_|)(exn : exn) = 
     match exn with
     | :? System.Collections.Generic.KeyNotFoundException as p -> Some p.Message
     | :? System.ArgumentException as p -> Some p.Message
@@ -60,7 +58,6 @@ let I x = x
 let K x y = x
 let C f x y = f y x
 let W f x = f x x
-
 let (||>>) = fun f g (x, y) -> (f x, g y)
 
 (* ------------------------------------------------------------------------- *)
@@ -105,8 +102,7 @@ let rec butlast l =
 
 // OPTIMIZE : Make this an alias for List.nth.
 let rec el n l = 
-    if n = 0
-    then hd l
+    if n = 0 then hd l
     else el (n - 1) (tl l)
 
 // OPTIMIZE : Make this an alias for List.rev.
@@ -138,8 +134,7 @@ let can f x =
     | Failure _ -> false
 
 let check p x = 
-    if p x
-    then x
+    if p x then x
     else failwith "check"
 
 (* ------------------------------------------------------------------------- *)
@@ -147,8 +142,7 @@ let check p x =
 (* ------------------------------------------------------------------------- *)
 
 let rec funpow n f x = 
-    if n < 1
-    then x
+    if n < 1 then x
     else funpow (n - 1) f (f x)
 
 let rec repeat f x = 
@@ -237,8 +231,7 @@ let striplist dest =
 (* ------------------------------------------------------------------------- *)
 
 let rec nsplit dest clist x = 
-    if clist = []
-    then [], x
+    if clist = [] then [], x
     else 
         let l, r = dest x
         let ll, y = nsplit dest (tl clist) r
@@ -250,15 +243,13 @@ let rec nsplit dest clist x =
 
 // OPTIMIZE : Make this an alias for List.replicate.
 let rec replicate x n = 
-    if n < 1
-    then []
+    if n < 1 then []
     else x :: (replicate x (n - 1))
 
 // OPTIMIZE : Make this an alias for [m..n]
 let rec (--) = 
     fun m n -> 
-        if m > n
-        then []
+        if m > n then []
         else m :: ((m + 1) -- n)
 
 (* ------------------------------------------------------------------------- *)
@@ -287,8 +278,7 @@ let rec exists p l =
 // OPTIMIZE : Make this an alias for List.length.
 let length = 
     let rec len k l = 
-        if l = []
-        then k
+        if l = [] then k
         else len (k + 1) (tl l)
     fun l -> len 0 l
 
@@ -298,10 +288,8 @@ let rec filter p l =
     | [] -> l
     | h :: t -> 
         let t' = filter p t
-        if p(h)
-        then 
-            if t' == t
-            then l
+        if p(h) then 
+            if t' == t then l
             else h :: t'
         else t'
 
@@ -311,14 +299,11 @@ let rec partition p l =
     | [] -> [], l
     | h :: t -> 
         let yes, no = partition p t
-        if p(h)
-        then 
-            (if yes == t
-             then l, []
+        if p(h) then 
+            (if yes == t then l, []
              else h :: yes, no)
         else 
-            (if no == t
-             then [], l
+            (if no == t then [], l
              else yes, h :: no)
 
 // OPTIMIZE : Make this an alias for List.choose.
@@ -337,8 +322,7 @@ let rec find p l =
     match l with
     | [] -> failwith "find"
     | (h :: t) -> 
-        if p(h)
-        then h
+        if p(h) then h
         else find p t
 
 // OPTIMIZE : Make this an alias for List.tryFind.
@@ -359,16 +343,14 @@ let rec remove p l =
     match l with
     | [] -> failwith "remove"
     | (h :: t) -> 
-        if p(h)
-        then h, t
+        if p(h) then h, t
         else 
             let y, n = remove p t
             y, h :: n
 
 // OPTIMIZE : Make this an alias for List.take.
 let rec chop_list n l = 
-    if n = 0
-    then [], l
+    if n = 0 then [], l
     else 
         try 
             let m, l' = chop_list (n - 1) (tl l)
@@ -382,22 +364,21 @@ let index x =
         match l with
         | [] -> failwith "index"
         | (h :: t) -> 
-            if compare x h = 0
-            then n
+            if compare x h = 0 then n
             else ind (n + 1) t
     ind 0
 
 (* ------------------------------------------------------------------------- *)
 (* "Set" operations on lists.                                                *)
 (* ------------------------------------------------------------------------- *)
+
 let rec mem x lis = 
     match lis with
     | [] -> false
     | (h :: t) -> compare x h = 0 || mem x t
 
 let insert x l = 
-    if mem x l
-    then l
+    if mem x l then l
     else x :: l
 
 let union l1 l2 = itlist insert l1 l2
@@ -414,16 +395,14 @@ let set_eq l1 l2 = subset l1 l2 && subset l2 l1
 let rec assoc a l = 
     match l with
     | (x, y) :: t -> 
-        if compare x a = 0
-        then y
+        if compare x a = 0 then y
         else assoc a t
     | [] -> failwith "find"
 
 let rec rev_assoc a l = 
     match l with
     | (x, y) :: t -> 
-        if compare y a = 0
-        then x
+        if compare y a = 0 then x
         else rev_assoc a t
     | [] -> failwith "find"
 
@@ -451,8 +430,7 @@ let rec unzip =
 (* ------------------------------------------------------------------------- *)
 
 let rec shareout pat all = 
-    if pat = []
-    then []
+    if pat = [] then []
     else 
         let l, r = chop_list (length(hd pat)) all
         l :: (shareout (tl pat) r)
@@ -489,10 +467,8 @@ let rec uniq l =
     match l with
     | x :: (y :: _ as t) -> 
         let t' = uniq t
-        if compare x y = 0
-        then t'
-        elif t' == t
-        then l
+        if compare x y = 0 then t'
+        elif t' == t then l
         else x :: t'
     | _ -> l
 
@@ -501,7 +477,6 @@ let rec uniq l =
 (* ------------------------------------------------------------------------- *)
 
 let setify s = uniq(sort (fun x y -> compare x y <= 0) s)
-
 (* ------------------------------------------------------------------------- *)
 (* String operations (surely there is a better way...)                       *)
 (* ------------------------------------------------------------------------- *)
@@ -511,8 +486,7 @@ let implode l = itlist (^) l ""
 
 let explode s = 
     let rec exap n l = 
-        if n < 0
-        then l
+        if n < 0 then l
         else exap (n - 1) ((String.sub s n 1) :: l)
     exap (String.length s - 1) []
 
@@ -522,14 +496,12 @@ let explode s =
 
 let gcd = 
     let rec gxd x y = 
-        if y = 0
-        then x
+        if y = 0 then x
         else gxd y (x % y)
     fun x y -> 
         let x' = abs x
         let y' = abs y
-        if x' < y'
-        then gxd y' x'
+        if x' < y' then gxd y' x'
         else gxd x' y'
 
 (* ------------------------------------------------------------------------- *)
@@ -540,7 +512,6 @@ let num_0 = Int 0
 let num_1 = Int 1
 let num_2 = Int 2
 let num_10 = Int 10
-
 let pow2 n = power_num num_2 (Int n)
 let pow10 n = power_num num_10 (Int n)
 
@@ -553,8 +524,7 @@ let denominator = snd << numdom
 let gcd_num n1 n2 = num_of_big_int(Big_int.gcd_big_int (big_int_of_num n1) (big_int_of_num n2))
 
 let lcm_num x y = 
-    if x =/ num_0 && y =/ num_0
-    then num_0
+    if x =/ num_0 && y =/ num_0 then num_0
     else abs_num((x */ y) / gcd_num x y)
 
 (* ------------------------------------------------------------------------- *)
@@ -579,8 +549,7 @@ let report s =
 (* ------------------------------------------------------------------------- *)
 
 let warn cond s = 
-    if cond
-    then report("Warning: " ^ s)
+    if cond then report("Warning: " ^ s)
     else ()
 
 (* ------------------------------------------------------------------------- *)
@@ -588,7 +557,6 @@ let warn cond s =
 (* ------------------------------------------------------------------------- *)
 
 let verbose = ref true
-
 let report_timing = ref true
 
 (* ------------------------------------------------------------------------- *)
@@ -596,8 +564,7 @@ let report_timing = ref true
 (* ------------------------------------------------------------------------- *)
 
 let remark s = 
-    if !verbose
-    then report s
+    if !verbose then report s
     else ()
 
 (* ------------------------------------------------------------------------- *)
@@ -605,8 +572,7 @@ let remark s =
 (* ------------------------------------------------------------------------- *)
 
 let time f x = 
-    if not(!report_timing)
-    then f x
+    if not(!report_timing) then f x
     else 
         let start_time = Sys.time()
         try 
@@ -629,16 +595,14 @@ let rec assocd a l d =
     match l with
     | [] -> d
     | (x, y) :: t -> 
-        if compare x a = 0
-        then y
+        if compare x a = 0 then y
         else assocd a t d
 
 let rec rev_assocd a l d = 
     match l with
     | [] -> d
     | (x, y) :: t -> 
-        if compare y a = 0
-        then x
+        if compare y a = 0 then x
         else rev_assocd a t d
 
 (* ------------------------------------------------------------------------- *)
@@ -650,8 +614,7 @@ let rec qmap f l =
     | h :: t -> 
         let h' = f h
         let t' = qmap f t
-        if h' == h && t' == t
-        then l
+        if h' == h && t' == t then l
         else h' :: t'
     | _ -> l
 
@@ -666,8 +629,7 @@ let rec merge ord l1 l2 =
         match l2 with
         | [] -> l1
         | h2 :: t2 -> 
-            if ord h1 h2
-            then h1 :: (merge ord t1 l2)
+            if ord h1 h2 then h1 :: (merge ord t1 l2)
             else h2 :: (merge ord l1 t2)
 
 let mergesort ord = 
@@ -678,8 +640,7 @@ let mergesort ord =
         | (l, [s1]) -> mergepairs (s1 :: l) []
         | (l, (s1 :: s2 :: ss)) -> mergepairs ((merge ord s1 s2) :: l) ss
     fun l -> 
-        if l = []
-        then []
+        if l = [] then []
         else mergepairs [] (map (fun x -> [x]) l)
 
 (* ------------------------------------------------------------------------- *)
@@ -687,7 +648,6 @@ let mergesort ord =
 (* ------------------------------------------------------------------------- *)
 
 let increasing f x y = compare (f x) (f y) < 0
-
 let decreasing f x y = compare (f x) (f y) > 0
 
 (* ------------------------------------------------------------------------- *)
@@ -700,10 +660,10 @@ let decreasing f x y = compare (f x) (f y) > 0
 (* ------------------------------------------------------------------------- *)
 
 // OPTIMIZE : Replace with IntMap type from ExtCore.
-type func<'a, 'b> =
-   Empty
- | Leaf of int * ('a * 'b) list
- | Branch of int * int * func<'a, 'b> * func<'a, 'b>
+type func<'a, 'b> = 
+    | Empty
+    | Leaf of int * ('a * 'b) list
+    | Branch of int * int * func<'a, 'b> * func<'a, 'b>
 
 (* ------------------------------------------------------------------------- *)
 (* Undefined function.                                                       *)
@@ -769,7 +729,6 @@ let foldr =
 (* ------------------------------------------------------------------------- *)
 
 let graph f = setify(foldl (fun a x y -> (x, y) :: a) [] f)
-
 let dom f = setify(foldl (fun a x y -> x :: a) [] f)
 let ran f = setify(foldl (fun a x y -> y :: a) [] f)
 
@@ -782,10 +741,8 @@ let applyd =
         match l with
         | (a, b) :: t -> 
             let c = compare x a
-            if c = 0
-            then b
-            elif c > 0
-            then apply_listd t d x
+            if c = 0 then b
+            elif c > 0 then apply_listd t d x
             else d x
         | [] -> d x
     fun f d x -> 
@@ -794,8 +751,7 @@ let applyd =
             match t with
             | Leaf(h, l) when h = k -> apply_listd l d x
             | Branch(p, b, l, r) when (k ^^^ p) &&& (b - 1) = 0 -> 
-                look(if k &&& b = 0
-                     then l
+                look(if k &&& b = 0 then l
                      else r)
             | _ -> d x
         look f
@@ -819,14 +775,11 @@ let undefine =
         match l with
         | (a, b as ab) :: t -> 
             let c = compare x a
-            if c = 0
-            then t
-            elif c < 0
-            then l
+            if c = 0 then t
+            elif c < 0 then l
             else 
                 let t' = undefine_list x t
-                if t' == t
-                then l
+                if t' == t then l
                 else ab :: t'
         | [] -> []
     fun x -> 
@@ -835,25 +788,20 @@ let undefine =
             match t with
             | Leaf(h, l) when h = k -> 
                 let l' = undefine_list x l
-                if l' == l
-                then t
-                elif l' = []
-                then Empty
+                if l' == l then t
+                elif l' = [] then Empty
                 else Leaf(h, l')
             | Branch(p, b, l, r) when k &&& (b - 1) = p -> 
-                if k &&& b = 0
-                then 
+                if k &&& b = 0 then 
                     let l' = und l
-                    if l' == l
-                    then t
+                    if l' == l then t
                     else 
                         (match l' with
                          | Empty -> r
                          | _ -> Branch(p, b, l', r))
                 else 
                     let r' = und r
-                    if r' == r
-                    then t
+                    if r' == r then t
                     else 
                         (match r' with
                          | Empty -> l
@@ -870,17 +818,14 @@ let (|->), combine =
         let zp = p1 ^^^ p2
         let b = zp &&& (-zp)
         let p = p1 &&& (b - 1)
-        if p1 &&& b = 0
-        then Branch(p, b, t1, t2)
+        if p1 &&& b = 0 then Branch(p, b, t1, t2)
         else Branch(p, b, t2, t1)
     let rec define_list (x, y as xy) l = 
         match l with
         | (a, b as ab) :: t -> 
             let c = compare x a
-            if c = 0
-            then xy :: t
-            elif c < 0
-            then xy :: l
+            if c = 0 then xy :: t
+            elif c < 0 then xy :: l
             else ab :: (define_list xy t)
         | [] -> [xy]
     and combine_list op z l1 l2 = 
@@ -889,15 +834,12 @@ let (|->), combine =
         | _, [] -> l1
         | ((x1, y1 as xy1) :: t1, (x2, y2 as xy2) :: t2) -> 
             let c = compare x1 x2
-            if c < 0
-            then xy1 :: (combine_list op z t1 l2)
-            elif c > 0
-            then xy2 :: (combine_list op z l1 t2)
+            if c < 0 then xy1 :: (combine_list op z t1 l2)
+            elif c > 0 then xy2 :: (combine_list op z l1 t2)
             else 
                 let y = op y1 y2
                 let l = combine_list op z t1 t2
-                if z(y)
-                then l
+                if z(y) then l
                 else (x1, y) :: l
     let (|->) x y = 
         let k = Hashtbl.hash x
@@ -905,14 +847,11 @@ let (|->), combine =
             match t with
             | Empty -> Leaf(k, [x, y])
             | Leaf(h, l) -> 
-                if h = k
-                then Leaf(h, define_list (x, y) l)
+                if h = k then Leaf(h, define_list (x, y) l)
                 else newbranch h t k (Leaf(k, [x, y]))
             | Branch(p, b, l, r) -> 
-                if k &&& (b - 1) <> p
-                then newbranch p t k (Leaf(k, [x, y]))
-                elif k &&& b = 0
-                then Branch(p, b, upd l, r)
+                if k &&& (b - 1) <> p then newbranch p t k (Leaf(k, [x, y]))
+                elif k &&& b = 0 then Branch(p, b, upd l, r)
                 else Branch(p, b, l, upd r)
         upd
     let rec combine op z t1 t2 = 
@@ -920,18 +859,14 @@ let (|->), combine =
         | Empty, _ -> t2
         | _, Empty -> t1
         | Leaf(h1, l1), Leaf(h2, l2) -> 
-            if h1 = h2
-            then 
+            if h1 = h2 then 
                 let l = combine_list op z l1 l2
-                if l = []
-                then Empty
+                if l = [] then Empty
                 else Leaf(h1, l)
             else newbranch h1 t1 h2 t2
         | (Leaf(k, lis) as lf), (Branch(p, b, l, r) as br) -> 
-            if k &&& (b - 1) = p
-            then 
-                if k &&& b = 0
-                then 
+            if k &&& (b - 1) = p then 
+                if k &&& b = 0 then 
                     (match combine op z lf l with
                      | Empty -> r
                      | l' -> Branch(p, b, l', r))
@@ -941,10 +876,8 @@ let (|->), combine =
                      | r' -> Branch(p, b, l, r'))
             else newbranch k lf p br
         | (Branch(p, b, l, r) as br), (Leaf(k, lis) as lf) -> 
-            if k &&& (b - 1) = p
-            then 
-                if k &&& b = 0
-                then 
+            if k &&& (b - 1) = p then 
+                if k &&& b = 0 then 
                     (match combine op z l lf with
                      | Empty -> r
                      | l' -> Branch(p, b, l', r))
@@ -954,12 +887,9 @@ let (|->), combine =
                      | r' -> Branch(p, b, l, r'))
             else newbranch p br k lf
         | Branch(p1, b1, l1, r1), Branch(p2, b2, l2, r2) -> 
-            if b1 < b2
-            then 
-                if p2 &&& (b1 - 1) <> p1
-                then newbranch p1 t1 p2 t2
-                elif p2 &&& b1 = 0
-                then 
+            if b1 < b2 then 
+                if p2 &&& (b1 - 1) <> p1 then newbranch p1 t1 p2 t2
+                elif p2 &&& b1 = 0 then 
                     (match combine op z l1 t2 with
                      | Empty -> r1
                      | l -> Branch(p1, b1, l, r1))
@@ -967,12 +897,9 @@ let (|->), combine =
                     (match combine op z r1 t2 with
                      | Empty -> l1
                      | r -> Branch(p1, b1, l1, r))
-            elif b2 < b1
-            then 
-                if p1 &&& (b2 - 1) <> p2
-                then newbranch p1 t1 p2 t2
-                elif p1 &&& b2 = 0
-                then 
+            elif b2 < b1 then 
+                if p1 &&& (b2 - 1) <> p2 then newbranch p1 t1 p2 t2
+                elif p1 &&& b2 = 0 then 
                     (match combine op z t1 l2 with
                      | Empty -> r2
                      | l -> Branch(p2, b2, l, r2))
@@ -980,8 +907,7 @@ let (|->), combine =
                     (match combine op z t1 r2 with
                      | Empty -> l2
                      | r -> Branch(p2, b2, l2, r))
-            elif p1 = p2
-            then 
+            elif p1 = p2 then 
                 (match (combine op z l1 l2, combine op z r1 r2) with
                  | (Empty, r) -> r
                  | (l, Empty) -> l
@@ -1011,6 +937,7 @@ let rec choose t =
 
 let print_fpf(f : func<'a, 'b>) = Format.print_string "<func>"
 
+
 #if INTERACTIVE
 fsi.AddPrinter print_fpf
 #endif
@@ -1027,8 +954,7 @@ let rec mem' eq =
     mem
 
 let insert' eq x l = 
-    if mem' eq x l
-    then l
+    if mem' eq x l then l
     else x :: l
 
 let union' eq l1 l2 = itlist (insert' eq) l1 l2
@@ -1042,32 +968,31 @@ let subtract' eq l1 l2 = filter (fun x -> not(mem' eq x l2)) l1
 
 let num_of_string = 
     let values = 
-        ["0", 0
-         "1", 1
-         "2", 2
-         "3", 3
-         "4", 4
-         "5", 5
-         "6", 6
-         "7", 7
-         "8", 8
-         "9", 9
-         "a", 10
-         "A", 10
-         "b", 11
-         "B", 11
-         "c", 12
-         "C", 12
-         "d", 13
-         "D", 13
-         "e", 14
-         "E", 14
-         "f", 15
+        ["0", 0;
+         "1", 1;
+         "2", 2;
+         "3", 3;
+         "4", 4;
+         "5", 5;
+         "6", 6;
+         "7", 7;
+         "8", 8;
+         "9", 9;
+         "a", 10;
+         "A", 10;
+         "b", 11;
+         "B", 11;
+         "c", 12;
+         "C", 12;
+         "d", 13;
+         "D", 13;
+         "e", 14;
+         "E", 14;
+         "f", 15;
          "F", 15]
     let rec valof b s = 
         let v = Int(assoc s values)
-        if v </ b
-        then v
+        if v </ b then v
         else failwith "num_of_string: invalid digit for base"
     and two = num_2
     and ten = num_10

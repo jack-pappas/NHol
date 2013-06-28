@@ -37,7 +37,6 @@ open printer
 (* ------------------------------------------------------------------------- *)
 
 let ignore_constant_varstruct = ref true
-
 (* ------------------------------------------------------------------------- *)
 (* Flags controlling the treatment of invented type variables in quotations. *)
 (* It can be treated as an error, result in a warning, ||  neither of those.  *)
@@ -45,7 +44,6 @@ let ignore_constant_varstruct = ref true
 
 let type_invention_warning = ref true
 let type_invention_error = ref false
-
 (* ------------------------------------------------------------------------- *)
 (* Implicit types ||  type schemes for non-constants.                         *)
 (* ------------------------------------------------------------------------- *)
@@ -57,10 +55,8 @@ let the_implicit_types = ref([] : (string * hol_type) list)
 (* ------------------------------------------------------------------------- *)
 
 let make_overloadable s gty = 
-    if can (assoc s) (!the_overload_skeletons)
-    then 
-        if assoc s (!the_overload_skeletons) = gty
-        then ()
+    if can (assoc s) (!the_overload_skeletons) then 
+        if assoc s (!the_overload_skeletons) = gty then ()
         else failwith "make_overloadable: differs from existing skeleton"
     else the_overload_skeletons := (s, gty) :: (!the_overload_skeletons)
 
@@ -96,8 +92,7 @@ let overload_interface(sym, tm) =
             dest_const tm
         with
         | Failure _ -> dest_var tm
-    if not(can (type_match gty ty) [])
-    then failwith "Not an instance of type skeleton"
+    if not(can (type_match gty ty) []) then failwith "Not an instance of type skeleton"
     else 
         let ``interface`` = filter ((<>)(sym, namty)) (!the_interface)
         the_interface := (sym, namty) :: ``interface``
@@ -106,9 +101,7 @@ let prioritize_overload ty =
     do_list (fun (s, gty) -> 
             try 
                 let _, (n, t) = 
-                    find (fun (s', _) -> 
-                            match _arg1 with
-                            | n, t -> s' = s && mem ty (map fst (type_match gty t []))) (!the_interface)
+                    find (fun (s', (n, t)) -> s' = s && mem ty (map fst (type_match gty t []))) (!the_interface)
                 overload_interface(s, mk_var(n, t))
             with
             | Failure _ -> ()) (!the_overload_skeletons)
@@ -142,9 +135,13 @@ let hide_constant, unhide_constant, is_hidden =
 (* ------------------------------------------------------------------------- *)
 
 type pretype = 
-    | Utv of string                   (* User type variable         *)
-    | Ptycon of string * pretype list (* Type constructor           *)
-    | Stv of int                      (* System type variable       *)
+    | Utv of string
+    (* User type variable         *)
+    | Ptycon of string * pretype list
+    (* Type constructor           *)
+    | Stv of int
+
+(* System type variable       *)
 
 (* ------------------------------------------------------------------------- *)
 (* Dummy pretype for the parser to stick in before a proper typing pass.     *)
@@ -168,11 +165,17 @@ let rec pretype_of_type ty =
 (* ------------------------------------------------------------------------- *)
 
 type preterm = 
-    | Varp of string * pretype    (* Variable           - v      *)
-    | Constp of string * pretype  (* Constant           - c      *)
-    | Combp of preterm * preterm  (* Combination        - f x    *)
-    | Absp of preterm * preterm   (* Lambda-abstraction - \x. t  *)
-    | Typing of preterm * pretype (* Type constraint    - t : ty *)
+    | Varp of string * pretype
+    (* Variable           - v      *)
+    | Constp of string * pretype
+    (* Constant           - c      *)
+    | Combp of preterm * preterm
+    (* Combination        - f x    *)
+    | Absp of preterm * preterm
+    (* Lambda-abstraction - \x. t  *)
+    | Typing of preterm * pretype
+
+(* Type constraint    - t : ty *)
 
 (* ------------------------------------------------------------------------- *)
 (* Convert term to preterm.                                                  *)
@@ -208,8 +211,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         (tyv_num := n + 1
          Stv(n))
     let pmk_cv(s, pty) = 
-        if can get_const_type s
-        then Constp(s, pty)
+        if can get_const_type s then Constp(s, pty)
         else Varp(s, pty)
     let pmk_numeral = 
         let num_pty = Ptycon("num", [])
@@ -218,42 +220,37 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let BIT1 = Constp("BIT1", Ptycon("fun", [num_pty; num_pty]))
         let t_0 = Constp("_0", num_pty)
         let rec pmk_numeral(n) = 
-            if n =/ num_0
-            then t_0
+            if n =/ num_0 then t_0
             else 
                 let m = quo_num n (num_2)
                 let b = mod_num n (num_2)
                 let op = 
-                    if b =/ num_0
-                    then BIT0
+                    if b =/ num_0 then BIT0
                     else BIT1
                 Combp(op, pmk_numeral(m))
         fun n -> Combp(NUMERAL, pmk_numeral n)
-    
     (* ----------------------------------------------------------------------- *)
     (* Pretype substitution for a pretype resulting from translation of type.  *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let rec pretype_subst th ty = 
         match ty with
         | Ptycon(tycon, args) -> Ptycon(tycon, map (pretype_subst th) args)
         | Utv v -> rev_assocd ty th ty
         | _ -> failwith "pretype_subst: Unexpected form of pretype"
-    
     (* ----------------------------------------------------------------------- *)
     (* Convert type to pretype with new Stvs for all type variables.           *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let pretype_instance ty = 
         let gty = pretype_of_type ty
         let tyvs = map pretype_of_type (tyvars ty)
         let subs = map (fun tv -> new_type_var(), tv) tyvs
         pretype_subst subs gty
-    
     (* ----------------------------------------------------------------------- *)
     (* Get a new instance of a constant's generic type modulo interface.       *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let get_generic_type cname = 
         match filter ((=) cname << fst) (!the_interface) with
         | [_, (c, ty)] -> ty
@@ -262,26 +259,24 @@ let type_of_pretype, term_of_preterm, retypecheck =
     (* ----------------------------------------------------------------------- *)
     (* Get the implicit generic type of a variable.                            *)
     (* ----------------------------------------------------------------------- *)
+
     let get_var_type vname = assoc vname !the_implicit_types
-    
     (* ----------------------------------------------------------------------- *)
     (* Unravel unifications and apply them to a type.                          *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let rec solve env pty = 
         match pty with
         | Ptycon(f, args) -> Ptycon(f, map (solve env) args)
         | Stv(i) -> 
-            if defined env i
-            then solve env (apply env i)
+            if defined env i then solve env (apply env i)
             else pty
         | _ -> pty
-    
     (* ----------------------------------------------------------------------- *)
     (* Functions for display of preterms and pretypes, by converting them      *)
     (* to terms and types then re-using standard printing functions.           *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let free_stvs = 
         let rec free_stvs = 
             function 
@@ -293,8 +288,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let rec type_of_pretype' ns = 
             function 
             | Stv n -> 
-                mk_vartype(if mem n ns
-                           then "?" ^ string_of_int n
+                mk_vartype(if mem n ns then "?" ^ string_of_int n
                            else "_")
             | Utv v -> mk_vartype v
             | Ptycon(con, args) -> mk_type(con, map (type_of_pretype' ns) args)
@@ -322,11 +316,10 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 " " ^ s ^ " has type " ^ string_of_type(get_const_type s) ^ ", " ^ "it cannot be used with type " ^ sty2
             | Varp(s, _) -> default_msg s
             | t -> default_msg(string_of_preterm t)
-    
     (* ----------------------------------------------------------------------- *)
     (* Unification of types                                                    *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let rec istrivial ptm env x = 
         function 
         | Stv y as t -> y = x || defined env y && istrivial ptm env x (apply env y)
@@ -338,26 +331,22 @@ let type_of_pretype, term_of_preterm, retypecheck =
             | [] -> env
             | (ty1, ty2, _) :: oth when ty1 = ty2 -> unify env oth
             | (Ptycon(f, fargs), Ptycon(g, gargs), ptm) :: oth -> 
-                if f = g && length fargs = length gargs
-                then unify env (map2 (fun x y -> x, y, ptm) fargs gargs @ oth)
+                if f = g && length fargs = length gargs then unify env (map2 (fun x y -> x, y, ptm) fargs gargs @ oth)
                 else failwith(string_of_ty_error env ptm)
             | (Stv x, t, ptm) :: oth -> 
-                if defined env x
-                then unify env ((apply env x, t, ptm) :: oth)
+                if defined env x then unify env ((apply env x, t, ptm) :: oth)
                 else 
-                    unify (if istrivial ptm env x t
-                           then env
+                    unify (if istrivial ptm env x t then env
                            else (x |-> t) env) oth
             | (t, Stv x, ptm) :: oth -> unify env ((Stv x, t, ptm) :: oth)
             | (_, _, ptm) :: oth -> failwith(string_of_ty_error env ptm)
         unify env [ty1, ty2, match ptm with
                              | None -> None
                              | Some t -> Some(t, ty1, ty2)]
-    
     (* ----------------------------------------------------------------------- *)
     (* Attempt to attach a given type to a term, performing unifications.      *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let rec typify ty (ptm, venv, uenv) = 
         match ptm with
         | Varp(s, _) when can (assoc s) venv -> 
@@ -369,15 +358,13 @@ let type_of_pretype, term_of_preterm, retypecheck =
             t, [], unify (Some ptm) uenv ty' ty
         | Varp(s, _) -> 
             warn (s <> "" && isnum s) "Non-numeral begins with a digit"
-            if not(is_hidden s) && can get_generic_type s
-            then 
+            if not(is_hidden s) && can get_generic_type s then 
                 let pty = pretype_instance(get_generic_type s)
                 let ptm = Constp(s, pty)
                 ptm, [], unify (Some ptm) uenv pty ty
             else 
                 let ptm = Varp(s, ty)
-                if not(can get_var_type s)
-                then ptm, [s, ty], uenv
+                if not(can get_var_type s) then ptm, [s, ty], uenv
                 else 
                     let pty = pretype_instance(get_var_type s)
                     ptm, [s, ty], unify (Some ptm) uenv pty ty
@@ -403,11 +390,10 @@ let type_of_pretype, term_of_preterm, retypecheck =
             let bod', venv2, uenv2 = typify ty'' (bod, venv1 @ venv, uenv1)
             Absp(v', bod'), venv2, uenv2
         | _ -> failwith "typify: unexpected constant at this stage"
-    
     (* ----------------------------------------------------------------------- *)
     (* Further specialize type constraints by resolving overloadings.          *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let rec resolve_interface ptm cont env = 
         match ptm with
         | Combp(f, x) -> resolve_interface f (resolve_interface x cont) env
@@ -415,19 +401,15 @@ let type_of_pretype, term_of_preterm, retypecheck =
         | Varp(_, _) -> cont env
         | Constp(s, ty) -> 
             let maps = filter (fun (s', _) -> s' = s) (!the_interface)
-            if maps = []
-            then cont env
+            if maps = [] then cont env
             else 
-                tryfind (fun (_, _) -> 
-                        match _arg3 with
-                        | _, ty' -> 
-                            let ty' = pretype_instance ty'
-                            cont(unify (Some ptm) env ty' ty)) maps
-    
+                tryfind (fun (_, (_, ty')) -> 
+                        let ty' = pretype_instance ty'
+                        cont(unify (Some ptm) env ty' ty)) maps
     (* ----------------------------------------------------------------------- *)
     (* Hence apply throughout a preterm.                                       *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let rec solve_preterm env ptm = 
         match ptm with
         | Varp(s, ty) -> Varp(s, solve env ty)
@@ -437,23 +419,20 @@ let type_of_pretype, term_of_preterm, retypecheck =
             let tys = solve env ty
             try 
                 let _, (c', _) = 
-                    find (fun (s', _) -> 
-                            match _arg4 with
-                            | c', ty' -> s = s' && can (unify None env (pretype_instance ty')) ty) (!the_interface)
+                    find (fun (s', (c', ty')) -> s = s' && can (unify None env (pretype_instance ty')) ty) 
+                        (!the_interface)
                 pmk_cv(c', tys)
             with
             | Failure _ -> Constp(s, tys)
-    
     (* ----------------------------------------------------------------------- *)
     (* Flag to indicate that Stvs were translated to real type variables.      *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let stvs_translated = ref false
-    
     (* ----------------------------------------------------------------------- *)
     (* Pretype <-> type conversion; -> flags system type variable translation. *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let rec type_of_pretype ty = 
         match ty with
         | Stv n -> 
@@ -462,11 +441,10 @@ let type_of_pretype, term_of_preterm, retypecheck =
             mk_vartype(s)
         | Utv(v) -> mk_vartype(v)
         | Ptycon(con, args) -> mk_type(con, map type_of_pretype args)
-    
     (* ----------------------------------------------------------------------- *)
     (* Maps preterms to terms.                                                 *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let term_of_preterm = 
         let rec term_of_preterm ptm = 
             match ptm with
@@ -476,21 +454,18 @@ let type_of_pretype, term_of_preterm, retypecheck =
             | Absp(v, bod) -> mk_gabs(term_of_preterm v, term_of_preterm bod)
             | Typing(ptm, pty) -> term_of_preterm ptm
         let report_type_invention() = 
-            if !stvs_translated
-            then 
-                if !type_invention_error
-                then failwith "typechecking error (cannot infer type of variables)"
+            if !stvs_translated then 
+                if !type_invention_error then failwith "typechecking error (cannot infer type of variables)"
                 else warn !type_invention_warning "inventing type variables"
         fun ptm -> 
             stvs_translated := false
             let tm = term_of_preterm ptm
             report_type_invention()
             tm
-    
     (* ----------------------------------------------------------------------- *)
     (* Overall typechecker: initial typecheck plus overload resolution pass.   *)
     (* ----------------------------------------------------------------------- *)
-    
+
     let retypecheck venv ptm = 
         let ty = new_type_var()
         let ptm', _, env = 
