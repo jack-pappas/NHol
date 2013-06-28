@@ -793,8 +793,8 @@ let applyd =
         let rec look t = 
             match t with
             | Leaf(h, l) when h = k -> apply_listd l d x
-            | Branch(p, b, l, r) when (k lxor p) land (b - 1) = 0 -> 
-                look(if k land b = 0
+            | Branch(p, b, l, r) when (k ^^^ p) &&& (b - 1) = 0 -> 
+                look(if k &&& b = 0
                      then l
                      else r)
             | _ -> d x
@@ -840,8 +840,8 @@ let undefine =
                 elif l' = []
                 then Empty
                 else Leaf(h, l')
-            | Branch(p, b, l, r) when k land (b - 1) = p -> 
-                if k land b = 0
+            | Branch(p, b, l, r) when k &&& (b - 1) = p -> 
+                if k &&& b = 0
                 then 
                     let l' = und l
                     if l' == l
@@ -867,10 +867,10 @@ let undefine =
 
 let (|->), combine = 
     let newbranch p1 t1 p2 t2 = 
-        let zp = p1 lxor p2
-        let b = zp land (-zp)
-        let p = p1 land (b - 1)
-        if p1 land b = 0
+        let zp = p1 ^^^ p2
+        let b = zp &&& (-zp)
+        let p = p1 &&& (b - 1)
+        if p1 &&& b = 0
         then Branch(p, b, t1, t2)
         else Branch(p, b, t2, t1)
     let rec define_list (x, y as xy) l = 
@@ -909,9 +909,9 @@ let (|->), combine =
                 then Leaf(h, define_list (x, y) l)
                 else newbranch h t k (Leaf(k, [x, y]))
             | Branch(p, b, l, r) -> 
-                if k land (b - 1) <> p
+                if k &&& (b - 1) <> p
                 then newbranch p t k (Leaf(k, [x, y]))
-                elif k land b = 0
+                elif k &&& b = 0
                 then Branch(p, b, upd l, r)
                 else Branch(p, b, l, upd r)
         upd
@@ -928,9 +928,9 @@ let (|->), combine =
                 else Leaf(h1, l)
             else newbranch h1 t1 h2 t2
         | (Leaf(k, lis) as lf), (Branch(p, b, l, r) as br) -> 
-            if k land (b - 1) = p
+            if k &&& (b - 1) = p
             then 
-                if k land b = 0
+                if k &&& b = 0
                 then 
                     (match combine op z lf l with
                      | Empty -> r
@@ -941,9 +941,9 @@ let (|->), combine =
                      | r' -> Branch(p, b, l, r'))
             else newbranch k lf p br
         | (Branch(p, b, l, r) as br), (Leaf(k, lis) as lf) -> 
-            if k land (b - 1) = p
+            if k &&& (b - 1) = p
             then 
-                if k land b = 0
+                if k &&& b = 0
                 then 
                     (match combine op z l lf with
                      | Empty -> r
@@ -956,9 +956,9 @@ let (|->), combine =
         | Branch(p1, b1, l1, r1), Branch(p2, b2, l2, r2) -> 
             if b1 < b2
             then 
-                if p2 land (b1 - 1) <> p1
+                if p2 &&& (b1 - 1) <> p1
                 then newbranch p1 t1 p2 t2
-                elif p2 land b1 = 0
+                elif p2 &&& b1 = 0
                 then 
                     (match combine op z l1 t2 with
                      | Empty -> r1
@@ -969,9 +969,9 @@ let (|->), combine =
                      | r -> Branch(p1, b1, l1, r))
             elif b2 < b1
             then 
-                if p1 land (b2 - 1) <> p2
+                if p1 &&& (b2 - 1) <> p2
                 then newbranch p1 t1 p2 t2
-                elif p1 land b2 = 0
+                elif p1 &&& b2 = 0
                 then 
                     (match combine op z t1 l2 with
                      | Empty -> r2
