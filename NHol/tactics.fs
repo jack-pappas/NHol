@@ -3,7 +3,7 @@
 Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
 Copyright 2012 Marco Maggesi
-Copyright 2013 Jack Pappas
+Copyright 2013 Jack Pappas, Eric Taucher
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ open equal
 open bool
 open drule
 
-(*
 
 (* ------------------------------------------------------------------------- *)
 (* The common case of trivial instantiations.                                *)
@@ -51,7 +50,7 @@ let null_meta = (([]:term list),null_inst);;
 type goal = (string * thm) list * term;;
 
 let equals_goal ((a,w):goal) ((a',w'):goal) =
-  forall2 (fun (s,th) (s',th') -> s = s' & equals_thm th th') a a' & w = w';;
+  forall2 (fun (s,th) (s',th') -> s = s' && equals_thm th th') a a' && w = w';;
 
 (* ------------------------------------------------------------------------- *)
 (* A justification function for a goalstate [A1 ?- g1; ...; An ?- gn],       *)
@@ -106,7 +105,7 @@ type thm_tactical = thm_tactic -> thm_tactic;;
 
 let (inst_goal:instantiation->goal->goal) =
   fun p (thms,w) ->
-    map (I F_F INSTANTIATE_ALL p) thms,instantiate p w;;
+    map (I ||>> INSTANTIATE_ALL p) thms,instantiate p w;;
 
 (* ------------------------------------------------------------------------- *)
 (* Perform a sequential composition (left first) of instantiations.          *)
@@ -114,21 +113,21 @@ let (inst_goal:instantiation->goal->goal) =
 
 let (compose_insts :instantiation->instantiation->instantiation) =
   fun (pats1,tmin1,tyin1) ((pats2,tmin2,tyin2) as i2) ->
-    let tmin = map (instantiate i2 F_F inst tyin2) tmin1
-    and tyin = map (type_subst tyin2 F_F I) tyin1 in
+    let tmin = map (instantiate i2 ||>> inst tyin2) tmin1
+    let tyin = map (type_subst tyin2 ||>> I) tyin1 in
     let tmin' = filter (fun (_,x) -> not (can (rev_assoc x) tmin)) tmin2
-    and tyin' = filter (fun (_,a) -> not (can (rev_assoc a) tyin)) tyin2 in
+    let tyin' = filter (fun (_,a) -> not (can (rev_assoc a) tyin)) tyin2 in
     pats1@pats2,tmin@tmin',tyin@tyin';;
 
 (* ------------------------------------------------------------------------- *)
 (* Construct A,_FALSITY_ |- p; contortion so falsity is the last element.    *)
 (* ------------------------------------------------------------------------- *)
 
-let _FALSITY_ = new_definition `_FALSITY_ = F`;;
+let _FALSITY_ = new_definition (parse_term "_FALSITY_ = F");;
 
 let mk_fthm =
   let pth = UNDISCH(fst(EQ_IMP_RULE _FALSITY_))
-  and qth = ASSUME `_FALSITY_` in
+  let qth = ASSUME (parse_term "_FALSITY_") in
   fun (asl,c) -> PROVE_HYP qth (itlist ADD_ASSUM (rev asl) (CONTR c pth));;
 
 (* ------------------------------------------------------------------------- *)
@@ -138,9 +137,9 @@ let mk_fthm =
 
 let (VALID:tactic->tactic) =
   let fake_thm (asl,w) =
-    let asms = itlist (union o hyp o snd) asl [] in
+    let asms = itlist (union << hyp << snd) asl [] in
     mk_fthm(asms,w)
-  and false_tm = `_FALSITY_` in
+  let false_tm = parse_term "_FALSITY_" in
   fun tac (asl,w) ->
     let ((mvs,i),gls,just as res) = tac (asl,w) in
     let ths = map fake_thm gls in
@@ -148,7 +147,7 @@ let (VALID:tactic->tactic) =
     let asl'',w'' = inst_goal i (asl,w) in
     let maxasms =
       itlist (fun (_,th) -> union (insert (concl th) (hyp th))) asl'' [] in
-    if aconv w' w'' &
+    if aconv w' w'' &&
        forall (fun t -> exists (aconv t) maxasms) (subtract asl' [false_tm])
     then res else failwith "VALID: Invalid tactic";;
 
@@ -158,12 +157,13 @@ let (VALID:tactic->tactic) =
 
 let (THEN),(THENL) =
   let propagate_empty i [] = []
-  and propagate_thm th i [] = INSTANTIATE_ALL i th in
+  let propagate_thm th i [] = INSTANTIATE_ALL i th in
   let compose_justs n just1 just2 i ths =
     let ths1,ths2 = chop_list n ths in
     (just1 i ths1)::(just2 i ths2) in
-  let rec seqapply l1 l2 = match (l1,l2) with
-     ([],[]) -> null_meta,[],propagate_empty
+  let rec seqapply l1 l2 = 
+   match (l1,l2) with
+   | ([],[]) -> null_meta,[],propagate_empty
    | ((tac:tactic)::tacs),((goal:goal)::goals) ->
             let ((mvs1,insts1),gls1,just1) = tac goal in
             let goals' = map (inst_goal insts1) goals in
@@ -182,7 +182,7 @@ let (THEN),(THENL) =
     fun tac1 tac2 g ->
       let _,gls,_ as gstate = tac1 g in
       tacsequence gstate (replicate tac2 (length gls))
-  and (thenl_: tactic -> tactic list -> tactic) =
+  let (thenl_: tactic -> tactic list -> tactic) =
     fun tac1 tac2l g ->
       let _,gls,_ as gstate = tac1 g in
       if gls = [] then tacsequence gstate []
@@ -203,18 +203,18 @@ let (ALL_TAC:tactic) =
   fun g -> null_meta,[g],fun _ [th] -> th;;
 
 let TRY tac =
-  tac ORELSE ALL_TAC;;
+  ORELSE tac ALL_TAC;;
 
-let rec REPEAT tac g =
-  ((tac THEN REPEAT tac) ORELSE ALL_TAC) g;;
+let rec REPEAT (tac:tactic) : tactic =
+  (ORELSE (THEN tac (REPEAT tac)) ALL_TAC);;
 
 let EVERY tacl =
-  itlist (fun t1 t2 -> t1 THEN t2) tacl ALL_TAC;;
+  itlist (fun t1 t2 -> THEN t1 t2) tacl ALL_TAC;;
 
 let (FIRST: tactic list -> tactic) =
-  fun tacl g -> end_itlist (fun t1 t2 -> t1 ORELSE t2) tacl g;;
+  fun tacl g -> end_itlist (fun t1 t2 -> ORELSE t1 t2) tacl g;;
 
-let MAP_EVERY tacf lst =
+let MAP_EVERY (tacf: 'a -> tactic) (lst : 'a list) : tactic =
   EVERY (map tacf lst);;
 
 let MAP_FIRST tacf lst =
@@ -223,11 +223,13 @@ let MAP_FIRST tacf lst =
 let (CHANGED_TAC: tactic -> tactic) =
   fun tac g ->
     let (meta,gl,_ as gstate) = tac g in
-    if meta = null_meta & length gl = 1 & equals_goal (hd gl) g
+    if meta = null_meta && length gl = 1 && equals_goal (hd gl) g
     then failwith "CHANGED_TAC" else gstate;;
 
 let rec REPLICATE_TAC n tac =
-  if n <= 0 then ALL_TAC else tac THEN (REPLICATE_TAC (n - 1) tac);;
+  if n <= 0 
+  then ALL_TAC 
+  else THEN tac (REPLICATE_TAC (n - 1) tac);;
 
 (* ------------------------------------------------------------------------- *)
 (* Combinators for theorem continuations / "theorem tacticals".              *)
@@ -240,8 +242,8 @@ let ((ORELSE_TCL): thm_tactical -> thm_tactical -> thm_tactical) =
   fun ttcl1 ttcl2 ttac th ->
     try ttcl1 ttac th with Failure _ -> ttcl2 ttac th;;
 
-let rec REPEAT_TCL ttcl ttac th =
-  ((ttcl THEN_TCL (REPEAT_TCL ttcl)) ORELSE_TCL I) ttac th;;
+let rec REPEAT_TCL ttcl =
+  (ORELSE_TCL (THEN_TCL ttcl (REPEAT_TCL ttcl)) I);;
 
 let (REPEAT_GTCL: thm_tactical -> thm_tactical) =
   let rec REPEAT_GTCL ttcl ttac th g =
@@ -255,10 +257,10 @@ let (NO_THEN: thm_tactical) =
   fun ttac th -> failwith "NO_THEN";;
 
 let EVERY_TCL ttcll =
-  itlist (fun t1 t2 -> t1 THEN_TCL t2) ttcll ALL_THEN;;
+  itlist (fun t1 t2 -> THEN_TCL t1 t2) ttcll ALL_THEN;;
 
 let FIRST_TCL ttcll =
-  end_itlist (fun t1 t2 -> t1 ORELSE_TCL t2) ttcll;;
+  end_itlist (fun t1 t2 -> ORELSE_TCL t1 t2) ttcll;;
 
 (* ------------------------------------------------------------------------- *)
 (* Tactics to augment assumption list. Note that to allow "ASSUME p" for     *)
@@ -283,7 +285,8 @@ let (FIND_ASSUM: thm_tactic -> term -> tactic) =
 
 let (POP_ASSUM: thm_tactic -> tactic) =
   fun ttac ->
-   function (((_,th)::asl),w) -> ttac th (asl,w)
+    function 
+    | (((_,th)::asl),w) -> ttac th (asl,w)
     | _ -> failwith "POP_ASSUM: No assumption to pop";;
 
 let (ASSUM_LIST: (thm list -> tactic) -> tactic) =
@@ -299,9 +302,11 @@ let (FIRST_ASSUM: thm_tactic -> tactic) =
   fun ttac (asl,w as g) -> tryfind (fun (_,th) -> ttac th g) asl;;
 
 let (RULE_ASSUM_TAC :(thm->thm)->tactic) =
-  fun rule (asl,w) -> (POP_ASSUM_LIST(K ALL_TAC) THEN
-                       MAP_EVERY (fun (s,th) -> LABEL_TAC s (rule th))
-                                 (rev asl)) (asl,w);;
+  fun rule (asl,w) -> 
+    (THEN (POP_ASSUM_LIST(K ALL_TAC)) 
+      (MAP_EVERY 
+        (fun (s,th) -> LABEL_TAC s (rule th)) (rev asl))) 
+      (asl,w);;
 
 (* ------------------------------------------------------------------------- *)
 (* Operate on assumption identified by a label.                              *)
@@ -310,13 +315,13 @@ let (RULE_ASSUM_TAC :(thm->thm)->tactic) =
 let (USE_THEN:string->thm_tactic->tactic) =
   fun s ttac (asl,w as gl) ->
     let th = try assoc s asl with Failure _ ->
-             failwith("USE_TAC: didn't find assumption "^s) in
+             failwith("USE_TAC: didn't find assumption " + s) in
     ttac th gl;;
 
 let (REMOVE_THEN:string->thm_tactic->tactic) =
   fun s ttac (asl,w) ->
     let th = try assoc s asl with Failure _ ->
-             failwith("USE_TAC: didn't find assumption "^s) in
+             failwith("USE_TAC: didn't find assumption " + s) in
     let asl1,asl2 = chop_list(index s (map fst asl)) asl in
     let asl' = asl1 @ tl asl2 in
     ttac th (asl',w);;
@@ -338,7 +343,7 @@ let HYP =
   let HYP_LIST tac l =
     rev_itlist (fun s k l -> USE_THEN s (fun th -> k (th::l))) l tac in
   fun tac s ->
-    let l,rest = (fix "Using pattern" parse_using o lex o explode) s in
+    let l,rest = (fix "Using pattern" parse_using << lex << explode) s in
     if rest=[] then HYP_LIST tac l else failwith "Invalid using pattern";;
 
 (* ------------------------------------------------------------------------- *)
@@ -359,7 +364,7 @@ let (ACCEPT_TAC: thm_tactic) =
 (* ------------------------------------------------------------------------- *)
 
 let (CONV_TAC: conv -> tactic) =
-  let t_tm = `T` in
+  let t_tm = parse_term "T" in
   fun conv ((asl,w) as g) ->
     let th = conv w in
     let tm = concl th in
@@ -383,8 +388,8 @@ let (ABS_TAC: tactic) =
   fun (asl,w) ->
     try let l,r = dest_eq w in
         let lv,lb = dest_abs l
-        and rv,rb = dest_abs r in
-        let avoids = itlist (union o thm_frees o snd) asl (frees w) in
+        let rv,rb = dest_abs r in
+        let avoids = itlist (union << thm_frees << snd) asl (frees w) in
         let v = mk_primed_var avoids lv in
         null_meta,[asl,mk_eq(vsubst[v,lv] lb,vsubst[v,rv] rb)],
         fun i [th] -> let ath = ABS v th in
@@ -395,28 +400,28 @@ let (MK_COMB_TAC: tactic) =
   fun (asl,gl) ->
     try let l,r = dest_eq gl in
         let f,x = dest_comb l
-        and g,y = dest_comb r in
+        let g,y = dest_comb r in
         null_meta,[asl,mk_eq(f,g); asl,mk_eq(x,y)],
         fun _ [th1;th2] -> MK_COMB(th1,th2)
     with Failure _ -> failwith "MK_COMB_TAC";;
 
 let (AP_TERM_TAC: tactic) =
-  let tac = MK_COMB_TAC THENL [REFL_TAC; ALL_TAC] in
+  let tac = THENL MK_COMB_TAC [REFL_TAC; ALL_TAC] in
   fun gl -> try tac gl with Failure _ -> failwith "AP_TERM_TAC";;
 
 let (AP_THM_TAC: tactic) =
-  let tac = MK_COMB_TAC THENL [ALL_TAC; REFL_TAC] in
+  let tac = THENL MK_COMB_TAC [ALL_TAC; REFL_TAC] in
   fun gl -> try tac gl with Failure _ -> failwith "AP_THM_TAC";;
 
 let (BINOP_TAC: tactic) =
-  let tac = MK_COMB_TAC THENL [AP_TERM_TAC; ALL_TAC] in
+  let tac = THENL MK_COMB_TAC [AP_TERM_TAC; ALL_TAC] in
   fun gl -> try tac gl with Failure _ -> failwith "AP_THM_TAC";;
 
 let (SUBST1_TAC: thm_tactic) =
   fun th -> CONV_TAC(SUBS_CONV [th]);;
 
 let SUBST_ALL_TAC rth =
-  SUBST1_TAC rth THEN RULE_ASSUM_TAC (SUBS [rth]);;
+  THEN (SUBST1_TAC rth) (RULE_ASSUM_TAC (SUBS [rth]));;
 
 let BETA_TAC = CONV_TAC(REDEPTH_CONV BETA_CONV);;
 
@@ -429,9 +434,9 @@ let SUBST_VAR_TAC th =
       let l,r = dest_eq eq in
       if aconv l r then ALL_TAC
       else if not (subset (frees eq) (freesl asm)) then fail()
-      else if (is_const l or is_var l) & not(free_in l r)
+      else if (is_const l || is_var l) && not(free_in l r)
            then SUBST_ALL_TAC th
-      else if (is_const r or is_var r) & not(free_in r l)
+      else if (is_const r || is_var r) && not(free_in r l)
            then SUBST_ALL_TAC(SYM th)
       else fail()
   with Failure _ -> failwith "SUBST_VAR_TAC";;
@@ -441,18 +446,19 @@ let SUBST_VAR_TAC th =
 (* ------------------------------------------------------------------------- *)
 
 let (DISCH_TAC: tactic) =
-  let f_tm = `F` in
+  let f_tm = parse_term "F" in
   fun (asl,w) ->
     try let ant,c = dest_imp w in
         let th1 = ASSUME ant in
         null_meta,[("",th1)::asl,c],
         fun i [th] -> DISCH (instantiate i ant) th
-    with Failure _ -> try
+    with Failure _ -> 
+      try
         let ant = dest_neg w in
         let th1 = ASSUME ant in
         null_meta,[("",th1)::asl,f_tm],
         fun i [th] -> NOT_INTRO(DISCH (instantiate i ant) th)
-    with Failure _ -> failwith "DISCH_TAC";;
+      with Failure _ -> failwith "DISCH_TAC";;
 
 let (MP_TAC: thm_tactic) =
   fun thm (asl,w) ->
@@ -480,59 +486,118 @@ let (SPEC_TAC: term * term -> tactic) =
         fun i [th] -> SPEC (instantiate i t) th
     with Failure _ -> failwith "SPEC_TAC";;
 
-let (X_GEN_TAC: term -> tactic),
-    (X_CHOOSE_TAC: term -> thm_tactic),
-    (EXISTS_TAC: term -> tactic) =
-  let tactic_type_compatibility_check pfx e g =
-    let et = type_of e and gt = type_of g in
+// TODO: Fix this
+//let (X_GEN_TAC: term -> tactic),
+//    (X_CHOOSE_TAC: term -> thm_tactic),
+//    (EXISTS_TAC: term -> tactic) =
+//  let tactic_type_compatibility_check pfx e g =
+//    let et = type_of e 
+//    let gt = type_of g
+//    if et = gt then ()
+//    else 
+//      let msg = (pfx + ": expected type :" + string_of_type et + " but got :" + string_of_type gt)
+//      failwith msg
+//  let X_GEN_TAC x' =
+//    if not(is_var x') then failwith "X_GEN_TAC: not a variable" 
+//    else
+//      fun (asl,w) ->
+//        let x,bod = 
+//          try 
+//            dest_forall w
+//          with Failure _ -> failwith "X_GEN_TAC: Not universally quantified"
+//        let _ = tactic_type_compatibility_check "X_GEN_TAC" x x'
+//        let avoids = itlist (union << thm_frees << snd) asl (frees w)
+//        if mem x' avoids then failwith "X_GEN_TAC: invalid variable" 
+//        else
+//          let afn = CONV_RULE(GEN_ALPHA_CONV x) 
+//          null_meta,[asl,vsubst[x',x] bod],
+//            fun i [th] -> afn (GEN x' th)
+//  and X_CHOOSE_TAC x' xth =                        // TODO: fix this
+//        let xtm = concl xth in
+//        let x,bod = 
+//          try dest_exists xtm 
+//          with Failure _ -> failwith "X_CHOOSE_TAC: not existential" in
+//        let _ = tactic_type_compatibility_check "X_CHOOSE_TAC" x x' in
+//        let pat = vsubst[x',x] bod in
+//        let xth' = ASSUME pat in
+//        fun (asl,w) ->
+//          let avoids = itlist (union << frees << concl << snd) asl
+//                              (union (frees w) (thm_frees xth)) in
+//          if mem x' avoids then failwith "X_CHOOSE_TAC: invalid variable" else
+//          null_meta,[("",xth')::asl,w],
+//          fun i [th] -> CHOOSE(x',INSTANTIATE_ALL i xth) th
+//  and EXISTS_TAC t (asl,w) =
+//    let v,bod = try dest_exists w with Failure _ -> 
+//                failwith "EXISTS_TAC: Goal not existentially quantified" in
+//    let _ = tactic_type_compatibility_check "EXISTS_TAC" v t in
+//    null_meta,[asl,vsubst[t,v] bod],
+//    fun i [th] -> EXISTS (instantiate i w,instantiate i t) th in
+//  X_GEN_TAC,X_CHOOSE_TAC,EXISTS_TAC;;
+
+let private tactic_type_compatibility_check pfx e g =
+    let et = type_of e 
+    let gt = type_of g
     if et = gt then ()
-    else failwith(pfx ^ ": expected type :"^string_of_type et^" but got :"^
-                  string_of_type gt) in
-  let X_GEN_TAC x' =
-    if not(is_var x') then failwith "X_GEN_TAC: not a variable" else
+    else 
+      let msg = (pfx + ": expected type :" + string_of_type et + " but got :" + string_of_type gt)
+      failwith msg
+
+//let (X_GEN_TAC: term -> tactic),
+//    (X_CHOOSE_TAC: term -> thm_tactic),
+//    (EXISTS_TAC: term -> tactic) =
+let X_GEN_TAC x' =
+  if not(is_var x') then failwith "X_GEN_TAC: not a variable" 
+  else
     fun (asl,w) ->
-        let x,bod = try dest_forall w
-          with Failure _ -> failwith "X_GEN_TAC: Not universally quantified" in
-        let _ = tactic_type_compatibility_check "X_GEN_TAC" x x' in
-        let avoids = itlist (union o thm_frees o snd) asl (frees w) in
-        if mem x' avoids then failwith "X_GEN_TAC: invalid variable" else
-        let afn = CONV_RULE(GEN_ALPHA_CONV x) in
+      let x,bod = 
+        try 
+          dest_forall w
+        with Failure _ -> failwith "X_GEN_TAC: Not universally quantified"
+      let _ = tactic_type_compatibility_check "X_GEN_TAC" x x'
+      let avoids = itlist (union << thm_frees << snd) asl (frees w)
+      if mem x' avoids then failwith "X_GEN_TAC: invalid variable" 
+      else
+        let afn = CONV_RULE(GEN_ALPHA_CONV x) 
         null_meta,[asl,vsubst[x',x] bod],
-        fun i [th] -> afn (GEN x' th)
-  and X_CHOOSE_TAC x' xth =
-        let xtm = concl xth in
-        let x,bod = try dest_exists xtm 
-         with Failure _ -> failwith "X_CHOOSE_TAC: not existential" in
-        let _ = tactic_type_compatibility_check "X_CHOOSE_TAC" x x' in
-        let pat = vsubst[x',x] bod in
-        let xth' = ASSUME pat in
-        fun (asl,w) ->
-          let avoids = itlist (union o frees o concl o snd) asl
-                              (union (frees w) (thm_frees xth)) in
-          if mem x' avoids then failwith "X_CHOOSE_TAC: invalid variable" else
-          null_meta,[("",xth')::asl,w],
-          fun i [th] -> CHOOSE(x',INSTANTIATE_ALL i xth) th
-  and EXISTS_TAC t (asl,w) =
-    let v,bod = try dest_exists w with Failure _ -> 
-                failwith "EXISTS_TAC: Goal not existentially quantified" in
-    let _ = tactic_type_compatibility_check "EXISTS_TAC" v t in
-    null_meta,[asl,vsubst[t,v] bod],
-    fun i [th] -> EXISTS (instantiate i w,instantiate i t) th in
-  X_GEN_TAC,X_CHOOSE_TAC,EXISTS_TAC;;
+          fun i [th] -> afn (GEN x' th)
+let X_CHOOSE_TAC x' xth =
+      let xtm = concl xth in
+      let x,bod = 
+        try dest_exists xtm 
+        with Failure _ -> failwith "X_CHOOSE_TAC: not existential" in
+      let _ = tactic_type_compatibility_check "X_CHOOSE_TAC" x x' in
+      let pat = vsubst[x',x] bod in
+      let xth' = ASSUME pat in
+      fun (asl,w) ->
+        let avoids = itlist (union << frees << concl << snd) asl
+                            (union (frees w) (thm_frees xth)) in
+        if mem x' avoids then failwith "X_CHOOSE_TAC: invalid variable" else
+        null_meta,[("",xth')::asl,w],
+        fun i [th] -> CHOOSE(x',INSTANTIATE_ALL i xth) th
+let EXISTS_TAC t (asl,w) =
+  let v,bod = 
+    try 
+      dest_exists w 
+    with Failure _ -> 
+      failwith "EXISTS_TAC: Goal not existentially quantified"
+  let _ = tactic_type_compatibility_check "EXISTS_TAC" v t
+  null_meta,[asl,vsubst[t,v] bod],
+  fun i [th] -> EXISTS (instantiate i w,instantiate i t) th
+//  X_GEN_TAC,X_CHOOSE_TAC,EXISTS_TAC;;
 
 let (GEN_TAC: tactic) =
-  fun (asl,w) ->
-    try let x = fst(dest_forall w) in
-        let avoids = itlist (union o thm_frees o snd) asl (frees w) in
-        let x' = mk_primed_var avoids x in
-        X_GEN_TAC x' (asl,w)
-    with Failure _ -> failwith "GEN_TAC";;
+ fun (asl,w) ->
+   try let x = fst(dest_forall w) in
+       let avoids = itlist (union << thm_frees << snd) asl (frees w) in
+       let x' = mk_primed_var avoids x in
+       X_GEN_TAC x' (asl,w)
+   with Failure _ -> failwith "GEN_TAC";;
 
 let (CHOOSE_TAC: thm_tactic) =
   fun xth ->
     try let x = fst(dest_exists(concl xth)) in
         fun (asl,w) ->
-          let avoids = itlist (union o thm_frees o snd) asl
+          let avoids = itlist (union << thm_frees << snd) asl
                               (union (frees w) (thm_frees xth)) in
           let x' = mk_primed_var avoids x in
           X_CHOOSE_TAC x' xth (asl,w)
@@ -561,7 +626,7 @@ let (DISJ_CASES_TAC: thm_tactic) =
     try let dtm = concl dth in
         let l,r = dest_disj dtm in
         let thl = ASSUME l
-        and thr = ASSUME r in
+        let thr = ASSUME r in
         fun (asl,w) ->
           null_meta,[("",thl)::asl,w; ("",thr)::asl,w],
           fun i [th1;th2] -> DISJ_CASES (INSTANTIATE_ALL i dth) th1 th2
@@ -580,7 +645,7 @@ let (MATCH_ACCEPT_TAC:thm_tactic) =
     try let ith = PART_MATCH I th w in
         null_meta,[],propagate_thm ith
     with Failure _ -> failwith "ACCEPT_TAC" in
-  fun th -> REPEAT GEN_TAC THEN rawtac th;;
+  fun th -> THEN (REPEAT GEN_TAC) (rawtac th);;
 
 let (MATCH_MP_TAC :thm_tactic) =
   fun th ->
@@ -590,13 +655,13 @@ let (MATCH_MP_TAC :thm_tactic) =
           let ant,con = dest_imp bod in
           let th1 = SPECL avs (ASSUME tm) in
           let th2 = UNDISCH th1 in
-          let evs = filter (fun v -> vfree_in v ant & not (vfree_in v con))
+          let evs = filter (fun v -> vfree_in v ant && not (vfree_in v con))
                            avs in
           let th3 = itlist SIMPLE_CHOOSE evs (DISCH tm th2) in
           let tm3 = hd(hyp th3) in
           MP (DISCH tm (GEN_ALL (DISCH tm3 (UNDISCH th3)))) th
       with Failure _ -> failwith "MATCH_MP_TAC: Bad theorem" in
-    let match_fun = PART_MATCH (snd o dest_imp) sth in
+    let match_fun = PART_MATCH (snd << dest_imp) sth in
     fun (asl,w) -> try let xth = match_fun w in
                        let lant = fst(dest_imp(concl xth)) in
                        null_meta,[asl,lant],
@@ -610,7 +675,7 @@ let (MATCH_MP_TAC :thm_tactic) =
 let (CONJUNCTS_THEN2:thm_tactic->thm_tactic->thm_tactic) =
   fun ttac1 ttac2 cth ->
       let c1,c2 = dest_conj(concl cth) in
-      fun gl -> let ti,gls,jfn = (ttac1(ASSUME c1) THEN ttac2(ASSUME c2)) gl in
+      fun gl -> let ti,gls,jfn = (THEN (ttac1(ASSUME c1)) (ttac2(ASSUME c2))) gl in
                 let jfn' i ths =
                   let th1,th2 = CONJ_PAIR(INSTANTIATE_ALL i cth) in
                   PROVE_HYP th1 (PROVE_HYP th2 (jfn i ths)) in
@@ -621,19 +686,19 @@ let (CONJUNCTS_THEN: thm_tactical) =
 
 let (DISJ_CASES_THEN2:thm_tactic->thm_tactic->thm_tactic) =
   fun ttac1 ttac2 cth ->
-    DISJ_CASES_TAC cth THENL [POP_ASSUM ttac1; POP_ASSUM ttac2];;
+    THENL (DISJ_CASES_TAC cth) [POP_ASSUM ttac1; POP_ASSUM ttac2];;
 
 let (DISJ_CASES_THEN: thm_tactical) =
   W DISJ_CASES_THEN2;;
 
 let (DISCH_THEN: thm_tactic -> tactic) =
-  fun ttac -> DISCH_TAC THEN POP_ASSUM ttac;;
+  fun ttac -> THEN DISCH_TAC (POP_ASSUM ttac);;
 
 let (X_CHOOSE_THEN: term -> thm_tactical) =
-  fun x ttac th -> X_CHOOSE_TAC x th THEN POP_ASSUM ttac;;
+  fun x ttac th -> THEN (X_CHOOSE_TAC x th) (POP_ASSUM ttac);;
 
 let (CHOOSE_THEN: thm_tactical) =
-  fun ttac th -> CHOOSE_TAC th THEN POP_ASSUM ttac;;
+  fun ttac th -> THEN (CHOOSE_TAC th) (POP_ASSUM ttac);;
 
 (* ------------------------------------------------------------------------- *)
 (* Various derived tactics and theorem continuations.                        *)
@@ -646,17 +711,19 @@ let (ANTE_RES_THEN: thm_tactical) =
   fun ttac ante ->
     ASSUM_LIST
      (fun asl ->
-        let tacs = mapfilter (fun imp -> ttac (MATCH_MP imp ante)) asl in
-        if tacs = [] then failwith "IMP_RES_THEN"
-        else EVERY tacs);;
+        let tacs = mapfilter (fun imp -> ttac (MATCH_MP imp ante)) asl
+        match tacs with
+        | [] -> failwith "IMP_RES_THEN"
+        | _ -> EVERY tacs);;
 
 let (IMP_RES_THEN: thm_tactical) =
   fun ttac imp ->
     ASSUM_LIST
      (fun asl ->
-        let tacs = mapfilter (fun ante -> ttac (MATCH_MP imp ante)) asl in
-        if tacs = [] then failwith "IMP_RES_THEN"
-        else EVERY tacs);;
+        let tacs = mapfilter (fun ante -> ttac (MATCH_MP imp ante)) asl
+        match tacs with
+        | [] -> failwith "IMP_RES_THEN"
+        | _ -> EVERY tacs);;
 
 let STRIP_ASSUME_TAC =
   let DISCARD_TAC th =
@@ -665,13 +732,13 @@ let STRIP_ASSUME_TAC =
        if exists (fun a -> aconv tm (concl(snd a))) asl then ALL_TAC g
        else failwith "DISCARD_TAC: not already present" in
   (REPEAT_TCL STRIP_THM_THEN)
-  (fun gth -> FIRST [CONTR_TAC gth; ACCEPT_TAC gth;
+    (fun gth -> FIRST [CONTR_TAC gth; ACCEPT_TAC gth;
                      DISCARD_TAC gth; ASSUME_TAC gth]);;
 
 let STRUCT_CASES_THEN ttac = REPEAT_TCL STRIP_THM_THEN ttac;;
 
-let STRUCT_CASES_TAC = STRUCT_CASES_THEN
-     (fun th -> SUBST1_TAC th ORELSE ASSUME_TAC th);;
+let STRUCT_CASES_TAC = 
+  STRUCT_CASES_THEN (fun th -> ORELSE (SUBST1_TAC th) (ASSUME_TAC th));;
 
 let STRIP_GOAL_THEN ttac =  FIRST [GEN_TAC; CONJ_TAC; DISCH_THEN ttac];;
 
@@ -699,8 +766,9 @@ let (SUBGOAL_THEN: term -> thm_tactic -> tactic) =
 
 let SUBGOAL_TAC s tm prfs =
   match prfs with
-   p::ps -> (warn (ps <> []) "SUBGOAL_TAC: additional subproofs ignored";
-             SUBGOAL_THEN tm (LABEL_TAC s) THENL [p; ALL_TAC])
+  | p::ps -> 
+      warn (ps.Length > 0) "SUBGOAL_TAC: additional subproofs ignored";
+      THENL (SUBGOAL_THEN tm (LABEL_TAC s)) [p; ALL_TAC]
   | [] -> failwith "SUBGOAL_TAC: no subproof given";;
 
 let (FREEZE_THEN :thm_tactical) =
@@ -722,7 +790,7 @@ let (X_META_EXISTS_TAC: term -> tactic) =
 
 let META_EXISTS_TAC ((asl,w) as gl) =
   let v = fst(dest_exists w) in
-  let avoids = itlist (union o frees o concl o snd) asl (frees w) in
+  let avoids = itlist (union << frees << concl << snd) asl (frees w) in
   let v' = mk_primed_var avoids v in
   X_META_EXISTS_TAC v' gl;;
 
@@ -750,11 +818,11 @@ let RECALL_ACCEPT_TAC r a g = ACCEPT_TAC(time r a) g;;
 (* ------------------------------------------------------------------------- *)
 
 let ANTS_TAC =
-  let tm1 = `p /\ (q ==> r)`
-  and tm2 = `p ==> q` in
-  let th1,th2 = CONJ_PAIR(ASSUME tm1) in
-  let th = itlist DISCH [tm1;tm2] (MP th2 (MP(ASSUME tm2) th1)) in
-  MATCH_MP_TAC th THEN CONJ_TAC;;
+  let tm1 = parse_term "p /\ (q ==> r)"
+  let tm2 = parse_term "p ==> q"
+  let th1,th2 = CONJ_PAIR(ASSUME tm1)
+  let th = itlist DISCH [tm1;tm2] (MP th2 (MP(ASSUME tm2) th1))
+  THEN (MATCH_MP_TAC th) CONJ_TAC;;
 
 (* ------------------------------------------------------------------------- *)
 (* A printer for goals etc.                                                  *)
@@ -762,19 +830,19 @@ let ANTS_TAC =
 
 let (print_goal:goal->unit) =
   let string_of_int3 n =
-    if n < 10 then "  "^string_of_int n
-    else if n < 100 then " "^string_of_int n
+    if n < 10 then "  " + string_of_int n
+    else if n < 100 then " " + string_of_int n
     else string_of_int n in
   let print_hyp n (s,th) =
-    open_hbox();
+    Format.open_hbox();
     Format.print_string(string_of_int3 n);
     Format.print_string " [";
-    open_hvbox 0;
+    Format.open_hvbox 0;
     print_qterm (concl th);
-    close_box();
+    Format.close_box();
     Format.print_string "]";
-    (if not (s = "") then (Format.print_string (" ("^s^")")) else ());
-    close_box();
+    (if not (s = "") then (Format.print_string (" (" + s + ")")) else ());
+    Format.close_box();
     Format.print_newline() in
   let rec print_hyps n asl =
     if asl = [] then () else
@@ -789,20 +857,21 @@ let (print_goalstack:goalstack->unit) =
   let print_goalstate k gs =
     let (_,gl,_) = gs in
     let n = length gl in
-    let s = if n = 0 then "No subgoals" else
-              (string_of_int k)^" subgoal"^(if k > 1 then "s" else "")
-           ^" ("^(string_of_int n)^" total)" in
+    let s = 
+      if n = 0 then "No subgoals" 
+      else (string_of_int k) + " subgoal" + (if k > 1 then "s" else "") + " (" + (string_of_int n) + " total)" in
     Format.print_string s; Format.print_newline();
     if gl = [] then () else
-    do_list (print_goal o C el gl) (rev(0--(k-1))) in
+    do_list (print_goal << C el gl) (rev(0--(k-1))) in
   fun l ->
-    if l = [] then Format.print_string "Empty goalstack"
-    else if tl l = [] then
+    match l.Length with
+    | 0 -> Format.print_string "Empty goalstack"
+    | 1 -> 
       let (_,gl,_ as gs) = hd l in
       print_goalstate 1 gs
-    else
+    | _ ->
       let (_,gl,_ as gs) = hd l
-      and (_,gl0,_) = hd(tl l) in
+      let (_,gl0,_) = hd(tl l) in
       let p = length gl - length gl0 in
       let p' = if p < 1 then 1 else p + 1 in
       print_goalstate p' gs;;
@@ -815,12 +884,12 @@ let (by:tactic->refinement) =
   fun tac ((mvs,inst),gls,just) ->
     if gls = [] then failwith "No goal set" else
     let g = hd gls
-    and ogls = tl gls in
+    let ogls = tl gls in
     let ((newmvs,newinst),subgls,subjust) = tac g in
     let n = length subgls in
     let mvs' = union newmvs mvs
-    and inst' = compose_insts inst newinst
-    and gls' = subgls @ map (inst_goal newinst) ogls in
+    let inst' = compose_insts inst newinst
+    let gls' = subgls @ map (inst_goal newinst) ogls in
     let just' i ths =
       let i' = compose_insts inst' i in
       let cths,oths = chop_list n ths in
@@ -839,7 +908,7 @@ let (rotate:int->refinement) =
       let ths' = (last ths)::(butlast ths) in
       just i ths' in
     (meta,sgs',just')
-  and rotate_n (meta,sgs,just) =
+  let rotate_n (meta,sgs,just) =
     let sgs' = (last sgs)::(butlast sgs) in
     let just' i ths =
       let ths' = (tl ths)@[hd ths] in
@@ -882,7 +951,7 @@ let current_goalstack = ref ([] :goalstack);;
 let (refine:refinement->goalstack) =
   fun r ->
     let l = !current_goalstack in
-    if l = [] then failwith "No current goal" else
+    if l.IsEmpty then failwith "No current goal" else
     let h = hd l in
     let res = r h :: l in
     current_goalstack := res;
@@ -902,16 +971,16 @@ let set_goal(asl,w) =
   !current_goalstack;;
 
 let g t =
-  let fvs = sort (<) (map (fst o dest_var) (frees t)) in
+  let fvs = sort (<) (map (fst << dest_var) (frees t)) in
   (if fvs <> [] then
-     let errmsg = end_itlist (fun s t -> s^", "^t) fvs in
-     warn true ("Free variables in goal: "^errmsg)
+     let errmsg = end_itlist (fun s t -> s + ", " + t) fvs in
+     warn true ("Free variables in goal: " + errmsg)
    else ());
    set_goal([],t);;
 
 let b() =
   let l = !current_goalstack in
-  if length l = 1 then failwith "Can't back up any more" else
+  if List.length l = 1 then failwith "Can't back up any more" else
   current_goalstack := tl l;
   !current_goalstack;;
 
@@ -924,7 +993,7 @@ let top_realgoal() =
 
 let top_goal() =
   let asl,w = top_realgoal() in
-  map (concl o snd) asl,w;;
+  map (concl << snd) asl,w;;
 
 let top_thm() =
   let (_,[],f)::_ = !current_goalstack in
@@ -934,7 +1003,7 @@ let top_thm() =
 (* Install the goal-related printers.                                        *)
 (* ------------------------------------------------------------------------- *)
 
-#install_printer print_goal;;
-#install_printer print_goalstack;;
-
-*)
+#if INTERACTIVE
+fsi.AddPrinter print_goal
+fsi.AddPrinter print_goalstack
+#endif
