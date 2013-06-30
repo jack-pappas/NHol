@@ -1,21 +1,22 @@
-﻿///
-///Copyright 1998 University of Cambridge
-///Copyright 1998-2007 John Harrison
-///Copyright 2013 Jack Pappas, Eric Taucher
-///
-///Licensed under the Apache License, Version 2.0 (the "License");
-///you may not use this file except in compliance with the License.
-///You may obtain a copy of the License at
-///
-///    http://www.apache.org/licenses/LICENSE-2.0
-///
-///Unless required by applicable law or agreed to in writing, software
-///distributed under the License is distributed on an "AS IS" BASIS,
-///WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-///See the License for the specific language governing permissions and
-///limitations under the License.
-///
-///*)
+﻿(*
+
+Copyright 1998 University of Cambridge
+Copyright 1998-2007 John Harrison
+Copyright 2013 Jack Pappas, Eric Taucher
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*)
 /// Tools for putting terms in canonical forms.
 module NHol.canon
 
@@ -38,9 +39,9 @@ open ind_defs
 open ``class``
 open trivia
 
-///(* ------------------------------------------------------------------------- *)
-///(* Pre-simplification.                                                       *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Pre-simplification.                                                       *)
+(* ------------------------------------------------------------------------- *)
 let PRESIMP_CONV = 
     GEN_REWRITE_CONV TOP_DEPTH_CONV 
         [NOT_CLAUSES; AND_CLAUSES; OR_CLAUSES; IMP_CLAUSES; EQ_CLAUSES; 
@@ -48,10 +49,10 @@ let PRESIMP_CONV =
          LEFT_EXISTS_AND_THM; RIGHT_EXISTS_AND_THM; LEFT_FORALL_OR_THM; 
          RIGHT_FORALL_OR_THM]
 
-///(* ------------------------------------------------------------------------- *)
-///(* ACI rearrangements of conjunctions and disjunctions. This is much faster  *)
-///(* than AC xxx_ACI on large problems, as well as being more controlled.      *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* ACI rearrangements of conjunctions and disjunctions. This is much faster  *)
+(* than AC xxx_ACI on large problems, as well as being more controlled.      *)
+(* ------------------------------------------------------------------------- *)
 let CONJ_ACI_RULE = 
     let rec mk_fun th fn = 
         let tm = concl th
@@ -117,9 +118,9 @@ let DISJ_ACI_RULE =
             PROVE_HYP th1 (INST [p, a_tm
                                  p', b_tm] pth_neg)
 
-///(* ------------------------------------------------------------------------- *)
-///(* Order canonically, right-associate and remove duplicates.                 *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Order canonically, right-associate and remove duplicates.                 *)
+(* ------------------------------------------------------------------------- *)
 let CONJ_CANON_CONV tm = 
     let tm' = list_mk_conj(setify(conjuncts tm))
     CONJ_ACI_RULE(mk_eq(tm, tm'))
@@ -128,21 +129,21 @@ let DISJ_CANON_CONV tm =
     let tm' = list_mk_disj(setify(disjuncts tm))
     DISJ_ACI_RULE(mk_eq(tm, tm'))
 
-///(* ------------------------------------------------------------------------- *)
-///(* General NNF conversion. The user supplies some conversion to be applied   *)
-///(* to atomic formulas.                                                       *)
-///(*                                                                           *)
-///(* "Iff"s are split conjunctively or disjunctively according to the flag     *)
-///(* argument (conjuctively = true) until a universal quantifier (modulo       *)
-///(* current parity) is passed; after that they are split conjunctively. This  *)
-///(* is appropriate when the result is passed to a disjunctive splitter        *)
-///(* followed by a clausal form inner core, such as MESON.                     *)
-///(*                                                                           *)
-///(* To avoid some duplicate computation, this function will in general        *)
-///(* enter a recursion where it simultaneously computes NNF representations    *)
-///(* for "p" and "~p", so the user needs to supply an atomic "conversion"      *)
-///(* that does the same.                                                       *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* General NNF conversion. The user supplies some conversion to be applied   *)
+(* to atomic formulas.                                                       *)
+(*                                                                           *)
+(* "Iff"s are split conjunctively or disjunctively according to the flag     *)
+(* argument (conjuctively = true) until a universal quantifier (modulo       *)
+(* current parity) is passed; after that they are split conjunctively. This  *)
+(* is appropriate when the result is passed to a disjunctive splitter        *)
+(* followed by a clausal form inner core, such as MESON.                     *)
+(*                                                                           *)
+(* To avoid some duplicate computation, this function will in general        *)
+(* enter a recursion where it simultaneously computes NNF representations    *)
+(* for "p" and "~p", so the user needs to supply an atomic "conversion"      *)
+(* that does the same.                                                       *)
+(* ------------------------------------------------------------------------- *)
 let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) = 
     let and_tm = (parse_term "(/\)")
     let or_tm = (parse_term "(\/)")
@@ -451,18 +452,18 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             | Failure _ -> REFL tm'
     NNF_CONV
 
-///(* ------------------------------------------------------------------------- *)
-///(* Some common special cases.                                                *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Some common special cases.                                                *)
+(* ------------------------------------------------------------------------- *)
 let NNF_CONV = 
     (GEN_NNF_CONV false (ALL_CONV, fun t -> REFL t, REFL(mk_neg t)) : conv)
 
 let NNFC_CONV = 
     (GEN_NNF_CONV true (ALL_CONV, fun t -> REFL t, REFL(mk_neg t)) : conv)
 
-///(* ------------------------------------------------------------------------- *)
-///(* Skolemize a term already in NNF (doesn't matter if it's not prenex).      *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Skolemize a term already in NNF (doesn't matter if it's not prenex).      *)
+(* ------------------------------------------------------------------------- *)
 let SKOLEM_CONV = 
     GEN_REWRITE_CONV TOP_DEPTH_CONV 
         [EXISTS_OR_THM; LEFT_EXISTS_AND_THM; RIGHT_EXISTS_AND_THM; 
@@ -473,9 +474,9 @@ let SKOLEM_CONV =
            [RIGHT_AND_EXISTS_THM; LEFT_AND_EXISTS_THM; OR_EXISTS_THM; 
             RIGHT_OR_EXISTS_THM; LEFT_OR_EXISTS_THM; SKOLEM_THM]
 
-///(* ------------------------------------------------------------------------- *)
-///(* Put a term already in NNF into prenex form.                               *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Put a term already in NNF into prenex form.                               *)
+(* ------------------------------------------------------------------------- *)
 let PRENEX_CONV = 
     GEN_REWRITE_CONV REDEPTH_CONV 
         [AND_FORALL_THM; LEFT_AND_FORALL_THM; RIGHT_AND_FORALL_THM; 
@@ -483,15 +484,15 @@ let PRENEX_CONV =
          LEFT_OR_EXISTS_THM; RIGHT_OR_EXISTS_THM; LEFT_AND_EXISTS_THM; 
          RIGHT_AND_EXISTS_THM]
 
-///(* ------------------------------------------------------------------------- *)
-///(* Weak and normal DNF conversion. The "weak" form gives a disjunction of    *)
-///(* conjunctions, but has no particular associativity at either level and     *)
-///(* may contain duplicates. The regular forms give canonical right-associate  *)
-///(* lists without duplicates, but do not remove subsumed disjuncts.           *)
-///(*                                                                           *)
-///(* In both cases the input term is supposed to be in NNF already. We do go   *)
-///(* inside quantifiers and transform their body, but don't move them.         *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Weak and normal DNF conversion. The "weak" form gives a disjunction of    *)
+(* conjunctions, but has no particular associativity at either level and     *)
+(* may contain duplicates. The regular forms give canonical right-associate  *)
+(* lists without duplicates, but do not remove subsumed disjuncts.           *)
+(*                                                                           *)
+(* In both cases the input term is supposed to be in NNF already. We do go   *)
+(* inside quantifiers and transform their body, but don't move them.         *)
+(* ------------------------------------------------------------------------- *)
 let WEAK_DNF_CONV, DNF_CONV = 
     let pth1 = TAUT(parse_term "a /\ (b \/ c) <=> a /\ b \/ a /\ c")
     let pth2 = TAUT(parse_term "(a \/ b) /\ c <=> a /\ c \/ b /\ c")
@@ -538,9 +539,9 @@ let WEAK_DNF_CONV, DNF_CONV =
         TRANS th (strengthen(rand(concl th)))
     weakdnf, strongdnf
 
-///(* ------------------------------------------------------------------------- *)
-///(* Likewise for CNF.                                                         *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Likewise for CNF.                                                         *)
+(* ------------------------------------------------------------------------- *)
 let WEAK_CNF_CONV, CNF_CONV = 
     let pth1 = TAUT(parse_term "a \/ (b /\ c) <=> (a \/ b) /\ (a \/ c)")
     let pth2 = TAUT(parse_term "(a /\ b) \/ c <=> (a \/ c) /\ (b \/ c)")
@@ -587,9 +588,9 @@ let WEAK_CNF_CONV, CNF_CONV =
         TRANS th (strengthen(rand(concl th)))
     weakcnf, strongcnf
 
-///(* ------------------------------------------------------------------------- *)
-///(* Simply right-associate w.r.t. a binary operator.                          *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Simply right-associate w.r.t. a binary operator.                          *)
+(* ------------------------------------------------------------------------- *)
 let ASSOC_CONV th = 
     let th' = SYM(SPEC_ALL th)
     let opx, yopz = dest_comb(rhs(concl th'))
@@ -616,9 +617,9 @@ let ASSOC_CONV th =
         | _ -> REFL tm
     assoc
 
-///(* ------------------------------------------------------------------------- *)
-///(* Eliminate select terms from a goal.                                       *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Eliminate select terms from a goal.                                       *)
+(* ------------------------------------------------------------------------- *)
 let SELECT_ELIM_TAC = 
     let SELECT_ELIM_CONV = 
         let SELECT_ELIM_THM = 
@@ -678,9 +679,9 @@ let SELECT_ELIM_TAC =
     CONV_TAC SELECT_ELIM_CONV
     |> THEN <| W(MATCH_MP_TAC << SELECT_ELIM_ICONV << snd)
 
-///(* ------------------------------------------------------------------------- *)
-///(* Eliminate all lambda-terms except those part of quantifiers.              *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Eliminate all lambda-terms except those part of quantifiers.              *)
+(* ------------------------------------------------------------------------- *)
 let LAMBDA_ELIM_CONV = 
     let HALF_MK_ABS_CONV = 
         let pth = 
@@ -747,11 +748,11 @@ let LAMBDA_ELIM_CONV =
         | Failure _ -> REFL tm
     conv
 
-///(* ------------------------------------------------------------------------- *)
-///(* Eliminate conditionals; CONDS_ELIM_CONV aims for disjunctive splitting,   *)
-///(* for refutation procedures, and CONDS_CELIM_CONV for conjunctive.          *)
-///(* Both switch modes "sensibly" when going through a quantifier.             *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Eliminate conditionals; CONDS_ELIM_CONV aims for disjunctive splitting,   *)
+(* for refutation procedures, and CONDS_CELIM_CONV for conjunctive.          *)
+(* Both switch modes "sensibly" when going through a quantifier.             *)
+(* ------------------------------------------------------------------------- *)
 let CONDS_ELIM_CONV, CONDS_CELIM_CONV = 
     let th_cond = 
       prove ((parse_term "((b <=> F) ==> x = x0) /\ ((b <=> T) ==> x = x1)
@@ -825,10 +826,10 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
             else REFL tm
     CONDS_ELIM_CONV true, CONDS_ELIM_CONV false
 
-///(* ------------------------------------------------------------------------- *)
-///(* Fix up all head arities to be consistent, in "first order logic" style.   *)
-///(* Applied to the assumptions (not conclusion) in a goal.                    *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Fix up all head arities to be consistent, in "first order logic" style.   *)
+(* Applied to the assumptions (not conclusion) in a goal.                    *)
+(* ------------------------------------------------------------------------- *)
 let ASM_FOL_TAC = 
     let rec get_heads lconsts tm (cheads, vheads as sofar) = 
         try 
@@ -915,9 +916,9 @@ let ASM_FOL_TAC =
             let headsp = itlist (get_thm_heads << snd) asl ([], [])
             RULE_ASSUM_TAC (CONV_RULE(GEN_FOL_CONV headsp)) gl
 
-///(* ------------------------------------------------------------------------- *)
-///(* Depth conversion to apply at "atomic" formulas in "first-order" term.     *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Depth conversion to apply at "atomic" formulas in "first-order" term.     *)
+(* ------------------------------------------------------------------------- *)
 let rec PROP_ATOM_CONV conv tm = 
     match tm with
     | Comb((Const("!", _) | Const("?", _) | Const("?!", _)), Abs(_, _)) -> 
