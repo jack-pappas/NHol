@@ -12,6 +12,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{A4D224
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "NHol.Tests", "NHol.Tests\NHol.Tests.fsproj", "{BC5955AF-A558-4F95-B4FA-717C06936FC1}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tutorial", "Tutorial", "{BD103954-9542-406C-8550-F77D06821792}"
+	ProjectSection(SolutionItems) = preProject
+		Tutorial\all.fsx = Tutorial\all.fsx
+		Tutorial\hol.fsx = Tutorial\hol.fsx
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
