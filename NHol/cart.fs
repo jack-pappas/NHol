@@ -21,3 +21,4 @@ limitations under the License.
 /// Finite Cartesian products.
 module NHol.cart
 
+open NHol

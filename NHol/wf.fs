@@ -22,6 +22,8 @@ module NHol.wf
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
+open NHol
 open lib
 open fusion
 open basics

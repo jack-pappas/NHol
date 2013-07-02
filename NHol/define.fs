@@ -21,3 +21,4 @@ limitations under the License.
 /// Support for general recursive definitions.
 module NHol.define
 
+open NHol

@@ -21,3 +21,5 @@ limitations under the License.
 /// Definition of integers.
 module NHol.int
 
+open NHol
+

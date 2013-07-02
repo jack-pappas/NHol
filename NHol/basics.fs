@@ -20,6 +20,7 @@ limitations under the License.
 /// More syntax constructors, and prelogical utilities like matching.
 module NHol.basics
 
+open NHol
 open lib
 open fusion
 open fusion.Hol_kernel

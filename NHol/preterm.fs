@@ -25,6 +25,8 @@ module NHol.preterm
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
+open NHol
 open lib
 open fusion
 open fusion.Hol_kernel

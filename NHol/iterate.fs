@@ -21,3 +21,5 @@ limitations under the License.
 /// Iterated operations.
 module NHol.iterate
 
+open NHol
+

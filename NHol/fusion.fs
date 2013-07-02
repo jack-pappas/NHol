@@ -21,6 +21,7 @@ limitations under the License.
 /// Complete HOL kernel of types, terms and theorems.
 module NHol.fusion
 
+open NHol
 open lib
 
 [<AutoOpen>]

@@ -38,15 +38,15 @@ module Ratio =
 let (==) (x : 'T) (y : 'T) = obj.ReferenceEquals(x, y)
 let fail() = raise <| exn()
 
-// The exception fired by failwith is used as a control flow.
-// KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
-// Using exception as a control flow should be eliminated in the future.
-let (|Failure|_|)(exn : exn) = 
-    match exn with
-    | :? System.Collections.Generic.KeyNotFoundException as p -> Some p.Message
-    | :? System.ArgumentException as p -> Some p.Message
-    | Failure s -> Some s
-    | _ -> None
+//// The exception fired by failwith is used as a control flow.
+//// KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
+//// Using exception as a control flow should be eliminated in the future.
+//let (|Failure|_|)(exn : exn) = 
+//    match exn with
+//    | :? System.Collections.Generic.KeyNotFoundException as p -> Some p.Message
+//    | :? System.ArgumentException as p -> Some p.Message
+//    | Failure s -> Some s
+//    | _ -> None
 
 (* ------------------------------------------------------------------------- *)
 (* Combinators.                                                              *)
@@ -935,8 +935,7 @@ let rec choose t =
 (* Install a trivial printer for the general polymorphic case.               *)
 (* ------------------------------------------------------------------------- *)
 
-let print_fpf(f : func<'a, 'b>) = Format.print_string "<func>"
-
+let print_fpf(f : func<'a, 'b>) = "<func>"
 
 #if INTERACTIVE
 fsi.AddPrinter print_fpf

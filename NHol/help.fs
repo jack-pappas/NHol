@@ -21,3 +21,5 @@ limitations under the License.
 /// Online help using the entries in Help directory.
 module NHol.help
 
+open NHol
+

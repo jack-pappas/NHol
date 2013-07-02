@@ -21,6 +21,7 @@ limitations under the License.
 /// Term nets: reasonably fast lookup based on term matchability.
 module NHol.nets
 
+open NHol
 open lib
 open fusion
 open fusion.Hol_kernel

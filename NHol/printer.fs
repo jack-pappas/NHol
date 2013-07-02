@@ -23,11 +23,20 @@ module NHol.printer
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
+open NHol
 open lib
 open fusion
 open fusion.Hol_kernel
 open basics
 open nets
+
+/// Create this to avoid System.NotImplementedException
+/// The approach assumes that c is an ASCII character
+/// This method should be moved to FSharp.Compatability.OCaml
+module Char =
+    let code (c : char) =
+        System.Convert.ToInt32(c)
 
 (* ------------------------------------------------------------------------- *)
 (* Character discrimination.                                                 *)
@@ -645,16 +654,6 @@ let print_qterm = pp_print_qterm std_formatter
 let print_thm = pp_print_thm std_formatter
 
 (* ------------------------------------------------------------------------- *)
-(* Install all the printers.                                                 *)
-(* ------------------------------------------------------------------------- *)
-
-#if INTERACTIVE
-fsi.AddPrinter print_qtype
-fsi.AddPrinter print_qterm
-fsi.AddPrinter print_thm
-#endif
-
-(* ------------------------------------------------------------------------- *)
 (* Conversions to string.                                                    *)
 (* ------------------------------------------------------------------------- *)
 
@@ -674,3 +673,13 @@ let print_to_string printer =
 let string_of_type = print_to_string pp_print_type
 let string_of_term = print_to_string pp_print_term
 let string_of_thm = print_to_string pp_print_thm
+
+(* ------------------------------------------------------------------------- *)
+(* Install all the printers.                                                 *)
+(* ------------------------------------------------------------------------- *)
+
+#if INTERACTIVE
+fsi.AddPrinter string_of_type
+fsi.AddPrinter string_of_term
+fsi.AddPrinter string_of_thm
+#endif

@@ -22,6 +22,8 @@ limitations under the License.
 module NHol.simp
 
 open FSharp.Compatibility.OCaml
+
+open NHol
 open lib
 open fusion
 open basics

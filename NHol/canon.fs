@@ -21,6 +21,8 @@ limitations under the License.
 module NHol.canon
 
 open FSharp.Compatibility.OCaml
+
+open NHol
 open lib
 open fusion
 open basics
