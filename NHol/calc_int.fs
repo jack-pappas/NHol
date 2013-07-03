@@ -277,24 +277,22 @@ let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL
                     GEN_REWRITE_CONV I [pth_le3]
                     |> THENC <| NUM2_EQ_CONV]
     let [pth_lt1; pth_lt2a; pth_lt2b; pth_lt3] = 
-        (CONJUNCTS << prove)((parse_term "(&m < --(&n) <=> F) /\
+      (CONJUNCTS << prove)((parse_term "(&m < --(&n) <=> F) /\
           (&m < &n <=> m < n) /\
           (--(&m) < --(&n) <=> n < m) /\
-          (--(&m) < &n <=> ~((m = 0) /\ (n = 0)))"), 
-         REWRITE_TAC [pth_le1; pth_le2a; pth_le2b; pth_le3; GSYM NOT_LE; real_lt]
-         |> THEN <| CONV_TAC TAUT)
+          (--(&m) < &n <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC [pth_le1; pth_le2a; pth_le2b; pth_le3; GSYM NOT_LE; real_lt] 
+          |> THEN <| CONV_TAC TAUT)
     let REAL_INT_LT_CONV = 
         FIRST_CONV [GEN_REWRITE_CONV I [pth_lt1]
                     GEN_REWRITE_CONV I [pth_lt2a; pth_lt2b]
                     |> THENC <| NUM_LT_CONV
                     GEN_REWRITE_CONV I [pth_lt3]
                     |> THENC <| NUM2_NE_CONV]
-    let [pth_ge1; pth_ge2a; pth_ge2b; pth_ge3] = (CONJUNCTS << prove)((parse_term "(&m >= --(&n) <=> T) /\
-     (&m >= &n <=> n <= m) /\
-     (--(&m) >= --(&n) <=> m <= n) /\
-     (--(&m) >= &n <=> (m = 0) /\ (n = 0))"), REWRITE_TAC 
-                                                  [pth_le1; pth_le2a; pth_le2b; 
-                                                   pth_le3; real_ge]
+    let [pth_ge1; pth_ge2a; pth_ge2b; pth_ge3] = 
+      (CONJUNCTS << prove)((parse_term "(&m >= --(&n) <=> T) /\
+       (&m >= &n <=> n <= m) /\
+       (--(&m) >= --(&n) <=> m <= n) /\
+       (--(&m) >= &n <=> (m = 0) /\ (n = 0))"), REWRITE_TAC [pth_le1; pth_le2a; pth_le2b; pth_le3; real_ge]
                                               |> THEN <| CONV_TAC TAUT)
     let REAL_INT_GE_CONV = 
         FIRST_CONV [GEN_REWRITE_CONV I [pth_ge1]
@@ -302,10 +300,11 @@ let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL
                     |> THENC <| NUM_LE_CONV
                     GEN_REWRITE_CONV I [pth_ge3]
                     |> THENC <| NUM2_EQ_CONV]
-    let [pth_gt1; pth_gt2a; pth_gt2b; pth_gt3] = (CONJUNCTS << prove)((parse_term "(--(&m) > &n <=> F) /\
-     (&m > &n <=> n < m) /\
-     (--(&m) > --(&n) <=> m < n) /\
-     (&m > --(&n) <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC 
+    let [pth_gt1; pth_gt2a; pth_gt2b; pth_gt3] = 
+      (CONJUNCTS << prove)((parse_term "(--(&m) > &n <=> F) /\
+       (&m > &n <=> n < m) /\
+       (--(&m) > --(&n) <=> m < n) /\
+       (&m > --(&n) <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC 
                                                     [pth_lt1; pth_lt2a; pth_lt2b; 
                                                      pth_lt3; real_gt]
                                                 |> THEN <| CONV_TAC TAUT)
@@ -319,13 +318,9 @@ let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL
         (CONJUNCTS << prove)((parse_term "((&m = &n) <=> (m = n)) /\
           ((--(&m) = --(&n)) <=> (m = n)) /\
           ((--(&m) = &n) <=> (m = 0) /\ (n = 0)) /\
-          ((&m = --(&n)) <=> (m = 0) /\ (n = 0))"), 
-         REWRITE_TAC [GSYM REAL_LE_ANTISYM; GSYM LE_ANTISYM]
-         |> THEN <| REWRITE_TAC 
-           [pth_le1; pth_le2a; 
-            pth_le2b; pth_le3; LE; 
-            LE_0]
-         |> THEN <| CONV_TAC TAUT)
+          ((&m = --(&n)) <=> (m = 0) /\ (n = 0))"), REWRITE_TAC [GSYM REAL_LE_ANTISYM; GSYM LE_ANTISYM]
+          |> THEN <| REWRITE_TAC [pth_le1; pth_le2a; pth_le2b; pth_le3; LE; LE_0]
+          |> THEN <| CONV_TAC TAUT)
     let REAL_INT_EQ_CONV = 
         FIRST_CONV [GEN_REWRITE_CONV I [pth_eq1a; pth_eq1b]
                     |> THENC <| NUM_EQ_CONV

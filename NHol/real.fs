@@ -370,8 +370,7 @@ let REAL_ABS_SUB_ABS =
         ((parse_term "!x y. abs(abs(x) - abs(y)) <= abs(x - y)"), REAL_ARITH_TAC)
 let REAL_ABS_BETWEEN2 = prove((parse_term "!x0 x y0 y. x0 < y0 /\ &2 * abs(x - x0) < (y0 - x0) /\
                           &2 * abs(y - y0) < (y0 - x0)
-        ==> x < y"),
-       REAL_ARITH_TAC)
+        ==> x < y"), REAL_ARITH_TAC)
 let REAL_ABS_BOUNDS = 
     prove
         ((parse_term "!x k. abs(x) <= k <=> --k <= x /\ x <= k"), REAL_ARITH_TAC)
@@ -1329,10 +1328,10 @@ let REAL_DIV_POW2 =
                                    |> THEN <| ASM_SIMP_TAC [REAL_POW_SUB])
 
 let REAL_DIV_POW2_ALT = 
-    prove((parse_term "!x m n. ~(x = &0)
+  prove((parse_term "!x m n. ~(x = &0)
            ==> (x pow m / x pow n = if n < m then x pow (m - n)
                                     else inv(x pow (n - m)))"),
-  REPEAT STRIP_TAC |>THEN<|
+    REPEAT STRIP_TAC |>THEN<|
       REPEAT STRIP_TAC
       |> THEN <| GEN_REWRITE_TAC LAND_CONV [GSYM REAL_INV_INV]
       |> THEN <| ONCE_REWRITE_TAC [REAL_INV_DIV]
@@ -1670,6 +1669,7 @@ let REAL_WLOG_LE =
               "(!x y. P x y <=> P y x) /\ (!x y. x <= y ==> P x y) ==> !x y. P x y"), 
          MESON_TAC [REAL_LE_TOTAL])
 
-let REAL_WLOG_LT = prove((parse_term "(!x. P x x) /\ (!x y. P x y <=> P y x) /\ (!x y. x < y ==> P x y)
-   ==> !x y. P x y"),
-   MESON_TAC [REAL_LT_TOTAL])
+let REAL_WLOG_LT = 
+  prove((parse_term "(!x. P x x) /\ (!x y. P x y <=> P y x) /\ (!x y. x < y ==> P x y)
+    ==> !x y. P x y"),
+    MESON_TAC [REAL_LT_TOTAL])

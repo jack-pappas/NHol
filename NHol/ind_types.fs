@@ -56,7 +56,7 @@ open normalizer
 (* Abstract left inverses for binary injections (we could construct them...) *)
 (* ------------------------------------------------------------------------- *)
 let INJ_INVERSE2 = 
-    prove((parse_term "!P:A->B->C.
+  prove((parse_term "!P:A->B->C.
     (!x1 y1 x2 y2. (P x1 y1 = P x2 y2) <=> (x1 = x2) /\ (y1 = y2))
     ==> ?X Y. !x y. (X(P x y) = x) /\ (Y(P x y) = y)"),
    GEN_TAC
@@ -367,7 +367,7 @@ let CONSTR_IND =
 (* Now prove the recursion theorem (this subcase is all we need).            *)
 (* ------------------------------------------------------------------------- *)
 let CONSTR_REC = 
-    prove((parse_term "!Fn:num->A->(num->(A)recspace)->(num->B)->B.
+  prove((parse_term "!Fn:num->A->(num->(A)recspace)->(num->B)->B.
      ?f. (!c i r. f (CONSTR c i r) = Fn c i r (\n. f (r n)))"),
     REPEAT STRIP_TAC
     |> THEN <| (MP_TAC << prove_inductive_relations_exist)(parse_term "(Z:(A)recspace->B->bool) BOTTOM b /\

@@ -864,7 +864,7 @@ let num_WOP =
          |> THEN <| ASM_MESON_TAC [])
 
 let num_MAX = 
-    prove((parse_term "!P. (?x. P x) /\ (?M. !x. P x ==> x <= M) <=>
+  prove((parse_term "!P. (?x. P x) /\ (?M. !x. P x ==> x <= M) <=>
         ?m. P m /\ (!x. P x ==> x <= m)"),
     GEN_TAC
        |> THEN <| EQ_TAC
@@ -2151,7 +2151,8 @@ let DIVMOD_ELIM_THM =
                      FIRST_ASSUM(MP_TAC << MATCH_MP DIVISION)
                      |> THEN <| MESON_TAC [DIVMOD_UNIQ]])
 
-let DIVMOD_ELIM_THM' = prove((parse_term "P (m DIV n) (m MOD n) <=>
+let DIVMOD_ELIM_THM' = 
+  prove((parse_term "P (m DIV n) (m MOD n) <=>
          ?q r. (n = 0 /\ q = 0 /\ r = m \/ m = q * n + r /\ r < n) /\ P q r"),
     MP_TAC
             (INST 

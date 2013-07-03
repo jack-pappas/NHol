@@ -356,68 +356,67 @@ let REAL_RAT_INV_CONV =
 (* Addition.                                                                 *)
 (* ------------------------------------------------------------------------- *)
 let REAL_RAT_ADD_CONV = 
-    let pth = 
-        prove
-            ((parse_term "&0 < y1 ==> &0 < y2 ==> &0 < y3 ==>
+  let pth = 
+    prove ((parse_term "&0 < y1 ==> &0 < y2 ==> &0 < y3 ==>
      ((x1 * y2 + x2 * y1) * y3 = x3 * y1 * y2)
      ==> (x1 / y1 + x2 / y2 = x3 / y3)"),
-    REPEAT DISCH_TAC
-    |> THEN <| MP_TAC RAT_LEMMA2
-    |> THEN <| ASM_REWRITE_TAC []
-    |> THEN <| DISCH_THEN SUBST1_TAC
-    |> THEN <| REWRITE_TAC [GSYM REAL_INV_MUL
-                            GSYM real_div]
-    |> THEN <| SUBGOAL_THEN (parse_term "&0 < y1 * y2 /\ &0 < y3") MP_TAC
-    |> THENL <| [ASM_REWRITE_TAC []
-                 |> THEN <| MATCH_MP_TAC REAL_LT_MUL
-                 |> THEN <| ASM_REWRITE_TAC []
-                 DISCH_THEN(fun th -> ASM_REWRITE_TAC [MATCH_MP RAT_LEMMA5 th])])
-    let dest_divop = dest_binop(parse_term "(/)")
-    let dest_addop = dest_binop(parse_term "(+)")
-    let x1 = (parse_term "x1:real")
-    let x2 = (parse_term "x2:real")
-    let x3 = (parse_term "x3:real")
-    let y1 = (parse_term "y1:real")
-    let y2 = (parse_term "y2:real")
-    let y3 = (parse_term "y3:real")
-    let RAW_REAL_RAT_ADD_CONV tm = 
-        let r1, r2 = dest_addop tm
-        let x1', y1' = dest_divop r1
-        let x2', y2' = dest_divop r2
-        let x1n = dest_realintconst x1'
-        let y1n = dest_realintconst y1'
-        let x2n = dest_realintconst x2'
-        let y2n = dest_realintconst y2'
-        let x3n = x1n */ y2n +/ x2n */ y1n
-        let y3n = y1n */ y2n
-        let d = gcd_num x3n y3n
-        let x3n' = quo_num x3n d
-        let y3n' = quo_num y3n d
-        let x3n'', y3n'' = 
-            if y3n' >/ Int 0
-            then x3n', y3n'
-            else minus_num x3n', minus_num y3n'
-        let x3' = mk_realintconst x3n''
-        let y3' = mk_realintconst y3n''
-        let th0 = 
-            INST [x1', x1
-                  y1', y1
-                  x2', x2
-                  y2', y2
-                  x3', x3
-                  y3', y3] pth
-        let th1 = funpow 3 (MP_CONV REAL_INT_LT_CONV) th0
-        let tm2, tm3 = dest_eq(fst(dest_imp(concl th1)))
-        let th2 = (LAND_CONV(BINOP_CONV REAL_INT_MUL_CONV
-                             |> THENC <| REAL_INT_ADD_CONV)
-                   |> THENC <| REAL_INT_MUL_CONV) tm2
-        let th3 = (RAND_CONV REAL_INT_MUL_CONV
-                   |> THENC <| REAL_INT_MUL_CONV) tm3
-        MP th1 (TRANS th2 (SYM th3))
-    BINOP_CONV REAL_INT_RAT_CONV
-    |> THENC <| RAW_REAL_RAT_ADD_CONV
-    |> THENC <| TRY_CONV(GEN_REWRITE_CONV I [REAL_DIV_1])
-
+     REPEAT DISCH_TAC
+     |> THEN <| MP_TAC RAT_LEMMA2
+     |> THEN <| ASM_REWRITE_TAC []
+     |> THEN <| DISCH_THEN SUBST1_TAC
+     |> THEN <| REWRITE_TAC [GSYM REAL_INV_MUL
+                             GSYM real_div]
+     |> THEN <| SUBGOAL_THEN (parse_term "&0 < y1 * y2 /\ &0 < y3") MP_TAC
+     |> THENL <| [ASM_REWRITE_TAC []
+                  |> THEN <| MATCH_MP_TAC REAL_LT_MUL
+                  |> THEN <| ASM_REWRITE_TAC []
+                  DISCH_THEN(fun th -> ASM_REWRITE_TAC [MATCH_MP RAT_LEMMA5 th])])
+  let dest_divop = dest_binop(parse_term "(/)")
+  let dest_addop = dest_binop(parse_term "(+)")
+  let x1 = (parse_term "x1:real")
+  let x2 = (parse_term "x2:real")
+  let x3 = (parse_term "x3:real")
+  let y1 = (parse_term "y1:real")
+  let y2 = (parse_term "y2:real")
+  let y3 = (parse_term "y3:real")
+  let RAW_REAL_RAT_ADD_CONV tm = 
+         let r1, r2 = dest_addop tm
+         let x1', y1' = dest_divop r1
+         let x2', y2' = dest_divop r2
+         let x1n = dest_realintconst x1'
+         let y1n = dest_realintconst y1'
+         let x2n = dest_realintconst x2'
+         let y2n = dest_realintconst y2'
+         let x3n = x1n */ y2n +/ x2n */ y1n
+         let y3n = y1n */ y2n
+         let d = gcd_num x3n y3n
+         let x3n' = quo_num x3n d
+         let y3n' = quo_num y3n d
+         let x3n'', y3n'' = 
+             if y3n' >/ Int 0
+             then x3n', y3n'
+             else minus_num x3n', minus_num y3n'
+         let x3' = mk_realintconst x3n''
+         let y3' = mk_realintconst y3n''
+         let th0 = 
+             INST [x1', x1
+                   y1', y1
+                   x2', x2
+                   y2', y2
+                   x3', x3
+                   y3', y3] pth
+         let th1 = funpow 3 (MP_CONV REAL_INT_LT_CONV) th0
+         let tm2, tm3 = dest_eq(fst(dest_imp(concl th1)))
+         let th2 = (LAND_CONV(BINOP_CONV REAL_INT_MUL_CONV
+                              |> THENC <| REAL_INT_ADD_CONV)
+                    |> THENC <| REAL_INT_MUL_CONV) tm2
+         let th3 = (RAND_CONV REAL_INT_MUL_CONV
+                    |> THENC <| REAL_INT_MUL_CONV) tm3
+         MP th1 (TRANS th2 (SYM th3))
+  BINOP_CONV REAL_INT_RAT_CONV
+  |> THENC <| RAW_REAL_RAT_ADD_CONV
+  |> THENC <| TRY_CONV(GEN_REWRITE_CONV I [REAL_DIV_1])
+ 
 (* ------------------------------------------------------------------------- *)
 (* Subtraction.                                                              *)
 (* ------------------------------------------------------------------------- *)
@@ -436,16 +435,16 @@ let REAL_RAT_MUL_CONV =
             ((parse_term "(x1 / y1) * (x2 / y2) = (x1 * x2) / (y1 * y2)"), 
              REWRITE_TAC [real_div; REAL_INV_MUL; REAL_MUL_AC])
     let pth_cancel = 
-        prove((parse_term "~(d1 = &0) /\ ~(d2 = &0) /\
-     (d1 * u1 = x1) /\ (d2 * u2 = x2) /\
-     (d2 * v1 = y1) /\ (d1 * v2 = y2)
-     ==> ((x1 / y1) * (x2 / y2) = (u1 * u2) / (v1 * v2))"),
-     DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC MP_TAC)
-     |> THEN <| DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC MP_TAC)
-     |> THEN <| DISCH_THEN(REPEAT_TCL CONJUNCTS_THEN (SUBST1_TAC << SYM))
-     |> THEN <| ASM_REWRITE_TAC [real_div; REAL_INV_MUL]
-     |> THEN <| ONCE_REWRITE_TAC [AC REAL_MUL_AC (parse_term "((d1 * u1) * (id2 * iv1)) * ((d2 * u2) * id1 * iv2) = (u1 * u2) * (iv1 * iv2) * (id2 * d2) * (id1 * d1)")]
-     |> THEN <| ASM_SIMP_TAC [REAL_MUL_LINV; REAL_MUL_RID])
+      prove((parse_term "~(d1 = &0) /\ ~(d2 = &0) /\
+        (d1 * u1 = x1) /\ (d2 * u2 = x2) /\
+        (d2 * v1 = y1) /\ (d1 * v2 = y2)
+        ==> ((x1 / y1) * (x2 / y2) = (u1 * u2) / (v1 * v2))"),
+        DISCH_THEN (CONJUNCTS_THEN2 ASSUME_TAC MP_TAC)
+        |> THEN <| DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC MP_TAC)
+        |> THEN <| DISCH_THEN(REPEAT_TCL CONJUNCTS_THEN (SUBST1_TAC << SYM))
+        |> THEN <| ASM_REWRITE_TAC [real_div; REAL_INV_MUL]
+        |> THEN <| ONCE_REWRITE_TAC [AC REAL_MUL_AC (parse_term "((d1 * u1) * (id2 * iv1)) * ((d2 * u2) * id1 * iv2) = (u1 * u2) * (iv1 * iv2) * (id2 * d2) * (id1 * d1)")]
+        |> THEN <| ASM_SIMP_TAC [REAL_MUL_LINV; REAL_MUL_RID])
     let dest_divop = dest_binop(parse_term "(/)")
     let dest_mulop = dest_binop(parse_term "(*)")
     let x1 = (parse_term "x1:real")

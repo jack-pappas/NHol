@@ -2583,16 +2583,16 @@ let TREAL_ADD_WELLDEFR =
 
 let TREAL_ADD_WELLDEF = 
     prove((parse_term "!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
-     (x1 treal_add y1) treal_eq (x2 treal_add y2)"),
-    REPEAT GEN_TAC
-    |> THEN <| DISCH_TAC
-    |> THEN <| MATCH_MP_TAC TREAL_EQ_TRANS
-    |> THEN <| EXISTS_TAC(parse_term "x1 treal_add y2")
-    |> THEN <| CONJ_TAC
-    |> THENL <| [ONCE_REWRITE_TAC [TREAL_ADD_SYM_EQ]
-                 ALL_TAC]
-    |> THEN <| MATCH_MP_TAC TREAL_ADD_WELLDEFR
-    |> THEN <| ASM_REWRITE_TAC [])
+       (x1 treal_add y1) treal_eq (x2 treal_add y2)"),
+      REPEAT GEN_TAC
+      |> THEN <| DISCH_TAC
+      |> THEN <| MATCH_MP_TAC TREAL_EQ_TRANS
+      |> THEN <| EXISTS_TAC(parse_term "x1 treal_add y2")
+      |> THEN <| CONJ_TAC
+      |> THENL <| [ONCE_REWRITE_TAC [TREAL_ADD_SYM_EQ]
+                   ALL_TAC]
+      |> THEN <| MATCH_MP_TAC TREAL_ADD_WELLDEFR
+      |> THEN <| ASM_REWRITE_TAC [])
 
 let TREAL_MUL_WELLDEFR = 
     prove
@@ -2613,7 +2613,7 @@ let TREAL_MUL_WELLDEFR =
          |> THEN <| REFL_TAC)
 
 let TREAL_MUL_WELLDEF = 
-    prove((parse_term "!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
+  prove((parse_term "!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
      (x1 treal_mul y1) treal_eq (x2 treal_mul y2)"),
     REPEAT GEN_TAC
     |> THEN <| DISCH_TAC
@@ -2631,7 +2631,7 @@ let TREAL_EQ_IMP_LE =
          SIMP_TAC [FORALL_PAIR_THM; treal_eq; treal_le; HREAL_LE_REFL])
 
 let TREAL_LE_WELLDEF = 
-    prove((parse_term "!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
+  prove((parse_term "!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
      (x1 treal_le y1 <=> x2 treal_le y2)"),
     REPEAT(STRIP_TAC
            |> ORELSE <| EQ_TAC)
