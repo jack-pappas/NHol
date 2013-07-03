@@ -567,9 +567,7 @@ let define_type_raw_001 =
             let edefs = 
                 itlist (fun (x, l) acc -> map (fun t -> x, t) l @ acc) def []
             let idefs = 
-                map2 (fun (r, _) def -> 
-                        match _arg1 with
-                        | _, atys -> (r, atys), def) edefs condefs
+                map2 (fun (r, (_, atys)) def -> (r, atys), def) edefs condefs
             let mk_rule((r, a), condef) = 
                 let left, right = dest_eq condef
                 let args, bod = strip_abs right
@@ -695,9 +693,7 @@ let define_type_raw_001 =
         let args = make_args "x" [] (map (K recty) preds)
         let lambs = 
             map2 
-                (fun (r, _) (p, a) -> 
-                    match _arg2 with
-                    | m, d -> 
+                (fun (r, (m, d)) (p, a) ->
                         mk_abs
                             (a, 
                              mk_conj(mk_comb(r, a), mk_comb(p, mk_comb(m, a))))) 
@@ -807,9 +803,7 @@ let define_type_raw_001 =
         let fns = make_args "fn" [] (map (C mk_fun_ty ranty) domtys)
         let args = make_args "a" [] domtys
         let rights = 
-            map2 (fun (_, _) a -> 
-                    match _arg4 with
-                    | _, d -> mk_abs(a, mk_comb(fn, mk_comb(d, a)))) consindex 
+            map2 (fun (_, (_, d)) a -> mk_abs(a, mk_comb(fn, mk_comb(d, a)))) consindex 
                 args
         let eqs = map2 (curry mk_eq) fns rights
         let fdefs = map ASSUME eqs

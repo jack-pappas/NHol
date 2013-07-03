@@ -354,13 +354,9 @@ let GEN_MESON_TAC =
     (* ----------------------------------------------------------------------- *)
     let cacheconts f = 
         let memory = ref []
-        fun _ -> 
-            match _arg3 with
-            | gg, (insts, offset, size) as input -> 
+        fun (gg, (insts, offset, size) as input) -> 
                 if exists 
-                       (fun (_, _) -> 
-                           match _arg2 with
-                           | insts', _, size' -> 
+                       (fun (_, (insts', _, size')) ->
                                insts = insts' && (size <= size' || !meson_depth)) 
                        (!memory)
                 then failwith "cachecont"
@@ -457,9 +453,7 @@ let GEN_MESON_TAC =
         | Failure _ -> 
             try 
                 let crules = 
-                    filter (fun (_, _) -> 
-                            match _arg6 with
-                            | h, _ -> length h <= size) (assoc pr rules)
+                    filter (fun ((h, _), _) -> length h <= size) (assoc pr rules)
                 meson_expand_cont offset crules newstate cont
             with
             | Cut -> failwith "meson_expand"
@@ -473,14 +467,10 @@ let GEN_MESON_TAC =
             then failwith "expand_goal: too deep"
             else 
                 meson_expand rules state 
-                    (fun apprule _ -> 
-                        match _arg9 with
-                        | _, (pinsts, _, _) as newstate -> 
+                    (fun apprule (_, (pinsts, _, _) as newstate) -> 
                             expand_goals (depth - 1) newstate 
                                 (cacheconts
-                                     (fun (gs, _) -> 
-                                         match _arg8 with
-                                         | newinsts, newoffset, newsize -> 
+                                     (fun (gs, (newinsts, newoffset, newsize)) ->
                                              let locin, globin = 
                                                  separate_insts offset pinsts 
                                                      newinsts
@@ -521,9 +511,7 @@ let GEN_MESON_TAC =
                     try 
                         expand_goals depth (lgoals, (insts, offset, lsize)) 
                             (cacheconts
-                                 (fun (lg', _) -> 
-                                     match _arg10 with
-                                     | i, off, n -> 
+                                 (fun (lg', (i, off, n)) -> 
                                          expand_goals depth 
                                              (rgoals, (i, off, n + rsize)) 
                                              (cacheconts
@@ -533,15 +521,11 @@ let GEN_MESON_TAC =
                     | Failure _ -> 
                         expand_goals depth (rgoals, (insts, offset, lsize)) 
                             (cacheconts
-                                 (fun (rg', _) -> 
-                                     match _arg12 with
-                                     | i, off, n -> 
+                                 (fun (rg', (i, off, n)) ->
                                          expand_goals depth 
                                              (lgoals, (i, off, n + rsize)) 
                                              (cacheconts
-                                                  (fun (lg', _) -> 
-                                                      match _arg11 with
-                                                      | (_, _, fsize) as ztup -> 
+                                                  (fun (lg', ((_, _, fsize) as ztup)) ->
                                                           if n + rsize 
                                                              <= lsize + fsize
                                                           then 
@@ -640,11 +624,7 @@ let GEN_MESON_TAC =
     (* ----------------------------------------------------------------------- *)
     let optimize_rules = 
         let optimize_clause_order cls = 
-            sort (fun (_, _) (_, _) -> 
-                    match _arg18 with
-                    | l1, _ -> 
-                        match _arg16 with
-                        | l2, _ -> length l1 <= length l2) cls
+            sort (fun ((l1, _), _) ((l2, _), _) -> length l1 <= length l2) cls
         map(fun (a, b) -> a, optimize_clause_order b)
     (* ----------------------------------------------------------------------- *)
     (* Create a HOL contrapositive on demand, with a cache.                    *)
@@ -983,9 +963,7 @@ let GEN_MESON_TAC =
                 let ths' = polymorph mconsts (hd ths)
                 let mconsts' = itlist grab_constants (map concl ths') mconsts
                 polymorph_all mconsts' (tl ths) (union' equals_thm ths' acc)
-        fun ths _ -> 
-            match _arg22 with
-            | asl, w as gl -> 
+        fun ths (asl, w as gl) ->
                 let mconsts = itlist (grab_constants << concl << snd) asl []
                 let ths' = polymorph_all mconsts ths []
                 MAP_EVERY ASSUME_TAC ths' gl

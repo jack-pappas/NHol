@@ -534,9 +534,7 @@ let WF_INDUCT_TAC =
              |> THENC <| BINDER_CONV qqconvs) tm
         with
         | Failure _ -> eqconv tm
-    fun tm _ -> 
-        match _arg1 with
-        | asl, w as gl -> 
+    fun tm (asl, w as gl) ->
             let fvs = frees tm
             let gv = genvar(type_of tm)
             let pat = list_mk_forall(gv :: fvs, mk_imp(mk_eq(gv, tm), w))

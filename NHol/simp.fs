@@ -474,9 +474,7 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
     let conv_net = ref(empty_net : gconv net)
     let rehash_convnet() = 
         conv_net := itlist (net_of_thm true) (!rewrites) 
-               (itlist (fun (_, _) -> 
-                        match _arg2 with
-                        | pat, cnv -> net_of_conv pat cnv) (!conversions) 
+               (itlist (fun (_, (pat,cnv)) -> net_of_conv pat cnv) (!conversions) 
                     empty_net)
     let set_basic_rewrites thl = 
         let canon_thl = itlist (mk_rewrites false) thl []
@@ -602,9 +600,7 @@ let ABBREV_TAC tm =
             (rev vs) (ASSUME eq)
     let th2 = SIMPLE_CHOOSE v (SIMPLE_EXISTS v (GENL vs th1))
     let th3 = PROVE_HYP (EXISTS (mk_exists(v, eq), rs) (REFL rs)) th2
-    fun _ -> 
-        match _arg1 with
-        | asl, w as gl -> 
+    fun (asl, w as gl) -> 
             let avoids = itlist (union << frees << concl << snd) asl (frees w)
             if mem v avoids
             then failwith "ABBREV_TAC: variable already used"

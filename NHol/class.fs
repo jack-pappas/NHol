@@ -294,9 +294,7 @@ let CONTRAPOS_CONV =
 let REFUTE_THEN = 
     let f_tm = (parse_term "F")
     let conv = REWR_CONV(TAUT_001(parse_term "p <=> ~p ==> F"))
-    fun ttac _ -> 
-        match _arg1 with
-        | asl, w as gl -> 
+    fun ttac (asl, w as gl) -> 
             if w = f_tm
             then ALL_TAC gl
             elif is_neg w

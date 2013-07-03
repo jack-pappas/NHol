@@ -912,9 +912,7 @@ let ASM_FOL_TAC =
                         then t, 2
                         else t, 0) (setify(map fst (vheads @ cheads)))
         FOL_CONV hddata
-    fun _ -> 
-        match _arg1 with
-        | asl, w as gl -> 
+    fun (asl, w as gl) -> 
             let headsp = itlist (get_thm_heads << snd) asl ([], [])
             RULE_ASSUM_TAC (CONV_RULE(GEN_FOL_CONV headsp)) gl
 

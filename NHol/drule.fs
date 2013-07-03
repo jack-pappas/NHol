@@ -197,36 +197,30 @@ let (INSTANTIATE : instantiation -> thm -> thm) =
             else failwith "INSTANTIATE: term or type var free in assumptions"
 
 let (INSTANTIATE_ALL : instantiation -> thm -> thm) = 
-    fun _ th -> 
-        match _arg1 with
-        | (_, tmin, tyin) as i -> 
-            if tmin = [] && tyin = []
-            then th
+    fun ((_, tmin, tyin) as i) th -> 
+        if tmin = [] && tyin = [] then th
+        else 
+            let hyps = hyp th
+            if hyps = [] then INSTANTIATE i th
             else 
-                let hyps = hyp th
-                if hyps = []
-                then INSTANTIATE i th
-                else 
-                    let tyrel, tyiirel = 
-                        if tyin = []
-                        then [], hyps
-                        else 
-                            let tvs = itlist (union << tyvars << snd) tyin []
-                            partition (fun tm -> 
-                                    let tvs' = type_vars_in_term tm
-                                    not(intersect tvs tvs' = [])) hyps
-                    let tmrel, tmirrel = 
-                        if tmin = []
-                        then [], tyiirel
-                        else 
-                            let vs = itlist (union << frees << snd) tmin []
-                            partition (fun tm -> 
-                                    let vs' = frees tm
-                                    not(intersect vs vs' = [])) tyiirel
-                    let rhyps = union tyrel tmrel
-                    let th1 = rev_itlist DISCH rhyps th
-                    let th2 = INSTANTIATE i th1
-                    funpow (length rhyps) UNDISCH th2
+                let tyrel, tyiirel = 
+                    if tyin = [] then [], hyps
+                    else 
+                        let tvs = itlist (union << tyvars << snd) tyin []
+                        partition (fun tm -> 
+                                let tvs' = type_vars_in_term tm
+                                not(intersect tvs tvs' = [])) hyps
+                let tmrel, tmirrel = 
+                    if tmin = [] then [], tyiirel
+                    else 
+                        let vs = itlist (union << frees << snd) tmin []
+                        partition (fun tm -> 
+                                let vs' = frees tm
+                                not(intersect vs vs' = [])) tyiirel
+                let rhyps = union tyrel tmrel
+                let th1 = rev_itlist DISCH rhyps th
+                let th2 = INSTANTIATE i th1
+                funpow (length rhyps) UNDISCH th2
 
 (* ------------------------------------------------------------------------- *)
 (* Higher order matching of terms.                                           *)

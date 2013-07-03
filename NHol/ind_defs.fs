@@ -334,9 +334,7 @@ let MONO_TAC =
         fun (asl, w) -> 
             let th1 = match_fn w
             let ant, con = dest_imp(concl th1)
-            null_meta, [asl, ant], fun i _ -> 
-                match _arg1 with
-                | [t] -> MATCH_MP (INSTANTIATE i th1) t
+            null_meta, [asl, ant], fun i [t] -> MATCH_MP (INSTANTIATE i th1) t
     let MONO_ABS_TAC(asl, w) = 
         let ant, con = dest_imp w
         let vars = snd(strip_comb con)

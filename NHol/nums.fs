@@ -337,9 +337,7 @@ let new_specification =
                     let sth = 
                         snd
                             (find 
-                                 (fun (_, sth') -> 
-                                     match _arg1 with
-                                     | names', th' -> 
+                                 (fun ((names', th'), sth') ->
                                          names' = names 
                                          && aconv (concl th') (concl th)) 
                                  (!the_specifications))

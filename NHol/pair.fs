@@ -526,9 +526,7 @@ let (LET_TAC : tactic) =
             let th3 = DISCH_ALL(itlist SIMPLE_EXISTS vars th2)
             let th4 = INST (map (fun t -> rand t, lhand t) cjs) th3
             MP (rewr2_RULE th4) TRUTH
-    fun _ -> 
-        match _arg1 with
-        | asl, w as gl -> 
+    fun (asl, w as gl) ->  
             let path = 
                 try 
                     find_path is_trivlet w
