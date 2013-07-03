@@ -703,304 +703,304 @@ let (IMP_RES_THEN : thm_tactical) =
                 | [] -> failwith "IMP_RES_THEN"
                 | _ -> EVERY tacs)
 
-//let STRIP_ASSUME_TAC = 
-//    let DISCARD_TAC th = 
-//        let tm = concl th
-//        fun (asl, w as g) -> 
-//                if exists (fun a -> aconv tm (concl(snd a))) asl
-//                then ALL_TAC g
-//                else failwith "DISCARD_TAC: not already present"
-//    (REPEAT_TCL STRIP_THM_THEN)(fun gth -> 
-//            FIRST [CONTR_TAC gth
-//                   ACCEPT_TAC gth
-//                   DISCARD_TAC gth
-//                   ASSUME_TAC gth])
+let STRIP_ASSUME_TAC = 
+    let DISCARD_TAC th = 
+        let tm = concl th
+        fun (asl, w as g) -> 
+                if exists (fun a -> aconv tm (concl(snd a))) asl
+                then ALL_TAC g
+                else failwith "DISCARD_TAC: not already present"
+    (REPEAT_TCL STRIP_THM_THEN)(fun gth -> 
+            FIRST [CONTR_TAC gth
+                   ACCEPT_TAC gth
+                   DISCARD_TAC gth
+                   ASSUME_TAC gth])
 
-//let STRUCT_CASES_THEN ttac = REPEAT_TCL STRIP_THM_THEN ttac
-//let STRUCT_CASES_TAC = 
-//    STRUCT_CASES_THEN(fun th -> ORELSE (SUBST1_TAC th) (ASSUME_TAC th))
-//
-//let STRIP_GOAL_THEN ttac = 
-//    FIRST [GEN_TAC
-//           CONJ_TAC
-//           DISCH_THEN ttac]
-//
-//let (STRIP_TAC : tactic) = 
-//    fun g -> 
-//        try 
-//            STRIP_GOAL_THEN STRIP_ASSUME_TAC g
-//        with
-//        | Failure _ -> failwith "STRIP_TAC"
-//
-//let (UNDISCH_THEN : term -> thm_tactic -> tactic) = 
-//    fun tm ttac (asl, w) -> 
-//        let thp, asl' = remove (fun (_, th) -> aconv (concl th) tm) asl
-//        ttac (snd thp) (asl', w)
-//
-//let FIRST_X_ASSUM ttac = FIRST_ASSUM(fun th -> UNDISCH_THEN (concl th) ttac)
+let STRUCT_CASES_THEN ttac = REPEAT_TCL STRIP_THM_THEN ttac
+let STRUCT_CASES_TAC = 
+    STRUCT_CASES_THEN(fun th -> ORELSE (SUBST1_TAC th) (ASSUME_TAC th))
 
-//(* ------------------------------------------------------------------------- *)
-//(* Subgoaling and freezing variables (latter is especially useful now).      *)
-//(* ------------------------------------------------------------------------- *)
-//let (SUBGOAL_THEN : term -> thm_tactic -> tactic) = 
-//    fun wa ttac (asl, w) -> 
-//        let meta, gl, just = ttac (ASSUME wa) (asl, w)
-//        meta, (asl, wa) :: gl, fun i l -> PROVE_HYP (hd l) (just i (tl l))
-//
-//let SUBGOAL_TAC s tm prfs = 
-//    match prfs with
-//    | p :: ps -> 
-//        warn (ps.Length > 0) "SUBGOAL_TAC: additional subproofs ignored"
-//        THENL (SUBGOAL_THEN tm (LABEL_TAC s)) [p; ALL_TAC]
-//    | [] -> failwith "SUBGOAL_TAC: no subproof given"
-//
-//let (FREEZE_THEN : thm_tactical) = 
-//    fun ttac th (asl, w) -> 
-//        let meta, gl, just = ttac (ASSUME(concl th)) (asl, w)
-//        meta, gl, fun i l -> PROVE_HYP th (just i l)
-//
-//(* ------------------------------------------------------------------------- *)
-//(* Metavariable tactics.                                                     *)
-//(* ------------------------------------------------------------------------- *)
-//let (X_META_EXISTS_TAC : term -> tactic) = 
-//    fun t (asl, w) -> 
-//        try 
-//            if not(is_var t)
-//            then fail()
-//            else 
-//                let v, bod = dest_exists w
-//                ([t], null_inst), [asl, vsubst [t, v] bod], fun i [th] -> EXISTS (instantiate i w, instantiate i t) th
-//        with
-//        | Failure _ -> failwith "X_META_EXISTS_TAC"
-//
-//let META_EXISTS_TAC((asl, w) as gl) = 
-//    let v = fst(dest_exists w)
-//    let avoids = itlist (union << frees << concl << snd) asl (frees w)
-//    let v' = mk_primed_var avoids v
-//    X_META_EXISTS_TAC v' gl
-//
-//let (META_SPEC_TAC : term -> thm -> tactic) = 
-//    fun t thm (asl, w) -> 
-//        let sth = SPEC t thm
-//        ([t], null_inst), [(("", sth) :: asl), w], fun i [th] -> PROVE_HYP (SPEC (instantiate i t) thm) th
-//
-//(* ------------------------------------------------------------------------- *)
-//(* If all else fails!                                                        *)
-//(* ------------------------------------------------------------------------- *)
-//let (CHEAT_TAC : tactic) = fun (asl, w) -> ACCEPT_TAC (mk_thm([], w)) (asl, w)
-//
-//(* ------------------------------------------------------------------------- *)
-//(* Intended for time-consuming rules; delays evaluation till it sees goal.   *)
-//(* ------------------------------------------------------------------------- *)
-//let RECALL_ACCEPT_TAC r a g = ACCEPT_TAC (time r a) g
-//
-//(* ------------------------------------------------------------------------- *)
-//(* Split off antecedent of antecedent as a subgoal.                          *)
-//(* ------------------------------------------------------------------------- *)
-//let ANTS_TAC = 
-//    let tm1 = parse_term "p /\ (q ==> r)"
-//    let tm2 = parse_term "p ==> q"
-//    let th1, th2 = CONJ_PAIR(ASSUME tm1)
-//    let th = itlist DISCH [tm1; tm2] (MP th2 (MP (ASSUME tm2) th1))
-//    THEN (MATCH_MP_TAC th) CONJ_TAC
-//
-//(* ------------------------------------------------------------------------- *)
-//(* A printer for goals etc.                                                  *)
-//(* ------------------------------------------------------------------------- *)
-//let (print_goal : goal -> unit) = 
-//    let string_of_int3 n = 
-//        if n < 10
-//        then "  " + string_of_int n
-//        elif n < 100
-//        then " " + string_of_int n
-//        else string_of_int n
-//    let print_hyp n (s, th) = 
-//        Format.open_hbox()
-//        Format.print_string(string_of_int3 n)
-//        Format.print_string " ["
-//        Format.open_hvbox 0
-//        print_qterm(concl th)
-//        Format.close_box()
-//        Format.print_string "]"
-//        (if not(s = "")
-//         then (Format.print_string(" (" + s + ")"))
-//         else ())
-//        Format.close_box()
-//        Format.print_newline()
-//    let rec print_hyps n asl = 
-//        if asl = []
-//        then ()
-//        else 
-//            (print_hyp n (hd asl)
-//             print_hyps (n + 1) (tl asl))
-//    fun (asl, w) -> 
-//        Format.print_newline()
-//        if asl <> []
-//        then 
-//            (print_hyps 0 (rev asl)
-//             Format.print_newline())
-//        else ()
-//        print_qterm w
-//        Format.print_newline()
-//
-//let (print_goalstack : goalstack -> unit) = 
-//    let print_goalstate k gs = 
-//        let (_, gl, _) = gs
-//        let n = length gl
-//        let s = 
-//            if n = 0
-//            then "No subgoals"
-//            else 
-//                (string_of_int k) + " subgoal" + (if k > 1
-//                                                  then "s"
-//                                                  else "") + " (" 
-//                + (string_of_int n) + " total)"
-//        Format.print_string s
-//        Format.print_newline()
-//        if gl = []
-//        then ()
-//        else do_list (print_goal << C el gl) (rev(0 -- (k - 1)))
-//    fun l -> 
-//        match l.Length with
-//        | 0 -> Format.print_string "Empty goalstack"
-//        | 1 -> 
-//            let (_, gl, _ as gs) = hd l
-//            print_goalstate 1 gs
-//        | _ -> 
-//            let (_, gl, _ as gs) = hd l
-//            let (_, gl0, _) = hd(tl l)
-//            let p = length gl - length gl0
-//            let p' = 
-//                if p < 1
-//                then 1
-//                else p + 1
-//            print_goalstate p' gs
-//
-//(* ------------------------------------------------------------------------- *)
-//(* Convert a tactic into a refinement on head subgoal in current state.      *)
-//(* ------------------------------------------------------------------------- *)
-//let (by : tactic -> refinement) = 
-//    fun tac ((mvs, inst), gls, just) -> 
-//        if gls = [] then failwith "No goal set"
-//        else 
-//            let g = hd gls
-//            let ogls = tl gls
-//            let ((newmvs, newinst), subgls, subjust) = tac g
-//            let n = length subgls
-//            let mvs' = union newmvs mvs
-//            let inst' = compose_insts inst newinst
-//            let gls' = subgls @ map (inst_goal newinst) ogls
-//            let just' i ths = 
-//                let i' = compose_insts inst' i
-//                let cths, oths = chop_list n ths
-//                let sths = (subjust i cths) :: oths
-//                just i' sths
-//            (mvs', inst'), gls', just'
-//
-//(* ------------------------------------------------------------------------- *)
-//(* Rotate the goalstate either way.                                          *)
-//(* ------------------------------------------------------------------------- *)
-//let (rotate : int -> refinement) = 
-//    let rotate_p(meta, sgs, just) = 
-//        let sgs' = (tl sgs) @ [hd sgs]
-//        let just' i ths = 
-//            let ths' = (last ths) :: (butlast ths)
-//            just i ths'
-//        (meta, sgs', just')
-//    let rotate_n(meta, sgs, just) = 
-//        let sgs' = (last sgs) :: (butlast sgs)
-//        let just' i ths = 
-//            let ths' = (tl ths) @ [hd ths]
-//            just i ths'
-//        (meta, sgs', just')
-//    fun n -> 
-//        if n > 0
-//        then funpow n rotate_p
-//        else funpow (-n) rotate_n
-//
-//(* ------------------------------------------------------------------------- *)
-//(* Perform refinement proof, tactic proof etc.                               *)
-//(* ------------------------------------------------------------------------- *)
-//let (mk_goalstate : goal -> goalstate) = 
-//    fun (asl, w) -> 
-//        if type_of w = bool_ty
-//        then 
-//            null_meta, [asl, w], (fun inst [th] -> INSTANTIATE_ALL inst th)
-//        else failwith "mk_goalstate: Non-boolean goal"
-//
-//let (TAC_PROOF : goal * tactic -> thm) = 
-//    fun (g, tac) -> 
-//        let gstate = mk_goalstate g
-//        let _, sgs, just = by tac gstate
-//        if sgs = []
-//        then just null_inst []
-//        else failwith "TAC_PROOF: Unsolved goals"
-//
-//let prove(t, tac) = 
-//    let th = TAC_PROOF(([], t), tac)
-//    let t' = concl th
-//    if t' = t
-//    then th
-//    else 
-//        try 
-//            EQ_MP (ALPHA t' t) th
-//        with
-//        | Failure _ -> failwith "prove: justification generated wrong theorem"
-//
-//(* ------------------------------------------------------------------------- *)
-//(* Interactive "subgoal package" stuff.                                      *)
-//(* ------------------------------------------------------------------------- *)
-//let current_goalstack = ref([] : goalstack)
-//
-//let (refine : refinement -> goalstack) = 
-//    fun r -> 
-//        let l = !current_goalstack
-//        if l.IsEmpty
-//        then failwith "No current goal"
-//        else 
-//            let h = hd l
-//            let res = r h :: l
-//            current_goalstack := res
-//            !current_goalstack
-//
-//let flush_goalstack() = 
-//    let l = !current_goalstack
-//    current_goalstack := [hd l]
-//
-//let e tac = refine(by(VALID tac))
-//let r n = refine(rotate n)
-//
-//let set_goal(asl, w) = 
-//    current_goalstack := [mk_goalstate(map (fun t -> "", ASSUME t) asl, w)]
-//    !current_goalstack
-//
-//let g t = 
-//    let fvs = sort (<) (map (fst << dest_var) (frees t))
-//    (if fvs <> []
-//     then 
-//         let errmsg = end_itlist (fun s t -> s + ", " + t) fvs
-//         warn true ("Free variables in goal: " + errmsg)
-//     else ())
-//    set_goal([], t)
-//
-//let b() = 
-//    let l = !current_goalstack
-//    if List.length l = 1
-//    then failwith "Can't back up any more"
-//    else 
-//        current_goalstack := tl l
-//        !current_goalstack
-//
-//let p() = !current_goalstack
-//
-//let top_realgoal() = 
-//    let (_, ((asl, w) :: _), _) :: _ = !current_goalstack
-//    asl, w
-//
-//let top_goal() = 
-//    let asl, w = top_realgoal()
-//    map (concl << snd) asl, w
-//
-//let top_thm() = 
-//    let (_, [], f) :: _ = !current_goalstack
-//    f null_inst []
+let STRIP_GOAL_THEN ttac = 
+    FIRST [GEN_TAC
+           CONJ_TAC
+           DISCH_THEN ttac]
+
+let (STRIP_TAC : tactic) = 
+    fun g -> 
+        try 
+            STRIP_GOAL_THEN STRIP_ASSUME_TAC g
+        with
+        | Failure _ -> failwith "STRIP_TAC"
+
+let (UNDISCH_THEN : term -> thm_tactic -> tactic) = 
+    fun tm ttac (asl, w) -> 
+        let thp, asl' = remove (fun (_, th) -> aconv (concl th) tm) asl
+        ttac (snd thp) (asl', w)
+
+let FIRST_X_ASSUM ttac = FIRST_ASSUM(fun th -> UNDISCH_THEN (concl th) ttac)
+
+(* ------------------------------------------------------------------------- *)
+(* Subgoaling and freezing variables (latter is especially useful now).      *)
+(* ------------------------------------------------------------------------- *)
+let (SUBGOAL_THEN : term -> thm_tactic -> tactic) = 
+    fun wa ttac (asl, w) -> 
+        let meta, gl, just = ttac (ASSUME wa) (asl, w)
+        meta, (asl, wa) :: gl, fun i l -> PROVE_HYP (hd l) (just i (tl l))
+
+let SUBGOAL_TAC s tm prfs = 
+    match prfs with
+    | p :: ps -> 
+        warn (ps.Length > 0) "SUBGOAL_TAC: additional subproofs ignored"
+        THENL (SUBGOAL_THEN tm (LABEL_TAC s)) [p; ALL_TAC]
+    | [] -> failwith "SUBGOAL_TAC: no subproof given"
+
+let (FREEZE_THEN : thm_tactical) = 
+    fun ttac th (asl, w) -> 
+        let meta, gl, just = ttac (ASSUME(concl th)) (asl, w)
+        meta, gl, fun i l -> PROVE_HYP th (just i l)
+
+(* ------------------------------------------------------------------------- *)
+(* Metavariable tactics.                                                     *)
+(* ------------------------------------------------------------------------- *)
+let (X_META_EXISTS_TAC : term -> tactic) = 
+    fun t (asl, w) -> 
+        try 
+            if not(is_var t)
+            then fail()
+            else 
+                let v, bod = dest_exists w
+                ([t], null_inst), [asl, vsubst [t, v] bod], fun i [th] -> EXISTS (instantiate i w, instantiate i t) th
+        with
+        | Failure _ -> failwith "X_META_EXISTS_TAC"
+
+let META_EXISTS_TAC((asl, w) as gl) = 
+    let v = fst(dest_exists w)
+    let avoids = itlist (union << frees << concl << snd) asl (frees w)
+    let v' = mk_primed_var avoids v
+    X_META_EXISTS_TAC v' gl
+
+let (META_SPEC_TAC : term -> thm -> tactic) = 
+    fun t thm (asl, w) -> 
+        let sth = SPEC t thm
+        ([t], null_inst), [(("", sth) :: asl), w], fun i [th] -> PROVE_HYP (SPEC (instantiate i t) thm) th
+
+(* ------------------------------------------------------------------------- *)
+(* If all else fails!                                                        *)
+(* ------------------------------------------------------------------------- *)
+let (CHEAT_TAC : tactic) = fun (asl, w) -> ACCEPT_TAC (mk_thm([], w)) (asl, w)
+
+(* ------------------------------------------------------------------------- *)
+(* Intended for time-consuming rules; delays evaluation till it sees goal.   *)
+(* ------------------------------------------------------------------------- *)
+let RECALL_ACCEPT_TAC r a g = ACCEPT_TAC (time r a) g
+
+(* ------------------------------------------------------------------------- *)
+(* Split off antecedent of antecedent as a subgoal.                          *)
+(* ------------------------------------------------------------------------- *)
+let ANTS_TAC = 
+    let tm1 = parse_term "p /\ (q ==> r)"
+    let tm2 = parse_term "p ==> q"
+    let th1, th2 = CONJ_PAIR(ASSUME tm1)
+    let th = itlist DISCH [tm1; tm2] (MP th2 (MP (ASSUME tm2) th1))
+    THEN (MATCH_MP_TAC th) CONJ_TAC
+
+(* ------------------------------------------------------------------------- *)
+(* A printer for goals etc.                                                  *)
+(* ------------------------------------------------------------------------- *)
+let (print_goal : goal -> unit) = 
+    let string_of_int3 n = 
+        if n < 10
+        then "  " + string_of_int n
+        elif n < 100
+        then " " + string_of_int n
+        else string_of_int n
+    let print_hyp n (s, th) = 
+        Format.open_hbox()
+        Format.print_string(string_of_int3 n)
+        Format.print_string " ["
+        Format.open_hvbox 0
+        print_qterm(concl th)
+        Format.close_box()
+        Format.print_string "]"
+        (if not(s = "")
+         then (Format.print_string(" (" + s + ")"))
+         else ())
+        Format.close_box()
+        Format.print_newline()
+    let rec print_hyps n asl = 
+        if asl = []
+        then ()
+        else 
+            (print_hyp n (hd asl)
+             print_hyps (n + 1) (tl asl))
+    fun (asl, w) -> 
+        Format.print_newline()
+        if asl <> []
+        then 
+            (print_hyps 0 (rev asl)
+             Format.print_newline())
+        else ()
+        print_qterm w
+        Format.print_newline()
+
+let (print_goalstack : goalstack -> unit) = 
+    let print_goalstate k gs = 
+        let (_, gl, _) = gs
+        let n = length gl
+        let s = 
+            if n = 0
+            then "No subgoals"
+            else 
+                (string_of_int k) + " subgoal" + (if k > 1
+                                                  then "s"
+                                                  else "") + " (" 
+                + (string_of_int n) + " total)"
+        Format.print_string s
+        Format.print_newline()
+        if gl = []
+        then ()
+        else do_list (print_goal << C el gl) (rev(0 -- (k - 1)))
+    fun l -> 
+        match l.Length with
+        | 0 -> Format.print_string "Empty goalstack"
+        | 1 -> 
+            let (_, gl, _ as gs) = hd l
+            print_goalstate 1 gs
+        | _ -> 
+            let (_, gl, _ as gs) = hd l
+            let (_, gl0, _) = hd(tl l)
+            let p = length gl - length gl0
+            let p' = 
+                if p < 1
+                then 1
+                else p + 1
+            print_goalstate p' gs
+
+(* ------------------------------------------------------------------------- *)
+(* Convert a tactic into a refinement on head subgoal in current state.      *)
+(* ------------------------------------------------------------------------- *)
+let (by : tactic -> refinement) = 
+    fun tac ((mvs, inst), gls, just) -> 
+        if gls = [] then failwith "No goal set"
+        else 
+            let g = hd gls
+            let ogls = tl gls
+            let ((newmvs, newinst), subgls, subjust) = tac g
+            let n = length subgls
+            let mvs' = union newmvs mvs
+            let inst' = compose_insts inst newinst
+            let gls' = subgls @ map (inst_goal newinst) ogls
+            let just' i ths = 
+                let i' = compose_insts inst' i
+                let cths, oths = chop_list n ths
+                let sths = (subjust i cths) :: oths
+                just i' sths
+            (mvs', inst'), gls', just'
+
+(* ------------------------------------------------------------------------- *)
+(* Rotate the goalstate either way.                                          *)
+(* ------------------------------------------------------------------------- *)
+let (rotate : int -> refinement) = 
+    let rotate_p(meta, sgs, just) = 
+        let sgs' = (tl sgs) @ [hd sgs]
+        let just' i ths = 
+            let ths' = (last ths) :: (butlast ths)
+            just i ths'
+        (meta, sgs', just')
+    let rotate_n(meta, sgs, just) = 
+        let sgs' = (last sgs) :: (butlast sgs)
+        let just' i ths = 
+            let ths' = (tl ths) @ [hd ths]
+            just i ths'
+        (meta, sgs', just')
+    fun n -> 
+        if n > 0
+        then funpow n rotate_p
+        else funpow (-n) rotate_n
+
+(* ------------------------------------------------------------------------- *)
+(* Perform refinement proof, tactic proof etc.                               *)
+(* ------------------------------------------------------------------------- *)
+let (mk_goalstate : goal -> goalstate) = 
+    fun (asl, w) -> 
+        if type_of w = bool_ty
+        then 
+            null_meta, [asl, w], (fun inst [th] -> INSTANTIATE_ALL inst th)
+        else failwith "mk_goalstate: Non-boolean goal"
+
+let (TAC_PROOF : goal * tactic -> thm) = 
+    fun (g, tac) -> 
+        let gstate = mk_goalstate g
+        let _, sgs, just = by tac gstate
+        if sgs = []
+        then just null_inst []
+        else failwith "TAC_PROOF: Unsolved goals"
+
+let prove(t, tac) = 
+    let th = TAC_PROOF(([], t), tac)
+    let t' = concl th
+    if t' = t
+    then th
+    else 
+        try 
+            EQ_MP (ALPHA t' t) th
+        with
+        | Failure _ -> failwith "prove: justification generated wrong theorem"
+
+(* ------------------------------------------------------------------------- *)
+(* Interactive "subgoal package" stuff.                                      *)
+(* ------------------------------------------------------------------------- *)
+let current_goalstack = ref([] : goalstack)
+
+let (refine : refinement -> goalstack) = 
+    fun r -> 
+        let l = !current_goalstack
+        if l.IsEmpty
+        then failwith "No current goal"
+        else 
+            let h = hd l
+            let res = r h :: l
+            current_goalstack := res
+            !current_goalstack
+
+let flush_goalstack() = 
+    let l = !current_goalstack
+    current_goalstack := [hd l]
+
+let e tac = refine(by(VALID tac))
+let r n = refine(rotate n)
+
+let set_goal(asl, w) = 
+    current_goalstack := [mk_goalstate(map (fun t -> "", ASSUME t) asl, w)]
+    !current_goalstack
+
+let g t = 
+    let fvs = sort (<) (map (fst << dest_var) (frees t))
+    (if fvs <> []
+     then 
+         let errmsg = end_itlist (fun s t -> s + ", " + t) fvs
+         warn true ("Free variables in goal: " + errmsg)
+     else ())
+    set_goal([], t)
+
+let b() = 
+    let l = !current_goalstack
+    if List.length l = 1
+    then failwith "Can't back up any more"
+    else 
+        current_goalstack := tl l
+        !current_goalstack
+
+let p() = !current_goalstack
+
+let top_realgoal() = 
+    let (_, ((asl, w) :: _), _) :: _ = !current_goalstack
+    asl, w
+
+let top_goal() = 
+    let asl, w = top_realgoal()
+    map (concl << snd) asl, w
+
+let top_thm() = 
+    let (_, [], f) :: _ = !current_goalstack
+    f null_inst []
