@@ -397,7 +397,7 @@ let the_inductive_definitions = ref []
 
 let prove_inductive_relations_exist, new_inductive_definition = 
     let rec pare_comb qvs tm = 
-        if intersect (frees tm) qvs = [] & forall is_var (snd(strip_comb tm))
+        if intersect (frees tm) qvs = [] && forall is_var (snd(strip_comb tm))
         then tm
         else pare_comb qvs (rator tm)
     let generalize_schematic_variables gflag vs = 

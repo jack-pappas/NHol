@@ -304,7 +304,7 @@ let REAL_RAT_NEG_CONV =
         | Failure _ -> 
             try 
                 let l, r = dest_comb tm
-                if l = ptm & is_realintconst r & dest_realintconst r >/ num_0
+                if l = ptm && is_realintconst r && dest_realintconst r >/ num_0
                 then REFL tm
                 else fail()
             with
@@ -467,7 +467,7 @@ let REAL_RAT_MUL_CONV =
         let y2n = dest_realintconst y2'
         let d1n = gcd_num x1n y2n
         let d2n = gcd_num x2n y1n
-        if d1n = num_1 & d2n = num_1
+        if d1n = num_1 && d2n = num_1
         then 
             let th0 = 
                 INST [x1', x1
@@ -594,7 +594,7 @@ let REAL_POLY_CONV =
     let min_tm = (parse_term "min:real->real->real")
     let div_conv = REWR_CONV real_div
     let rec REAL_POLY_CONV tm = 
-        if not(is_comb tm) or is_ratconst tm
+        if not(is_comb tm) || is_ratconst tm
         then REFL tm
         else 
             let lop, r = dest_comb tm
@@ -616,7 +616,7 @@ let REAL_POLY_CONV =
                 then 
                     let th1 = AP_THM (AP_TERM op (REAL_POLY_CONV l)) r
                     TRANS th1 (TRY_CONV REAL_POLY_POW_CONV (rand(concl th1)))
-                elif op = add_tm or op = mul_tm or op = sub_tm
+                elif op = add_tm || op = mul_tm || op = sub_tm
                 then 
                     let th1 = 
                         MK_COMB(AP_TERM op (REAL_POLY_CONV l), REAL_POLY_CONV r)
@@ -631,7 +631,7 @@ let REAL_POLY_CONV =
                 then 
                     let th1 = div_conv tm
                     TRANS th1 (REAL_POLY_CONV(rand(concl th1)))
-                elif op = min_tm or op = max_tm
+                elif op = min_tm || op = max_tm
                 then MK_COMB(AP_TERM op (REAL_POLY_CONV l), REAL_POLY_CONV r)
                 else REFL tm
     REAL_POLY_CONV
