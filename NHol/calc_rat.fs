@@ -690,10 +690,10 @@ let GEN_REAL_ARITH PROVER =
 
 let REAL_ARITH = 
     let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
-    let pure = GEN_REAL_ARITH REAL_LINEAR_PROVER
+    let ``pure`` = GEN_REAL_ARITH REAL_LINEAR_PROVER
     fun tm -> 
         let th = init tm
-        EQ_MP (SYM th) (pure(rand(concl th)))
+        EQ_MP (SYM th) (``pure``(rand(concl th)))
 
 let REAL_ARITH_TAC = CONV_TAC REAL_ARITH
 let ASM_REAL_ARITH_TAC = REPEAT
