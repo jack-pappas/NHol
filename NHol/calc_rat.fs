@@ -639,64 +639,109 @@ let REAL_POLY_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Basic ring and ideal conversions.                                         *)
 (* ------------------------------------------------------------------------- *)
- //let REAL_RING,real_ideal_cofactors =
- //  let REAL_INTEGRAL = prove
- //   ((parse_term "(!x. &0 * x = &0) /\
- //     (!x y z. (x + y = x + z) <=> (y = z)) /\
- //     (!w x y z. (w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))"),
- //    REWRITE_TAC[MULT_CLAUSES; EQ_ADD_LCANCEL] |>THEN<|
- //    REWRITE_TAC[GSYM REAL_OF_NUM_EQ;
- //                GSYM REAL_OF_NUM_ADD; GSYM REAL_OF_NUM_MUL] |>THEN<|
- //    ONCE_REWRITE_TAC[GSYM REAL_SUB_0] |>THEN<|
- //    REWRITE_TAC[GSYM REAL_ENTIRE] |>THEN<| REAL_ARITH_TAC)
- //  let REAL_RABINOWITSCH = prove
- //   ((parse_term "!x y:real. ~(x = y) <=> ?z. (x - y) * z = &1"),
- //    REPEAT GEN_TAC |>THEN<|
- //    GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM REAL_SUB_0] |>THEN<|
- //    MESON_TAC[REAL_MUL_RINV; REAL_MUL_LZERO; REAL_ARITH (parse_term "~(&1 = &0)")])
- //  let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
- //  let real_ty = (parse_type ":real") in
- //  let pure,ideal =
- //    RING_AND_IDEAL_CONV
- //        (rat_of_term,term_of_rat,REAL_RAT_EQ_CONV,
- //         (parse_term "(--):real->real"),(parse_term "(+):real->real->real"),(parse_term "(-):real->real->real"),
- //         (parse_term "(inv):real->real"),(parse_term "(*):real->real->real"),(parse_term "(/):real->real->real"),
- //         (parse_term "(pow):real->num->real"),
- //         REAL_INTEGRAL,REAL_RABINOWITSCH,REAL_POLY_CONV) in
- //  (fun tm -> let th = init tm in EQ_MP (SYM th) (pure(rand(concl th)))),
- //  (fun tms tm -> if forall (fun t -> type_of t = real_ty) (tm::tms)
- //                 then ideal tms tm
- //                 else failwith
- //                   "real_ideal_cofactors: not all terms have type :real");;
+let REAL_RING,real_ideal_cofactors =
+   let REAL_INTEGRAL = 
+     prove ((parse_term "(!x. &0 * x = &0) /\
+       (!x y z. (x + y = x + z) <=> (y = z)) /\
+       (!w x y z. (w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))"),
+       REWRITE_TAC[MULT_CLAUSES; EQ_ADD_LCANCEL] |>THEN<|
+       REWRITE_TAC[GSYM REAL_OF_NUM_EQ;
+                   GSYM REAL_OF_NUM_ADD; GSYM REAL_OF_NUM_MUL] |>THEN<|
+       ONCE_REWRITE_TAC[GSYM REAL_SUB_0] |>THEN<|
+       REWRITE_TAC[GSYM REAL_ENTIRE] |>THEN<| REAL_ARITH_TAC)
+   let REAL_RABINOWITSCH = 
+      prove ((parse_term "!x y:real. ~(x = y) <=> ?z. (x - y) * z = &1"),
+        REPEAT GEN_TAC |>THEN<|
+        GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM REAL_SUB_0] |>THEN<|
+        MESON_TAC[REAL_MUL_RINV; REAL_MUL_LZERO; REAL_ARITH (parse_term "~(&1 = &0)")])
+   let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
+   let real_ty = (parse_type ":real") in
+   let ``pure``,ideal =
+     RING_AND_IDEAL_CONV (rat_of_term,term_of_rat,REAL_RAT_EQ_CONV,
+          (parse_term "(--):real->real"),(parse_term "(+):real->real->real"),(parse_term "(-):real->real->real"),
+          (parse_term "(inv):real->real"),(parse_term "(*):real->real->real"),(parse_term "(/):real->real->real"),
+          (parse_term "(pow):real->num->real"),
+          REAL_INTEGRAL,REAL_RABINOWITSCH,REAL_POLY_CONV) in
+   (fun tm -> 
+     let th = init tm
+     EQ_MP (SYM th) (``pure``(rand(concl th)))),
+   (fun tms tm -> 
+     if forall (fun t -> type_of t = real_ty) (tm::tms)
+     then ideal tms tm
+     else failwith "real_ideal_cofactors: not all terms have type :real")
+
 (* ------------------------------------------------------------------------- *)
 (* Conversion for ideal membership.                                          *)
 (* ------------------------------------------------------------------------- *)
- //let REAL_IDEAL_CONV =
- //  let mk_add = mk_binop (parse_term "( + ):real->real->real")
- //  let mk_mul = mk_binop (parse_term "( * ):real->real->real") in
- //  fun tms tm ->
- //    let cfs = real_ideal_cofactors tms tm in
- //    let tm' = end_itlist mk_add (map2 mk_mul cfs tms) in
- //    let th = REAL_POLY_CONV tm and th' = REAL_POLY_CONV tm' in
- //    TRANS th (SYM th');;
+let REAL_IDEAL_CONV =
+   let mk_add = mk_binop (parse_term "( + ):real->real->real")
+   let mk_mul = mk_binop (parse_term "( * ):real->real->real")
+   fun tms tm ->
+     let cfs = real_ideal_cofactors tms tm
+     let tm' = end_itlist mk_add (map2 mk_mul cfs tms)
+     let th = REAL_POLY_CONV tm 
+     let th' = REAL_POLY_CONV tm'
+     TRANS th (SYM th')
+
 (* ------------------------------------------------------------------------- *)
 (* Further specialize GEN_REAL_ARITH and REAL_ARITH (final versions).        *)
 (* ------------------------------------------------------------------------- *)
-let GEN_REAL_ARITH PROVER = 
-    GEN_REAL_ARITH
-        (term_of_rat, REAL_RAT_EQ_CONV, REAL_RAT_GE_CONV, REAL_RAT_GT_CONV, 
-         REAL_POLY_CONV, REAL_POLY_NEG_CONV, REAL_POLY_ADD_CONV, 
-         REAL_POLY_MUL_CONV, PROVER)
+let GEN_REAL_ARITH PROVER =
+  GEN_REAL_ARITH
+   (term_of_rat,
+    REAL_RAT_EQ_CONV,REAL_RAT_GE_CONV,REAL_RAT_GT_CONV,
+    REAL_POLY_CONV,REAL_POLY_NEG_CONV,REAL_POLY_ADD_CONV,REAL_POLY_MUL_CONV,
+    PROVER)
 
-let REAL_ARITH = 
-    let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
-    let ``pure`` = GEN_REAL_ARITH REAL_LINEAR_PROVER
-    fun tm -> 
-        let th = init tm
-        EQ_MP (SYM th) (``pure``(rand(concl th)))
+let REAL_ARITH =
+  let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
+  let ``pure`` = GEN_REAL_ARITH REAL_LINEAR_PROVER
+  fun tm -> 
+    let th = init tm 
+    EQ_MP (SYM th) (``pure``(rand(concl th)))
 
 let REAL_ARITH_TAC = CONV_TAC REAL_ARITH
-let ASM_REAL_ARITH_TAC = REPEAT
-                             (FIRST_X_ASSUM
-                                  (MP_TAC << check(not << is_forall << concl)))
-                         |> THEN <| REAL_ARITH_TAC
+
+let ASM_REAL_ARITH_TAC =
+  REPEAT(FIRST_X_ASSUM(MP_TAC << check (not << is_forall << concl))) |>THEN<|
+  REAL_ARITH_TAC
+
+(* ------------------------------------------------------------------------- *)
+(* A simple "field" rule.                                                    *)
+(* ------------------------------------------------------------------------- *)
+let REAL_FIELD =
+  let prenex_conv =
+    TOP_DEPTH_CONV BETA_CONV |>THENC<|
+    PURE_REWRITE_CONV[FORALL_SIMP; EXISTS_SIMP; real_div;
+                      REAL_INV_INV; REAL_INV_MUL; GSYM REAL_POW_INV] |>THENC<|
+    NNFC_CONV |>THENC<| DEPTH_BINOP_CONV (parse_term "(/\)") CONDS_CELIM_CONV |>THENC<|
+    PRENEX_CONV |>THENC<|
+    ONCE_REWRITE_CONV[REAL_ARITH (parse_term "x < y <=> x < y /\ ~(x = y)")]
+  let setup_conv = NNF_CONV |>THENC<| WEAK_CNF_CONV |>THENC<| CONJ_CANON_CONV
+  let core_rule t = 
+    try 
+      REAL_RING t 
+    with 
+    | Failure _ -> REAL_ARITH t
+  let is_inv =
+    let inv_tm = (parse_term "inv:real->real")
+    let is_div = is_binop (parse_term "(/):real->real->real")
+    fun tm -> (is_div tm || (is_comb tm && rator tm = inv_tm)) &&
+              not(is_ratconst(rand tm))
+  let BASIC_REAL_FIELD tm =
+    let is_freeinv t = is_inv t && free_in t tm
+    let itms = setify(map rand (find_terms is_freeinv tm))
+    let hyps = map (fun t -> SPEC t REAL_MUL_RINV) itms
+    let tm' = itlist (fun th t -> mk_imp(concl th,t)) hyps tm
+    let th1 = setup_conv tm'
+    let cjs = conjuncts(rand(concl th1))
+    let ths = map core_rule cjs
+    let th2 = EQ_MP (SYM th1) (end_itlist CONJ ths)
+    rev_itlist (C MP) hyps th2
+  fun tm ->
+    let th0 = prenex_conv tm
+    let tm0 = rand(concl th0)
+    let avs,bod = strip_forall tm0
+    let th1 = setup_conv bod
+    let ths = map BASIC_REAL_FIELD (conjuncts(rand(concl th1)))
+    EQ_MP (SYM th0) (GENL avs (EQ_MP (SYM th1) (end_itlist CONJ ths)))
