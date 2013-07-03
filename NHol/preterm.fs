@@ -39,6 +39,7 @@ open printer
 (* ------------------------------------------------------------------------- *)
 
 let ignore_constant_varstruct = ref true
+
 (* ------------------------------------------------------------------------- *)
 (* Flags controlling the treatment of invented type variables in quotations. *)
 (* It can be treated as an error, result in a warning, ||  neither of those.  *)
@@ -46,6 +47,7 @@ let ignore_constant_varstruct = ref true
 
 let type_invention_warning = ref true
 let type_invention_error = ref false
+
 (* ------------------------------------------------------------------------- *)
 (* Implicit types ||  type schemes for non-constants.                         *)
 (* ------------------------------------------------------------------------- *)
@@ -137,13 +139,9 @@ let hide_constant, unhide_constant, is_hidden =
 (* ------------------------------------------------------------------------- *)
 
 type pretype = 
-    | Utv of string
-    (* User type variable         *)
-    | Ptycon of string * pretype list
-    (* Type constructor           *)
-    | Stv of int
-
-(* System type variable       *)
+    | Utv of string                     (* User type variable         *)
+    | Ptycon of string * pretype list   (* Type constructor           *)
+    | Stv of int                        (* System type variable       *)
 
 (* ------------------------------------------------------------------------- *)
 (* Dummy pretype for the parser to stick in before a proper typing pass.     *)
@@ -167,17 +165,11 @@ let rec pretype_of_type ty =
 (* ------------------------------------------------------------------------- *)
 
 type preterm = 
-    | Varp of string * pretype
-    (* Variable           - v      *)
-    | Constp of string * pretype
-    (* Constant           - c      *)
-    | Combp of preterm * preterm
-    (* Combination        - f x    *)
-    | Absp of preterm * preterm
-    (* Lambda-abstraction - \x. t  *)
-    | Typing of preterm * pretype
-
-(* Type constraint    - t : ty *)
+    | Varp of string * pretype      (* Variable           - v      *)
+    | Constp of string * pretype    (* Constant           - c      *)
+    | Combp of preterm * preterm    (* Combination        - f x    *)
+    | Absp of preterm * preterm     (* Lambda-abstraction - \x. t  *)
+    | Typing of preterm * pretype   (* Type constraint    - t : ty *)
 
 (* ------------------------------------------------------------------------- *)
 (* Convert term to preterm.                                                  *)
@@ -231,6 +223,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
                     else BIT1
                 Combp(op, pmk_numeral(m))
         fun n -> Combp(NUMERAL, pmk_numeral n)
+
     (* ----------------------------------------------------------------------- *)
     (* Pretype substitution for a pretype resulting from translation of type.  *)
     (* ----------------------------------------------------------------------- *)
@@ -240,6 +233,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         | Ptycon(tycon, args) -> Ptycon(tycon, map (pretype_subst th) args)
         | Utv v -> rev_assocd ty th ty
         | _ -> failwith "pretype_subst: Unexpected form of pretype"
+
     (* ----------------------------------------------------------------------- *)
     (* Convert type to pretype with new Stvs for all type variables.           *)
     (* ----------------------------------------------------------------------- *)
@@ -249,6 +243,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let tyvs = map pretype_of_type (tyvars ty)
         let subs = map (fun tv -> new_type_var(), tv) tyvs
         pretype_subst subs gty
+
     (* ----------------------------------------------------------------------- *)
     (* Get a new instance of a constant's generic type modulo interface.       *)
     (* ----------------------------------------------------------------------- *)
@@ -258,11 +253,13 @@ let type_of_pretype, term_of_preterm, retypecheck =
         | [_, (c, ty)] -> ty
         | _ :: _ :: _ -> assoc cname (!the_overload_skeletons)
         | [] -> get_const_type cname
+
     (* ----------------------------------------------------------------------- *)
     (* Get the implicit generic type of a variable.                            *)
     (* ----------------------------------------------------------------------- *)
 
     let get_var_type vname = assoc vname !the_implicit_types
+
     (* ----------------------------------------------------------------------- *)
     (* Unravel unifications and apply them to a type.                          *)
     (* ----------------------------------------------------------------------- *)
@@ -274,6 +271,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             if defined env i then solve env (apply env i)
             else pty
         | _ -> pty
+
     (* ----------------------------------------------------------------------- *)
     (* Functions for display of preterms and pretypes, by converting them      *)
     (* to terms and types then re-using standard printing functions.           *)
@@ -286,6 +284,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             | Utv _ -> []
             | Ptycon(_, args) -> flat(map free_stvs args)
         setify << free_stvs
+
     let string_of_pretype stvs = 
         let rec type_of_pretype' ns = 
             function 
@@ -295,6 +294,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             | Utv v -> mk_vartype v
             | Ptycon(con, args) -> mk_type(con, map (type_of_pretype' ns) args)
         string_of_type << type_of_pretype' stvs
+
     let string_of_preterm = 
         let rec untyped_t_of_pt = 
             function 
@@ -304,6 +304,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             | Absp(v, bod) -> mk_gabs(untyped_t_of_pt v, untyped_t_of_pt bod)
             | Typing(ptm, pty) -> untyped_t_of_pt ptm
         string_of_term << untyped_t_of_pt
+
     let string_of_ty_error env = 
         function 
         | None -> "unify: types cannot be unified " ^ "(you should not see this message, please report)"
@@ -318,6 +319,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 " " ^ s ^ " has type " ^ string_of_type(get_const_type s) ^ ", " ^ "it cannot be used with type " ^ sty2
             | Varp(s, _) -> default_msg s
             | t -> default_msg(string_of_preterm t)
+
     (* ----------------------------------------------------------------------- *)
     (* Unification of types                                                    *)
     (* ----------------------------------------------------------------------- *)
@@ -327,6 +329,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         | Stv y as t -> y = x || defined env y && istrivial ptm env x (apply env y)
         | Ptycon(f, args) as t when exists (istrivial ptm env x) args -> failwith(string_of_ty_error env ptm)
         | (Ptycon _ | Utv _) -> false
+
     let unify ptm env ty1 ty2 = 
         let rec unify env = 
             function 
@@ -345,11 +348,13 @@ let type_of_pretype, term_of_preterm, retypecheck =
         unify env [ty1, ty2, match ptm with
                              | None -> None
                              | Some t -> Some(t, ty1, ty2)]
+
     (* ----------------------------------------------------------------------- *)
     (* Attempt to attach a given type to a term, performing unifications.      *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec typify ty (ptm, venv, uenv) = 
+    let rec typify ty (ptm, venv, uenv) =
+        //printfn "typify --> %A:%A:%A:%A" ty ptm venv uenv 
         match ptm with
         | Varp(s, _) when can (assoc s) venv -> 
             let ty' = assoc s venv
@@ -392,6 +397,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             let bod', venv2, uenv2 = typify ty'' (bod, venv1 @ venv, uenv1)
             Absp(v', bod'), venv2, uenv2
         | _ -> failwith "typify: unexpected constant at this stage"
+
     (* ----------------------------------------------------------------------- *)
     (* Further specialize type constraints by resolving overloadings.          *)
     (* ----------------------------------------------------------------------- *)
@@ -426,11 +432,13 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 pmk_cv(c', tys)
             with
             | Failure _ -> Constp(s, tys)
+
     (* ----------------------------------------------------------------------- *)
     (* Flag to indicate that Stvs were translated to real type variables.      *)
     (* ----------------------------------------------------------------------- *)
 
     let stvs_translated = ref false
+
     (* ----------------------------------------------------------------------- *)
     (* Pretype <-> type conversion; -> flags system type variable translation. *)
     (* ----------------------------------------------------------------------- *)
@@ -443,6 +451,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             mk_vartype(s)
         | Utv(v) -> mk_vartype(v)
         | Ptycon(con, args) -> mk_type(con, map type_of_pretype args)
+
     (* ----------------------------------------------------------------------- *)
     (* Maps preterms to terms.                                                 *)
     (* ----------------------------------------------------------------------- *)
@@ -464,6 +473,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             let tm = term_of_preterm ptm
             report_type_invention()
             tm
+
     (* ----------------------------------------------------------------------- *)
     (* Overall typechecker: initial typecheck plus overload resolution pass.   *)
     (* ----------------------------------------------------------------------- *)

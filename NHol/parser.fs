@@ -520,6 +520,7 @@ let parse_type s =
     else failwith "Unparsed input following type"
 
 let parse_term s = 
+    printfn "parsing term %s" s
     let ptm, l = (parse_preterm << lex << explode) s
     if l = [] then (term_of_preterm << (retypecheck [])) ptm
     else failwith "Unparsed input following term"

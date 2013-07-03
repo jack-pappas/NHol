@@ -51,9 +51,9 @@ limitations under the License.
 (* Higher level deductive system.                                            *)  
 (* ------------------------------------------------------------------------- *)  
 #load "equal.fs"        (* Basic equality reasoning and conversionals        *)  
-//#load "bool.fs"         (* Boolean theory and basic derived rules            *)  
-//#load "drule.fs"        (* Additional derived rules                          *)  
-//#load "tactics.fs"      (* Tactics, tacticals and goal stack                 *)  
+#load "bool.fs"         (* Boolean theory and basic derived rules            *)  
+#load "drule.fs"        (* Additional derived rules                          *)  
+#load "tactics.fs"      (* Tactics, tacticals and goal stack                 *)  
 //#load "itab.fs"         (* Toy prover for intuitionistic logic               *)  
 //#load "simp.fs"         (* Basic rewriting and simplification tools.         *)  
 //#load "theorems.fs"     (* Additional theorems (mainly for quantifiers) etc. *)  
@@ -91,6 +91,3 @@ limitations under the License.
 //(* ------------------------------------------------------------------------- *)  
 //#load "help.fs"         (* Online help using the entries in Help directory   *)  
 //#load "database.fs"     (* List of name-theorem pairs for search system      *)  
-
-
-

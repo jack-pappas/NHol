@@ -42,4 +42,7 @@ open NHol.equal
 //open NHol.help
 //open NHol.database
 
-let x = parse_term "x + 1"
+let b = can (assoc "x") [];;
+
+let x = parse_term "x:bool"
+let x1 = parse_term "x + 1"
