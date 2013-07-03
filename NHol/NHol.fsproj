@@ -23,7 +23,9 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Debug\NHol.XML</DocumentationFile>
-    <OtherFlags>--warnon:1182 --mlcompatibility</OtherFlags>
+    <OtherFlags>--mlcompatibility</OtherFlags>
+    <NoWarn>
+    </NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
