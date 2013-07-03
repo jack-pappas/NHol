@@ -1,28 +1,27 @@
-﻿///(*
-///
-///Copyright 1998 University of Cambridge
-///Copyright 1998-2007 John Harrison
-///Copyright 2013 Jack Pappas, Eric Taucher
-///
-///Licensed under the Apache License, Version 2.0 (the "License");
-///you may not use this file except in compliance with the License.
-///You may obtain a copy of the License at
-///
-///    http://www.apache.org/licenses/LICENSE-2.0
-///
-///Unless required by applicable law or agreed to in writing, software
-///distributed under the License is distributed on an "AS IS" BASIS,
-///WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-///See the License for the specific language governing permissions and
-///limitations under the License.
-///
-///*)
+﻿(*
+
+Copyright 1998 University of Cambridge
+Copyright 1998-2007 John Harrison
+Copyright 2013 Jack Pappas, Eric Taucher
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*)
 /// Definition of integers.
 module NHol.int
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
-
 open NHol
 open lib
 open fusion
@@ -60,10 +59,10 @@ open realarith
 open real
 open calc_rat
 
-///(* ------------------------------------------------------------------------- *)
-///(* Representing predicate. The "is_int" variant is useful for backwards      *)
-///(* compatibility with former definition of "is_int" constant, now removed.   *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Representing predicate. The "is_int" variant is useful for backwards      *)
+(* compatibility with former definition of "is_int" constant, now removed.   *)
+(* ------------------------------------------------------------------------- *)
 let integer = new_definition(parse_term "integer(x) <=> ?n. abs(x) = &n")
 
 let is_int = 
@@ -74,9 +73,9 @@ let is_int =
          |> THEN <| ABS_TAC
          |> THEN <| REAL_ARITH_TAC)
 
-///(* ------------------------------------------------------------------------- *)
-///(* Type of integers.                                                         *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Type of integers.                                                         *)
+(* ------------------------------------------------------------------------- *)
 let int_tybij = 
     new_type_definition "int" ("int_of_real", "real_of_int") 
         (prove
@@ -96,9 +95,9 @@ let dest_int_rep =
          REWRITE_TAC [GSYM is_int
                       int_rep; int_abstr])
 
-///(* ------------------------------------------------------------------------- *)
-///(* We want the following too.                                                *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* We want the following too.                                                *)
+(* ------------------------------------------------------------------------- *)
 let int_eq = 
     prove
         ((parse_term "!x y. (x = y) <=> (real_of_int x = real_of_int y)"), 
@@ -123,14 +122,14 @@ do_list overload_interface ["+", (parse_term "int_add:int->int->int")
                             "min", (parse_term "int_min:int->int->int")
                             "&", (parse_term "int_of_num:num->int")]
 
-///(* ------------------------------------------------------------------------- *)
-///(* Set up interface map.                                                     *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Set up interface map.                                                     *)
+(* ------------------------------------------------------------------------- *)
 let prioritize_int() = prioritize_overload(mk_type("int", []))
 
-///(* ------------------------------------------------------------------------- *)
-///(* Definitions and closure derivations of all operations but "inv" and "/".  *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Definitions and closure derivations of all operations but "inv" and "/".  *)
+(* ------------------------------------------------------------------------- *)
 let int_le = 
     new_definition(parse_term "x <= y <=> (real_of_int x) <= (real_of_int y)")
 
@@ -317,9 +316,9 @@ let int_pow_th =
                       |> THEN <| ASM_REWRITE_TAC [GSYM int_mul
                                                   int_mul_th]])
 
-///(* ------------------------------------------------------------------------- *)
-///(* A couple of theorems peculiar to the integers.                            *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* A couple of theorems peculiar to the integers.                            *)
+(* ------------------------------------------------------------------------- *)
 let INT_IMAGE = 
     prove
         ((parse_term "!x. (?n. x = &n) \/ (?n. x = --(&n))"), 
@@ -375,9 +374,9 @@ let INT_GT_DISCRETE =
                       GSYM int_lt]
          |> THEN <| MATCH_ACCEPT_TAC INT_LT_DISCRETE)
 
-///(* ------------------------------------------------------------------------- *)
-///(* Conversions of integer constants to and from OCaml numbers.               *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Conversions of integer constants to and from OCaml numbers.               *)
+(* ------------------------------------------------------------------------- *)
 let is_intconst tm = 
     match tm with
     | Comb(Const("int_of_num", _), n) -> is_numeral n
@@ -404,18 +403,20 @@ let mk_intconst =
         then mk_comb(neg_tm, mk_numconst(minus_num x))
         else mk_numconst x
 
-///(* ------------------------------------------------------------------------- *)
-///(* A simple procedure to lift most universal real theorems to integers.      *)
-///(* For a more complete procedure, give required term to INT_ARITH (below).   *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* A simple procedure to lift most universal real theorems to integers.      *)
+(* For a more complete procedure, give required term to INT_ARITH (below).   *)
+(* ------------------------------------------------------------------------- *)
 let INT_OF_REAL_THM = 
     let dest = (parse_term "real_of_int")
     let real_ty = (parse_type ":real")
     let int_ty = (parse_type ":int")
     let cond_th = 
-      prove((parse_term "real_of_int(if b then x else y) =
-        if b then real_of_int x else real_of_int y"), COND_CASES_TAC
-       |> THEN <| REWRITE_TAC [])
+        prove
+            ((parse_term "real_of_int(if b then x else y) =
+        if b then real_of_int x else real_of_int y"),  
+             COND_CASES_TAC
+             |> THEN <| REWRITE_TAC [])
     let thlist = 
         map GSYM 
             [int_eq; int_le; int_lt; int_ge; int_gt; int_of_num_th; int_neg_th; 
@@ -447,9 +448,9 @@ let INT_OF_REAL_THM =
         else INT_OF_REAL_THM1 th
     INT_OF_REAL_THM
 
-///(* ------------------------------------------------------------------------- *)
-///(* Collect together all the theorems derived automatically.                  *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Collect together all the theorems derived automatically.                  *)
+(* ------------------------------------------------------------------------- *)
 let INT_ABS_0 = INT_OF_REAL_THM REAL_ABS_0
 
 let INT_ABS_1 = INT_OF_REAL_THM REAL_ABS_1
@@ -688,9 +689,9 @@ let INT_SUB_SUB = INT_OF_REAL_THM REAL_SUB_SUB
 let INT_SUB_SUB2 = INT_OF_REAL_THM REAL_SUB_SUB2
 let INT_SUB_TRIANGLE = INT_OF_REAL_THM REAL_SUB_TRIANGLE
 
-///(* ------------------------------------------------------------------------- *)
-///(* More useful "image" theorems.                                             *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* More useful "image" theorems.                                             *)
+(* ------------------------------------------------------------------------- *)
 let INT_FORALL_POS = 
     prove
         ((parse_term "!P. (!n. P(&n)) <=> (!i:int. &0 <= i ==> P(i))"), 
@@ -732,9 +733,9 @@ let INT_EXISTS_ABS =
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; INT_FORALL_ABS]
          |> THEN <| MESON_TAC [])
 
-///(* ------------------------------------------------------------------------- *)
-///(* Sometimes handy in number-theoretic applications.                         *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Sometimes handy in number-theoretic applications.                         *)
+(* ------------------------------------------------------------------------- *)
 let INT_ABS_MUL_1 = 
     prove
         ((parse_term 
@@ -749,9 +750,10 @@ let INT_ABS_MUL_1 =
                                  INT_OF_NUM_MUL; INT_OF_NUM_EQ; MULT_EQ_1])
 
 let INT_WOP = 
-  prove((parse_term "(?x. &0 <= x /\ P x) <=>
+    prove((parse_term "(?x. &0 <= x /\ P x) <=>
     (?x. &0 <= x /\ P x /\ !y. &0 <= y /\ P y ==> x <= y)"),
-   ONCE_REWRITE_TAC  [MESON [] (parse_term "(?x. P x /\ Q x) <=> ~(!x. P x ==> ~Q x)")]
+   ONCE_REWRITE_TAC 
+       [MESON [] (parse_term "(?x. P x /\ Q x) <=> ~(!x. P x ==> ~Q x)")]
    |> THEN <| REWRITE_TAC [IMP_CONJ
                            GSYM INT_FORALL_POS
                            INT_OF_NUM_LE]
@@ -760,9 +762,9 @@ let INT_WOP =
    |> THEN <| REWRITE_TAC [GSYM NOT_LE
                            CONTRAPOS_THM])
 
-///(* ------------------------------------------------------------------------- *)
-///(* A few "pseudo definitions".                                               *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* A few "pseudo definitions".                                               *)
+(* ------------------------------------------------------------------------- *)
 let INT_POW = 
     prove
         ((parse_term "(x pow 0 = &1) /\
@@ -790,9 +792,9 @@ let INT_LT =
         ((parse_term "!x y. x < y <=> ~(y <= x)"), 
          REWRITE_TAC [int_lt; int_le; real_lt])
 
-///(* ------------------------------------------------------------------------- *)
-///(* Now a decision procedure for the integers.                                *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Now a decision procedure for the integers.                                *)
+(* ------------------------------------------------------------------------- *)
 let INT_ARITH = 
     let atom_CONV = 
         let pth = 
@@ -836,17 +838,17 @@ let ASM_INT_ARITH_TAC = REPEAT
                                  (MP_TAC << check(not << is_forall << concl)))
                         |> THEN <| INT_ARITH_TAC
 
-///(* ------------------------------------------------------------------------- *)
-///(* Some pseudo-definitions.                                                  *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Some pseudo-definitions.                                                  *)
+(* ------------------------------------------------------------------------- *)
 let INT_SUB = INT_ARITH(parse_term "!x y. x - y = x + --y")
 
 let INT_MAX = INT_ARITH(parse_term "!x y. max x y = if x <= y then y else x")
 let INT_MIN = INT_ARITH(parse_term "!x y. min x y = if x <= y then x else y")
 
-///(* ------------------------------------------------------------------------- *)
-///(* Archimedian property for the integers.                                    *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Archimedian property for the integers.                                    *)
+(* ------------------------------------------------------------------------- *)
 let INT_ARCH = 
     prove
         ((parse_term "!x d. ~(d = &0) ==> ?c. x < c * d"), 
@@ -884,14 +886,14 @@ let INT_ARCH =
                 [INT_ARITH(parse_term "--x * y = x * --y")
                  INT_ARITH(parse_term "~(d = &0) ==> &0 < d \/ &0 < --d")])
 
-///(* ------------------------------------------------------------------------- *)
-///(* Definitions of ("Euclidean") integer division and remainder.              *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Definitions of ("Euclidean") integer division and remainder.              *)
+(* ------------------------------------------------------------------------- *)
 let INT_DIVMOD_EXIST_0 = 
     prove((parse_term "!m n:int. ?q r. if n = &0 then q = &0 /\ r = m
                     else &0 <= r /\ r < abs(n) /\ m = q * n + r"),
                    REPEAT GEN_TAC
-                   |> THEN <| ASM_CASES_TAC(parse_term "n = &0")
+                   |> THEN <| ASM_CASES_TAC (parse_term "n = &0")
                    |> THEN 
                    <| ASM_REWRITE_TAC [RIGHT_EXISTS_AND_THM; EXISTS_REFL]
                    |> THEN <| GEN_REWRITE_TAC I [SWAP_EXISTS_THM]
@@ -940,15 +942,14 @@ let INT_DIVISION_0 =
     new_specification ["div"
                        "rem"] (REWRITE_RULE [SKOLEM_THM] INT_DIVMOD_EXIST_0)
 
-let INT_DIVISION = 
-  prove((parse_term "!m n. ~(n = &0)
+let INT_DIVISION = prove((parse_term "!m n. ~(n = &0)
            ==> m = m div n * n + m rem n /\ &0 <= m rem n /\ m rem n < abs n"),
-           MESON_TAC [INT_DIVISION_0])
+          MESON_TAC [INT_DIVISION_0])
 
-///(* ------------------------------------------------------------------------- *)
-///(* Arithmetic operations on integers. Essentially a clone of stuff for reals *)
-///(* in the file "calc_int.ml", except for div and rem, which are more like N. *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Arithmetic operations on integers. Essentially a clone of stuff for reals *)
+(* in the file "calc_int.ml", except for div and rem, which are more like N. *)
+(* ------------------------------------------------------------------------- *)
 let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV = 
     let tth = TAUT(parse_term "(F /\ F <=> F) /\ (F /\ T <=> F) /\
           (T /\ F <=> F) /\ (T /\ T <=> T)")
@@ -977,7 +978,12 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
         (CONJUNCTS << prove)((parse_term "(&m < --(&n) <=> F) /\
       (&m < &n <=> m < n) /\
       (--(&m) < --(&n) <=> n < m) /\
-      (--(&m) < &n <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC [pth_le1; pth_le2a; pth_le2b; pth_le3; GSYM NOT_LE; INT_LT]
+      (--(&m) < &n <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC [pth_le1;
+                                                              pth_le2a;
+                                                              pth_le2b;
+                                                              pth_le3;
+                                                              GSYM NOT_LE;
+                                                              INT_LT]
                                                  |> THEN <| CONV_TAC TAUT)
     let INT_LT_CONV = 
         FIRST_CONV [GEN_REWRITE_CONV I [pth_lt1]
@@ -985,11 +991,12 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
                     |> THENC <| NUM_LT_CONV
                     GEN_REWRITE_CONV I [pth_lt3]
                     |> THENC <| NUM2_NE_CONV]
-    let [pth_ge1; pth_ge2a; pth_ge2b; pth_ge3] = 
-      (CONJUNCTS << prove)((parse_term "(&m >= --(&n) <=> T) /\
+    let [pth_ge1; pth_ge2a; pth_ge2b; pth_ge3] = (CONJUNCTS << prove)((parse_term "(&m >= --(&n) <=> T) /\
       (&m >= &n <=> n <= m) /\
       (--(&m) >= --(&n) <=> m <= n) /\
-      (--(&m) >= &n <=> (m = 0) /\ (n = 0))"), REWRITE_TAC [pth_le1; pth_le2a; pth_le2b; pth_le3; INT_GE]
+      (--(&m) >= &n <=> (m = 0) /\ (n = 0))"), REWRITE_TAC 
+                                                   [pth_le1; pth_le2a; pth_le2b; 
+                                                    pth_le3; INT_GE]
                                                |> THEN <| CONV_TAC TAUT)
     let INT_GE_CONV = 
         FIRST_CONV [GEN_REWRITE_CONV I [pth_ge1]
@@ -997,11 +1004,12 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
                     |> THENC <| NUM_LE_CONV
                     GEN_REWRITE_CONV I [pth_ge3]
                     |> THENC <| NUM2_EQ_CONV]
-    let [pth_gt1; pth_gt2a; pth_gt2b; pth_gt3] = 
-      (CONJUNCTS << prove)((parse_term "(--(&m) > &n <=> F) /\
+    let [pth_gt1; pth_gt2a; pth_gt2b; pth_gt3] = (CONJUNCTS << prove)((parse_term "(--(&m) > &n <=> F) /\
       (&m > &n <=> n < m) /\
       (--(&m) > --(&n) <=> m < n) /\
-      (&m > --(&n) <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC [pth_lt1; pth_lt2a; pth_lt2b; pth_lt3; INT_GT]
+      (&m > --(&n) <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC 
+                                                     [pth_lt1; pth_lt2a; 
+                                                      pth_lt2b; pth_lt3; INT_GT]
                                                  |> THEN <| CONV_TAC TAUT)
     let INT_GT_CONV = 
         FIRST_CONV [GEN_REWRITE_CONV I [pth_gt1]
@@ -1013,7 +1021,8 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
         (CONJUNCTS << prove)((parse_term "((&m = &n) <=> (m = n)) /\
       ((--(&m) = --(&n)) <=> (m = n)) /\
       ((--(&m) = &n) <=> (m = 0) /\ (n = 0)) /\
-      ((&m = --(&n)) <=> (m = 0) /\ (n = 0))"), REWRITE_TAC [GSYM INT_LE_ANTISYM; GSYM LE_ANTISYM]
+      ((&m = --(&n)) <=> (m = 0) /\ (n = 0))"), REWRITE_TAC [GSYM INT_LE_ANTISYM;
+                                                             GSYM LE_ANTISYM]
                                                 |> THEN 
                                                 <| REWRITE_TAC 
                                                        [pth_le1; pth_le2a; 
@@ -1066,7 +1075,8 @@ let INT_ADD_CONV =
       (--(&(m + n)) + &m = --(&n)) /\
       (&(m + n) + --(&m) = &n) /\
       (&m + --(&(m + n)) = --(&n)) /\
-      (&m + &n = &(m + n))"), REWRITE_TAC [GSYM INT_OF_NUM_ADD; INT_NEG_ADD]
+      (&m + &n = &(m + n))"), REWRITE_TAC [GSYM INT_OF_NUM_ADD;
+                                           INT_NEG_ADD]
                               |> THEN 
                               <| REWRITE_TAC 
                                      [INT_ADD_ASSOC; INT_ADD_LINV; INT_ADD_LID]
@@ -1191,9 +1201,9 @@ let INT_MIN_CONV =
     |> THENC <| RATOR_CONV(RATOR_CONV(RAND_CONV INT_LE_CONV))
     |> THENC <| GEN_REWRITE_CONV I [COND_CLAUSES]
 
-///(* ------------------------------------------------------------------------- *)
-///(* Instantiate the normalizer.                                               *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Instantiate the normalizer.                                               *)
+(* ------------------------------------------------------------------------- *)
 let INT_POLY_CONV = 
     let sth = prove((parse_term "(!x y z. x + (y + z) = (x + y) + z) /\
       (!x y. x + y = y + x) /\
@@ -1224,119 +1234,149 @@ make_overloadable "coprime" (parse_type ":A#A->bool")
 make_overloadable "gcd" (parse_type ":A#A->A")
 parse_as_infix("==", (10, "right"))
 
-///(* ------------------------------------------------------------------------- *)
-///(* Instantiate the ring and ideal procedures.                                *)
-///(* ------------------------------------------------------------------------- *)
-/// //let INT_RING,int_ideal_cofactors =
-/// //  let INT_INTEGRAL = 
-/// //   prove
-/// //    ((parse_term "(!x. &0 * x = &0) /\
-/// //      (!x y z. (x + y = x + z) <=> (y = z)) /\
-/// //      (!w x y z. (w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))"),
-/// //     REWRITE_TAC[MULT_CLAUSES; EQ_ADD_LCANCEL] |>THEN<|
-/// //     REWRITE_TAC[GSYM INT_OF_NUM_EQ;
-/// //                 GSYM INT_OF_NUM_ADD; GSYM INT_OF_NUM_MUL] |>THEN<|
-/// //     ONCE_REWRITE_TAC[GSYM INT_SUB_0] |>THEN<|
-/// //     REWRITE_TAC[GSYM INT_ENTIRE] |>THEN<| INT_ARITH_TAC)
-/// //  let int_ty = (parse_type ":int") in
-/// //  let pure,ideal =
-/// //    RING_AND_IDEAL_CONV
-/// //      (dest_intconst,mk_intconst,INT_EQ_CONV,
-/// //       (parse_term "(--):int->int"),(parse_term "(+):int->int->int"),(parse_term "(-):int->int->int"),
-/// //       genvar bool_ty,(parse_term "///(*):int->int->int"),genvar bool_ty,
-/// //       (parse_term "(pow):int->num->int"),
-/// //       INT_INTEGRAL,TRUTH,INT_POLY_CONV) in
-/// //  pure,
-/// //  (fun tms tm -> if forall (fun t -> type_of t = int_ty) (tm::tms)
-/// //                 then ideal tms tm
-/// //                 else failwith "int_ideal_cofactors: not all terms have type :int");;
-///(* ------------------------------------------------------------------------- *)
-///(* Arithmetic operations also on div and rem, hence the whole lot.           *)
-///(* ------------------------------------------------------------------------- *)
-/// //let INT_DIVMOD_UNIQ = 
-/// // prove
-/// //  ((parse_term "!m n q r:int. m = q * n + r /\ &0 <= r /\ r < abs n
-/// //                  ==> m div n = q /\ m rem n = r"),
-/// //   REPEAT GEN_TAC |>THEN<| STRIP_TAC |>THEN<|
-/// //   SUBGOAL_THEN (parse_term "~(n = &0)") MP_TAC |>THENL<| [ASM_INT_ARITH_TAC; ALL_TAC] |>THEN<|
-/// //   DISCH_THEN(STRIP_ASSUME_TAC << SPEC (parse_term "m:int") << MATCH_MP INT_DIVISION) |>THEN<|
-/// //   ASM_CASES_TAC (parse_term "m div n = q") |>THENL<|
-/// //   [REPEAT(POP_ASSUM MP_TAC) |>THEN<| CONV_TAC INT_RING; ALL_TAC] |>THEN<|
-/// //   SUBGOAL_THEN (parse_term "abs(m rem n - r) < abs n") MP_TAC |>THENL<|
-/// //   [ASM_INT_ARITH_TAC; MATCH_MP_TAC(TAUT (parse_term "~p ==> p ==> q"))] |>THEN<|
-/// //   MATCH_MP_TAC(INT_ARITH
-/// //    (parse_term "&1 * abs n <= abs(q - m div n) * abs n /\
-/// //     abs(m rem n - r) = abs((q - m div n) * n)
-/// //     ==> ~(abs(m rem n - r) < abs n)")) |>THEN<|
-/// //   CONJ_TAC |>THENL<|
-/// //    [MATCH_MP_TAC INT_LE_RMUL |>THEN<| ASM_INT_ARITH_TAC;
-/// //     AP_TERM_TAC |>THEN<| REPEAT(POP_ASSUM MP_TAC) |>THEN<| CONV_TAC INT_RING]);;
-/// //let INT_DIV_CONV,INT_REM_CONV =
-/// //  let pth = 
-/// //   prove
-/// //    ((parse_term "q * n + r = m ==> &0 <= r ==> r < abs n ==> m div n = q /\ m rem n = r"),
-/// //     MESON_TAC[INT_DIVMOD_UNIQ])
-/// //  let m = (parse_term "m:int") 
-/// //  let n = (parse_term "n:int") 
-/// //  let q = (parse_term "q:int") 
-/// //  let r = (parse_term "r:int")
-/// //  let dtm = (parse_term "(div)") 
-/// //  let mtm = (parse_term "(rem)") in
-/// //  let emod_num x y =
-/// //    let r = mod_num x y in
-/// //    if r </ Int 0 then r +/ abs_num y else r in
-/// //  let equo_num x y = quo_num (x -/ emod_num x y) y in
-/// //  let INT_DIVMOD_CONV x y =
-/// //    let k = equo_num x y
-/// //    let l = emod_num x y in
-/// //    let th0 = INST [mk_intconst x,m; mk_intconst y,n;
-/// //                    mk_intconst k,q; mk_intconst l,r] pth in
-/// //    let tm0 = lhand(lhand(concl th0)) in
-/// //    let th1 = (LAND_CONV INT_MUL_CONV |>THENC<| INT_ADD_CONV) tm0 in
-/// //    let th2 = MP th0 th1 in
-/// //    let tm2 = lhand(concl th2) in
-/// //    let th3 = MP th2 (EQT_ELIM(INT_LE_CONV tm2)) in
-/// //    let tm3 = lhand(concl th3) in
-/// //    MP th3 (EQT_ELIM((RAND_CONV INT_ABS_CONV |>THENC<| INT_LT_CONV) tm3)) in
-/// //  (fun tm -> try let l,r = dest_binop dtm tm in
-/// //                 CONJUNCT1(INT_DIVMOD_CONV (dest_intconst l) (dest_intconst r))
-/// //             with Failure _ -> failwith "INT_DIV_CONV"),
-/// //  (fun tm -> try let l,r = dest_binop mtm tm in
-/// //                 CONJUNCT2(INT_DIVMOD_CONV (dest_intconst l) (dest_intconst r))
-/// //             with Failure _ -> failwith "INT_MOD_CONV");;
-/// //let INT_RED_CONV =
-/// //  let gconv_net = 
-/// //   itlist (uncurry net_of_conv)
-/// //     [(parse_term "x <= y"),INT_LE_CONV;
-/// //      (parse_term "x < y"),INT_LT_CONV;
-/// //      (parse_term "x >= y"),INT_GE_CONV;
-/// //      (parse_term "x > y"),INT_GT_CONV;
-/// //      (parse_term "x:int = y"),INT_EQ_CONV;
-/// //      (parse_term "--x"),CHANGED_CONV INT_NEG_CONV;
-/// //      (parse_term "abs(x)"),INT_ABS_CONV;
-/// //      (parse_term "x + y"),INT_ADD_CONV;
-/// //      (parse_term "x - y"),INT_SUB_CONV;
-/// //      (parse_term "x * y"),INT_MUL_CONV;
-/// //      (parse_term "x div y"),INT_DIV_CONV;
-/// //      (parse_term "x rem y"),INT_REM_CONV;
-/// //      (parse_term "x pow n"),INT_POW_CONV;
-/// //      (parse_term "max x y"),INT_MAX_CONV;
-/// //      (parse_term "min x y"),INT_MIN_CONV]
-/// //     (basic_net()) in
-/// //   REWRITES_CONV gconv_net;;
-/// //
-/// //let INT_REDUCE_CONV = DEPTH_CONV INT_RED_CONV;;
-///(* ------------------------------------------------------------------------- *)
-///(* Set up overloading so we can use same symbols for N, Z and even R.        *)
-///(* ------------------------------------------------------------------------- *)
-///(* ------------------------------------------------------------------------- *)
-///(* The general notion of congruence: just syntax for equivalence relation.   *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Instantiate the ring and ideal procedures.                                *)
+(* ------------------------------------------------------------------------- *)
+let INT_RING, int_ideal_cofactors = 
+    let INT_INTEGRAL = 
+        prove
+            ((parse_term "(!x. &0 * x = &0) /\
+       (!x y z. (x + y = x + z) <=> (y = z)) /\
+       (!w x y z. (w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))"), 
+             REWRITE_TAC [MULT_CLAUSES; EQ_ADD_LCANCEL]
+             |> THEN <| REWRITE_TAC [GSYM INT_OF_NUM_EQ
+                                     GSYM INT_OF_NUM_ADD
+                                     GSYM INT_OF_NUM_MUL]
+             |> THEN <| ONCE_REWRITE_TAC [GSYM INT_SUB_0]
+             |> THEN <| REWRITE_TAC [GSYM INT_ENTIRE]
+             |> THEN <| INT_ARITH_TAC)
+    let int_ty = (parse_type ":int")
+    let pure, ideal = 
+        RING_AND_IDEAL_CONV
+            (dest_intconst, mk_intconst, INT_EQ_CONV, 
+             (parse_term "(--):int->int"), (parse_term "(+):int->int->int"), 
+             (parse_term "(-):int->int->int"), genvar bool_ty, 
+             (parse_term "(*):int->int->int"), genvar bool_ty, 
+             (parse_term "(pow):int->num->int"), INT_INTEGRAL, TRUTH, 
+             INT_POLY_CONV)
+    pure, (fun tms tm -> 
+        if forall (fun t -> type_of t = int_ty) (tm :: tms)
+        then ideal tms tm
+        else failwith "int_ideal_cofactors: not all terms have type :int")
+
+(* ------------------------------------------------------------------------- *)
+(* Arithmetic operations also on div and rem, hence the whole lot.           *)
+(* ------------------------------------------------------------------------- *)
+let INT_DIVMOD_UNIQ = 
+    prove((parse_term "!m n q r:int. m = q * n + r /\ &0 <= r /\ r < abs n
+                   ==> m div n = q /\ m rem n = r"),
+                  REPEAT GEN_TAC
+                  |> THEN <| STRIP_TAC
+                  |> THEN <| SUBGOAL_THEN (parse_term "~(n = &0)") MP_TAC
+                  |> THENL <| [ASM_INT_ARITH_TAC; ALL_TAC]
+                  |> THEN 
+                  <| DISCH_THEN
+                         (STRIP_ASSUME_TAC << SPEC(parse_term "m:int") 
+                          << MATCH_MP INT_DIVISION)
+                  |> THEN <| ASM_CASES_TAC(parse_term "m div n = q")
+                  |> THENL <| [REPEAT(POP_ASSUM MP_TAC)
+                               |> THEN <| CONV_TAC INT_RING
+                               ALL_TAC]
+                  |> THEN 
+                  <| SUBGOAL_THEN (parse_term "abs(m rem n - r) < abs n") MP_TAC
+                  |> THENL <| [ASM_INT_ARITH_TAC
+                               MATCH_MP_TAC(TAUT(parse_term "~p ==> p ==> q"))]
+                  |> THEN <| MATCH_MP_TAC(INT_ARITH(parse_term "&1 * abs n <= abs(q - m div n) * abs n /\
+      abs(m rem n - r) = abs((q - m div n) * n)
+      ==> ~(abs(m rem n - r) < abs n)"))
+                  |> THEN <| CONJ_TAC
+                  |> THENL <| [MATCH_MP_TAC INT_LE_RMUL
+                               |> THEN <| ASM_INT_ARITH_TAC
+                               AP_TERM_TAC
+                               |> THEN <| REPEAT(POP_ASSUM MP_TAC)
+                               |> THEN <| CONV_TAC INT_RING])
+
+let INT_DIV_CONV, INT_REM_CONV = 
+    let pth = 
+        prove
+            ((parse_term 
+                  "q * n + r = m ==> &0 <= r ==> r < abs n ==> m div n = q /\ m rem n = r"), 
+             MESON_TAC [INT_DIVMOD_UNIQ])
+    let m = (parse_term "m:int")
+    let n = (parse_term "n:int")
+    let q = (parse_term "q:int")
+    let r = (parse_term "r:int")
+    let dtm = (parse_term "(div)")
+    let mtm = (parse_term "(rem)")
+    let emod_num x y = 
+        let r = mod_num x y
+        if r </ Int 0
+        then r +/ abs_num y
+        else r
+    let equo_num x y = quo_num (x -/ emod_num x y) y
+    let INT_DIVMOD_CONV x y = 
+        let k = equo_num x y
+        let l = emod_num x y
+        let th0 = 
+            INST [mk_intconst x, m
+                  mk_intconst y, n
+                  mk_intconst k, q
+                  mk_intconst l, r] pth
+        let tm0 = lhand(lhand(concl th0))
+        let th1 = (LAND_CONV INT_MUL_CONV
+                   |> THENC <| INT_ADD_CONV) tm0
+        let th2 = MP th0 th1
+        let tm2 = lhand(concl th2)
+        let th3 = MP th2 (EQT_ELIM(INT_LE_CONV tm2))
+        let tm3 = lhand(concl th3)
+        MP th3 (EQT_ELIM((RAND_CONV INT_ABS_CONV
+                          |> THENC <| INT_LT_CONV) tm3))
+    (fun tm -> 
+        try 
+            let l, r = dest_binop dtm tm
+            CONJUNCT1(INT_DIVMOD_CONV (dest_intconst l) (dest_intconst r))
+        with
+        | Failure _ -> failwith "INT_DIV_CONV"), (fun tm -> 
+        try 
+            let l, r = dest_binop mtm tm
+            CONJUNCT2(INT_DIVMOD_CONV (dest_intconst l) (dest_intconst r))
+        with
+        | Failure _ -> failwith "INT_MOD_CONV")
+
+let INT_RED_CONV = 
+    let gconv_net = 
+        itlist (uncurry net_of_conv) [(parse_term "x <= y"), INT_LE_CONV
+                                      (parse_term "x < y"), INT_LT_CONV
+                                      (parse_term "x >= y"), INT_GE_CONV
+                                      (parse_term "x > y"), INT_GT_CONV
+                                      (parse_term "x:int = y"), INT_EQ_CONV
+                                      (parse_term "--x"), 
+                                      CHANGED_CONV INT_NEG_CONV
+                                      (parse_term "abs(x)"), INT_ABS_CONV
+                                      (parse_term "x + y"), INT_ADD_CONV
+                                      (parse_term "x - y"), INT_SUB_CONV
+                                      (parse_term "x * y"), INT_MUL_CONV
+                                      (parse_term "x div y"), INT_DIV_CONV
+                                      (parse_term "x rem y"), INT_REM_CONV
+                                      (parse_term "x pow n"), INT_POW_CONV
+                                      (parse_term "max x y"), INT_MAX_CONV
+                                      (parse_term "min x y"), INT_MIN_CONV] 
+            (basic_net())
+    REWRITES_CONV gconv_net
+
+let INT_REDUCE_CONV = DEPTH_CONV INT_RED_CONV
+
+(* ------------------------------------------------------------------------- *)
+(* Set up overloading so we can use same symbols for N, Z and even R.        *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* The general notion of congruence: just syntax for equivalence relation.   *)
+(* ------------------------------------------------------------------------- *)
 let cong = new_definition(parse_term "(x == y) (rel:A->A->bool) <=> rel x y")
 
-///(* ------------------------------------------------------------------------- *)
-///(* Get real moduli defined and out of the way first.                         *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Get real moduli defined and out of the way first.                         *)
+(* ------------------------------------------------------------------------- *)
 let real_mod = 
     new_definition
         (parse_term "real_mod n (x:real) y = ?q. integer q /\ x - y = q * n")
@@ -1345,17 +1385,17 @@ overload_interface("mod", (parse_term "real_mod"))
 parse_as_infix("divides", (12, "right"))
 overload_interface("divides", (parse_term "int_divides:int->int->bool"))
 
-///(* ------------------------------------------------------------------------- *)
-///(* Integer divisibility.                                                     *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Integer divisibility.                                                     *)
+(* ------------------------------------------------------------------------- *)
 let int_divides = new_definition(parse_term "a divides b <=> ?x. b = a * x")
 
 parse_as_prefix "mod"
 overload_interface("mod", (parse_term "int_mod:int->int->int->bool"))
 
-///(* ------------------------------------------------------------------------- *)
-///(* Integer congruences.                                                      *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Integer congruences.                                                      *)
+(* ------------------------------------------------------------------------- *)
 let int_mod = new_definition(parse_term "(mod n) x y = n divides (x - y)")
 
 let int_congruent = 
@@ -1365,121 +1405,152 @@ let int_congruent =
 
 overload_interface("coprime", (parse_term "int_coprime:int#int->bool"))
 
-///(* ------------------------------------------------------------------------- *)
-///(* Integer coprimality.                                                      *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Integer coprimality.                                                      *)
+(* ------------------------------------------------------------------------- *)
 let int_coprime = 
     new_definition(parse_term "!a b. coprime(a,b) <=> ?x y. a * x + b * y = &1")
 
-///(* ------------------------------------------------------------------------- *)
-///(* A tactic for simple divisibility/congruence/coprimality goals.            *)
-///(* ------------------------------------------------------------------------- *)
-/// //let INTEGER_TAC =
-/// //  let int_ty = (parse_type ":int") in
-/// //  let INT_POLYEQ_CONV =
-/// //    GEN_REWRITE_CONV I [GSYM INT_SUB_0] |>THENC<| LAND_CONV INT_POLY_CONV in
-/// //  let ISOLATE_VARIABLE =
-/// //    let pth = INT_ARITH (parse_term "!a x. a = &0 <=> x = x + a") in
-/// //    let is_defined v t =
-/// //      let mons = striplist(dest_binary "int_add") t in
-/// //      mem v mons & forall (fun m -> v = m or not(free_in v m)) mons in
-/// //    fun vars tm ->
-/// //      let th = INT_POLYEQ_CONV tm
-/// //      let th' = (SYM_CONV |>THENC<| INT_POLYEQ_CONV) tm in
-/// //      let v,th1 =
-/// //          try find (fun v -> is_defined v (lhand(rand(concl th)))) vars,th'
-/// //          with Failure _ ->
-/// //              find (fun v -> is_defined v (lhand(rand(concl th')))) vars,th in
-/// //      let th2 = TRANS th1 (SPECL [lhs(rand(concl th1)); v] pth) in
-/// //      CONV_RULE(RAND_CONV(RAND_CONV INT_POLY_CONV)) th2 in
-/// //  let UNWIND_POLYS_CONV tm =
-/// //    let vars,bod = strip_exists tm in
-/// //    let cjs = conjuncts bod in
-/// //    let th1 = tryfind (ISOLATE_VARIABLE vars) cjs in
-/// //    let eq = lhand(concl th1) in
-/// //    let bod' = list_mk_conj(eq::(subtract cjs [eq])) in
-/// //    let th2 = CONJ_ACI_RULE(mk_eq(bod,bod')) in
-/// //    let th3 = TRANS th2 (MK_CONJ th1 (REFL(rand(rand(concl th2))))) in
-/// //    let v = lhs(lhand(rand(concl th3))) in
-/// //    let vars' = (subtract vars [v]) @ [v] in
-/// //    let th4 = CONV_RULE(RAND_CONV(REWR_CONV UNWIND_THM2)) (MK_EXISTS v th3) in
-/// //    let IMP_RULE v v' =
-/// //     DISCH_ALL(itlist SIMPLE_CHOOSE v (itlist SIMPLE_EXISTS v' (ASSUME bod))) in
-/// //    let th5 = IMP_ANTISYM_RULE (IMP_RULE vars vars') (IMP_RULE vars' vars) in
-/// //    TRANS th5 (itlist MK_EXISTS (subtract vars [v]) th4) in
-/// //  let zero_tm = (parse_term "&0") 
-/// //  let one_tm = (parse_term "&1") in
-/// //  let isolate_monomials =
-/// //    let mul_tm = (parse_term "(int_mul)") 
-/// //    let add_tm = (parse_term "(int_add)")
-/// //    let neg_tm = (parse_term "(int_neg)") in
-/// //    let dest_mul = dest_binop mul_tm
-/// //    let dest_add = dest_binop add_tm
-/// //    let mk_mul = mk_binop mul_tm
-/// //    let mk_add = mk_binop add_tm in
-/// //    let scrub_var v m =
-/// //      let ps = striplist dest_mul m in
-/// //      let ps' = subtract ps [v] in
-/// //      if ps' = [] then one_tm else end_itlist mk_mul ps' in
-/// //    let find_multipliers v mons =
-/// //      let mons1 = filter (fun m -> free_in v m) mons in
-/// //      let mons2 = map (scrub_var v) mons1 in
-/// //      if mons2 = [] then zero_tm else end_itlist mk_add mons2 in
-/// //    fun vars tm ->
-/// //      let cmons,vmons =
-/// //         partition (fun m -> intersect (frees m) vars = [])
-/// //                   (striplist dest_add tm) in
-/// //      let cofactors = map (fun v -> find_multipliers v vmons) vars
-/// //      let cnc = if cmons = [] then zero_tm
-/// //                else mk_comb(neg_tm,end_itlist mk_add cmons) in
-/// //      cofactors,cnc in
-/// //  let isolate_variables evs ps eq =
-/// //    let vars = filter (fun v -> vfree_in v eq) evs in
-/// //    let qs,p = isolate_monomials vars eq in
-/// //    let rs = filter (fun t -> type_of t = int_ty) (qs @ ps) in
-/// //    let rs = int_ideal_cofactors rs p in
-/// //    eq,zip (fst(chop_list(length qs) rs)) vars in
-/// //  let subst_in_poly i p = rhs(concl(INT_POLY_CONV (vsubst i p))) in
-/// //  let rec solve_idealism evs ps eqs =
-/// //    if evs = [] then [] else
-/// //    let eq,cfs = tryfind (isolate_variables evs ps) eqs in
-/// //    let evs' = subtract evs (map snd cfs)
-/// //    let eqs' = map (subst_in_poly cfs) (subtract eqs [eq]) in
-/// //    cfs @ solve_idealism evs' ps eqs' in
-/// //  let rec GENVAR_EXISTS_CONV tm =
-/// //    if not(is_exists tm) then REFL tm else
-/// //    let ev,bod = dest_exists tm in
-/// //    let gv = genvar(type_of ev) in
-/// //    (GEN_ALPHA_CONV gv |>THENC<| BINDER_CONV GENVAR_EXISTS_CONV) tm in
-/// //  let EXISTS_POLY_TAC (asl,w as gl) =
-/// //    let evs,bod = strip_exists w
-/// //    let ps = mapfilter (check (fun t -> type_of t = int_ty) <<
-/// //                        lhs << concl << snd) asl in
-/// //    let cfs = solve_idealism evs ps (map lhs (conjuncts bod)) in
-/// //    (MAP_EVERY EXISTS_TAC(map (fun v -> rev_assocd v cfs zero_tm) evs) |>THEN<|
-/// //     REPEAT(POP_ASSUM MP_TAC) |>THEN<| CONV_TAC INT_RING) gl in
-/// //  let SCRUB_NEQ_TAC = MATCH_MP_TAC << MATCH_MP (MESON[]
-/// //    (parse_term "~(x = y) ==> x = y \/ p ==> p")) in
-/// //  REWRITE_TAC[int_coprime; int_congruent; int_divides] |>THEN<|
-/// //  REPEAT(STRIP_TAC |>ORELSE<| EQ_TAC) |>THEN<|
-/// //  REWRITE_TAC[LEFT_AND_EXISTS_THM; RIGHT_AND_EXISTS_THM;
-/// //              LEFT_OR_EXISTS_THM; RIGHT_OR_EXISTS_THM] |>THEN<|
-/// //  CONV_TAC(REPEATC UNWIND_POLYS_CONV) |>THEN<|
-/// //  REPEAT(FIRST_X_ASSUM SCRUB_NEQ_TAC) |>THEN<|
-/// //  REWRITE_TAC[LEFT_AND_EXISTS_THM; RIGHT_AND_EXISTS_THM;
-/// //              LEFT_OR_EXISTS_THM; RIGHT_OR_EXISTS_THM] |>THEN<|
-/// //  REPEAT(FIRST_X_ASSUM(MP_TAC << SYM)) |>THEN<|
-/// //  CONV_TAC(ONCE_DEPTH_CONV INT_POLYEQ_CONV) |>THEN<|
-/// //  REWRITE_TAC[GSYM INT_ENTIRE;
-/// //              TAUT (parse_term "a \/ (b /\ c) <=> (a \/ b) /\ (a \/ c)")] |>THEN<|
-/// //  POP_ASSUM_LIST(K ALL_TAC) |>THEN<|
-/// //  REPEAT DISCH_TAC |>THEN<| CONV_TAC GENVAR_EXISTS_CONV |>THEN<|
-/// //  CONV_TAC(ONCE_DEPTH_CONV INT_POLYEQ_CONV) |>THEN<| EXISTS_POLY_TAC;;
-/// //
-/// //let INTEGER_RULE tm = prove(tm,INTEGER_TAC);;
-///(* ------------------------------------------------------------------------- *)
-///(* Existence of integer gcd, and the Bezout identity.                        *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* A tactic for simple divisibility/congruence/coprimality goals.            *)
+(* ------------------------------------------------------------------------- *)
+let INTEGER_TAC = 
+    let int_ty = (parse_type ":int")
+    let INT_POLYEQ_CONV = GEN_REWRITE_CONV I [GSYM INT_SUB_0]
+                          |> THENC <| LAND_CONV INT_POLY_CONV
+    let ISOLATE_VARIABLE = 
+        let pth = INT_ARITH(parse_term "!a x. a = &0 <=> x = x + a")
+        let is_defined v t = 
+            let mons = striplist (dest_binary "int_add") t
+            mem v mons && forall (fun m -> v = m || not(free_in v m)) mons
+        fun vars tm -> 
+            let th = INT_POLYEQ_CONV tm
+            let th' = (SYM_CONV
+                       |> THENC <| INT_POLYEQ_CONV) tm
+            let v, th1 = 
+                try 
+                    find (fun v -> is_defined v (lhand(rand(concl th)))) vars, 
+                    th'
+                with
+                | Failure _ -> 
+                    find (fun v -> is_defined v (lhand(rand(concl th')))) vars, 
+                    th
+            let th2 = 
+                TRANS th1 (SPECL [lhs(rand(concl th1))
+                                  v] pth)
+            CONV_RULE (RAND_CONV(RAND_CONV INT_POLY_CONV)) th2
+    let UNWIND_POLYS_CONV tm = 
+        let vars, bod = strip_exists tm
+        let cjs = conjuncts bod
+        let th1 = tryfind (ISOLATE_VARIABLE vars) cjs
+        let eq = lhand(concl th1)
+        let bod' = list_mk_conj(eq :: (subtract cjs [eq]))
+        let th2 = CONJ_ACI_RULE(mk_eq(bod, bod'))
+        let th3 = TRANS th2 (MK_CONJ th1 (REFL(rand(rand(concl th2)))))
+        let v = lhs(lhand(rand(concl th3)))
+        let vars' = (subtract vars [v]) @ [v]
+        let th4 = CONV_RULE (RAND_CONV(REWR_CONV UNWIND_THM2)) (MK_EXISTS v th3)
+        let IMP_RULE v v' = 
+            DISCH_ALL
+                (itlist SIMPLE_CHOOSE v (itlist SIMPLE_EXISTS v' (ASSUME bod)))
+        let th5 = IMP_ANTISYM_RULE (IMP_RULE vars vars') (IMP_RULE vars' vars)
+        TRANS th5 (itlist MK_EXISTS (subtract vars [v]) th4)
+    let zero_tm = (parse_term "&0")
+    let one_tm = (parse_term "&1")
+    let isolate_monomials = 
+        let mul_tm = (parse_term "(int_mul)")
+        let add_tm = (parse_term "(int_add)")
+        let neg_tm = (parse_term "(int_neg)")
+        let dest_mul = dest_binop mul_tm
+        let dest_add = dest_binop add_tm
+        let mk_mul = mk_binop mul_tm
+        let mk_add = mk_binop add_tm
+        let scrub_var v m = 
+            let ps = striplist dest_mul m
+            let ps' = subtract ps [v]
+            if ps' = []
+            then one_tm
+            else end_itlist mk_mul ps'
+        let find_multipliers v mons = 
+            let mons1 = filter (fun m -> free_in v m) mons
+            let mons2 = map (scrub_var v) mons1
+            if mons2 = []
+            then zero_tm
+            else end_itlist mk_add mons2
+        fun vars tm -> 
+            let cmons, vmons = 
+                partition (fun m -> intersect (frees m) vars = []) 
+                    (striplist dest_add tm)
+            let cofactors = map (fun v -> find_multipliers v vmons) vars
+            let cnc = 
+                if cmons = []
+                then zero_tm
+                else mk_comb(neg_tm, end_itlist mk_add cmons)
+            cofactors, cnc
+    let isolate_variables evs ps eq = 
+        let vars = filter (fun v -> vfree_in v eq) evs
+        let qs, p = isolate_monomials vars eq
+        let rs = filter (fun t -> type_of t = int_ty) (qs @ ps)
+        let rs = int_ideal_cofactors rs p
+        eq, zip (fst(chop_list (length qs) rs)) vars
+    let subst_in_poly i p = rhs(concl(INT_POLY_CONV(vsubst i p)))
+    let rec solve_idealism evs ps eqs = 
+        if evs = []
+        then []
+        else 
+            let eq, cfs = tryfind (isolate_variables evs ps) eqs
+            let evs' = subtract evs (map snd cfs)
+            let eqs' = map (subst_in_poly cfs) (subtract eqs [eq])
+            cfs @ solve_idealism evs' ps eqs'
+    let rec GENVAR_EXISTS_CONV tm = 
+        if not(is_exists tm)
+        then REFL tm
+        else 
+            let ev, bod = dest_exists tm
+            let gv = genvar(type_of ev)
+            (GEN_ALPHA_CONV gv
+             |> THENC <| BINDER_CONV GENVAR_EXISTS_CONV) tm
+    let EXISTS_POLY_TAC(asl, w as gl) = 
+        let evs, bod = strip_exists w
+        let ps = 
+            mapfilter 
+                (check(fun t -> type_of t = int_ty) << lhs << concl << snd) asl
+        let cfs = solve_idealism evs ps (map lhs (conjuncts bod))
+        (MAP_EVERY EXISTS_TAC (map (fun v -> rev_assocd v cfs zero_tm) evs)
+         |> THEN <| REPEAT(POP_ASSUM MP_TAC)
+         |> THEN <| CONV_TAC INT_RING) gl
+    let SCRUB_NEQ_TAC = 
+        MATCH_MP_TAC 
+        << MATCH_MP(MESON [] (parse_term "~(x = y) ==> x = y \/ p ==> p"))
+    REWRITE_TAC [int_coprime; int_congruent; int_divides]
+    |> THEN <| REPEAT(STRIP_TAC
+                      |> ORELSE <| EQ_TAC)
+    |> THEN 
+    <| REWRITE_TAC 
+           [LEFT_AND_EXISTS_THM; RIGHT_AND_EXISTS_THM; LEFT_OR_EXISTS_THM; 
+            RIGHT_OR_EXISTS_THM]
+    |> THEN <| CONV_TAC(REPEATC UNWIND_POLYS_CONV)
+    |> THEN <| REPEAT(FIRST_X_ASSUM SCRUB_NEQ_TAC)
+    |> THEN 
+    <| REWRITE_TAC 
+           [LEFT_AND_EXISTS_THM; RIGHT_AND_EXISTS_THM; LEFT_OR_EXISTS_THM; 
+            RIGHT_OR_EXISTS_THM]
+    |> THEN <| REPEAT(FIRST_X_ASSUM(MP_TAC << SYM))
+    |> THEN <| CONV_TAC(ONCE_DEPTH_CONV INT_POLYEQ_CONV)
+    |> THEN 
+    <| REWRITE_TAC [GSYM INT_ENTIRE
+                    TAUT(parse_term "a \/ (b /\ c) <=> (a \/ b) /\ (a \/ c)")]
+    |> THEN <| POP_ASSUM_LIST(K ALL_TAC)
+    |> THEN <| REPEAT DISCH_TAC
+    |> THEN <| CONV_TAC GENVAR_EXISTS_CONV
+    |> THEN <| CONV_TAC(ONCE_DEPTH_CONV INT_POLYEQ_CONV)
+    |> THEN <| EXISTS_POLY_TAC
+
+let INTEGER_RULE tm = prove(tm, INTEGER_TAC)
+
+(* ------------------------------------------------------------------------- *)
+(* Existence of integer gcd, and the Bezout identity.                        *)
+(* ------------------------------------------------------------------------- *)
 let WF_INT_MEASURE = 
     prove((parse_term "!P m. (!x. &0 <= m(x)) /\ (!x. (!y. m(y) < m(x) ==> P(y)) ==> P(x))
           ==> !x:A. P(x)"),
@@ -1502,12 +1573,12 @@ let WF_INT_MEASURE_2 =
 
 overload_interface("gcd", (parse_term "int_gcd:int#int->int"))
 
-///(* ------------------------------------------------------------------------- *)
-///(* Hence define (positive) gcd function; add elimination to INTEGER_TAC.      *)
-///(* ------------------------------------------------------------------------- *)
-///(* ------------------------------------------------------------------------- *)
-///(* Mapping from nonnegative integers back to natural numbers.                *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Hence define (positive) gcd function; add elimination to INTEGER_TAC.      *)
+(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Mapping from nonnegative integers back to natural numbers.                *)
+(* ------------------------------------------------------------------------- *)
 let num_of_int = new_definition(parse_term "num_of_int x = @n. &n = x")
 
 let NUM_OF_INT_OF_NUM = 
@@ -1534,9 +1605,9 @@ overload_interface("mod", (parse_term "num_mod:num->num->num->bool"))
 overload_interface("coprime", (parse_term "num_coprime:num#num->bool"))
 overload_interface("gcd", (parse_term "num_gcd:num#num->num"))
 
-///(* ------------------------------------------------------------------------- *)
-///(* Now define similar notions over the natural numbers.                      *)
-///(* ------------------------------------------------------------------------- *)
+(* ------------------------------------------------------------------------- *)
+(* Now define similar notions over the natural numbers.                      *)
+(* ------------------------------------------------------------------------- *)
 let num_divides = new_definition(parse_term "a divides b <=> &a divides &b")
 
 let num_mod = new_definition(parse_term "(mod n) x y <=> (mod &n) (&x) (&y)")
