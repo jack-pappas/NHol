@@ -116,7 +116,7 @@ let a tok = some(fun item -> item = tok)
 
 let rec atleast n prs i = 
     (if n <= 0 then many prs
-     else prs .>>. atleast (n - 1) prs |>> (fun (h, t) -> h :: t)) i
+     else (prs .>>. atleast (n - 1) prs) |>> (fun (h, t) -> h :: t)) i
 
 let finished input = 
     if input = [] then 0, input
@@ -255,7 +255,7 @@ let parse_pretype =
     and sumtype i = rightbin prodtype (a(Ident "+")) (btyop "sum") "type" i
     and prodtype i = rightbin carttype (a(Ident "#")) (btyop "prod") "type" i
     and carttype i = leftbin apptype (a(Ident "^")) (btyop "cart") "type" i
-    and apptype i = (atomictypes .>>. (type_constructor |>> (fun x -> [x]) <|> nothing) |>> mk_apptype) i
+    and apptype i = (atomictypes .>>. ((type_constructor |>> (fun x -> [x])) <|> nothing) |>> mk_apptype) i
     and atomictypes i = 
         (((a(Resword "(")) .>>. typelist .>>. (a(Resword ")")) |>> (snd << fst)) <|> (type_atom |>> (fun x -> [x]))) i
     and typelist i = (listof pretype (a(Ident ",")) "type") i
@@ -514,14 +514,19 @@ let parse_preterm =
 (* Type and term parsers.                                                    *)
 (* ------------------------------------------------------------------------- *)
 
-let parse_type s = 
+let parse_type (s : string) =
+    // Skip `:` which is the marker for preprocessing in Hol-light
+    let s = s.[1..]
+    printfn "parsing type %s" s 
     let pty, l = (parse_pretype << lex << explode) s
+    //printfn "pty, l <-- %A, %A" pty l
     if l = [] then type_of_pretype pty
     else failwith "Unparsed input following type"
 
 let parse_term s = 
     printfn "parsing term %s" s
     let ptm, l = (parse_preterm << lex << explode) s
+    //printfn "l <-- %A" l
     if l = [] then (term_of_preterm << (retypecheck [])) ptm
     else failwith "Unparsed input following term"
 
