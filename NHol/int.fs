@@ -752,9 +752,8 @@ let INT_ABS_MUL_1 =
 
 let INT_WOP = 
     prove((parse_term @"(?x. &0 <= x /\ P x) <=>
-    (?x. &0 <= x /\ P x /\ !y. &0 <= y /\ P y ==> x <= y)"),
-   ONCE_REWRITE_TAC 
-       [MESON [] (parse_term @"(?x. P x /\ Q x) <=> ~(!x. P x ==> ~Q x)")]
+    (?x. &0 <= x /\ P x /\ !y. &0 <= y /\ P y ==> x <= y)"), ONCE_REWRITE_TAC 
+       [MESON [] (parse_term "(?x. P x /\ Q x) <=> ~(!x. P x ==> ~Q x)")]
    |> THEN <| REWRITE_TAC [IMP_CONJ
                            GSYM INT_FORALL_POS
                            INT_OF_NUM_LE]
@@ -943,7 +942,8 @@ let INT_DIVISION_0 =
     new_specification ["div"
                        "rem"] (REWRITE_RULE [SKOLEM_THM] INT_DIVMOD_EXIST_0)
 
-let INT_DIVISION = prove((parse_term @"!m n. ~(n = &0)
+let INT_DIVISION = 
+    prove((parse_term @"!m n. ~(n = &0)
            ==> m = m div n * n + m rem n /\ &0 <= m rem n /\ m rem n < abs n"),
           MESON_TAC [INT_DIVISION_0])
 
@@ -992,12 +992,11 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
                     |> THENC <| NUM_LT_CONV
                     GEN_REWRITE_CONV I [pth_lt3]
                     |> THENC <| NUM2_NE_CONV]
-    let [pth_ge1; pth_ge2a; pth_ge2b; pth_ge3] = (CONJUNCTS << prove)((parse_term @"(&m >= --(&n) <=> T) /\
+    let [pth_ge1; pth_ge2a; pth_ge2b; pth_ge3] = 
+      (CONJUNCTS << prove)((parse_term @"(&m >= --(&n) <=> T) /\
       (&m >= &n <=> n <= m) /\
       (--(&m) >= --(&n) <=> m <= n) /\
-      (--(&m) >= &n <=> (m = 0) /\ (n = 0))"), REWRITE_TAC 
-                                                   [pth_le1; pth_le2a; pth_le2b; 
-                                                    pth_le3; INT_GE]
+      (--(&m) >= &n <=> (m = 0) /\ (n = 0))"), REWRITE_TAC [pth_le1; pth_le2a; pth_le2b; pth_le3; INT_GE]
                                                |> THEN <| CONV_TAC TAUT)
     let INT_GE_CONV = 
         FIRST_CONV [GEN_REWRITE_CONV I [pth_ge1]
@@ -1005,12 +1004,11 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
                     |> THENC <| NUM_LE_CONV
                     GEN_REWRITE_CONV I [pth_ge3]
                     |> THENC <| NUM2_EQ_CONV]
-    let [pth_gt1; pth_gt2a; pth_gt2b; pth_gt3] = (CONJUNCTS << prove)((parse_term @"(--(&m) > &n <=> F) /\
+    let [pth_gt1; pth_gt2a; pth_gt2b; pth_gt3] = 
+      (CONJUNCTS << prove)((parse_term @"(--(&m) > &n <=> F) /\
       (&m > &n <=> n < m) /\
       (--(&m) > --(&n) <=> m < n) /\
-      (&m > --(&n) <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC 
-                                                     [pth_lt1; pth_lt2a; 
-                                                      pth_lt2b; pth_lt3; INT_GT]
+      (&m > --(&n) <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC [pth_lt1; pth_lt2a; pth_lt2b; pth_lt3; INT_GT]
                                                  |> THEN <| CONV_TAC TAUT)
     let INT_GT_CONV = 
         FIRST_CONV [GEN_REWRITE_CONV I [pth_gt1]
@@ -1252,7 +1250,7 @@ let INT_RING, int_ideal_cofactors =
              |> THEN <| REWRITE_TAC [GSYM INT_ENTIRE]
              |> THEN <| INT_ARITH_TAC)
     let int_ty = (parse_type @":int")
-    let pure, ideal = 
+    let ``pure``, ideal = 
         RING_AND_IDEAL_CONV
             (dest_intconst, mk_intconst, INT_EQ_CONV, 
              (parse_term @"(--):int->int"), (parse_term @"(+):int->int->int"), 
@@ -1260,7 +1258,7 @@ let INT_RING, int_ideal_cofactors =
              (parse_term @"(*):int->int->int"), genvar bool_ty, 
              (parse_term @"(pow):int->num->int"), INT_INTEGRAL, TRUTH, 
              INT_POLY_CONV)
-    pure, (fun tms tm -> 
+    ``pure``, (fun tms tm -> 
         if forall (fun t -> type_of t = int_ty) (tm :: tms)
         then ideal tms tm
         else failwith "int_ideal_cofactors: not all terms have type :int")
