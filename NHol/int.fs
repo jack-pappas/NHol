@@ -410,8 +410,8 @@ let mk_intconst =
 (* ------------------------------------------------------------------------- *)
 let INT_OF_REAL_THM = 
     let dest = (parse_term @"real_of_int")
-    let real_ty = (parse_type @":real")
-    let int_ty = (parse_type @":int")
+    let real_ty = (parse_type @"real")
+    let int_ty = (parse_type @"int")
     let cond_th = 
         prove
             ((parse_term @"real_of_int(if b then x else y) =
@@ -1227,10 +1227,10 @@ let INT_POLY_CONV =
              SEMIRING_POW_CONV) (<)
     INT_POLY_CONV
 
-//make_overloadable "divides" (parse_type @":A->A->bool")
-//make_overloadable "mod" (parse_type @":A->A->A->bool")
-//make_overloadable "coprime" (parse_type @":A#A->bool")
-//make_overloadable "gcd" (parse_type @":A#A->A")
+//make_overloadable "divides" (parse_type @"A->A->bool")
+//make_overloadable "mod" (parse_type @"A->A->A->bool")
+//make_overloadable "coprime" (parse_type @"A#A->bool")
+//make_overloadable "gcd" (parse_type @"A#A->A")
 //parse_as_infix("==", (10, "right"))
 
 (* ------------------------------------------------------------------------- *)
@@ -1249,7 +1249,7 @@ let INT_RING, int_ideal_cofactors =
              |> THEN <| ONCE_REWRITE_TAC [GSYM INT_SUB_0]
              |> THEN <| REWRITE_TAC [GSYM INT_ENTIRE]
              |> THEN <| INT_ARITH_TAC)
-    let int_ty = (parse_type @":int")
+    let int_ty = (parse_type @"int")
     let ``pure``, ideal = 
         RING_AND_IDEAL_CONV
             (dest_intconst, mk_intconst, INT_EQ_CONV, 
@@ -1369,10 +1369,10 @@ let INT_REDUCE_CONV = DEPTH_CONV INT_RED_CONV
 (* Set up overloading so we can use same symbols for N, Z and even R.        *)
 (* ------------------------------------------------------------------------- *)
 
-make_overloadable "divides" (parse_type @":A->A->bool");;
-make_overloadable "mod" (parse_type @":A->A->A->bool");;
-make_overloadable "coprime" (parse_type @":A#A->bool");;
-make_overloadable "gcd" (parse_type @":A#A->A");;
+make_overloadable "divides" (parse_type @"A->A->bool");;
+make_overloadable "mod" (parse_type @"A->A->A->bool");;
+make_overloadable "coprime" (parse_type @"A#A->bool");;
+make_overloadable "gcd" (parse_type @"A#A->A");;
 
 (* ------------------------------------------------------------------------- *)
 (* The general notion of congruence: just syntax for equivalence relation.   *)
@@ -1424,7 +1424,7 @@ let int_coprime =
 (* A tactic for simple divisibility/congruence/coprimality goals.            *)
 (* ------------------------------------------------------------------------- *)
 let INTEGER_TAC_001 = 
-    let int_ty = (parse_type @":int")
+    let int_ty = (parse_type @"int")
     let INT_POLYEQ_CONV = GEN_REWRITE_CONV I [GSYM INT_SUB_0]
                           |> THENC <| LAND_CONV INT_POLY_CONV
     let ISOLATE_VARIABLE = 

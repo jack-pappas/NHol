@@ -844,8 +844,8 @@ let define_type_raw_001 =
     (* ----------------------------------------------------------------------- *)
     let create_recursion_iso_constructor = 
         let s = (parse_term @"s:num->Z")
-        let zty = (parse_type @":Z")
-        let numty = (parse_type @":num")
+        let zty = (parse_type @"Z")
+        let numty = (parse_type @"num")
         let rec extract_arg tup v = 
             if v = tup
             then REFL tup
@@ -1184,7 +1184,7 @@ let prove_constructors_injective =
         end_itlist CONJ (mapfilter (prove_distinctness ax) pats)
 
 let prove_constructors_distinct = 
-    let num_ty = (parse_type @":num")
+    let num_ty = (parse_type @"num")
     let rec allopairs f l m = 
         if l = []
         then []

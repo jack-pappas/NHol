@@ -635,7 +635,7 @@ let instantiate_casewise_recursion,
         fun tm -> if is_abs tm && name_of(bndvar tm) <> name
                   then cnv tm else failwith "conv"
       let convs = FIRST_CONV (map conv (1--n))
-      let th1 = INST_TYPE [ty,(parse_type ":P")] th
+      let th1 = INST_TYPE [ty,(parse_type @"P")] th
       let th2 = REWRITE_RULE [FORALL_PAIR_THM] th1
       let th3 = REWRITE_RULE [elemma0; elemma1] th2
       CONV_RULE(REDEPTH_CONV convs) th3
@@ -650,7 +650,7 @@ let instantiate_casewise_recursion,
         fun tm -> if is_abs tm && name_of(bndvar tm) <> name
                   then cnv tm else failwith "conv"
       let convs = FIRST_CONV (map conv (1--n))
-      let th1 = INST_TYPE [ty,(parse_type ":Q")] th
+      let th1 = INST_TYPE [ty,(parse_type @"Q")] th
       let th2 = REWRITE_RULE[EXISTS_PAIR_THM] th1
       let th3 = REWRITE_RULE[elemma1] th2
       let th4 = REWRITE_RULE[FORALL_PAIR_THM] th3
@@ -913,7 +913,7 @@ let instantiate_casewise_recursion,
 
   let prove_general_recursive_function_exists =
     let prove_depth_measure_exists =
-      let num_ty = (parse_type ":num")
+      let num_ty = (parse_type @"num")
       fun tyname ->
         let _,_,sth = assoc tyname (!inductive_type_store)
         let ty,zty = dest_fun_ty (type_of(fst(dest_exists(snd(strip_forall(concl sth))))))

@@ -655,7 +655,7 @@ let REAL_RING,real_ideal_cofactors =
         GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM REAL_SUB_0] |>THEN<|
         MESON_TAC[REAL_MUL_RINV; REAL_MUL_LZERO; REAL_ARITH (parse_term @"~(&1 = &0)")])
    let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
-   let real_ty = (parse_type @":real") in
+   let real_ty = (parse_type @"real") in
    let ``pure``,ideal =
      RING_AND_IDEAL_CONV (rat_of_term,term_of_rat,REAL_RAT_EQ_CONV,
           (parse_term @"(--):real->real"),(parse_term @"(+):real->real->real"),(parse_term @"(-):real->real->real"),

@@ -4,7 +4,7 @@ Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
 Copyright 2012 Marco Maggesi
 Copyright 2012 Vincent Aravantinos
-Copyright 2013 Jack Pappas, Anh-Dung Phan
+Copyright 2013 Jack Pappas, Anh-Dung Phan, Eric Taucher
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

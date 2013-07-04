@@ -798,4 +798,4 @@ let rec LIST_CONV conv tm =
 let char_INDUCT, char_RECURSION = 
     define_type "char = ASCII bool bool bool bool bool bool bool bool"
 
-new_type_abbrev("string", (parse_type @":char list"))
+new_type_abbrev("string", (parse_type @"char list"))
