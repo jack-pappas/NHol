@@ -177,8 +177,7 @@ let finite_index =
 
 let CART_EQ = 
     prove((parse_term "!x:A^B y.
-    (x = y) <=> !i. 1 <= i /\ i <= dimindex(:B) ==> (x$i = y$i)"),
-    REPEAT GEN_TAC
+    (x = y) <=> !i. 1 <= i /\ i <= dimindex(:B) ==> (x$i = y$i)"), REPEAT GEN_TAC
     |> THEN <| REWRITE_TAC [finite_index
                             GSYM FORALL_FINITE_INDEX]
     |> THEN <| REWRITE_TAC [GSYM FUN_EQ_THM
@@ -208,8 +207,7 @@ let LAMBDA_BETA =
 
 let LAMBDA_UNIQUE = prove((parse_term "!f:A^B g.
         (!i. 1 <= i /\ i <= dimindex(:B) ==> (f$i = g i)) <=>
-        ((lambda) g = f)"),
-        SIMP_TAC [CART_EQ; LAMBDA_BETA]
+        ((lambda) g = f)"), SIMP_TAC [CART_EQ; LAMBDA_BETA]
         |> THEN <| MESON_TAC [])
 let LAMBDA_ETA = 
     prove
@@ -372,8 +370,7 @@ let define_finite_type =
                                                          |> THEN <| ARITH_TAC)
     let lemma_post = 
         prove((parse_term "(!a:A. mk(dest a) = a) /\ (!r. r IN 1..n <=> dest(mk r) = r)
-     ==> (:A) HAS_SIZE n"),
-     REPEAT STRIP_TAC
+     ==> (:A) HAS_SIZE n"), REPEAT STRIP_TAC
      |> THEN <| SUBGOAL_THEN (parse_term "(:A) = IMAGE mk (1..n)") SUBST1_TAC
      |> THENL <| [REWRITE_TAC [EXTENSION; IN_IMAGE; IN_UNIV]
                   MATCH_MP_TAC HAS_SIZE_IMAGE_INJ]
@@ -535,11 +532,9 @@ let PCROSS =
              "s PCROSS t = {pastecart (x:A^M) (y:A^N) | x IN s /\ y IN t}")
 
 let FORALL_IN_PCROSS = prove((parse_term "(!z. z IN s PCROSS t ==> P z) <=>
-   (!x y. x IN s /\ y IN t ==> P(pastecart x y))"),
-   REWRITE_TAC [PCROSS; FORALL_IN_GSPEC])
+   (!x y. x IN s /\ y IN t ==> P(pastecart x y))"), REWRITE_TAC [PCROSS; FORALL_IN_GSPEC])
 let EXISTS_IN_PCROSS = prove((parse_term "(?z. z IN s PCROSS t /\ P z) <=>
-   (?x y. x IN s /\ y IN t /\ P(pastecart x y))"),
-   REWRITE_TAC [PCROSS; EXISTS_IN_GSPEC; CONJ_ASSOC])
+   (?x y. x IN s /\ y IN t /\ P(pastecart x y))"), REWRITE_TAC [PCROSS; EXISTS_IN_GSPEC; CONJ_ASSOC])
 let PASTECART_IN_PCROSS = 
     prove
         ((parse_term 
@@ -555,9 +550,7 @@ let PCROSS_EMPTY =
         ((parse_term "(!s. s PCROSS {} = {}) /\ (!t. {} PCROSS t = {})"), 
          REWRITE_TAC [PCROSS_EQ_EMPTY])
 let SUBSET_PCROSS = prove((parse_term "!s t s' t'. s PCROSS t SUBSET s' PCROSS t' <=>
-                s = {} \/ t = {} \/ s SUBSET s' /\ t SUBSET t'"),
-                SIMP_TAC 
-                    [PCROSS; EXTENSION; IN_ELIM_PASTECART_THM; SUBSET; 
+                s = {} \/ t = {} \/ s SUBSET s' /\ t SUBSET t'"), SIMP_TAC [PCROSS; EXTENSION; IN_ELIM_PASTECART_THM; SUBSET; 
                      FORALL_PASTECART; PASTECART_IN_PCROSS; NOT_IN_EMPTY]
                 |> THEN <| MESON_TAC [])
 let PCROSS_MONO = 
@@ -598,8 +591,7 @@ let HAS_SIZE_PCROSS =
          <| REWRITE_TAC [FORALL_IN_PCROSS; FSTCART_PASTECART; SNDCART_PASTECART])
 
 let FINITE_PCROSS = prove((parse_term "!(s:A^M->bool) (t:A^N->bool).
-        FINITE s /\ FINITE t ==> FINITE(s PCROSS t)"),
-        MESON_TAC [REWRITE_RULE [HAS_SIZE] HAS_SIZE_PCROSS])
+        FINITE s /\ FINITE t ==> FINITE(s PCROSS t)"), MESON_TAC [REWRITE_RULE [HAS_SIZE] HAS_SIZE_PCROSS])
 
 let FINITE_PCROSS_EQ = 
     prove((parse_term "!(s:A^M->bool) (t:A^N->bool).
