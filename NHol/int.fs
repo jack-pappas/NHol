@@ -108,6 +108,10 @@ let int_eq =
          |> THEN <| POP_ASSUM(MP_TAC << AP_TERM(parse_term "int_of_real"))
          |> THEN <| REWRITE_TAC [int_abstr])
 
+(* ------------------------------------------------------------------------- *)
+(* Set up interface map.                                                     *)
+(* ------------------------------------------------------------------------- *)
+
 do_list overload_interface ["+", (parse_term "int_add:int->int->int")
                             "-", (parse_term "int_sub:int->int->int")
                             "*", (parse_term "int_mul:int->int->int")
@@ -122,9 +126,6 @@ do_list overload_interface ["+", (parse_term "int_add:int->int->int")
                             "min", (parse_term "int_min:int->int->int")
                             "&", (parse_term "int_of_num:num->int")]
 
-(* ------------------------------------------------------------------------- *)
-(* Set up interface map.                                                     *)
-(* ------------------------------------------------------------------------- *)
 let prioritize_int() = prioritize_overload(mk_type("int", []))
 
 (* ------------------------------------------------------------------------- *)
@@ -1228,11 +1229,11 @@ let INT_POLY_CONV =
              SEMIRING_POW_CONV) (<)
     INT_POLY_CONV
 
-make_overloadable "divides" (parse_type ":A->A->bool")
-make_overloadable "mod" (parse_type ":A->A->A->bool")
-make_overloadable "coprime" (parse_type ":A#A->bool")
-make_overloadable "gcd" (parse_type ":A#A->A")
-parse_as_infix("==", (10, "right"))
+//make_overloadable "divides" (parse_type ":A->A->bool")
+//make_overloadable "mod" (parse_type ":A->A->A->bool")
+//make_overloadable "coprime" (parse_type ":A#A->bool")
+//make_overloadable "gcd" (parse_type ":A#A->A")
+//parse_as_infix("==", (10, "right"))
 
 (* ------------------------------------------------------------------------- *)
 (* Instantiate the ring and ideal procedures.                                *)
@@ -1369,9 +1370,17 @@ let INT_REDUCE_CONV = DEPTH_CONV INT_RED_CONV
 (* ------------------------------------------------------------------------- *)
 (* Set up overloading so we can use same symbols for N, Z and even R.        *)
 (* ------------------------------------------------------------------------- *)
+
+make_overloadable "divides" (parse_type ":A->A->bool");;
+make_overloadable "mod" (parse_type ":A->A->A->bool");;
+make_overloadable "coprime" (parse_type ":A#A->bool");;
+make_overloadable "gcd" (parse_type ":A#A->A");;
+
 (* ------------------------------------------------------------------------- *)
 (* The general notion of congruence: just syntax for equivalence relation.   *)
 (* ------------------------------------------------------------------------- *)
+parse_as_infix("==",(10,"right"));;
+
 let cong = new_definition(parse_term "(x == y) (rel:A->A->bool) <=> rel x y")
 
 (* ------------------------------------------------------------------------- *)
@@ -1382,20 +1391,22 @@ let real_mod =
         (parse_term "real_mod n (x:real) y = ?q. integer q /\ x - y = q * n")
 
 overload_interface("mod", (parse_term "real_mod"))
-parse_as_infix("divides", (12, "right"))
-overload_interface("divides", (parse_term "int_divides:int->int->bool"))
 
 (* ------------------------------------------------------------------------- *)
 (* Integer divisibility.                                                     *)
 (* ------------------------------------------------------------------------- *)
-let int_divides = new_definition(parse_term "a divides b <=> ?x. b = a * x")
+parse_as_infix("divides", (12, "right"))
+overload_interface("divides", (parse_term "int_divides:int->int->bool"))
 
-parse_as_prefix "mod"
-overload_interface("mod", (parse_term "int_mod:int->int->int->bool"))
+let int_divides = new_definition(parse_term "a divides b <=> ?x. b = a * x")
 
 (* ------------------------------------------------------------------------- *)
 (* Integer congruences.                                                      *)
 (* ------------------------------------------------------------------------- *)
+
+parse_as_prefix "mod"
+overload_interface("mod", (parse_term "int_mod:int->int->int->bool"))
+
 let int_mod = new_definition(parse_term "(mod n) x y = n divides (x - y)")
 
 let int_congruent = 
@@ -1403,18 +1414,18 @@ let int_congruent =
         ((parse_term "!x y n. (x == y) (mod n) <=> ?d. x - y = n * d"), 
          REWRITE_TAC [int_mod; cong; int_divides])
 
-overload_interface("coprime", (parse_term "int_coprime:int#int->bool"))
-
 (* ------------------------------------------------------------------------- *)
 (* Integer coprimality.                                                      *)
 (* ------------------------------------------------------------------------- *)
+overload_interface("coprime", (parse_term "int_coprime:int#int->bool"))
+
 let int_coprime = 
     new_definition(parse_term "!a b. coprime(a,b) <=> ?x y. a * x + b * y = &1")
 
 (* ------------------------------------------------------------------------- *)
 (* A tactic for simple divisibility/congruence/coprimality goals.            *)
 (* ------------------------------------------------------------------------- *)
-let INTEGER_TAC = 
+let INTEGER_TAC_001 = 
     let int_ty = (parse_type ":int")
     let INT_POLYEQ_CONV = GEN_REWRITE_CONV I [GSYM INT_SUB_0]
                           |> THENC <| LAND_CONV INT_POLY_CONV
@@ -1546,7 +1557,7 @@ let INTEGER_TAC =
     |> THEN <| CONV_TAC(ONCE_DEPTH_CONV INT_POLYEQ_CONV)
     |> THEN <| EXISTS_POLY_TAC
 
-let INTEGER_RULE tm = prove(tm, INTEGER_TAC)
+let INTEGER_RULE_001 tm = prove(tm, INTEGER_TAC_001)
 
 (* ------------------------------------------------------------------------- *)
 (* Existence of integer gcd, and the Bezout identity.                        *)
@@ -1571,11 +1582,53 @@ let WF_INT_MEASURE_2 =
                       GSYM FORALL_PAIR_THM;
                       WF_INT_MEASURE])
 
-overload_interface("gcd", (parse_term "int_gcd:int#int->int"))
+let INT_GCD_EXISTS = 
+ prove ((parse_term "!a b. ?d. d divides a /\ d divides b /\ ?x y. d = a * x + b * y"),
+  let INT_GCD_EXISTS_CASES = 
+   INT_ARITH (parse_term "(a = &0 \/ b = &0) \/
+    abs(a - b) + abs b < abs a + abs b \/ abs(a + b) + abs b < abs a + abs b \/
+    abs a + abs(b - a) < abs a + abs b \/ abs a + abs(b + a) < abs a + abs b") in
+  MATCH_MP_TAC WF_INT_MEASURE_2 |>THEN<| EXISTS_TAC (parse_term "\x y. abs(x) + abs(y)") |>THEN<|
+  REWRITE_TAC[] |>THEN<| REPEAT STRIP_TAC |>THENL<| [INT_ARITH_TAC; ALL_TAC] |>THEN<|
+  DISJ_CASES_THEN MP_TAC INT_GCD_EXISTS_CASES |>THENL<|
+   [STRIP_TAC |>THEN<| ASM_REWRITE_TAC[INTEGER_RULE_001 (parse_term "d divides &0")] |>THEN<|
+    REWRITE_TAC[INT_MUL_LZERO; INT_ADD_LID; INT_ADD_RID] |>THEN<|
+    MESON_TAC[INTEGER_RULE_001 (parse_term "d divides d"); INT_MUL_RID];
+    DISCH_THEN(REPEAT_TCL DISJ_CASES_THEN (ANTE_RES_THEN MP_TAC)) |>THEN<|
+    MATCH_MP_TAC MONO_EXISTS |>THEN<| INTEGER_TAC_001]);;
+
+let INT_GCD_EXISTS_POS = 
+ prove ((parse_term "!a b. ?d. &0 <= d /\ d divides a /\ d divides b /\ ?x y. d = a * x + b * y"),
+  REPEAT GEN_TAC |>THEN<|
+  X_CHOOSE_TAC (parse_term "d:int") (SPECL [(parse_term "a:int"); (parse_term "b:int")] INT_GCD_EXISTS) |>THEN<|
+  DISJ_CASES_TAC(SPEC (parse_term "d:int") INT_LE_NEGTOTAL) |>THEN<|
+  ASM_MESON_TAC[INTEGER_RULE_001 (parse_term "(--d) divides x <=> d divides x");
+                INT_ARITH (parse_term "a * --x + b * --y = --(a * x + b * y)")]);;
 
 (* ------------------------------------------------------------------------- *)
-(* Hence define (positive) gcd function; add elimination to INTEGER_TAC.      *)
+(* Hence define (positive) gcd function; add elimination to INTEGER_TAC.     *)
 (* ------------------------------------------------------------------------- *)
+overload_interface("gcd", (parse_term "int_gcd:int#int->int"))
+
+let int_gcd = new_specification ["int_gcd"] (REWRITE_RULE[EXISTS_UNCURRY; SKOLEM_THM] INT_GCD_EXISTS_POS);;
+
+let INTEGER_TAC =
+  let GCD_ELIM_TAC =
+    let gcd_tm = (parse_term "gcd") in
+    let dest_gcd tm =
+      let l,r = dest_comb tm in
+      if l = gcd_tm then dest_pair r else failwith "dest_gcd" in
+    REPEAT GEN_TAC |>THEN<|
+    W(fun (asl,w) ->
+          let gts = find_terms (can dest_gcd) w in
+          let ths = map (fun tm -> let a,b = dest_gcd tm in SPECL [a;b] int_gcd) gts
+          MAP_EVERY MP_TAC ths |>THEN<|
+          MAP_EVERY SPEC_TAC (zip gts (map (genvar << type_of) gts))) in
+  REPEAT(GEN_TAC |>ORELSE<| CONJ_TAC) |>THEN<| GCD_ELIM_TAC |>THEN<| INTEGER_TAC_001;;
+
+let INTEGER_RULE tm = prove(tm,INTEGER_TAC);;
+
+
 (* ------------------------------------------------------------------------- *)
 (* Mapping from nonnegative integers back to natural numbers.                *)
 (* ------------------------------------------------------------------------- *)
@@ -1600,14 +1653,14 @@ let NUM_OF_INT =
         ((parse_term "!x. &0 <= x <=> (&(num_of_int x) = x)"), 
          MESON_TAC [INT_OF_NUM_OF_INT; INT_POS])
 
+(* ------------------------------------------------------------------------- *)
+(* Now define similar notions over the natural numbers.                      *)
+(* ------------------------------------------------------------------------- *)
 overload_interface("divides", (parse_term "num_divides:num->num->bool"))
 overload_interface("mod", (parse_term "num_mod:num->num->num->bool"))
 overload_interface("coprime", (parse_term "num_coprime:num#num->bool"))
 overload_interface("gcd", (parse_term "num_gcd:num#num->num"))
 
-(* ------------------------------------------------------------------------- *)
-(* Now define similar notions over the natural numbers.                      *)
-(* ------------------------------------------------------------------------- *)
 let num_divides = new_definition(parse_term "a divides b <=> &a divides &b")
 
 let num_mod = new_definition(parse_term "(mod n) x y <=> (mod &n) (&x) (&y)")
@@ -1617,5 +1670,89 @@ let num_congruent =
          REWRITE_TAC [cong; num_mod])
 let num_coprime = new_definition(parse_term "coprime(a,b) <=> coprime(&a,&b)")
 let num_gcd = new_definition(parse_term "gcd(a,b) = num_of_int(gcd(&a,&b))")
+
+(* ------------------------------------------------------------------------- *)
+(* Map an assertion over N to an integer equivalent.                         *)
+(* To make this work nicely, all variables of type num should be quantified. *)
+(* ------------------------------------------------------------------------- *)
+
+let NUM_TO_INT_CONV =
+  let pth_relativize = 
+   prove ((parse_term "((!n. P(&n)) <=> (!i. ~(&0 <= i) \/ P i)) /\
+     ((?n. P(&n)) <=> (?i. &0 <= i /\ P i))"),
+    REWRITE_TAC[INT_EXISTS_POS; INT_FORALL_POS] |>THEN<| MESON_TAC[])
+  let relation_conv = 
+   (GEN_REWRITE_CONV TOP_SWEEP_CONV << map GSYM) [INT_OF_NUM_EQ; INT_OF_NUM_LE; INT_OF_NUM_LT; INT_OF_NUM_GE; INT_OF_NUM_GT;
+    INT_OF_NUM_SUC; INT_OF_NUM_ADD; INT_OF_NUM_MUL; INT_OF_NUM_POW]
+  let quantifier_conv = GEN_REWRITE_CONV DEPTH_CONV [pth_relativize]
+  NUM_SIMPLIFY_CONV |>THENC<| relation_conv |>THENC<| quantifier_conv
+
+(* ------------------------------------------------------------------------- *)
+(* Linear decision procedure for the naturals at last!                       *)
+(* ------------------------------------------------------------------------- *)
+
+let ARITH_RULE =
+  let init_conv =
+    NUM_SIMPLIFY_CONV |>THENC<|
+    GEN_REWRITE_CONV DEPTH_CONV [ADD1] |>THENC<|
+    PROP_ATOM_CONV (BINOP_CONV NUM_NORMALIZE_CONV) |>THENC<|
+    PRENEX_CONV |>THENC<|
+    (GEN_REWRITE_CONV TOP_SWEEP_CONV << map GSYM)
+      [INT_OF_NUM_EQ; INT_OF_NUM_LE; INT_OF_NUM_LT; INT_OF_NUM_GE;
+       INT_OF_NUM_GT; INT_OF_NUM_ADD; SPEC (parse_term "NUMERAL k") INT_OF_NUM_MUL;
+       INT_OF_NUM_MAX; INT_OF_NUM_MIN]
+  let is_numimage t =
+    match t with
+      Comb(Const("int_of_num",_),n) when not(is_numeral n) -> true
+    | _ -> false in
+  fun tm ->
+    let th1 = init_conv tm in
+    let tm1 = rand(concl th1) in
+    let avs,bod = strip_forall tm1 in
+    let nim = setify(find_terms is_numimage bod) in
+    let gvs = map (genvar << type_of) nim in
+    let pths = map (fun v -> SPEC (rand v) INT_POS) nim in
+    let ibod = itlist (curry mk_imp << concl) pths bod in
+    let gbod = subst (zip gvs nim) ibod in
+    let th2 = INST (zip nim gvs) (INT_ARITH gbod) in
+    let th3 = GENL avs (rev_itlist (C MP) pths th2) in
+    EQ_MP (SYM th1) th3;;
+
+let ARITH_TAC = CONV_TAC(EQT_INTRO << ARITH_RULE);;
+
+let ASM_ARITH_TAC =
+  REPEAT(FIRST_X_ASSUM(MP_TAC << check (not << is_forall << concl))) |>THEN<|
+  ARITH_TAC;;
+
+(* ------------------------------------------------------------------------- *)
+(* Also a similar divisibility procedure for natural numbers.                *)
+(* ------------------------------------------------------------------------- *)
+
+let NUM_GCD = 
+ prove ((parse_term "!a b. &(gcd(a,b)) = gcd(&a,&b)"),
+  REWRITE_TAC[num_gcd; GSYM NUM_OF_INT; int_gcd]);;
+
+let NUMBER_TAC =
+  let pth_relativize = 
+   prove ((parse_term "((!n. P(&n)) <=> (!i. &0 <= i ==> P i)) /\
+     ((?n. P(&n)) <=> (?i. &0 <= i /\ P i))"),
+    GEN_REWRITE_TAC RAND_CONV [TAUT (parse_term "(a <=> b) <=> (~a <=> ~b)")] |>THEN<|
+    REWRITE_TAC[NOT_EXISTS_THM; INT_FORALL_POS] |>THEN<| MESON_TAC[])
+  let relation_conv =
+   GEN_REWRITE_CONV TOP_SWEEP_CONV
+    (num_divides::num_congruent::num_coprime::NUM_GCD::(map GSYM [INT_OF_NUM_EQ; INT_OF_NUM_LE; INT_OF_NUM_LT; INT_OF_NUM_GE; INT_OF_NUM_GT;
+     INT_OF_NUM_SUC; INT_OF_NUM_ADD; INT_OF_NUM_MUL; INT_OF_NUM_POW]))
+  let quantifier_conv = GEN_REWRITE_CONV DEPTH_CONV [pth_relativize]
+  W(fun (_,w) -> MAP_EVERY (fun v -> SPEC_TAC(v,v)) (frees w)) |>THEN<|
+  CONV_TAC(relation_conv |>THENC<| quantifier_conv) |>THEN<|
+  REWRITE_TAC[RIGHT_IMP_FORALL_THM] |>THEN<| REPEAT GEN_TAC |>THEN<|
+  INTEGER_TAC;;
+
+let NUMBER_RULE tm = prove(tm,NUMBER_TAC);;
+
+(* ------------------------------------------------------------------------- *)
+(* Make sure we give priority to N.                                          *)
+(* ------------------------------------------------------------------------- *)
+
 
 prioritize_num()
