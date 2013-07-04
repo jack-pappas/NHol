@@ -515,8 +515,6 @@ let parse_preterm =
 (* ------------------------------------------------------------------------- *)
 
 let parse_type (s : string) =
-    // Skip `:` which is the marker for preprocessing in Hol-light
-    let s = s.[1..]
     printfn "parsing type %s" s 
     let pty, l = (parse_pretype << lex << explode) s
     //printfn "pty, l <-- %A, %A" pty l
