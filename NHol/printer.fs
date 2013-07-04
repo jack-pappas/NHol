@@ -50,7 +50,7 @@ let isspace, issep, isbra, issymb, isalpha, isnum, isalnum =
     let symbs = "\\!@#$%^&*-+|\\<=>/?~.:"
     let alphas = "'abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     let nums = "0123456789"
-    let allchars = spaces ^ separators ^ brackets ^ symbs ^ alphas ^ nums
+    let allchars = spaces + separators + brackets + symbs + alphas + nums
     let csetsize = itlist (max << charcode) (explode allchars) 256
     let ctable = Array.make csetsize 0
     do_list (fun c -> Array.set ctable (charcode c) 1) (explode spaces)
@@ -194,8 +194,8 @@ let pp_print_type, pp_print_qtype =
     let soc sep flag ss = 
         if ss = [] then ""
         else 
-            let s = end_itlist (fun s1 s2 -> s1 ^ sep ^ s2) ss
-            if flag then "(" ^ s ^ ")"
+            let s = end_itlist (fun s1 s2 -> s1 + sep + s2) ss
+            if flag then "(" + s + ")"
             else s
     let rec sot pr ty = 
         try 
@@ -216,8 +216,8 @@ let pp_print_type, pp_print_qtype =
             | "cart", [ty1; ty2] -> 
                 soc "^" (pr > 6) [sot 6 ty1;
                                   sot 7 ty2]
-            | con, args -> (soc "," true (map (sot 0) args)) ^ con
-    (fun fmt ty -> pp_print_string fmt (sot 0 ty)), (fun fmt ty -> pp_print_string fmt ("`:" ^ sot 0 ty ^ "`"))
+            | con, args -> (soc "," true (map (sot 0) args)) + con
+    (fun fmt ty -> pp_print_string fmt (sot 0 ty)), (fun fmt ty -> pp_print_string fmt ("`:" + sot 0 ty + "`"))
 
 (* ------------------------------------------------------------------------- *)
 (* Allow the installation of user printers. Must fail quickly if N/A.        *)
@@ -301,7 +301,7 @@ let pp_print_term =
                              if fst(dest_type(hd(snd(dest_type(type_of tm))))) <> "char" then fail()
                              else 
                                  let ccs = map (String.make 1 << Char.chr << code_of_term) tms
-                                 let s = "\"" ^ String.escaped(implode ccs) ^ "\""
+                                 let s = "\"" + String.escaped(implode ccs) + "\""
                                  pp_print_string fmt s
                          with
                          | Failure _ -> 
@@ -400,8 +400,8 @@ let pp_print_term =
                                                                          (explode
                                                                               (string_of_num
                                                                                    (n_den +/ (mod_num n_num n_den)))))
-                                                            pp_print_string fmt ("#" ^ s_num ^ (if n_den = Int 1 then ""
-                                                                                                else ".") ^ s_den)
+                                                            pp_print_string fmt ("#" + s_num + (if n_den = Int 1 then ""
+                                                                                                else ".") + s_den)
                                                 with
                                                 | Failure _ -> 
                                                     try 
@@ -508,7 +508,7 @@ let pp_print_term =
                                                             elif (is_const hop || is_var hop) && args = [] then 
                                                                 let s' = 
                                                                     if parses_as_binder s || can get_infix_status s 
-                                                                       || is_prefix s then "(" ^ s ^ ")"
+                                                                       || is_prefix s then "(" + s + ")"
                                                                     else s
                                                                 pp_print_string fmt s'
                                                             else 
@@ -659,7 +659,7 @@ let print_thm = pp_print_thm std_formatter
 
 let print_to_string printer = 
     let sbuff = ref ""
-    let rec output s m n = sbuff := (!sbuff) ^ (String.sub s m n)
+    let rec output s m n = sbuff := (!sbuff) + (String.sub s m n)
     let flush() = ()
     let fmt = make_formatter output flush
     ignore(pp_set_max_boxes fmt 100)

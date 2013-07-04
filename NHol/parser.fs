@@ -79,7 +79,7 @@ let fix err prs input =
     try 
         prs input
     with
-    | Noparse -> failwith(err ^ " expected")
+    | Noparse -> failwith(err + " expected")
 
 let rec listof prs sep err = prs .>>. many(sep .>>. (fix err prs) |>> snd) |>> (fun (h, t) -> h :: t)
 
@@ -141,14 +141,14 @@ reserve_words ["//"]
 let comment_token = ref(Resword "//")
 
 let lex = 
-    let collect(h, t) = end_itlist (^) (h :: t)
+    let collect(h, t) = end_itlist (+) (h :: t)
     let reserve = 
         function 
         | (Ident n as tok) -> 
             if is_reserved_word n then Resword(n)
             else tok
         | t -> t
-    let stringof p = atleast 1 p |>> end_itlist (^)
+    let stringof p = atleast 1 p |>> end_itlist (+)
     let simple_ident = stringof(some isalnum) <|> stringof(some issymb)
     let undertail = stringof(a "_") .>>. possibly simple_ident |>> collect
     let ident = (undertail <|> simple_ident) .>>. many undertail |>> collect
@@ -163,11 +163,11 @@ let lex =
         | "t" :: rst -> "\t", rst
         | "b" :: rst -> "\b", rst
         | " " :: rst -> " ", rst
-        | "x" :: h :: l :: rst -> String.make 1 (Char.chr(int_of_string("0x" ^ h ^ l))), rst
-        | a :: b :: c :: rst when forall isnum [a; b; c] -> String.make 1 (Char.chr(int_of_string(a ^ b ^ c))), rst
+        | "x" :: h :: l :: rst -> String.make 1 (Char.chr(int_of_string("0x" + h + l))), rst
+        | a :: b :: c :: rst when forall isnum [a; b; c] -> String.make 1 (Char.chr(int_of_string(a + b + c))), rst
         | _ -> failwith "lex:unrecognized OCaml-style escape in string"
     let stringchar = some(fun i -> i <> "\\" && i <> "\"") <|> (a "\\" .>>. escapecode |>> snd)
-    let string = a "\"" .>>. many stringchar .>>. a "\"" |>> (fun ((_, s), _) -> "\"" ^ implode s ^ "\"")
+    let string = a "\"" .>>. many stringchar .>>. a "\"" |>> (fun ((_, s), _) -> "\"" + implode s + "\"")
     let rawtoken = (string <|> some isbra <|> septok <|> ident) |>> (fun x -> Ident x)
     let simptoken = many(some isspace) .>>. rawtoken |>> (reserve << snd)
     let rec tokens i = 
@@ -347,7 +347,7 @@ let parse_preterm =
     fun () ->
         let count = !gcounter
         gcounter := count + 1
-        Varp("GEN%PVAR%"^(string_of_int count),dpty)
+        Varp("GEN%PVAR%"+(string_of_int count),dpty)
   let pmk_exists(v,ptm) = Combp(Varp("?",dpty),Absp(v,ptm))
   let pmk_list els = itlist (fun x y -> Combp(Combp(Varp("CONS",dpty),x),y)) els (Varp("NIL",dpty))
   let pmk_bool =

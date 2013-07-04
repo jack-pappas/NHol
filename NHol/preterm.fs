@@ -90,7 +90,7 @@ let overload_interface(sym, tm) =
         try 
             assoc sym (!the_overload_skeletons)
         with
-        | Failure _ -> failwith("symbol \"" ^ sym ^ "\" is not overloadable")
+        | Failure _ -> failwith("symbol \"" + sym + "\" is not overloadable")
     let (name, ty) as namty = 
         try 
             dest_const tm
@@ -289,7 +289,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let rec type_of_pretype' ns = 
             function 
             | Stv n -> 
-                mk_vartype(if mem n ns then "?" ^ string_of_int n
+                mk_vartype(if mem n ns then "?" + string_of_int n
                            else "_")
             | Utv v -> mk_vartype v
             | Ptycon(con, args) -> mk_type(con, map (type_of_pretype' ns) args)
@@ -307,16 +307,16 @@ let type_of_pretype, term_of_preterm, retypecheck =
 
     let string_of_ty_error env = 
         function 
-        | None -> "unify: types cannot be unified " ^ "(you should not see this message, please report)"
+        | None -> "unify: types cannot be unified " + "(you should not see this message, please report)"
         | Some(t, ty1, ty2) -> 
             let ty1 = solve env ty1
             let ty2 = solve env ty2
             let sty1 = string_of_pretype (free_stvs ty2) ty1
             let sty2 = string_of_pretype (free_stvs ty1) ty2
-            let default_msg s = " " ^ s ^ " cannot have type " ^ sty1 ^ " and " ^ sty2 ^ " simultaneously"
+            let default_msg s = " " + s + " cannot have type " + sty1 + " and " + sty2 + " simultaneously"
             match t with
             | Constp(s, _) -> 
-                " " ^ s ^ " has type " ^ string_of_type(get_const_type s) ^ ", " ^ "it cannot be used with type " ^ sty2
+                " " + s + " has type " + string_of_type(get_const_type s) + ", " + "it cannot be used with type " + sty2
             | Varp(s, _) -> default_msg s
             | t -> default_msg(string_of_preterm t)
 
@@ -447,7 +447,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         match ty with
         | Stv n -> 
             stvs_translated := true
-            let s = "?" ^ (string_of_int n)
+            let s = "?" + (string_of_int n)
             mk_vartype(s)
         | Utv(v) -> mk_vartype(v)
         | Ptycon(con, args) -> mk_type(con, map type_of_pretype args)
@@ -484,7 +484,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             try 
                 typify ty (ptm, venv, undefined)
             with
-            | Failure e -> failwith("typechecking error (initial type assignment):" ^ e)
+            | Failure e -> failwith("typechecking error (initial type assignment):" + e)
         let env' = 
             try 
                 resolve_interface ptm' (fun e -> e) env

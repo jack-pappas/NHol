@@ -39,9 +39,9 @@ let quotexpander s =
     if s = "" then failwith "Empty quotation"
     else 
         let c = String.sub s 0 1
-        if c = ":" then "parse_type \"" ^ (String.escaped(String.sub s 1 (String.length s - 1))) ^ "\""
-        elif c = ";" then "parse_qproof \"" ^ (String.escaped s) ^ "\""
-        else "parse_term \"" ^ (String.escaped s) ^ "\""
+        if c = ":" then "parse_type \"" + (String.escaped(String.sub s 1 (String.length s - 1))) + "\""
+        elif c = ";" then "parse_qproof \"" + (String.escaped s) + "\""
+        else "parse_term \"" + (String.escaped s) + "\""
 
 Quotation.add "tot" (Quotation.ExStr(fun x -> quotexpander))
 

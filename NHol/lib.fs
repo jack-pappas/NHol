@@ -483,7 +483,7 @@ let setify s = uniq(sort (fun x y -> compare x y <= 0) s)
 (* ------------------------------------------------------------------------- *)
 
 // OPTIMIZE : Make this an alias for List.sortWith.
-let implode l = itlist (^) l ""
+let implode l = itlist (+) l ""
 
 let explode s = 
     let rec exap n l = 
@@ -550,7 +550,7 @@ let report s =
 (* ------------------------------------------------------------------------- *)
 
 let warn cond s = 
-    if cond then report("Warning: " ^ s)
+    if cond then report("Warning: " + s)
     else ()
 
 (* ------------------------------------------------------------------------- *)
@@ -579,13 +579,13 @@ let time f x =
         try 
             let result = f x
             let finish_time = Sys.time()
-            report("CPU time (user): " ^ (string_of_float(finish_time -. start_time)))
+            report("CPU time (user): " + (string_of_float(finish_time -. start_time)))
             result
         with
         | e -> 
             let finish_time = Sys.time()
             Format.print_string
-                ("Failed after (user) CPU time of " ^ (string_of_float(finish_time -. start_time)) ^ ": ")
+                ("Failed after (user) CPU time of " + (string_of_float(finish_time -. start_time)) + ": ")
             raise e
 
 (* ------------------------------------------------------------------------- *)
@@ -1018,7 +1018,7 @@ let strings_of_file filename =
         try 
             Pervasives.open_in filename
         with
-        | Sys_error _ -> failwith("strings_of_file: can't open " ^ filename)
+        | Sys_error _ -> failwith("strings_of_file: can't open " + filename)
     let rec suck_lines acc = 
         try 
             let l = Pervasives.input_line fd
@@ -1029,7 +1029,7 @@ let strings_of_file filename =
     (Pervasives.close_in fd
      data)
 
-let string_of_file filename = end_itlist (fun s t -> s ^ "\n" ^ t) (strings_of_file filename)
+let string_of_file filename = end_itlist (fun s t -> s + "\n" + t) (strings_of_file filename)
 
 let file_of_string filename s = 
     let fd = Pervasives.open_out filename

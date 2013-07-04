@@ -3881,7 +3881,7 @@ let new_inductive_set =
             | [] -> tm
             | ty :: tys -> 
                 let v = 
-                    variant (variables tm) (mk_var("x" ^ string_of_int n, ty))
+                    variant (variables tm) (mk_var("x" + string_of_int n, ty))
                 f (n + 1) (mk_comb(tm, v)) tys
         fun tm -> 
             let tys = fst(splitlist dest_fun_ty (type_of tm))

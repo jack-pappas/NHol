@@ -575,7 +575,7 @@ let GEN_MESON_TAC =
                      then 
                          (Format.print_string
                               ("Goal solved with " 
-                               ^ (string_of_int(!inferences)) + " inferences.")
+                               + (string_of_int(!inferences)) + " inferences.")
                           Format.print_newline())
                      elif !verbose
                      then 

@@ -382,10 +382,10 @@ let define_finite_type =
     let n_tm = (parse_term "n:num")
     fun n -> 
         let ns = string_of_int n
-        let ns' = "auto_define_finite_type_" ^ ns
+        let ns' = "auto_define_finite_type_" + ns
         let th0 = INST [mk_small_numeral n, n_tm] lemma_pre
         let th1 = MP th0 (EQF_ELIM(NUM_EQ_CONV(rand(lhand(concl th0)))))
-        POST_RULE(new_type_definition ns ("mk_" ^ ns', "dest_" ^ ns') th1)
+        POST_RULE(new_type_definition ns ("mk_" + ns', "dest_" + ns') th1)
 
 (* ------------------------------------------------------------------------- *)
 (* Predefine the cases 2 and 3, which are useful for real^2 and real^3.      *)

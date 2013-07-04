@@ -68,7 +68,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     let new_type(name, arity) = 
-        if can get_type_arity name then failwith("new_type: type " ^ name ^ " has already been declared")
+        if can get_type_arity name then failwith("new_type: type " + name + " has already been declared")
         else the_type_constants := (name, arity) :: (!the_type_constants)
     
     (* ------------------------------------------------------------------------- *)
@@ -80,9 +80,9 @@ module Hol_kernel =
             try 
                 get_type_arity tyop
             with
-            | Failure _ -> failwith("mk_type: type " ^ tyop ^ " has not been defined")
+            | Failure _ -> failwith("mk_type: type " + tyop + " has not been defined")
         if arity = length args then Tyapp(tyop, args)
-        else failwith("mk_type: wrong number of arguments to " ^ tyop)
+        else failwith("mk_type: wrong number of arguments to " + tyop)
     
     let mk_vartype v = Tyvar(v)
     
@@ -161,7 +161,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     let new_constant(name, ty) = 
-        if can get_const_type name then failwith("new_constant: constant " ^ name ^ " has already been declared")
+        if can get_const_type name then failwith("new_constant: constant " + name + " has already been declared")
         else the_term_constants := (name, ty) :: (!the_term_constants)
     
     (* ------------------------------------------------------------------------- *)
@@ -303,7 +303,7 @@ module Hol_kernel =
         if not(exists (vfree_in v) avoid) then v
         else 
             match v with
-            | Var(s, ty) -> variant avoid (Var(s ^ "'", ty))
+            | Var(s, ty) -> variant avoid (Var(s + "'", ty))
             | _ -> failwith "variant: not a variable"
     
     (* ------------------------------------------------------------------------- *)

@@ -467,7 +467,7 @@ let make_args =
     let rec margs n s avoid tys = 
         if tys = [] then []
         else 
-            let v = variant avoid (mk_var(s ^ (string n), hd tys))
+            let v = variant avoid (mk_var(s + (string n), hd tys))
             v :: (margs (n + 1) s (v :: avoid) (tl tys))
     fun s avoid tys -> 
         if length tys = 1 then [variant avoid (mk_var(s, hd tys))]

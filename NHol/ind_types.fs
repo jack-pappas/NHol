@@ -636,8 +636,8 @@ let define_type_raw_001 =
         let th2 = TRANS th1 (SUBS_CONV cdefs (rand(concl th1)))
         let th3 = EQ_MP (AP_THM th2 (rand extm)) exth
         let th4, _ = itlist SCRUB_EQUATION (hyp th3) (th3, [])
-        let mkname = "_mk_" ^ ename
-        let destname = "_dest_" ^ ename
+        let mkname = "_mk_" + ename
+        let destname = "_dest_" + ename
         let bij1, bij2 = new_basic_type_definition ename (mkname, destname) th4
         let bij2a = AP_THM th2 (rand(rand(concl bij2)))
         let bij2b = TRANS bij2a bij2
@@ -887,7 +887,7 @@ let define_type_raw_001 =
                 let allargs = cargs' @ rargs' @ sargs'
                 let funty = itlist (mk_fun_ty << type_of) allargs zty
                 let funname = 
-                    fst(dest_const(repeat rator (lhand(concl cth)))) ^ "'"
+                    fst(dest_const(repeat rator (lhand(concl cth)))) + "'"
                 let funarg = mk_var(funname, funty)
                 list_mk_abs([i; r; s], list_mk_comb(funarg, allargs))
     (* ----------------------------------------------------------------------- *)
@@ -1083,7 +1083,7 @@ let rec define_type_raw_002 =
             then th
             else 
                 let tys = 
-                    map (fun i -> mk_vartype("Z" ^ (string_of_int i))) 
+                    map (fun i -> mk_vartype("Z" + (string_of_int i))) 
                         (0 -- (n - 1))
                 let sty = mk_sum tys
                 let inls = mk_inls sty
@@ -1405,7 +1405,7 @@ let rec define_type_raw =
                 else 
                     failwith
                         ("lift_type_bijections: Unexpected type operator \"" 
-                         ^ tycon ^ "\"")
+                         + tycon + "\"")
     (* ----------------------------------------------------------------------- *)
     (* Prove isomorphism of nested types where former is the smaller.          *)
     (* ----------------------------------------------------------------------- *)
@@ -1601,7 +1601,7 @@ let rec define_type_raw =
     let modify_clause alist (l, lis) = l, map (modify_item alist) lis
     let recover_clause id tm = 
         let con, args = strip_comb tm
-        fst(dest_const con) ^ id, map type_of args
+        fst(dest_const con) + id, map type_of args
     let rec create_auxiliary_clauses nty = 
         let id = fst(dest_var(genvar bool_ty))
         let tycon, tyargs = dest_type nty
@@ -1610,7 +1610,7 @@ let rec define_type_raw =
                 assoc tycon (!inductive_type_store)
             with
             | Failure _ -> 
-                failwith("Can't find definition for nested type: " ^ tycon)
+                failwith("Can't find definition for nested type: " + tycon)
         let evs, bod = strip_exists(snd(strip_forall(concl rth)))
         let cjs = map (lhand << snd << strip_forall) (conjuncts bod)
         let rtys = map (hd << snd << dest_type << type_of) evs
@@ -1619,7 +1619,7 @@ let rec define_type_raw =
         let mtys = itlist (insert << type_of) cjs' []
         let pcons = map (fun ty -> filter (fun t -> type_of t = ty) cjs') mtys
         let cls' = zip mtys (map (map(recover_clause id)) pcons)
-        let tyal = map (fun ty -> mk_vartype(fst(dest_type ty) ^ id), ty) mtys
+        let tyal = map (fun ty -> mk_vartype(fst(dest_type ty) + id), ty) mtys
         let cls'' = map (modify_type tyal ||>> map(modify_item tyal)) cls'
         k, tyal, cls'', INST_TYPE tyins ith, INST_TYPE tyins rth
     let rec define_type_nested def = 
@@ -1738,11 +1738,11 @@ let define_type s =
         elif exists (can get_type_arity << dest_vartype) newtypes
         then 
             let t = find (can get_type_arity) (map dest_vartype newtypes)
-            failwith("define_type: type :" ^ t ^ " already defined")
+            failwith("define_type: type :" + t + " already defined")
         elif exists (can get_const_type) constructors
         then 
             let t = find (can get_const_type) constructors
-            failwith("define_type: constant " ^ t ^ " already defined")
+            failwith("define_type: constant " + t + " already defined")
         else 
             let retval = define_type_raw defspec
             the_inductive_types := (s, retval) :: (!the_inductive_types)
