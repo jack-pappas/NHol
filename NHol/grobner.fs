@@ -698,8 +698,6 @@ let NUM_SIMPLIFY_CONV =
            let th1 = INST [p,p_tm; lhand t,a_tm; rand t,b_tm] th0 in
            let th2 = CONV_RULE(COMB2_CONV (RAND_CONV BETA_CONV) (BINDER_CONV(RAND_CONV BETA_CONV))) th1 in
            CONV_RULE(RAND_CONV (NUM_MULTIPLY_CONV pos)) th2
-(*
-   TODO: Fix error in this section.
        with 
        | Failure _ -> 
        try
@@ -713,9 +711,8 @@ let NUM_SIMPLIFY_CONV =
            let p = list_mk_abs([vd;vm],subst[vd,dtm; vm,mtm] tm) in
            let th0 = if pos then DIVMOD_ELIM_THM'' else DIVMOD_ELIM_THM' in
            let th1 = INST [p,q_tm; x,m_tm; y,n_tm] th0 in
-           let th2 = CONV_RULE (COMB2_CONV(RAND_CONV BETA2_CONV) (funpow 2 BINDER_CONV(RAND_CONV BETA2_CONV))) th1 in
+           let th2 = CONV_RULE (COMB2_CONV (RAND_CONV BETA2_CONV) (funpow 2 BINDER_CONV (RAND_CONV BETA2_CONV))) th1 in
            CONV_RULE(RAND_CONV (NUM_MULTIPLY_CONV pos)) th2
-*)
        with 
        | Failure _ -> REFL tm in
   NUM_REDUCE_CONV |>THENC<|
