@@ -843,15 +843,15 @@ let ANTS_TAC =
 (* ------------------------------------------------------------------------- *)
 
 let (print_goal : goal -> unit) = 
-    let string_of_int3 n = 
+    let string3 n = 
         if n < 10
-        then "  " + string_of_int n
+        then "  " + string n
         elif n < 100
-        then " " + string_of_int n
-        else string_of_int n
+        then " " + string n
+        else string n
     let print_hyp n (s, th) = 
         Format.open_hbox()
-        Format.print_string(string_of_int3 n)
+        Format.print_string(string3 n)
         Format.print_string " ["
         Format.open_hvbox 0
         print_qterm(concl th)
@@ -886,10 +886,10 @@ let (print_goalstack : goalstack -> unit) =
             if n = 0
             then "No subgoals"
             else 
-                (string_of_int k) + " subgoal" + (if k > 1
+                (string k) + " subgoal" + (if k > 1
                                                   then "s"
                                                   else "") + " (" 
-                + (string_of_int n) + " total)"
+                + (string n) + " total)"
         Format.print_string s
         Format.print_newline()
         if gl = []

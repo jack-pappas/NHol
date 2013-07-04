@@ -105,7 +105,7 @@ let ITAUT_TAC =
                                    |> THEN <| ITAUT_TAC mvs (n - 1)
                                    |> THEN <| NO_TAC))) gl
     let rec ITAUT_ITERDEEP_TAC n gl = 
-        remark("Searching with limit " + (string_of_int n))
+        remark("Searching with limit " + (string n))
         ((ITAUT_TAC [] n
           |> THEN <| NO_TAC)
          |> ORELSE <| ITAUT_ITERDEEP_TAC(n + 1)) gl

@@ -626,11 +626,11 @@ let instantiate_casewise_recursion,
        REWRITE_TAC[FUN_EQ_THM; FORALL_PAIR_THM])
     let HACK_PROFORMA n th =
       if n <= 1 then th else
-      let mkname i = "_P"+string_of_int i
+      let mkname i = "_P"+string i
       let ty = end_itlist (fun s t -> mk_type("prod",[s;t]))
                           (map (mk_vartype << mkname) (1--n))
       let conv i =
-        let name = "x"+string_of_int i
+        let name = "x"+string i
         let cnv = ALPHA_CONV (mk_var(name,mk_vartype(mkname i)))
         fun tm -> if is_abs tm && name_of(bndvar tm) <> name
                   then cnv tm else failwith "conv"
@@ -641,11 +641,11 @@ let instantiate_casewise_recursion,
       CONV_RULE(REDEPTH_CONV convs) th3
     let EACK_PROFORMA n th =
       if n <= 1 then th else
-      let mkname i = "_Q"+string_of_int i
+      let mkname i = "_Q"+string i
       let ty = end_itlist (fun s t -> mk_type("prod",[s;t]))
                           (map (mk_vartype << mkname) (1--n))
       let conv i =
-        let name = "t"+string_of_int i
+        let name = "t"+string i
         let cnv = ALPHA_CONV (mk_var(name,mk_vartype(mkname i)))
         fun tm -> if is_abs tm && name_of(bndvar tm) <> name
                   then cnv tm else failwith "conv"

@@ -1083,7 +1083,7 @@ let rec define_type_raw_002 =
             then th
             else 
                 let tys = 
-                    map (fun i -> mk_vartype("Z" + (string_of_int i))) 
+                    map (fun i -> mk_vartype("Z" + (string i))) 
                         (0 -- (n - 1))
                 let sty = mk_sum tys
                 let inls = mk_inls sty

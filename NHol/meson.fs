@@ -557,13 +557,13 @@ let GEN_MESON_TAC =
                 (if !meson_chatty && !verbose
                  then 
                      (Format.print_string
-                          ((string_of_int(!inferences)) + " inferences so far. " 
-                           + "Searching with maximum size " + (string_of_int n) 
+                          ((string(!inferences)) + " inferences so far. " 
+                           + "Searching with maximum size " + (string n) 
                            + ".")
                       Format.print_newline())
                  elif !verbose
                  then 
-                     (Format.print_string(string_of_int(!inferences) + "..")
+                     (Format.print_string(string(!inferences) + "..")
                       Format.print_flush())
                  else ())
                 try 
@@ -575,12 +575,12 @@ let GEN_MESON_TAC =
                      then 
                          (Format.print_string
                               ("Goal solved with " 
-                               + (string_of_int(!inferences)) + " inferences.")
+                               + (string(!inferences)) + " inferences.")
                           Format.print_newline())
                      elif !verbose
                      then 
                          (Format.print_string
-                              ("solved at " + string_of_int(!inferences))
+                              ("solved at " + string(!inferences))
                           Format.print_newline())
                      else ())
                     gi

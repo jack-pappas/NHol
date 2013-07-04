@@ -289,7 +289,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let rec type_of_pretype' ns = 
             function 
             | Stv n -> 
-                mk_vartype(if mem n ns then "?" + string_of_int n
+                mk_vartype(if mem n ns then "?" + string n
                            else "_")
             | Utv v -> mk_vartype v
             | Ptycon(con, args) -> mk_type(con, map (type_of_pretype' ns) args)
@@ -447,7 +447,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         match ty with
         | Stv n -> 
             stvs_translated := true
-            let s = "?" + (string_of_int n)
+            let s = "?" + (string n)
             mk_vartype(s)
         | Utv(v) -> mk_vartype(v)
         | Ptycon(con, args) -> mk_type(con, map type_of_pretype args)

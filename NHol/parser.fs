@@ -347,7 +347,7 @@ let parse_preterm =
     fun () ->
         let count = !gcounter
         gcounter := count + 1
-        Varp("GEN%PVAR%"+(string_of_int count),dpty)
+        Varp("GEN%PVAR%"+(string count),dpty)
   let pmk_exists(v,ptm) = Combp(Varp("?",dpty),Absp(v,ptm))
   let pmk_list els = itlist (fun x y -> Combp(Combp(Varp("CONS",dpty),x),y)) els (Varp("NIL",dpty))
   let pmk_bool =

@@ -256,8 +256,8 @@ let RING_AND_IDEAL_CONV =
   (* ----------------------------------------------------------------------- *)
   
   let rec grobner_basis basis pairs =
-    Format.print_string(string_of_int(length basis)+" basis elements and "+
-                        string_of_int(length pairs)+" critical pairs");
+    Format.print_string(string(length basis)+" basis elements and "+
+                        string(length pairs)+" critical pairs");
     Format.print_newline();
     match pairs with
       [] -> basis
