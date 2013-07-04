@@ -374,7 +374,7 @@ let RING_AND_IDEAL_CONV =
   (* ----------------------------------------------------------------------- *)
   
   let pth_step = 
-    prove ((parse_term "!(add:A->A->A) (mul:A->A->A) (n0:A).
+    prove ((parse_term @"!(add:A->A->A) (mul:A->A->A) (n0:A).
           (!x. mul n0 x = n0) /\
           (!x y z. (add x y = add x z) <=> (y = z)) /\
           (!w x y z. (add (mul w y) (mul x z) = add (mul w z) (mul x y)) <=>
@@ -388,11 +388,11 @@ let RING_AND_IDEAL_CONV =
      REPEAT GEN_TAC |>THEN<| STRIP_TAC |>THEN<|
      ASM_REWRITE_TAC[GSYM DE_MORGAN_THM] |>THEN<|
      REPEAT GEN_TAC |>THEN<| DISCH_TAC |>THEN<| STRIP_TAC |>THEN<|
-     FIRST_X_ASSUM(MP_TAC << SPECL [(parse_term "n0:A"); (parse_term "n:A"); (parse_term "d:A"); (parse_term "c:A")]) |>THEN<|
+     FIRST_X_ASSUM(MP_TAC << SPECL [(parse_term @"n0:A"); (parse_term @"n:A"); (parse_term @"d:A"); (parse_term @"c:A")]) |>THEN<|
      ONCE_REWRITE_TAC[GSYM CONTRAPOS_THM] |>THEN<| ASM_SIMP_TAC[])
   
-  let FINAL_RULE = MATCH_MP(TAUT (parse_term "(p ==> F) ==> (~q = p) ==> q"))
-  let false_tm = (parse_term "F") in
+  let FINAL_RULE = MATCH_MP(TAUT (parse_term @"(p ==> F) ==> (~q = p) ==> q"))
+  let false_tm = (parse_term @"F") in
   let rec refute_disj rfn tm =
     match tm with
       Comb(Comb(Const("\\/",_),l),r) ->
@@ -640,17 +640,17 @@ let ideal_cofactors parms = snd(RING_AND_IDEAL_CONV parms);;
 (* ------------------------------------------------------------------------- *)
 
 let NUM_SIMPLIFY_CONV =
-  let pre_tm = (parse_term "PRE")
-  let div_tm = (parse_term "(DIV):num->num->num")
-  let mod_tm = (parse_term "(MOD):num->num->num")
-  let p_tm = (parse_term "P:num->bool") 
-  let n_tm = (parse_term "n:num") 
-  let m_tm = (parse_term "m:num")
-  let q_tm = (parse_term "P:num->num->bool") 
-  let a_tm = (parse_term "a:num") 
-  let b_tm = (parse_term "b:num") in
+  let pre_tm = (parse_term @"PRE")
+  let div_tm = (parse_term @"(DIV):num->num->num")
+  let mod_tm = (parse_term @"(MOD):num->num->num")
+  let p_tm = (parse_term @"P:num->bool") 
+  let n_tm = (parse_term @"n:num") 
+  let m_tm = (parse_term @"m:num")
+  let q_tm = (parse_term @"P:num->num->bool") 
+  let a_tm = (parse_term @"a:num") 
+  let b_tm = (parse_term @"b:num") in
   let is_pre tm = is_comb tm && rator tm = pre_tm
-  let is_sub = is_binop (parse_term "(-):num->num->num")
+  let is_sub = is_binop (parse_term @"(-):num->num->num")
   let is_divmod =
     let is_div = is_binop div_tm 
     let is_mod = is_binop mod_tm in
@@ -661,7 +661,7 @@ let NUM_SIMPLIFY_CONV =
   let SUB_ELIM_THM'' = CONV_RULE (RAND_CONV NNF_CONV) SUB_ELIM_THM
   let DIVMOD_ELIM_THM'' = CONV_RULE (RAND_CONV NNF_CONV) DIVMOD_ELIM_THM
   let pth_evenodd = 
-    prove ((parse_term "(EVEN(x) <=> (!y. ~(x = SUC(2 * y)))) /\
+    prove ((parse_term @"(EVEN(x) <=> (!y. ~(x = SUC(2 * y)))) /\
        (ODD(x) <=> (!y. ~(x = 2 * y))) /\
        (~EVEN(x) <=> (!y. ~(x = 2 * y))) /\
        (~ODD(x) <=> (!y. ~(x = SUC(2 * y))))"),
@@ -731,28 +731,28 @@ let NUM_SIMPLIFY_CONV =
 
 let NUM_RING =
   let NUM_INTEGRAL_LEMMA = 
-    prove ((parse_term "(w = x + d) /\ (y = z + e) ==> ((w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))"), DISCH_THEN(fun th -> REWRITE_TAC[th]) 
+    prove ((parse_term @"(w = x + d) /\ (y = z + e) ==> ((w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))"), DISCH_THEN(fun th -> REWRITE_TAC[th]) 
      |>THEN<| REWRITE_TAC[LEFT_ADD_DISTRIB; RIGHT_ADD_DISTRIB; GSYM ADD_ASSOC] 
-     |>THEN<| ONCE_REWRITE_TAC [AC ADD_AC (parse_term "a + b + c + d + e = a + c + e + b + d")] 
+     |>THEN<| ONCE_REWRITE_TAC [AC ADD_AC (parse_term @"a + b + c + d + e = a + c + e + b + d")] 
      |>THEN<| REWRITE_TAC[EQ_ADD_LCANCEL; EQ_ADD_LCANCEL_0; MULT_EQ_0]) in
   let NUM_INTEGRAL = 
-    prove ((parse_term "(!x. 0 * x = 0) /\
+    prove ((parse_term @"(!x. 0 * x = 0) /\
      (!x y z. (x + y = x + z) <=> (y = z)) /\
      (!w x y z. (w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))"),
      REWRITE_TAC[MULT_CLAUSES; EQ_ADD_LCANCEL] |>THEN<|
      REPEAT GEN_TAC |>THEN<|
-     DISJ_CASES_TAC (SPECL [(parse_term "w:num"); (parse_term "x:num")] LE_CASES) |>THEN<|
-     DISJ_CASES_TAC (SPECL [(parse_term "y:num"); (parse_term "z:num")] LE_CASES) |>THEN<|
+     DISJ_CASES_TAC (SPECL [(parse_term @"w:num"); (parse_term @"x:num")] LE_CASES) |>THEN<|
+     DISJ_CASES_TAC (SPECL [(parse_term @"y:num"); (parse_term @"z:num")] LE_CASES) |>THEN<|
      REPEAT(FIRST_X_ASSUM (CHOOSE_THEN SUBST1_TAC << REWRITE_RULE[LE_EXISTS])) |>THEN<|
      ASM_MESON_TAC[NUM_INTEGRAL_LEMMA; ADD_SYM; MULT_SYM]) in
   let rawring =
     RING(dest_numeral,mk_numeral,NUM_EQ_CONV,
-         genvar bool_ty,(parse_term "(+):num->num->num"),genvar bool_ty,
-         genvar bool_ty,(parse_term "(*):num->num->num"),genvar bool_ty,
-         (parse_term "(EXP):num->num->num"),
+         genvar bool_ty,(parse_term @"(+):num->num->num"),genvar bool_ty,
+         genvar bool_ty,(parse_term @"(*):num->num->num"),genvar bool_ty,
+         (parse_term @"(EXP):num->num->num"),
          NUM_INTEGRAL,TRUTH,NUM_NORMALIZE_CONV) in
   let initconv = NUM_SIMPLIFY_CONV |>THENC<| GEN_REWRITE_CONV DEPTH_CONV [ADD1]
-  let t_tm = (parse_term "T") in
+  let t_tm = (parse_term @"T") in
   fun tm -> let th = initconv tm in
             if rand(concl th) = t_tm then th
             else EQ_MP (SYM th) (rawring(rand(concl th)));;

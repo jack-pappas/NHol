@@ -76,8 +76,8 @@ let dest_realintconst tm =
     | _ -> failwith "dest_realintconst"
 
 let mk_realintconst = 
-    let cast_tm = (parse_term "real_of_num")
-    let neg_tm = (parse_term "(--)")
+    let cast_tm = (parse_term @"real_of_num")
+    let neg_tm = (parse_term @"(--)")
     let mk_numconst n = mk_comb(cast_tm, mk_numeral n)
     fun x -> 
         if x < num_0
@@ -104,7 +104,7 @@ let rat_of_term tm =
     | _ -> dest_realintconst tm
 
 let term_of_rat = 
-    let div_tm = (parse_term "(/)")
+    let div_tm = (parse_term @"(/)")
     fun x -> 
         let p, q = numdom x
         let ptm = mk_realintconst p
@@ -115,84 +115,84 @@ let term_of_rat =
 (* ------------------------------------------------------------------------- *)
 (* Some elementary "bootstrapping" lemmas we need below.                     *)
 (* ------------------------------------------------------------------------- *)
-let REAL_ADD_AC = prove((parse_term "(m + n = n + m) /\
+let REAL_ADD_AC = prove((parse_term @"(m + n = n + m) /\
    ((m + n) + p = m + (n + p)) /\
    (m + (n + p) = n + (m + p))"), MESON_TAC [REAL_ADD_ASSOC; REAL_ADD_SYM])
 
 let REAL_ADD_RINV = 
     prove
-        ((parse_term "!x. x + --x = &0"), 
+        ((parse_term @"!x. x + --x = &0"), 
          MESON_TAC [REAL_ADD_SYM; REAL_ADD_LINV])
 
 let REAL_EQ_ADD_LCANCEL = 
     prove
-        ((parse_term "!x y z. (x + y = x + z) <=> (y = z)"), 
+        ((parse_term @"!x y z. (x + y = x + z) <=> (y = z)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| ASM_REWRITE_TAC []
-         |> THEN <| POP_ASSUM(MP_TAC << AP_TERM(parse_term "(+) (--x)"))
+         |> THEN <| POP_ASSUM(MP_TAC << AP_TERM(parse_term @"(+) (--x)"))
          |> THEN <| REWRITE_TAC [REAL_ADD_ASSOC; REAL_ADD_LINV; REAL_ADD_LID])
 
 let REAL_EQ_ADD_RCANCEL = 
     prove
-        ((parse_term "!x y z. (x + z = y + z) <=> (x = y)"), 
+        ((parse_term @"!x y z. (x + z = y + z) <=> (x = y)"), 
          MESON_TAC [REAL_ADD_SYM; REAL_EQ_ADD_LCANCEL])
 let REAL_MUL_RZERO = 
     prove
-        ((parse_term "!x. x * &0 = &0"), 
+        ((parse_term @"!x. x * &0 = &0"), 
          MESON_TAC [REAL_EQ_ADD_RCANCEL; REAL_ADD_LDISTRIB; REAL_ADD_LID])
 let REAL_MUL_LZERO = 
     prove
-        ((parse_term "!x. &0 * x = &0"), 
+        ((parse_term @"!x. &0 * x = &0"), 
          MESON_TAC [REAL_MUL_SYM; REAL_MUL_RZERO])
 let REAL_NEG_NEG = 
     prove
-        ((parse_term "!x. --(--x) = x"), 
+        ((parse_term @"!x. --(--x) = x"), 
          MESON_TAC 
              [REAL_EQ_ADD_RCANCEL; REAL_ADD_LINV; REAL_ADD_SYM; REAL_ADD_LINV])
 let REAL_MUL_RNEG = 
     prove
-        ((parse_term "!x y. x * (--y) = -- (x * y)"), 
+        ((parse_term @"!x y. x * (--y) = -- (x * y)"), 
          MESON_TAC 
              [REAL_EQ_ADD_RCANCEL; REAL_ADD_LDISTRIB; REAL_ADD_LINV; 
               REAL_MUL_RZERO])
 let REAL_MUL_LNEG = 
     prove
-        ((parse_term "!x y. (--x) * y = -- (x * y)"), 
+        ((parse_term @"!x y. (--x) * y = -- (x * y)"), 
          MESON_TAC [REAL_MUL_SYM; REAL_MUL_RNEG])
 
 let REAL_NEG_ADD = 
     prove
-        ((parse_term "!x y. --(x + y) = --x + --y"), 
+        ((parse_term @"!x y. --(x + y) = --x + --y"), 
          REPEAT GEN_TAC
          |> THEN 
          <| MATCH_MP_TAC
                 (GEN_ALL(fst(EQ_IMP_RULE(SPEC_ALL REAL_EQ_ADD_RCANCEL))))
-         |> THEN <| EXISTS_TAC(parse_term "x + y")
+         |> THEN <| EXISTS_TAC(parse_term @"x + y")
          |> THEN <| REWRITE_TAC [REAL_ADD_LINV]
          |> THEN 
          <| ONCE_REWRITE_TAC 
                 [AC REAL_ADD_AC 
-                     (parse_term "(a + b) + (c + d) = (a + c) + (b + d)")]
+                     (parse_term @"(a + b) + (c + d) = (a + c) + (b + d)")]
          |> THEN <| REWRITE_TAC [REAL_ADD_LINV; REAL_ADD_LID])
 
 let REAL_ADD_RID = 
-    prove((parse_term "!x. x + &0 = x"), MESON_TAC [REAL_ADD_SYM; REAL_ADD_LID])
+    prove((parse_term @"!x. x + &0 = x"), MESON_TAC [REAL_ADD_SYM; REAL_ADD_LID])
 let REAL_NEG_0 = 
-    prove((parse_term "--(&0) = &0"), MESON_TAC [REAL_ADD_LINV; REAL_ADD_RID])
+    prove((parse_term @"--(&0) = &0"), MESON_TAC [REAL_ADD_LINV; REAL_ADD_RID])
 
 let REAL_LE_LNEG = 
     prove
-        ((parse_term "!x y. --x <= y <=> &0 <= x + y"), 
+        ((parse_term @"!x y. --x <= y <=> &0 <= x + y"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP REAL_LE_LADD_IMP)
          |> THENL 
-         <| [DISCH_THEN(MP_TAC << SPEC(parse_term "x:real"))
+         <| [DISCH_THEN(MP_TAC << SPEC(parse_term @"x:real"))
              |> THEN 
              <| REWRITE_TAC [ONCE_REWRITE_RULE [REAL_ADD_SYM] REAL_ADD_LINV]
-             DISCH_THEN(MP_TAC << SPEC(parse_term "--x"))
+             DISCH_THEN(MP_TAC << SPEC(parse_term @"--x"))
              |> THEN 
              <| REWRITE_TAC [REAL_ADD_LINV
                              REAL_ADD_ASSOC
@@ -201,7 +201,7 @@ let REAL_LE_LNEG =
 
 let REAL_LE_NEG2 = 
     prove
-        ((parse_term "!x y. --x <= --y <=> y <= x"), 
+        ((parse_term @"!x y. --x <= --y <=> y <= x"), 
          REPEAT GEN_TAC
          |> THEN <| GEN_REWRITE_TAC (RAND_CONV << LAND_CONV) [GSYM REAL_NEG_NEG]
          |> THEN <| REWRITE_TAC [REAL_LE_LNEG]
@@ -210,7 +210,7 @@ let REAL_LE_NEG2 =
 
 let REAL_LE_RNEG = 
     prove
-        ((parse_term "!x y. x <= --y <=> x + y <= &0"), 
+        ((parse_term @"!x y. x <= --y <=> x + y <= &0"), 
          REPEAT GEN_TAC
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << LAND_CONV) [GSYM REAL_NEG_NEG]
          |> THEN <| REWRITE_TAC [REAL_LE_LNEG
@@ -224,7 +224,7 @@ let REAL_LE_RNEG =
 
 let REAL_OF_NUM_POW = 
     prove
-        ((parse_term "!x n. (&x) pow n = &(x EXP n)"), 
+        ((parse_term @"!x n. (&x) pow n = &(x EXP n)"), 
          GEN_TAC
          |> THEN <| INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [real_pow; EXP; REAL_OF_NUM_MUL])
@@ -236,16 +236,16 @@ let REAL_POW_NEG =
          GEN_TAC
          |> THEN <| INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [real_pow; EVEN]
-         |> THEN <| ASM_CASES_TAC(parse_term "EVEN n")
+         |> THEN <| ASM_CASES_TAC(parse_term @"EVEN n")
          |> THEN <| ASM_REWRITE_TAC [REAL_MUL_RNEG; REAL_MUL_LNEG; REAL_NEG_NEG])
 
 let REAL_ABS_NUM = 
     prove
-        ((parse_term "!n. abs(&n) = &n"), 
+        ((parse_term @"!n. abs(&n) = &n"), 
          REWRITE_TAC [real_abs; REAL_OF_NUM_LE; LE_0])
 let REAL_ABS_NEG = 
     prove
-        ((parse_term "!x. abs(--x) = abs x"), 
+        ((parse_term @"!x. abs(--x) = abs x"), 
          REWRITE_TAC [real_abs; REAL_LE_RNEG; REAL_NEG_NEG; REAL_ADD_LID]
          |> THEN <| MESON_TAC [REAL_LE_TOTAL; REAL_LE_ANTISYM; REAL_NEG_0])
 
@@ -253,16 +253,16 @@ let REAL_ABS_NEG =
 (* First, the conversions on integer constants.                              *)
 (* ------------------------------------------------------------------------- *)
 let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL_INT_EQ_CONV = 
-    let tth = TAUT(parse_term "(F /\ F <=> F) /\ (F /\ T <=> F) /\
+    let tth = TAUT(parse_term @"(F /\ F <=> F) /\ (F /\ T <=> F) /\
           (T /\ F <=> F) /\ (T /\ T <=> T)")
-    let nth = TAUT(parse_term "(~T <=> F) /\ (~F <=> T)")
+    let nth = TAUT(parse_term @"(~T <=> F) /\ (~F <=> T)")
     let NUM2_EQ_CONV = BINOP_CONV NUM_EQ_CONV
                        |> THENC <| GEN_REWRITE_CONV I [tth]
     let NUM2_NE_CONV = RAND_CONV NUM2_EQ_CONV
                        |> THENC <| GEN_REWRITE_CONV I [nth]
     let [pth_le1; pth_le2a; pth_le2b; pth_le3] = 
         (CONJUNCTS << prove)
-            ((parse_term "(--(&m) <= &n <=> T) /\
+            ((parse_term @"(--(&m) <= &n <=> T) /\
      (&m <= &n <=> m <= n) /\
      (--(&m) <= --(&n) <=> n <= m) /\
      (&m <= --(&n) <=> (m = 0) /\ (n = 0))"), 
@@ -277,7 +277,7 @@ let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL
                     GEN_REWRITE_CONV I [pth_le3]
                     |> THENC <| NUM2_EQ_CONV]
     let [pth_lt1; pth_lt2a; pth_lt2b; pth_lt3] = 
-      (CONJUNCTS << prove)((parse_term "(&m < --(&n) <=> F) /\
+      (CONJUNCTS << prove)((parse_term @"(&m < --(&n) <=> F) /\
           (&m < &n <=> m < n) /\
           (--(&m) < --(&n) <=> n < m) /\
           (--(&m) < &n <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC [pth_le1; pth_le2a; pth_le2b; pth_le3; GSYM NOT_LE; real_lt] 
@@ -289,7 +289,7 @@ let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL
                     GEN_REWRITE_CONV I [pth_lt3]
                     |> THENC <| NUM2_NE_CONV]
     let [pth_ge1; pth_ge2a; pth_ge2b; pth_ge3] = 
-      (CONJUNCTS << prove)((parse_term "(&m >= --(&n) <=> T) /\
+      (CONJUNCTS << prove)((parse_term @"(&m >= --(&n) <=> T) /\
        (&m >= &n <=> n <= m) /\
        (--(&m) >= --(&n) <=> m <= n) /\
        (--(&m) >= &n <=> (m = 0) /\ (n = 0))"), REWRITE_TAC [pth_le1; pth_le2a; pth_le2b; pth_le3; real_ge]
@@ -301,7 +301,7 @@ let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL
                     GEN_REWRITE_CONV I [pth_ge3]
                     |> THENC <| NUM2_EQ_CONV]
     let [pth_gt1; pth_gt2a; pth_gt2b; pth_gt3] = 
-      (CONJUNCTS << prove)((parse_term "(--(&m) > &n <=> F) /\
+      (CONJUNCTS << prove)((parse_term @"(--(&m) > &n <=> F) /\
        (&m > &n <=> n < m) /\
        (--(&m) > --(&n) <=> m < n) /\
        (&m > --(&n) <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC 
@@ -315,7 +315,7 @@ let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL
                     GEN_REWRITE_CONV I [pth_gt3]
                     |> THENC <| NUM2_NE_CONV]
     let [pth_eq1a; pth_eq1b; pth_eq2a; pth_eq2b] = 
-        (CONJUNCTS << prove)((parse_term "((&m = &n) <=> (m = n)) /\
+        (CONJUNCTS << prove)((parse_term @"((&m = &n) <=> (m = n)) /\
           ((--(&m) = --(&n)) <=> (m = n)) /\
           ((--(&m) = &n) <=> (m = 0) /\ (n = 0)) /\
           ((&m = --(&n)) <=> (m = 0) /\ (n = 0))"), REWRITE_TAC [GSYM REAL_LE_ANTISYM; GSYM LE_ANTISYM]
@@ -330,16 +330,16 @@ let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL
     REAL_INT_EQ_CONV
 
 let REAL_INT_NEG_CONV = 
-    let pth = prove((parse_term "(--(&0) = &0) /\
+    let pth = prove((parse_term @"(--(&0) = &0) /\
      (--(--(&x)) = &x)"), REWRITE_TAC [REAL_NEG_NEG; REAL_NEG_0])
     GEN_REWRITE_CONV I [pth]
 
 let REAL_INT_MUL_CONV = 
-    let pth0 = prove((parse_term "(&0 * &x = &0) /\
+    let pth0 = prove((parse_term @"(&0 * &x = &0) /\
      (&0 * --(&x) = &0) /\
      (&x * &0 = &0) /\
      (--(&x) * &0 = &0)"), REWRITE_TAC [REAL_MUL_LZERO; REAL_MUL_RZERO])
-    let pth1, pth2 = (CONJ_PAIR << prove)((parse_term "((&m * &n = &(m * n)) /\
+    let pth1, pth2 = (CONJ_PAIR << prove)((parse_term @"((&m * &n = &(m * n)) /\
       (--(&m) * --(&n) = &(m * n))) /\
      ((--(&m) * &n = --(&(m * n))) /\
       (&m * --(&n) = --(&(m * n))))"), REWRITE_TAC 
@@ -353,17 +353,17 @@ let REAL_INT_MUL_CONV =
                 |> THENC <| RAND_CONV(RAND_CONV NUM_MULT_CONV)]
 
 let REAL_INT_ADD_CONV = 
-    let neg_tm = (parse_term "(--)")
-    let amp_tm = (parse_term "&")
-    let add_tm = (parse_term "(+)")
-    let dest = dest_binop(parse_term "(+)")
-    let m_tm = (parse_term "m:num")
-    let n_tm = (parse_term "n:num")
-    let pth0 = prove((parse_term "(--(&m) + &m = &0) /\
+    let neg_tm = (parse_term @"(--)")
+    let amp_tm = (parse_term @"&")
+    let add_tm = (parse_term @"(+)")
+    let dest = dest_binop(parse_term @"(+)")
+    let m_tm = (parse_term @"m:num")
+    let n_tm = (parse_term @"n:num")
+    let pth0 = prove((parse_term @"(--(&m) + &m = &0) /\
      (&m + --(&m) = &0)"), REWRITE_TAC [REAL_ADD_LINV; REAL_ADD_RINV])
     let [pth1; pth2; pth3; pth4; pth5; pth6] = 
         (CONJUNCTS << prove)
-            ((parse_term "(--(&m) + --(&n) = --(&(m + n))) /\
+            ((parse_term @"(--(&m) + --(&n) = --(&(m + n))) /\
      (--(&m) + &(m + n) = &n) /\
      (--(&(m + n)) + &m = --(&n)) /\
      (&(m + n) + --(&m) = &n) /\
@@ -459,7 +459,7 @@ let REAL_INT_SUB_CONV =
 let REAL_INT_POW_CONV = 
     let pth1, pth2 = 
         (CONJ_PAIR << prove)
-            ((parse_term "(&x pow n = &(x EXP n)) /\
+            ((parse_term @"(&x pow n = &(x EXP n)) /\
      ((--(&x)) pow n = if EVEN n then &(x EXP n) else --(&(x EXP n)))"), 
              REWRITE_TAC [REAL_OF_NUM_POW; REAL_POW_NEG])
     let tth = 
@@ -467,7 +467,7 @@ let REAL_INT_POW_CONV =
             ((parse_term 
                   "((if T then x:real else y) = x) /\ ((if F then x:real else y) = y)"), 
              REWRITE_TAC [])
-    let neg_tm = (parse_term "(--)")
+    let neg_tm = (parse_term @"(--)")
     (GEN_REWRITE_CONV I [pth1]
      |> THENC <| RAND_CONV NUM_EXP_CONV)
     |> ORELSEC <| (GEN_REWRITE_CONV I [pth2]
@@ -479,25 +479,25 @@ let REAL_INT_POW_CONV =
                        else RAND_CONV NUM_EXP_CONV tm))
 
 let REAL_INT_ABS_CONV = 
-    let pth = prove((parse_term "(abs(--(&x)) = &x) /\
+    let pth = prove((parse_term @"(abs(--(&x)) = &x) /\
      (abs(&x) = &x)"), REWRITE_TAC [REAL_ABS_NEG; REAL_ABS_NUM])
     GEN_REWRITE_CONV I [pth]
 
 let REAL_INT_RED_CONV = 
     let gconv_net = 
-        itlist (uncurry net_of_conv) [(parse_term "x <= y"), REAL_INT_LE_CONV
-                                      (parse_term "x < y"), REAL_INT_LT_CONV
-                                      (parse_term "x >= y"), REAL_INT_GE_CONV
-                                      (parse_term "x > y"), REAL_INT_GT_CONV
-                                      (parse_term "x:real = y"), 
+        itlist (uncurry net_of_conv) [(parse_term @"x <= y"), REAL_INT_LE_CONV
+                                      (parse_term @"x < y"), REAL_INT_LT_CONV
+                                      (parse_term @"x >= y"), REAL_INT_GE_CONV
+                                      (parse_term @"x > y"), REAL_INT_GT_CONV
+                                      (parse_term @"x:real = y"), 
                                       REAL_INT_EQ_CONV
-                                      (parse_term "--x"), 
+                                      (parse_term @"--x"), 
                                       CHANGED_CONV REAL_INT_NEG_CONV
-                                      (parse_term "abs(x)"), REAL_INT_ABS_CONV
-                                      (parse_term "x + y"), REAL_INT_ADD_CONV
-                                      (parse_term "x - y"), REAL_INT_SUB_CONV
-                                      (parse_term "x * y"), REAL_INT_MUL_CONV
-                                      (parse_term "x pow n"), REAL_INT_POW_CONV] 
+                                      (parse_term @"abs(x)"), REAL_INT_ABS_CONV
+                                      (parse_term @"x + y"), REAL_INT_ADD_CONV
+                                      (parse_term @"x - y"), REAL_INT_SUB_CONV
+                                      (parse_term @"x * y"), REAL_INT_MUL_CONV
+                                      (parse_term @"x pow n"), REAL_INT_POW_CONV] 
             (basic_net())
     REWRITES_CONV gconv_net
 

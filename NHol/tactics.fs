@@ -40,6 +40,7 @@ open drule
 (* ------------------------------------------------------------------------- *)
 (* The common case of trivial instantiations.                                *)
 (* ------------------------------------------------------------------------- *)
+
 let null_inst = ([], [], [] : instantiation)
 
 let null_meta = (([] : term list), null_inst)
@@ -47,6 +48,7 @@ let null_meta = (([] : term list), null_inst)
 (* ------------------------------------------------------------------------- *)
 (* A goal has labelled assumptions, and the hyps are now thms.               *)
 (* ------------------------------------------------------------------------- *)
+
 type goal = (string * thm) list * term
 
 let equals_goal ((a, w) : goal) ((a', w') : goal) = 
@@ -60,17 +62,20 @@ let equals_goal ((a, w) : goal) ((a', w') : goal) =
 (*                                                                           *)
 (*   f(@) [A1@ |- g1@; ...; An@ |- gn@] = A@ |- g@                           *)
 (* ------------------------------------------------------------------------- *)
+
 type justification = instantiation -> thm list -> thm
 
 (* ------------------------------------------------------------------------- *)
 (* The goalstate stores the subgoals, justification, current instantiation,  *)
 (* and a list of metavariables.                                              *)
 (* ------------------------------------------------------------------------- *)
+
 type goalstate = (term list * instantiation) * goal list * justification
 
 (* ------------------------------------------------------------------------- *)
 (* A goalstack is just a list of goalstates. Could go for more...            *)
 (* ------------------------------------------------------------------------- *)
+
 type goalstack = goalstate list
 
 (* ------------------------------------------------------------------------- *)
@@ -78,6 +83,7 @@ type goalstack = goalstate list
 (* yields a new goalstate with updated justification function, to            *)
 (* give a possibly-more-instantiated version of the initial goal.            *)
 (* ------------------------------------------------------------------------- *)
+
 type refinement = goalstate -> goalstate
 
 (* ------------------------------------------------------------------------- *)
@@ -89,6 +95,7 @@ type refinement = goalstate -> goalstate
 (*  o A justification f such that for any instantiation @ we have            *)
 (*    f(@) [A1@  |- g1@; ...; An@ |- gn@] = A(%;@) |- g(%;@)                 *)
 (* ------------------------------------------------------------------------- *)
+
 type tactic = goal -> goalstate
 
 type thm_tactic = thm -> tactic
@@ -98,12 +105,14 @@ type thm_tactical = thm_tactic -> thm_tactic
 (* ------------------------------------------------------------------------- *)
 (* Apply instantiation to a goal.                                            *)
 (* ------------------------------------------------------------------------- *)
+
 let (inst_goal : instantiation -> goal -> goal) = 
     fun p (thms, w) -> map (I ||>> INSTANTIATE_ALL p) thms, instantiate p w
 
 (* ------------------------------------------------------------------------- *)
 (* Perform a sequential composition (left first) of instantiations.          *)
 (* ------------------------------------------------------------------------- *)
+
 let (compose_insts : instantiation -> instantiation -> instantiation) = 
     fun (pats1, tmin1, tyin1) ((pats2, tmin2, tyin2) as i2) -> 
         let tmin = map (instantiate i2 ||>> inst tyin2) tmin1
@@ -115,22 +124,24 @@ let (compose_insts : instantiation -> instantiation -> instantiation) =
 (* ------------------------------------------------------------------------- *)
 (* Construct A,_FALSITY_ |- p; contortion so falsity is the last element.    *)
 (* ------------------------------------------------------------------------- *)
-let _FALSITY_ = new_definition(parse_term "_FALSITY_ = F")
+
+let _FALSITY_ = new_definition(parse_term @"_FALSITY_ = F")
 
 let mk_fthm = 
     let pth() = UNDISCH(fst(EQ_IMP_RULE _FALSITY_))
-    let qth = ASSUME(parse_term "_FALSITY_")
+    let qth = ASSUME(parse_term @"_FALSITY_")
     fun (asl, c) -> PROVE_HYP qth (itlist ADD_ASSUM (rev asl) (CONTR c <| pth()))
 
 (* ------------------------------------------------------------------------- *)
 (* Validity checking of tactics. This cannot be 100% accurate without making *)
 (* arbitrary theorems, but "mk_fthm" brings us quite close.                  *)
 (* ------------------------------------------------------------------------- *)
+
 let (VALID : tactic -> tactic) = 
     let fake_thm(asl, w) = 
         let asms = itlist (union << hyp << snd) asl []
         mk_fthm(asms, w)
-    let false_tm = parse_term "_FALSITY_"
+    let false_tm = parse_term @"_FALSITY_"
     fun tac (asl, w) -> 
         let ((mvs, i), gls, just as res) = tac(asl, w)
         let ths = map fake_thm gls
@@ -147,6 +158,7 @@ let (VALID : tactic -> tactic) =
 (* ------------------------------------------------------------------------- *)
 (* Various simple combinators for tactics, identity tactic etc.              *)
 (* ------------------------------------------------------------------------- *)
+
 let (THEN), (THENL) = 
     let propagate_empty i [] = []
     let propagate_thm th i [] = INSTANTIATE_ALL i th
@@ -199,7 +211,9 @@ let (ALL_TAC : tactic) = fun g -> null_meta, [g], fun _ [th] -> th
 
 let TRY tac = ORELSE tac ALL_TAC
 
-let rec REPEAT(tac : tactic) : tactic = (ORELSE (THEN tac (REPEAT tac)) ALL_TAC)
+// CAUTION: Change this to delay StackOverflowException
+let rec REPEAT(tac : tactic) : tactic =
+    fun g -> (ORELSE (THEN tac (REPEAT tac)) ALL_TAC) g
 
 let EVERY tacl = itlist (fun t1 t2 -> THEN t1 t2) tacl ALL_TAC
 let (FIRST : tactic list -> tactic) = 
@@ -223,6 +237,7 @@ let rec REPLICATE_TAC n tac =
 (* ------------------------------------------------------------------------- *)
 (* Combinators for theorem continuations / "theorem tacticals".              *)
 (* ------------------------------------------------------------------------- *)
+
 let ((THEN_TCL) : thm_tactical -> thm_tactical -> thm_tactical) = 
     fun ttcl1 ttcl2 ttac -> ttcl1(ttcl2 ttac)
 
@@ -233,7 +248,9 @@ let ((ORELSE_TCL) : thm_tactical -> thm_tactical -> thm_tactical) =
         with
         | Failure _ -> ttcl2 ttac th
 
-let rec REPEAT_TCL ttcl = (ORELSE_TCL (THEN_TCL ttcl (REPEAT_TCL ttcl)) I)
+// CAUTION: Change REPEAT_TCL to delay StackOverflowException
+let rec REPEAT_TCL ttcl = 
+    fun ttac -> (ORELSE_TCL (THEN_TCL ttcl (REPEAT_TCL ttcl)) I) ttac
 
 let (REPEAT_GTCL : thm_tactical -> thm_tactical) = 
     let rec REPEAT_GTCL ttcl ttac th g = 
@@ -253,6 +270,7 @@ let FIRST_TCL ttcll = end_itlist (fun t1 t2 -> ORELSE_TCL t1 t2) ttcll
 (* any assumption "p", these add a PROVE_HYP in the justification function,  *)
 (* just in case.                                                             *)
 (* ------------------------------------------------------------------------- *)
+
 let (LABEL_TAC : string -> thm_tactic) = 
     fun s thm (asl, w) -> null_meta, [(s, thm) :: asl, w], fun i [th] -> PROVE_HYP (INSTANTIATE_ALL i thm) th
 
@@ -261,6 +279,7 @@ let ASSUME_TAC = LABEL_TAC ""
 (* ------------------------------------------------------------------------- *)
 (* Manipulation of assumption list.                                          *)
 (* ------------------------------------------------------------------------- *)
+
 let (FIND_ASSUM : thm_tactic -> term -> tactic) = 
     fun ttac t ((asl, w) as g) -> ttac (snd(find (fun (_, th) -> concl th = t) asl)) g
 
@@ -289,6 +308,7 @@ let (RULE_ASSUM_TAC : (thm -> thm) -> tactic) =
 (* ------------------------------------------------------------------------- *)
 (* Operate on assumption identified by a label.                              *)
 (* ------------------------------------------------------------------------- *)
+
 let (USE_THEN : string -> thm_tactic -> tactic) = 
     fun s ttac (asl, w as gl) -> 
         let th = 
@@ -314,6 +334,7 @@ let (REMOVE_THEN : string -> thm_tactic -> tactic) =
 (* Here ASM uses all current hypotheses of the goal, while HYP uses only     *)
 (* those whose labels are given in the string argument.                      *)
 (* ------------------------------------------------------------------------- *)
+
 let (ASM : (thm list -> tactic) -> thm list -> tactic) = 
     fun tltac ths (asl, w as g) -> tltac (map snd asl @ ths) g
 
@@ -334,6 +355,7 @@ let HYP =
 (* ------------------------------------------------------------------------- *)
 (* Basic tactic to use a theorem equal to the goal. Does *no* matching.      *)
 (* ------------------------------------------------------------------------- *)
+
 let (ACCEPT_TAC : thm_tactic) = 
     let propagate_thm th i [] = INSTANTIATE_ALL i th
     fun th (asl, w) -> 
@@ -346,8 +368,9 @@ let (ACCEPT_TAC : thm_tactic) =
 (* |- p rather than |- p = T on a term "p". It also eliminates any goals of  *)
 (* the form "T" automatically.                                               *)
 (* ------------------------------------------------------------------------- *)
+
 let (CONV_TAC : conv -> tactic) = 
-    let t_tm = parse_term "T"
+    let t_tm = parse_term @"T"
     fun conv ((asl, w) as g) -> 
         let th = conv w
         let tm = concl th
@@ -363,6 +386,7 @@ let (CONV_TAC : conv -> tactic) =
 (* ------------------------------------------------------------------------- *)
 (* Tactics for equality reasoning.                                           *)
 (* ------------------------------------------------------------------------- *)
+
 let (REFL_TAC : tactic) = 
     fun ((asl, w) as g) -> 
         try 
@@ -428,6 +452,7 @@ let BETA_TAC = CONV_TAC(REDEPTH_CONV BETA_CONV)
 (* ------------------------------------------------------------------------- *)
 (* Just use an equation to substitute if possible and uninstantiable.        *)
 (* ------------------------------------------------------------------------- *)
+
 let SUBST_VAR_TAC th = 
     try 
         let asm, eq = dest_thm th
@@ -447,8 +472,9 @@ let SUBST_VAR_TAC th =
 (* ------------------------------------------------------------------------- *)
 (* Basic logical tactics.                                                    *)
 (* ------------------------------------------------------------------------- *)
+
 let (DISCH_TAC : tactic) = 
-    let f_tm = parse_term "F"
+    let f_tm = parse_term @"F"
     fun (asl, w) -> 
         try 
             let ant, c = dest_imp w
@@ -657,6 +683,7 @@ let (MATCH_MP_TAC : thm_tactic) =
 (* ------------------------------------------------------------------------- *)
 (* Theorem continuations.                                                    *)
 (* ------------------------------------------------------------------------- *)
+
 let (CONJUNCTS_THEN2 : thm_tactic -> thm_tactic -> thm_tactic) = 
     fun ttac1 ttac2 cth -> 
         let c1, c2 = dest_conj(concl cth)
@@ -685,6 +712,7 @@ let (CHOOSE_THEN : thm_tactical) =
 (* ------------------------------------------------------------------------- *)
 (* Various derived tactics and theorem continuations.                        *)
 (* ------------------------------------------------------------------------- *)
+
 let STRIP_THM_THEN = FIRST_TCL [CONJUNCTS_THEN; DISJ_CASES_THEN; CHOOSE_THEN]
 
 let (ANTE_RES_THEN : thm_tactical) = 
@@ -710,11 +738,12 @@ let STRIP_ASSUME_TAC =
                 if exists (fun a -> aconv tm (concl(snd a))) asl
                 then ALL_TAC g
                 else failwith "DISCARD_TAC: not already present"
+    
     (REPEAT_TCL STRIP_THM_THEN)(fun gth -> 
-            FIRST [CONTR_TAC gth
-                   ACCEPT_TAC gth
-                   DISCARD_TAC gth
-                   ASSUME_TAC gth])
+        FIRST [CONTR_TAC gth
+               ACCEPT_TAC gth
+               DISCARD_TAC gth
+               ASSUME_TAC gth])
 
 let STRUCT_CASES_THEN ttac = REPEAT_TCL STRIP_THM_THEN ttac
 let STRUCT_CASES_TAC = 
@@ -742,6 +771,7 @@ let FIRST_X_ASSUM ttac = FIRST_ASSUM(fun th -> UNDISCH_THEN (concl th) ttac)
 (* ------------------------------------------------------------------------- *)
 (* Subgoaling and freezing variables (latter is especially useful now).      *)
 (* ------------------------------------------------------------------------- *)
+
 let (SUBGOAL_THEN : term -> thm_tactic -> tactic) = 
     fun wa ttac (asl, w) -> 
         let meta, gl, just = ttac (ASSUME wa) (asl, w)
@@ -762,6 +792,7 @@ let (FREEZE_THEN : thm_tactical) =
 (* ------------------------------------------------------------------------- *)
 (* Metavariable tactics.                                                     *)
 (* ------------------------------------------------------------------------- *)
+
 let (X_META_EXISTS_TAC : term -> tactic) = 
     fun t (asl, w) -> 
         try 
@@ -787,19 +818,22 @@ let (META_SPEC_TAC : term -> thm -> tactic) =
 (* ------------------------------------------------------------------------- *)
 (* If all else fails!                                                        *)
 (* ------------------------------------------------------------------------- *)
+
 let (CHEAT_TAC : tactic) = fun (asl, w) -> ACCEPT_TAC (mk_thm([], w)) (asl, w)
 
 (* ------------------------------------------------------------------------- *)
 (* Intended for time-consuming rules; delays evaluation till it sees goal.   *)
 (* ------------------------------------------------------------------------- *)
+
 let RECALL_ACCEPT_TAC r a g = ACCEPT_TAC (time r a) g
 
 (* ------------------------------------------------------------------------- *)
 (* Split off antecedent of antecedent as a subgoal.                          *)
 (* ------------------------------------------------------------------------- *)
+
 let ANTS_TAC = 
-    let tm1 = parse_term "p /\ (q ==> r)"
-    let tm2 = parse_term "p ==> q"
+    let tm1 = parse_term @"p /\ (q ==> r)"
+    let tm2 = parse_term @"p ==> q"
     let th1, th2 = CONJ_PAIR(ASSUME tm1)
     let th = itlist DISCH [tm1; tm2] (MP th2 (MP (ASSUME tm2) th1))
     THEN (MATCH_MP_TAC th) CONJ_TAC
@@ -807,6 +841,7 @@ let ANTS_TAC =
 (* ------------------------------------------------------------------------- *)
 (* A printer for goals etc.                                                  *)
 (* ------------------------------------------------------------------------- *)
+
 let (print_goal : goal -> unit) = 
     let string_of_int3 n = 
         if n < 10
@@ -879,6 +914,7 @@ let (print_goalstack : goalstack -> unit) =
 (* ------------------------------------------------------------------------- *)
 (* Convert a tactic into a refinement on head subgoal in current state.      *)
 (* ------------------------------------------------------------------------- *)
+
 let (by : tactic -> refinement) = 
     fun tac ((mvs, inst), gls, just) -> 
         if gls = [] then failwith "No goal set"
@@ -900,6 +936,7 @@ let (by : tactic -> refinement) =
 (* ------------------------------------------------------------------------- *)
 (* Rotate the goalstate either way.                                          *)
 (* ------------------------------------------------------------------------- *)
+
 let (rotate : int -> refinement) = 
     let rotate_p(meta, sgs, just) = 
         let sgs' = (tl sgs) @ [hd sgs]
@@ -921,6 +958,7 @@ let (rotate : int -> refinement) =
 (* ------------------------------------------------------------------------- *)
 (* Perform refinement proof, tactic proof etc.                               *)
 (* ------------------------------------------------------------------------- *)
+
 let (mk_goalstate : goal -> goalstate) = 
     fun (asl, w) -> 
         if type_of w = bool_ty
@@ -950,6 +988,7 @@ let prove(t, tac) =
 (* ------------------------------------------------------------------------- *)
 (* Interactive "subgoal package" stuff.                                      *)
 (* ------------------------------------------------------------------------- *)
+
 let current_goalstack = ref([] : goalstack)
 
 let (refine : refinement -> goalstack) = 

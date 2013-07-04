@@ -80,7 +80,7 @@ let WF_IND =
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| GEN_TAC
-         |> THEN <| POP_ASSUM(MP_TAC << SPEC(parse_term "\x:A. ~P(x)"))
+         |> THEN <| POP_ASSUM(MP_TAC << SPEC(parse_term @"\x:A. ~P(x)"))
          |> THEN <| REWRITE_TAC []
          |> THEN <| MESON_TAC [])
 
@@ -89,42 +89,42 @@ let WF_IND =
 (* ------------------------------------------------------------------------- *)
 let WF_DCHAIN = 
     prove
-        ((parse_term "WF(<<) <=> ~(?s:num->A. !n. s(SUC n) << s(n))"), 
+        ((parse_term @"WF(<<) <=> ~(?s:num->A. !n. s(SUC n) << s(n))"), 
          REWRITE_TAC [WF
-                      TAUT(parse_term "(a <=> ~b) <=> (~a <=> b)")
+                      TAUT(parse_term @"(a <=> ~b) <=> (~a <=> b)")
                       NOT_FORALL_THM]
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_THEN CHOOSE_TAC
          |> THENL <| [POP_ASSUM(MP_TAC << REWRITE_RULE [NOT_IMP])
                       |> THEN 
                       <| DISCH_THEN
-                             (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term "a:A")) 
+                             (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term @"a:A")) 
                                   ASSUME_TAC)
                       |> THEN 
                       <| SUBGOAL_THEN 
-                             (parse_term "!x:A. ?y. P(x) ==> P(y) /\ y << x") 
+                             (parse_term @"!x:A. ?y. P(x) ==> P(y) /\ y << x") 
                              MP_TAC
                       |> THENL <| [ASM_MESON_TAC []
                                    REWRITE_TAC [SKOLEM_THM]]
                       |> THEN 
                       <| DISCH_THEN
-                             (X_CHOOSE_THEN (parse_term "f:A->A") 
+                             (X_CHOOSE_THEN (parse_term @"f:A->A") 
                                   STRIP_ASSUME_TAC)
                       |> THEN 
                       <| CHOOSE_TAC
                              (prove_recursive_functions_exist num_RECURSION 
                                   (parse_term 
                                        "(s(0) = a:A) /\ (!n. s(SUC n) = f(s n))"))
-                      |> THEN <| EXISTS_TAC(parse_term "s:num->A")
+                      |> THEN <| EXISTS_TAC(parse_term @"s:num->A")
                       |> THEN <| ASM_REWRITE_TAC []
                       |> THEN 
                       <| SUBGOAL_THEN 
-                             (parse_term "!n. P(s n) /\ s(SUC n):A << s(n)") 
+                             (parse_term @"!n. P(s n) /\ s(SUC n):A << s(n)") 
                              (fun th -> ASM_MESON_TAC [th])
                       |> THEN <| INDUCT_TAC
                       |> THEN <| ASM_REWRITE_TAC []
                       |> THEN <| ASM_MESON_TAC []
-                      EXISTS_TAC(parse_term "\y:A. ?n:num. y = s(n)")
+                      EXISTS_TAC(parse_term @"\y:A. ?n:num. y = s(n)")
                       |> THEN <| REWRITE_TAC []
                       |> THEN <| ASM_MESON_TAC []])
 
@@ -132,7 +132,7 @@ let WF_DCHAIN =
 (* Equivalent to just *uniqueness* part of recursion.                        *)
 (* ------------------------------------------------------------------------- *)
 let WF_UREC = 
-    prove((parse_term "WF(<<) ==>
+    prove((parse_term @"WF(<<) ==>
         !H. (!f g x. (!z. z << x ==> (f z = g z)) ==> (H f x = H g x))
              ==> !(f:A->B) g. (!x. f x = H f x) /\ (!x. g x = H g x)
                                ==> (f = g)"),
@@ -145,7 +145,7 @@ let WF_UREC =
                               |> THEN <| ASM_REWRITE_TAC [])
 
 let WF_UREC_WF = 
-  prove((parse_term "(!H. (!f g x. (!z. z << x ==> (f z = g z)) ==> (H f x = H g x))
+  prove((parse_term @"(!H. (!f g x. (!z. z << x ==> (f z = g z)) ==> (H f x = H g x))
          ==> !(f:A->bool) g. (!x. f x = H f x) /\ (!x. g x = H g x)
                            ==> (f = g))
     ==> WF(<<)"),
@@ -155,13 +155,13 @@ let WF_UREC_WF =
    |> THEN <| DISCH_TAC
    |> THEN 
    <| FIRST_X_ASSUM
-          (MP_TAC << SPEC(parse_term "\f x. P(x:A) \/ !z:A. z << x ==> f(z)"))
+          (MP_TAC << SPEC(parse_term @"\f x. P(x:A) \/ !z:A. z << x ==> f(z)"))
    |> THEN <| REWRITE_TAC []
    |> THEN 
    <| W(C SUBGOAL_THEN (fun t -> REWRITE_TAC [t]) << funpow 2 lhand << snd)
    |> THENL <| [MESON_TAC []
-                DISCH_THEN(MP_TAC << SPECL [(parse_term "P:A->bool")
-                                            (parse_term "\x:A. T")])
+                DISCH_THEN(MP_TAC << SPECL [(parse_term @"P:A->bool")
+                                            (parse_term @"\x:A. T")])
                 |> THEN <| REWRITE_TAC [FUN_EQ_THM]
                 |> THEN <| ASM_MESON_TAC []])
 
@@ -169,7 +169,7 @@ let WF_UREC_WF =
 (* Stronger form of recursion with "inductive invariant" (Krstic/Matthews).  *)
 (* ------------------------------------------------------------------------- *)
 let WF_REC_INVARIANT = 
-    prove((parse_term "WF(<<)
+    prove((parse_term @"WF(<<)
     ==> !H S. (!f g x. (!z. z << x ==> (f z = g z) /\ S z (f z))
                        ==> (H f x = H g x) /\ S x (H f x))
               ==> ?f:A->B. !x. (f x = H f x)"),
@@ -180,44 +180,44 @@ let WF_REC_INVARIANT =
              REWRITE_TAC [WF_IND]
              |> THEN <| REPEAT STRIP_TAC
              |> THEN 
-             <| X_CHOOSE_THEN (parse_term "R:A->B->bool") STRIP_ASSUME_TAC lemma
+             <| X_CHOOSE_THEN (parse_term @"R:A->B->bool") STRIP_ASSUME_TAC lemma
              |> THEN 
-             <| SUBGOAL_THEN (parse_term "!x:A. ?!y:B. R x y") 
+             <| SUBGOAL_THEN (parse_term @"!x:A. ?!y:B. R x y") 
                     (fun th -> ASM_MESON_TAC [th])
              |> THEN <| FIRST_X_ASSUM MATCH_MP_TAC
              |> THEN <| REPEAT STRIP_TAC
              |> THEN 
              <| FIRST_X_ASSUM(fun th -> GEN_REWRITE_TAC BINDER_CONV [th])
              |> THEN 
-             <| SUBGOAL_THEN (parse_term "!x:A y:B. R x y ==> S x y") MP_TAC
+             <| SUBGOAL_THEN (parse_term @"!x:A y:B. R x y ==> S x y") MP_TAC
              |> THEN <| ASM_MESON_TAC [])
 
 (* ------------------------------------------------------------------------- *)
 (* Equivalent to just *existence* part of recursion.                         *)
 (* ------------------------------------------------------------------------- *)
 let WF_REC = 
-    prove((parse_term "WF(<<)
+    prove((parse_term @"WF(<<)
     ==> !H. (!f g x. (!z. z << x ==> (f z = g z)) ==> (H f x = H g x))
             ==> ?f:A->B. !x. f x = H f x"),
            REPEAT STRIP_TAC
            |> THEN <| FIRST_X_ASSUM(MATCH_MP_TAC << MATCH_MP WF_REC_INVARIANT)
-           |> THEN <| EXISTS_TAC(parse_term "\x:A y:B. T")
+           |> THEN <| EXISTS_TAC(parse_term @"\x:A y:B. T")
            |> THEN <| ASM_REWRITE_TAC [])
 
 let WF_REC_WF = 
-   prove((parse_term "(!H. (!f g x. (!z. z << x ==> (f z = g z)) ==> (H f x = H g x))
+   prove((parse_term @"(!H. (!f g x. (!z. z << x ==> (f z = g z)) ==> (H f x = H g x))
                  ==> ?f:A->num. !x. f x = H f x)
     ==> WF(<<)"),
     DISCH_TAC
     |> THEN <| REWRITE_TAC [WF_DCHAIN]
-    |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "x:num->A"))
+    |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"x:num->A"))
     |> THEN 
-    <| SUBGOAL_THEN (parse_term "!n. (x:num->A)(@m. x(m) << x(n)) << x(n)") 
+    <| SUBGOAL_THEN (parse_term @"!n. (x:num->A)(@m. x(m) << x(n)) << x(n)") 
            ASSUME_TAC
     |> THENL <| [CONV_TAC(BINDER_CONV SELECT_CONV)
                  |> THEN <| ASM_MESON_TAC []
                  ALL_TAC]
-    |> THEN <| FIRST_ASSUM(MP_TAC << SPEC(parse_term "\f:A->num. \y:A. if ?p:num. y = x(p)
+    |> THEN <| FIRST_ASSUM(MP_TAC << SPEC(parse_term @"\f:A->num. \y:A. if ?p:num. y = x(p)
                        then SUC(f(x(@m. x(m) << y)))
                        else 0")) 
     |> THEN <| REWRITE_TAC [NOT_IMP]
@@ -226,34 +226,34 @@ let WF_REC_WF =
                  |> THEN <| COND_CASES_TAC
                  |> THEN <| REWRITE_TAC []
                  |> THEN 
-                 <| FIRST_ASSUM(X_CHOOSE_THEN (parse_term "p:num") SUBST_ALL_TAC)
+                 <| FIRST_ASSUM(X_CHOOSE_THEN (parse_term @"p:num") SUBST_ALL_TAC)
                  |> THEN <| AP_TERM_TAC
                  |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                  |> THEN <| FIRST_ASSUM MATCH_ACCEPT_TAC
                  ALL_TAC]
-    |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term "f:A->num") MP_TAC)
+    |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term @"f:A->num") MP_TAC)
     |> THEN 
     <| DISCH_THEN
-           (MP_TAC << GEN(parse_term "n:num") << SPEC(parse_term "(x:num->A) n"))
+           (MP_TAC << GEN(parse_term @"n:num") << SPEC(parse_term @"(x:num->A) n"))
     |> THEN 
-    <| SUBGOAL_THEN (parse_term "!n. ?p. (x:num->A) n = x p") 
+    <| SUBGOAL_THEN (parse_term @"!n. ?p. (x:num->A) n = x p") 
            (fun th -> REWRITE_TAC [th])
     |> THENL <| [MESON_TAC []; DISCH_TAC]
     |> THEN 
-    <| SUBGOAL_THEN (parse_term "!n:num. ?k. f(x(k):A) < f(x(n))") ASSUME_TAC
+    <| SUBGOAL_THEN (parse_term @"!n:num. ?k. f(x(k):A) < f(x(n))") ASSUME_TAC
     |> THENL <| [GEN_TAC
-                 |> THEN <| EXISTS_TAC(parse_term "@m:num. x(m):A << x(n)")
+                 |> THEN <| EXISTS_TAC(parse_term @"@m:num. x(m):A << x(n)")
                  |> THEN <| FIRST_ASSUM(fun th -> GEN_REWRITE_TAC RAND_CONV [th])
                  |> THEN <| REWRITE_TAC [LT]
                  MP_TAC
-                     (SPEC (parse_term "\n:num. ?i:num. n = f(x(i):A)") num_WOP)
+                     (SPEC (parse_term @"\n:num. ?i:num. n = f(x(i):A)") num_WOP)
                  |> THEN <| REWRITE_TAC []
                  |> THEN <| ASM_MESON_TAC []])
 
 (* ------------------------------------------------------------------------- *)
 (* Combine the two versions of the recursion theorem.                        *)
 (* ------------------------------------------------------------------------- *)
-let WF_EREC = prove((parse_term "WF(<<) ==>
+let WF_EREC = prove((parse_term @"WF(<<) ==>
         !H. (!f g x. (!z. z << x ==> (f z = g z)) ==> (H f x = H g x))
              ==> ?!f:A->B. !x. f x = H f x"), MESON_TAC [WF_REC; WF_UREC])
 
@@ -264,75 +264,75 @@ parse_as_infix("<<<", (12, "right"))
 (* ------------------------------------------------------------------------- *)
 let WF_SUBSET = 
     prove
-        ((parse_term "(!(x:A) y. x << y ==> x <<< y) /\ WF(<<<) ==> WF(<<)"), 
+        ((parse_term @"(!(x:A) y. x << y ==> x <<< y) /\ WF(<<<) ==> WF(<<)"), 
          DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC MP_TAC)
          |> THEN <| REWRITE_TAC [WF]
          |> THEN <| DISCH_TAC
          |> THEN <| GEN_TAC
          |> THEN <| DISCH_THEN(ANTE_RES_THEN MP_TAC)
-         |> THEN <| UNDISCH_TAC(parse_term "!(x:A) (y:A). x << y ==> x <<< y")
+         |> THEN <| UNDISCH_TAC(parse_term @"!(x:A) (y:A). x << y ==> x <<< y")
          |> THEN <| MESON_TAC [])
 
 let WF_MEASURE_GEN = 
     prove
-        ((parse_term "!m:A->B. WF(<<) ==> WF(\x x'. m x << m x')"), 
+        ((parse_term @"!m:A->B. WF(<<) ==> WF(\x x'. m x << m x')"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [WF_IND]
          |> THEN <| REPEAT STRIP_TAC
          |> THEN 
          <| FIRST_ASSUM
-                (MP_TAC << SPEC(parse_term "\y:B. !x:A. (m(x) = y) ==> P x"))
+                (MP_TAC << SPEC(parse_term @"\y:B. !x:A. (m(x) = y) ==> P x"))
          |> THEN 
          <| UNDISCH_TAC
-                (parse_term "!x. (!y. (m:A->B) y << m x ==> P y) ==> P x")
+                (parse_term @"!x. (!y. (m:A->B) y << m x ==> P y) ==> P x")
          |> THEN <| REWRITE_TAC []
          |> THEN <| MESON_TAC [])
 
 let WF_LEX_DEPENDENT = 
-    prove((parse_term "!R:A->A->bool S:A->B->B->bool. WF(R) /\ (!a. WF(S a))
+    prove((parse_term @"!R:A->A->bool S:A->B->B->bool. WF(R) /\ (!a. WF(S a))
           ==> WF(\(r1,s1) (r2,s2). R r1 r2 \/ (r1 = r2) /\ S r1 s1 s2)"),
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [WF]
          |> THEN <| STRIP_TAC
-         |> THEN <| X_GEN_TAC(parse_term "P:A#B->bool")
+         |> THEN <| X_GEN_TAC(parse_term @"P:A#B->bool")
          |> THEN <| REWRITE_TAC [LEFT_IMP_EXISTS_THM]
          |> THEN <| GEN_REWRITE_TAC I [FORALL_PAIR_THM]
-         |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term "a0:A")
-                                         (parse_term "b0:B")]
+         |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term @"a0:A")
+                                         (parse_term @"b0:B")]
          |> THEN <| DISCH_TAC
          |> THEN 
-         <| FIRST_X_ASSUM(MP_TAC << SPEC(parse_term "\a:A. ?b:B. P(a,b)"))
+         <| FIRST_X_ASSUM(MP_TAC << SPEC(parse_term @"\a:A. ?b:B. P(a,b)"))
          |> THEN <| REWRITE_TAC [LEFT_IMP_EXISTS_THM]
-         |> THEN <| DISCH_THEN(MP_TAC << SPECL [(parse_term "a0:A")
-                                                (parse_term "b0:B")])
+         |> THEN <| DISCH_THEN(MP_TAC << SPECL [(parse_term @"a0:A")
+                                                (parse_term @"b0:B")])
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN 
          <| DISCH_THEN
-                (X_CHOOSE_THEN (parse_term "a:A") 
+                (X_CHOOSE_THEN (parse_term @"a:A") 
                      (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC))
-         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "b1:B"))
+         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"b1:B"))
          |> THEN 
          <| FIRST_X_ASSUM
-                (MP_TAC << SPECL [(parse_term "a:A")
-                                  (parse_term "\b. (P:A#B->bool) (a,b)")])
+                (MP_TAC << SPECL [(parse_term @"a:A")
+                                  (parse_term @"\b. (P:A#B->bool) (a,b)")])
          |> THEN <| REWRITE_TAC [LEFT_IMP_EXISTS_THM]
-         |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term "b1:B"))
+         |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term @"b1:B"))
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN 
          <| DISCH_THEN
-                (X_CHOOSE_THEN (parse_term "b:B") 
+                (X_CHOOSE_THEN (parse_term @"b:B") 
                      (CONJUNCTS_THEN2 MP_TAC ASSUME_TAC))
          |> THEN <| DISCH_TAC
-         |> THEN <| EXISTS_TAC(parse_term "(a:A,b:B)")
+         |> THEN <| EXISTS_TAC(parse_term @"(a:A,b:B)")
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| REWRITE_TAC [FORALL_PAIR_THM]
          |> THEN <| ASM_MESON_TAC [])
 
-let WF_LEX = prove((parse_term "!R:A->A->bool S:B->B->bool. WF(R) /\ WF(S)
+let WF_LEX = prove((parse_term @"!R:A->A->bool S:B->B->bool. WF(R) /\ WF(S)
           ==> WF(\(r1,s1) (r2,s2). R r1 r2 \/ (r1 = r2) /\ S s1 s2)"), SIMP_TAC [WF_LEX_DEPENDENT; ETA_AX])
 
 let WF_POINTWISE = 
-  prove((parse_term "WF((<<) :A->A->bool) /\ WF((<<<) :B->B->bool)
+  prove((parse_term @"WF((<<) :A->A->bool) /\ WF((<<<) :B->B->bool)
     ==> WF(\(x1,y1) (x2,y2). x1 << x2 /\ y1 <<< y2)"),
    STRIP_TAC
    |> THEN <| MATCH_MP_TAC(GEN_ALL WF_SUBSET)
@@ -349,19 +349,19 @@ let WF_POINTWISE =
 (* ------------------------------------------------------------------------- *)
 (* Wellfoundedness properties of natural numbers.                            *)
 (* ------------------------------------------------------------------------- *)
-let WF_num = prove((parse_term "WF(<)"), REWRITE_TAC [WF_IND; num_WF])
+let WF_num = prove((parse_term @"WF(<)"), REWRITE_TAC [WF_IND; num_WF])
 
-let WF_REC_num = prove((parse_term "!H. (!f g n. (!m. m < n ==> (f m = g m)) ==> (H f n = H g n))
+let WF_REC_num = prove((parse_term @"!H. (!f g n. (!m. m < n ==> (f m = g m)) ==> (H f n = H g n))
          ==> ?f:num->A. !n. f n = H f n"), MATCH_ACCEPT_TAC(MATCH_MP WF_REC WF_num))
 
 (* ------------------------------------------------------------------------- *)
 (* Natural number measures (useful in program verification).                 *)
 (* ------------------------------------------------------------------------- *)
-let MEASURE = new_definition(parse_term "MEASURE m = \x y. m(x) < m(y)")
+let MEASURE = new_definition(parse_term @"MEASURE m = \x y. m(x) < m(y)")
 
 let WF_MEASURE = 
     prove
-        ((parse_term "!m:A->num. WF(MEASURE m)"), 
+        ((parse_term @"!m:A->num. WF(MEASURE m)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [MEASURE]
          |> THEN <| MATCH_MP_TAC WF_MEASURE_GEN
@@ -369,7 +369,7 @@ let WF_MEASURE =
 
 let MEASURE_LE = 
     prove
-        ((parse_term "(!y. MEASURE m y a ==> MEASURE m y b) <=> m(a) <= m(b)"), 
+        ((parse_term @"(!y. MEASURE m y a ==> MEASURE m y b) <=> m(a) <= m(b)"), 
          REWRITE_TAC [MEASURE]
          |> THEN <| MESON_TAC [NOT_LE; LTE_TRANS; LT_REFL])
 
@@ -377,7 +377,7 @@ let MEASURE_LE =
 (* Trivially, a WF relation is irreflexive.                                  *)
 (* ------------------------------------------------------------------------- *)
 let WF_REFL = 
-    prove((parse_term "!x:A. WF(<<) ==> ~(x << x)"), GEN_TAC
+    prove((parse_term @"!x:A. WF(<<) ==> ~(x << x)"), GEN_TAC
                                                      |> THEN <| REWRITE_TAC [WF]
                                                      |> THEN 
                                                      <| DISCH_THEN
@@ -391,17 +391,17 @@ let WF_REFL =
 (* ------------------------------------------------------------------------- *)
 (* Even more trivially, the everywhere-false relation is wellfounded.        *)
 (* ------------------------------------------------------------------------- *)
-let WF_FALSE = prove((parse_term "WF(\x y:A. F)"), REWRITE_TAC [WF])
+let WF_FALSE = prove((parse_term @"WF(\x y:A. F)"), REWRITE_TAC [WF])
 
 (* ------------------------------------------------------------------------- *)
 (* Tail recursion.                                                           *)
 (* ------------------------------------------------------------------------- *)
 let WF_REC_TAIL = 
     prove
-        ((parse_term "!P g h. ?f:A->B. !x. f x = if P(x) then f(g x) else h x"), 
+        ((parse_term @"!P g h. ?f:A->B. !x. f x = if P(x) then f(g x) else h x"), 
          let lemma1 = 
              prove
-                 ((parse_term "~(P 0) ==> ((?n. P(SUC n)) <=> (?n. P(n)))"), 
+                 ((parse_term @"~(P 0) ==> ((?n. P(SUC n)) <=> (?n. P(n)))"), 
                   MESON_TAC [num_CASES; NOT_SUC])
          let lemma2 = 
              prove
@@ -414,27 +414,27 @@ let WF_REC_TAIL =
          REPEAT GEN_TAC
          |> THEN 
          <| MP_TAC
-                (GEN (parse_term "x:A") 
-                     (ISPECL [(parse_term "x:A")
-                              (parse_term "\y:A n:num. g(y):A")] num_RECURSION))
+                (GEN (parse_term @"x:A") 
+                     (ISPECL [(parse_term @"x:A")
+                              (parse_term @"\y:A n:num. g(y):A")] num_RECURSION))
          |> THEN <| REWRITE_TAC [SKOLEM_THM; FORALL_AND_THM]
          |> THEN 
          <| DISCH_THEN
-                (X_CHOOSE_THEN (parse_term "s:A->num->A") STRIP_ASSUME_TAC)
-         |> THEN <| EXISTS_TAC(parse_term "\x:A. if ?n:num. ~P(s x n)
+                (X_CHOOSE_THEN (parse_term @"s:A->num->A") STRIP_ASSUME_TAC)
+         |> THEN <| EXISTS_TAC(parse_term @"\x:A. if ?n:num. ~P(s x n)
                      then (h:A->B)(@y. ?n. (y = s x n) /\ ~P(s x n) /\
                                            !m. m < n ==> P(s x m))
                      else something_arbitrary:B") 
-         |> THEN <| X_GEN_TAC(parse_term "x:A")
+         |> THEN <| X_GEN_TAC(parse_term @"x:A")
          |> THEN 
-         <| SUBGOAL_THEN (parse_term "!n x:A. s (g x) n :A = s x (SUC n)") 
+         <| SUBGOAL_THEN (parse_term @"!n x:A. s (g x) n :A = s x (SUC n)") 
                 ASSUME_TAC
          |> THENL 
          <| [INDUCT_TAC
              |> THEN <| ASM_REWRITE_TAC []
-             UNDISCH_THEN (parse_term "!x:A n. s x (SUC n) :A = g (s x n)") 
+             UNDISCH_THEN (parse_term @"!x:A n. s x (SUC n) :A = g (s x n)") 
                  (K ALL_TAC)]
-         |> THEN <| ASM_CASES_TAC(parse_term "(P:A->bool) x")
+         |> THEN <| ASM_CASES_TAC(parse_term @"(P:A->bool) x")
          |> THEN <| ASM_REWRITE_TAC []
          |> THENL <| [ASM_SIMP_TAC [lemma1]
                       |> THEN <| COND_CASES_TAC
@@ -447,7 +447,7 @@ let WF_REC_TAIL =
                       |> THEN <| AP_TERM_TAC
                       |> THEN <| MATCH_MP_TAC SELECT_UNIQUE
                       |> THEN <| REWRITE_TAC []
-                      |> THEN <| X_GEN_TAC(parse_term "y:A")
+                      |> THEN <| X_GEN_TAC(parse_term @"y:A")
                       |> THEN <| EQ_TAC
                       |> THENL <| [SIMP_TAC [LEFT_IMP_EXISTS_THM]
                                    |> THEN <| INDUCT_TAC
@@ -459,29 +459,29 @@ let WF_REC_TAIL =
 (* A more general mix of tail and wellfounded recursion.                     *)
 (* ------------------------------------------------------------------------- *)
 let WF_REC_TAIL_GENERAL = 
- prove ((parse_term "!P G H. WF(<<) /\ (!f g x. (!z. z << x ==> (f z = g z)) 
+ prove ((parse_term @"!P G H. WF(<<) /\ (!f g x. (!z. z << x ==> (f z = g z)) 
    ==> (P f x <=> P g x) /\ G f x = G g x /\ H f x = H g x) /\ (!f g x. (!z. z << x ==> (f z = g z)) 
    ==> (H f x = H g x)) /\ (!f x y. P f x /\ y << G f x ==> y << x) 
    ==> ?f:A->B. !x. f x = if P f x then f(G f x) else H f x"), REPEAT STRIP_TAC 
  |>THEN<| CHOOSE_THEN MP_TAC
     (prove_inductive_relations_exist
-      (parse_term "(!x:A. ~(P f x) ==> terminates f x) /\ (!x. P (f:A->B) x /\ terminates f (G f x) ==> terminates f x)")) 
+      (parse_term @"(!x:A. ~(P f x) ==> terminates f x) /\ (!x. P (f:A->B) x /\ terminates f (G f x) ==> terminates f x)")) 
    |>THEN<| REWRITE_TAC[FORALL_AND_THM] 
    |>THEN<| DISCH_THEN(STRIP_ASSUME_TAC << GSYM) 
    |>THEN<| SUBGOAL_THEN
-    (parse_term "?while. !f:A->B x:A. while f x = if P f x then while f (G f x) else x")
+    (parse_term @"?while. !f:A->B x:A. while f x = if P f x then while f (G f x) else x")
     (STRIP_ASSUME_TAC << GSYM)
    |>THENL<| [REWRITE_TAC[GSYM SKOLEM_THM; WF_REC_TAIL]; ALL_TAC] 
-   |>THEN<| SUBGOAL_THEN (parse_term "?f:A->B. !x. f x = if terminates f x then H f (while f x :A) else anything")
+   |>THEN<| SUBGOAL_THEN (parse_term @"?f:A->B. !x. f x = if terminates f x then H f (while f x :A) else anything")
    MP_TAC 
    |>THENL<|
     [FIRST_ASSUM(MATCH_MP_TAC << MATCH_MP WF_REC) |>THEN<|
      REPEAT STRIP_TAC |>THEN<| MATCH_MP_TAC(MESON[]
-      (parse_term "(a = b) /\ (a /\ b ==> (x = y) /\ (f x = g x))
+      (parse_term @"(a = b) /\ (a /\ b ==> (x = y) /\ (f x = g x))
        ==> ((if a then f x else d) = (if b then g y else d))")) |>THEN<|
      REPEAT STRIP_TAC |>THENL<|
       [SUBGOAL_THEN
-        (parse_term "!f g x.
+        (parse_term @"!f g x.
             (!x y. P f x /\ y << G (f:A->B) x ==> y << x) /\
             (!y:A. (!z:A. z << y ==> z << x)
                    ==> (P f y = P g y) /\ (G f y = G g y))
@@ -489,10 +489,10 @@ let WF_REC_TAIL_GENERAL =
         (fun th -> EQ_TAC |>THEN<| MATCH_MP_TAC th |>THEN<| ASM_MESON_TAC[]) |>THEN<|
        GEN_TAC |>THEN<| GEN_TAC |>THEN<|
        REWRITE_TAC[RIGHT_FORALL_IMP_THM; IMP_CONJ] |>THEN<| DISCH_TAC |>THEN<|
-       ONCE_REWRITE_TAC[TAUT (parse_term "a ==> b ==> c <=> b ==> a ==> c")] |>THEN<|
+       ONCE_REWRITE_TAC[TAUT (parse_term @"a ==> b ==> c <=> b ==> a ==> c")] |>THEN<|
        FIRST_X_ASSUM MATCH_MP_TAC |>THEN<| ASM_MESON_TAC[];
        SUBGOAL_THEN
-        (parse_term "!x:A. terminates (f:A->B) x /\
+        (parse_term @"!x:A. terminates (f:A->B) x /\
                (!y:A. (!z:A. z << y ==> z << x)
                       ==> (P f y <=> P g y) /\ (G f y :A = G g y))
                ==> (while f x :A = while g x)")
@@ -501,15 +501,15 @@ let WF_REC_TAIL_GENERAL =
        FIRST_X_ASSUM MATCH_MP_TAC |>THEN<| ASM_MESON_TAC[];
        FIRST_X_ASSUM MATCH_MP_TAC |>THEN<|
        SUBGOAL_THEN
-        (parse_term "!f:A->B. (!x:A y:A. P f x /\ y << G f x ==> y << x)
+        (parse_term @"!f:A->B. (!x:A y:A. P f x /\ y << G f x ==> y << x)
           ==> !x. terminates f x ==> !y. y << while f x ==> y << x")
         (fun th -> ASM_MESON_TAC[th]) |>THEN<|
        GEN_TAC |>THEN<| DISCH_TAC |>THEN<| FIRST_X_ASSUM MATCH_MP_TAC |>THEN<|
        ASM_MESON_TAC[]];
      MATCH_MP_TAC MONO_EXISTS |>THEN<| GEN_TAC |>THEN<|
      DISCH_THEN(fun th -> ASSUME_TAC(GSYM th) |>THEN<| MP_TAC th) |>THEN<|
-     MATCH_MP_TAC MONO_FORALL |>THEN<| X_GEN_TAC (parse_term "x:A") |>THEN<|
-     ASM_CASES_TAC (parse_term "P (f:A->B) (x:A) :bool") |>THEN<| ASM_MESON_TAC[]]);;
+     MATCH_MP_TAC MONO_FORALL |>THEN<| X_GEN_TAC (parse_term @"x:A") |>THEN<|
+     ASM_CASES_TAC (parse_term @"P (f:A->B) (x:A) :bool") |>THEN<| ASM_MESON_TAC[]]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Tactic to apply WF induction on a free "measured" term in the goal.       *)
@@ -518,13 +518,13 @@ let WF_INDUCT_TAC =
     let qqconv = 
         let pth = 
             prove
-                ((parse_term "(!x. P x ==> !y. Q x y) <=> !y x. P x ==> Q x y"), 
+                ((parse_term @"(!x. P x ==> !y. Q x y) <=> !y x. P x ==> Q x y"), 
                  MESON_TAC [])
         GEN_REWRITE_CONV I [pth]
     let eqconv = 
         let pth = 
             prove
-                ((parse_term "(!m. P m ==> (m = e) ==> Q) <=> (P e ==> Q)"), 
+                ((parse_term @"(!m. P m ==> (m = e) ==> Q) <=> (P e ==> Q)"), 
                  MESON_TAC [])
         REWR_CONV pth
     let rec qqconvs tm = 

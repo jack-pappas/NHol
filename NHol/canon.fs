@@ -79,12 +79,12 @@ let CONJ_ACI_RULE =
             IMP_ANTISYM_RULE (DISCH_ALL th) (DISCH_ALL th')
 
 let DISJ_ACI_RULE = 
-    let pth_left = UNDISCH(TAUT(parse_term "~(a \/ b) ==> ~a"))
-    let pth_right = UNDISCH(TAUT(parse_term "~(a \/ b) ==> ~b"))
-    let pth = repeat UNDISCH (TAUT(parse_term "~a ==> ~b ==> ~(a \/ b)"))
-    let pth_neg = UNDISCH(TAUT(parse_term "(~a <=> ~b) ==> (a <=> b)"))
-    let a_tm = (parse_term "a:bool")
-    let b_tm = (parse_term "b:bool")
+    let pth_left = UNDISCH(TAUT(parse_term @"~(a \/ b) ==> ~a"))
+    let pth_right = UNDISCH(TAUT(parse_term @"~(a \/ b) ==> ~b"))
+    let pth = repeat UNDISCH (TAUT(parse_term @"~a ==> ~b ==> ~(a \/ b)"))
+    let pth_neg = UNDISCH(TAUT(parse_term @"(~a <=> ~b) ==> (a <=> b)"))
+    let a_tm = (parse_term @"a:bool")
+    let b_tm = (parse_term @"b:bool")
     let NOT_DISJ_PAIR th = 
         let p, q = dest_disj(rand(concl th))
         let ilist = 
@@ -147,21 +147,21 @@ let DISJ_CANON_CONV tm =
 (* that does the same.                                                       *)
 (* ------------------------------------------------------------------------- *)
 let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) = 
-    let and_tm = (parse_term "(/\)")
-    let or_tm = (parse_term "(\/)")
-    let not_tm = (parse_term "(~)")
-    let pth_not_not = TAUT(parse_term "~ ~ p = p")
-    let pth_not_and = TAUT(parse_term "~(p /\ q) <=> ~p \/ ~q")
-    let pth_not_or = TAUT(parse_term "~(p \/ q) <=> ~p /\ ~q")
-    let pth_imp = TAUT(parse_term "p ==> q <=> ~p \/ q")
-    let pth_not_imp = TAUT(parse_term "~(p ==> q) <=> p /\ ~q")
-    let pth_eq = TAUT(parse_term "(p <=> q) <=> p /\ q \/ ~p /\ ~q")
-    let pth_not_eq = TAUT(parse_term "~(p <=> q) <=> p /\ ~q \/ ~p /\ q")
-    let pth_eq' = TAUT(parse_term "(p <=> q) <=> (p \/ ~q) /\ (~p \/ q)")
-    let pth_not_eq' = TAUT(parse_term "~(p <=> q) <=> (p \/ q) /\ (~p \/ ~q)")
+    let and_tm = (parse_term @"(/\)")
+    let or_tm = (parse_term @"(\/)")
+    let not_tm = (parse_term @"(~)")
+    let pth_not_not = TAUT(parse_term @"~ ~ p = p")
+    let pth_not_and = TAUT(parse_term @"~(p /\ q) <=> ~p \/ ~q")
+    let pth_not_or = TAUT(parse_term @"~(p \/ q) <=> ~p /\ ~q")
+    let pth_imp = TAUT(parse_term @"p ==> q <=> ~p \/ q")
+    let pth_not_imp = TAUT(parse_term @"~(p ==> q) <=> p /\ ~q")
+    let pth_eq = TAUT(parse_term @"(p <=> q) <=> p /\ q \/ ~p /\ ~q")
+    let pth_not_eq = TAUT(parse_term @"~(p <=> q) <=> p /\ ~q \/ ~p /\ q")
+    let pth_eq' = TAUT(parse_term @"(p <=> q) <=> (p \/ ~q) /\ (~p \/ q)")
+    let pth_not_eq' = TAUT(parse_term @"~(p <=> q) <=> (p \/ q) /\ (~p \/ ~q)")
     let [pth_not_forall; pth_not_exists; pth_not_exu] = 
         (CONJUNCTS << prove)
-            ((parse_term "(~((!) P) <=> ?x:A. ~(P x)) /\
+            ((parse_term @"(~((!) P) <=> ?x:A. ~(P x)) /\
      (~((?) P) <=> !x:A. ~(P x)) /\
      (~((?!) P) <=> (!x:A. ~(P x)) \/ ?x y. P x /\ P y /\ ~(y = x))"), 
              REPEAT CONJ_TAC
@@ -179,10 +179,10 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
              GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM ETA_AX]
              |> THEN 
              <| REWRITE_TAC [EXISTS_UNIQUE_DEF
-                             TAUT(parse_term "a /\ b ==> c <=> ~a \/ ~b \/ c")]
+                             TAUT(parse_term @"a /\ b ==> c <=> ~a \/ ~b \/ c")]
              |> THEN <| REWRITE_TAC [EQ_SYM_EQ])
-    let p_tm = (parse_term "p:bool")
-    let q_tm = (parse_term "q:bool")
+    let p_tm = (parse_term @"p:bool")
+    let q_tm = (parse_term @"q:bool")
     let rec NNF_DCONV cf baseconvs tm = 
         match tm with
         | Comb(Comb(Const("/\\", _), l), r) -> 
@@ -496,11 +496,11 @@ let PRENEX_CONV =
 (* inside quantifiers and transform their body, but don't move them.         *)
 (* ------------------------------------------------------------------------- *)
 let WEAK_DNF_CONV, DNF_CONV = 
-    let pth1 = TAUT(parse_term "a /\ (b \/ c) <=> a /\ b \/ a /\ c")
-    let pth2 = TAUT(parse_term "(a \/ b) /\ c <=> a /\ c \/ b /\ c")
-    let a_tm = (parse_term "a:bool")
-    let b_tm = (parse_term "b:bool")
-    let c_tm = (parse_term "c:bool")
+    let pth1 = TAUT(parse_term @"a /\ (b \/ c) <=> a /\ b \/ a /\ c")
+    let pth2 = TAUT(parse_term @"(a \/ b) /\ c <=> a /\ c \/ b /\ c")
+    let a_tm = (parse_term @"a:bool")
+    let b_tm = (parse_term @"b:bool")
+    let c_tm = (parse_term @"c:bool")
     let rec distribute tm = 
         match tm with
         | Comb(Comb(Const("/\\", _), a), Comb(Comb(Const("\\/", _), b), c)) -> 
@@ -516,7 +516,7 @@ let WEAK_DNF_CONV, DNF_CONV =
                       c, c_tm] pth2
             TRANS th (BINOP_CONV distribute (rand(concl th)))
         | _ -> REFL tm
-    let strengthen = DEPTH_BINOP_CONV (parse_term "(\/)") CONJ_CANON_CONV
+    let strengthen = DEPTH_BINOP_CONV (parse_term @"(\/)") CONJ_CANON_CONV
                      |> THENC <| DISJ_CANON_CONV
     let rec weakdnf tm = 
         match tm with
@@ -545,11 +545,11 @@ let WEAK_DNF_CONV, DNF_CONV =
 (* Likewise for CNF.                                                         *)
 (* ------------------------------------------------------------------------- *)
 let WEAK_CNF_CONV, CNF_CONV = 
-    let pth1 = TAUT(parse_term "a \/ (b /\ c) <=> (a \/ b) /\ (a \/ c)")
-    let pth2 = TAUT(parse_term "(a /\ b) \/ c <=> (a \/ c) /\ (b \/ c)")
-    let a_tm = (parse_term "a:bool")
-    let b_tm = (parse_term "b:bool")
-    let c_tm = (parse_term "c:bool")
+    let pth1 = TAUT(parse_term @"a \/ (b /\ c) <=> (a \/ b) /\ (a \/ c)")
+    let pth2 = TAUT(parse_term @"(a /\ b) \/ c <=> (a \/ c) /\ (b \/ c)")
+    let a_tm = (parse_term @"a:bool")
+    let b_tm = (parse_term @"b:bool")
+    let c_tm = (parse_term @"c:bool")
     let rec distribute tm = 
         match tm with
         | Comb(Comb(Const("\\/", _), a), Comb(Comb(Const("/\\", _), b), c)) -> 
@@ -565,7 +565,7 @@ let WEAK_CNF_CONV, CNF_CONV =
                       c, c_tm] pth2
             TRANS th (BINOP_CONV distribute (rand(concl th)))
         | _ -> REFL tm
-    let strengthen = DEPTH_BINOP_CONV (parse_term "(/\)") DISJ_CANON_CONV
+    let strengthen = DEPTH_BINOP_CONV (parse_term @"(/\)") DISJ_CANON_CONV
                      |> THENC <| CONJ_CANON_CONV
     let rec weakcnf tm = 
         match tm with
@@ -627,11 +627,11 @@ let SELECT_ELIM_TAC =
         let SELECT_ELIM_THM = 
             let pth = 
                 prove
-                    ((parse_term "(P:A->bool)((@) P) <=> (?) P"), 
+                    ((parse_term @"(P:A->bool)((@) P) <=> (?) P"), 
                      REWRITE_TAC [EXISTS_THM]
                      |> THEN <| BETA_TAC
                      |> THEN <| REFL_TAC)
-            let ptm = (parse_term "P:A->bool")
+            let ptm = (parse_term @"P:A->bool")
             fun tm -> 
                 let stm, atm = dest_comb tm
                 if is_const stm && fst(dest_const stm) = "@"
@@ -643,8 +643,8 @@ let SELECT_ELIM_TAC =
             PURE_REWRITE_CONV (map SELECT_ELIM_THM (find_terms is_select tm)) tm
     let SELECT_ELIM_ICONV = 
         let SELECT_AX_THM = 
-            let pth = ISPEC (parse_term "P:A->bool") SELECT_AX
-            let ptm = (parse_term "P:A->bool")
+            let pth = ISPEC (parse_term @"P:A->bool") SELECT_AX
+            let ptm = (parse_term @"P:A->bool")
             fun tm -> 
                 let stm, atm = dest_comb tm
                 if is_const stm && fst(dest_const stm) = "@"
@@ -688,7 +688,7 @@ let LAMBDA_ELIM_CONV =
     let HALF_MK_ABS_CONV = 
         let pth = 
             prove
-                ((parse_term "(s = \x. t x) <=> (!x. s x = t x)"), 
+                ((parse_term @"(s = \x. t x) <=> (!x. s x = t x)"), 
                  REWRITE_TAC [FUN_EQ_THM])
         let rec conv vs tm = 
             if vs = []
@@ -757,18 +757,18 @@ let LAMBDA_ELIM_CONV =
 (* ------------------------------------------------------------------------- *)
 let CONDS_ELIM_CONV, CONDS_CELIM_CONV = 
     let th_cond = 
-      prove ((parse_term "((b <=> F) ==> x = x0) /\ ((b <=> T) ==> x = x1)
+      prove ((parse_term @"((b <=> F) ==> x = x0) /\ ((b <=> T) ==> x = x1)
       ==> x = (b /\ x1 \/ ~b /\ x0)"),
-        BOOL_CASES_TAC (parse_term "b:bool")
+        BOOL_CASES_TAC (parse_term @"b:bool")
         |> THEN <| ASM_REWRITE_TAC [])
     let th_cond' = 
-      prove((parse_term "((b <=> F) ==> x = x0) /\ ((b <=> T) ==> x = x1)
+      prove((parse_term @"((b <=> F) ==> x = x0) /\ ((b <=> T) ==> x = x1)
       ==> x = ((~b \/ x1) /\ (b \/ x0))"),
-        BOOL_CASES_TAC(parse_term "b:bool")
+        BOOL_CASES_TAC(parse_term @"b:bool")
         |> THEN <| ASM_REWRITE_TAC [])
     let propsimps = basic_net()
-    let false_tm = (parse_term "F")
-    let true_tm = (parse_term "T")
+    let false_tm = (parse_term @"F")
+    let true_tm = (parse_term @"T")
     let match_th = MATCH_MP th_cond
     let match_th' = MATCH_MP th_cond'
     let propsimp_conv = DEPTH_CONV(REWRITES_CONV propsimps)
@@ -865,7 +865,7 @@ let ASM_FOL_TAC =
     let get_thm_heads th sofar = get_heads (freesl(hyp th)) (concl th) sofar
     let APP_CONV = 
         let th = 
-            prove((parse_term "!(f:A->B) x. f x = I f x"), REWRITE_TAC [I_THM])
+            prove((parse_term @"!(f:A->B) x. f x = I f x"), REWRITE_TAC [I_THM])
         REWR_CONV th
     let rec APP_N_CONV n tm = 
         if n = 1

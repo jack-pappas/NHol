@@ -85,7 +85,7 @@ let define_quotient_type =
 let lift_function = 
     let SELECT_LEMMA = 
         prove
-            ((parse_term "!x:A. (@y. x = y) = x"), 
+            ((parse_term @"!x:A. (@y. x = y) = x"), 
              GEN_TAC
              |> THEN <| GEN_REWRITE_TAC (LAND_CONV << BINDER_CONV) [EQ_SYM_EQ]
              |> THEN <| MATCH_ACCEPT_TAC SELECT_REFL)
@@ -206,10 +206,10 @@ let lift_theorem =
                           |> THEN <| ASM_MESON_TAC []
                           ALL_TAC]
              |> THEN <| REPEAT(DISCH_THEN(fun th -> REWRITE_TAC [GSYM th]))
-             |> THEN <| X_GEN_TAC(parse_term "x:Repty")
+             |> THEN <| X_GEN_TAC(parse_term @"x:Repty")
              |> THEN 
              <| SUBGOAL_THEN 
-                    (parse_term "dest(mk((R:Repty->Repty->bool) x):Absty) = R x") 
+                    (parse_term @"dest(mk((R:Repty->Repty->bool) x):Absty) = R x") 
                     SUBST1_TAC
              |> THENL <| [ASM_MESON_TAC []
                           ALL_TAC]

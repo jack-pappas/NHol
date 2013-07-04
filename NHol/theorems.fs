@@ -40,30 +40,31 @@ open simp
 (* ------------------------------------------------------------------------- *)
 (* More stuff about equality.                                                *)
 (* ------------------------------------------------------------------------- *)
-let EQ_REFL = prove((parse_term "!x:A. x = x"), GEN_TAC
+let EQ_REFL = prove((parse_term @"!x:A. x = x"), GEN_TAC
                                                 |> THEN <| REFL_TAC)
 
 let REFL_CLAUSE = 
     prove
-        ((parse_term "!x:A. (x = x) <=> T"), 
+        ((parse_term @"!x:A. (x = x) <=> T"), 
          GEN_TAC
          |> THEN <| MATCH_ACCEPT_TAC(EQT_INTRO(SPEC_ALL EQ_REFL)))
+
 let EQ_SYM = 
     prove
-        ((parse_term "!(x:A) y. (x = y) ==> (y = x)"), 
+        ((parse_term @"!(x:A) y. (x = y) ==> (y = x)"), 
          REPEAT GEN_TAC
          |> THEN <| DISCH_THEN(ACCEPT_TAC << SYM))
 
 let EQ_SYM_EQ = 
     prove
-        ((parse_term "!(x:A) y. (x = y) <=> (y = x)"), 
+        ((parse_term @"!(x:A) y. (x = y) <=> (y = x)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| MATCH_ACCEPT_TAC EQ_SYM)
 
 let EQ_TRANS = 
     prove
-        ((parse_term "!(x:A) y z. (x = y) /\ (y = z) ==> (x = z)"), 
+        ((parse_term @"!(x:A) y z. (x = y) /\ (y = z) ==> (x = z)"), 
          REPEAT STRIP_TAC
          |> THEN <| PURE_ASM_REWRITE_TAC []
          |> THEN <| REFL_TAC)
@@ -78,14 +79,14 @@ let AC acsuite = EQT_ELIM << PURE_REWRITE_CONV [acsuite; REFL_CLAUSE]
 (* ------------------------------------------------------------------------- *)
 let BETA_THM = 
     prove
-        ((parse_term "!(f:A->B) y. (\x. (f:A->B) x) y = f y"), 
+        ((parse_term @"!(f:A->B) y. (\x. (f:A->B) x) y = f y"), 
          REPEAT GEN_TAC
          |> THEN <| BETA_TAC
          |> THEN <| REFL_TAC)
 
 let ABS_SIMP = 
     prove
-        ((parse_term "!(t1:A) (t2:B). (\x. t1) t2 = t1"), 
+        ((parse_term @"!(t1:A) (t2:B). (\x. t1) t2 = t1"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [BETA_THM; REFL_CLAUSE])
 
@@ -94,84 +95,83 @@ let ABS_SIMP =
 (* ------------------------------------------------------------------------- *)
 let CONJ_ASSOC = 
     prove
-        ((parse_term "!t1 t2 t3. t1 /\ t2 /\ t3 <=> (t1 /\ t2) /\ t3"), 
+        ((parse_term @"!t1 t2 t3. t1 /\ t2 /\ t3 <=> (t1 /\ t2) /\ t3"), 
          ITAUT_TAC)
 
-let CONJ_SYM = prove((parse_term "!t1 t2. t1 /\ t2 <=> t2 /\ t1"), ITAUT_TAC)
-let CONJ_ACI = prove((parse_term "(p /\ q <=> q /\ p) /\
+let CONJ_SYM = prove((parse_term @"!t1 t2. t1 /\ t2 <=> t2 /\ t1"), ITAUT_TAC)
+let CONJ_ACI = prove((parse_term @"(p /\ q <=> q /\ p) /\
    ((p /\ q) /\ r <=> p /\ (q /\ r)) /\
    (p /\ (q /\ r) <=> q /\ (p /\ r)) /\
    (p /\ p <=> p) /\
    (p /\ (p /\ q) <=> p /\ q)"), ITAUT_TAC)
 let DISJ_ASSOC = 
     prove
-        ((parse_term "!t1 t2 t3. t1 \/ t2 \/ t3 <=> (t1 \/ t2) \/ t3"), 
+        ((parse_term @"!t1 t2 t3. t1 \/ t2 \/ t3 <=> (t1 \/ t2) \/ t3"), 
          ITAUT_TAC)
-let DISJ_SYM = prove((parse_term "!t1 t2. t1 \/ t2 <=> t2 \/ t1"), ITAUT_TAC)
-let DISJ_ACI = prove((parse_term "(p \/ q <=> q \/ p) /\
+let DISJ_SYM = prove((parse_term @"!t1 t2. t1 \/ t2 <=> t2 \/ t1"), ITAUT_TAC)
+let DISJ_ACI = prove((parse_term @"(p \/ q <=> q \/ p) /\
    ((p \/ q) \/ r <=> p \/ (q \/ r)) /\
    (p \/ (q \/ r) <=> q \/ (p \/ r)) /\
    (p \/ p <=> p) /\
    (p \/ (p \/ q) <=> p \/ q)"), ITAUT_TAC)
-let IMP_CONJ = prove((parse_term "p /\ q ==> r <=> p ==> q ==> r"), ITAUT_TAC)
+let IMP_CONJ = prove((parse_term @"p /\ q ==> r <=> p ==> q ==> r"), ITAUT_TAC)
 let IMP_IMP = GSYM IMP_CONJ
 let IMP_CONJ_ALT = 
-    prove((parse_term "p /\ q ==> r <=> q ==> p ==> r"), ITAUT_TAC)
+    prove((parse_term @"p /\ q ==> r <=> q ==> p ==> r"), ITAUT_TAC)
 
 (* ------------------------------------------------------------------------- *)
 (* A couple of "distribution" tautologies are useful.                        *)
 (* ------------------------------------------------------------------------- *)
 let LEFT_OR_DISTRIB = 
-    prove((parse_term "!p q r. p /\ (q \/ r) <=> p /\ q \/ p /\ r"), ITAUT_TAC)
+    prove((parse_term @"!p q r. p /\ (q \/ r) <=> p /\ q \/ p /\ r"), ITAUT_TAC)
 
 let RIGHT_OR_DISTRIB = 
-    prove((parse_term "!p q r. (p \/ q) /\ r <=> p /\ r \/ q /\ r"), ITAUT_TAC)
+    prove((parse_term @"!p q r. (p \/ q) /\ r <=> p /\ r \/ q /\ r"), ITAUT_TAC)
 
 (* ------------------------------------------------------------------------- *)
 (* Degenerate cases of quantifiers.                                          *)
 (* ------------------------------------------------------------------------- *)
-let FORALL_SIMP = prove((parse_term "!t. (!x:A. t) = t"), ITAUT_TAC)
+let FORALL_SIMP = prove((parse_term @"!t. (!x:A. t) = t"), ITAUT_TAC)
 
-let EXISTS_SIMP = prove((parse_term "!t. (?x:A. t) = t"), ITAUT_TAC)
+let EXISTS_SIMP = prove((parse_term @"!t. (?x:A. t) = t"), ITAUT_TAC)
 
 (* ------------------------------------------------------------------------- *)
 (* I also use this a lot (as a prelude to congruence reasoning).             *)
 (* ------------------------------------------------------------------------- *)
-let EQ_IMP = ITAUT(parse_term "(a <=> b) ==> a ==> b")
+let EQ_IMP = ITAUT(parse_term @"(a <=> b) ==> a ==> b")
 
 (* ------------------------------------------------------------------------- *)
 (* Start building up the basic rewrites; we add a few more later.            *)
 (* ------------------------------------------------------------------------- *)
-let EQ_CLAUSES = prove((parse_term "!t. ((T <=> t) <=> t) /\ ((t <=> T) <=> t) /\
+let EQ_CLAUSES = prove((parse_term @"!t. ((T <=> t) <=> t) /\ ((t <=> T) <=> t) /\
        ((F <=> t) <=> ~t) /\ ((t <=> F) <=> ~t)"), ITAUT_TAC)
 
-let NOT_CLAUSES_WEAK = prove((parse_term "(~T <=> F) /\ (~F <=> T)"), ITAUT_TAC)
-let AND_CLAUSES = prove((parse_term "!t. (T /\ t <=> t) /\ (t /\ T <=> t) /\ (F /\ t <=> F) /\
+let NOT_CLAUSES_WEAK = prove((parse_term @"(~T <=> F) /\ (~F <=> T)"), ITAUT_TAC)
+let AND_CLAUSES = prove((parse_term @"!t. (T /\ t <=> t) /\ (t /\ T <=> t) /\ (F /\ t <=> F) /\
        (t /\ F <=> F) /\ (t /\ t <=> t)"), ITAUT_TAC)
-let OR_CLAUSES = prove((parse_term "!t. (T \/ t <=> T) /\ (t \/ T <=> T) /\ (F \/ t <=> t) /\
+let OR_CLAUSES = prove((parse_term @"!t. (T \/ t <=> T) /\ (t \/ T <=> T) /\ (F \/ t <=> t) /\
        (t \/ F <=> t) /\ (t \/ t <=> t)"), ITAUT_TAC)
-let IMP_CLAUSES = prove((parse_term "!t. (T ==> t <=> t) /\ (t ==> T <=> T) /\ (F ==> t <=> T) /\
+let IMP_CLAUSES = prove((parse_term @"!t. (T ==> t <=> t) /\ (t ==> T <=> T) /\ (F ==> t <=> T) /\
        (t ==> t <=> T) /\ (t ==> F <=> ~t)"), ITAUT_TAC)
 
-extend_basic_rewrites [REFL_CLAUSE
-                       EQ_CLAUSES
-                       NOT_CLAUSES_WEAK
-                       AND_CLAUSES
-                       OR_CLAUSES
-                       IMP_CLAUSES
-                       FORALL_SIMP
-                       EXISTS_SIMP
-                       BETA_THM
-                       let IMP_EQ_CLAUSE = 
+extend_basic_rewrites [REFL_CLAUSE;
+                       EQ_CLAUSES;
+                       NOT_CLAUSES_WEAK;
+                       AND_CLAUSES;
+                       OR_CLAUSES;
+                       IMP_CLAUSES;
+                       FORALL_SIMP;
+                       EXISTS_SIMP;
+                       BETA_THM;
+                       (let IMP_EQ_CLAUSE = 
                            prove
-                               ((parse_term "((x = x) ==> p) <=> p"), 
+                               ((parse_term @"((x = x) ==> p) <=> p"), 
                                 REWRITE_TAC [EQT_INTRO(SPEC_ALL EQ_REFL)
-                                             IMP_CLAUSES])
-                       IMP_EQ_CLAUSE]
+                                             IMP_CLAUSES]) in IMP_EQ_CLAUSE);]
 extend_basic_congs 
     [ITAUT
          (parse_term 
-              "(p <=> p') ==> (p' ==> (q <=> q')) ==> (p ==> q <=> p' ==> q')")]
+              @"(p <=> p') ==> (p' ==> (q <=> q')) ==> (p ==> q <=> p' ==> q')")]
 
 (* ------------------------------------------------------------------------- *)
 (* Rewrite rule for unique existence.                                        *)
@@ -179,7 +179,7 @@ extend_basic_congs
 let EXISTS_UNIQUE_THM = 
     prove
         ((parse_term 
-              "!P. (?!x:A. P x) <=> (?x. P x) /\ (!x x'. P x /\ P x' ==> (x = x'))"), 
+              @"!P. (?!x:A. P x) <=> (?x. P x) /\ (!x x'. P x /\ P x' ==> (x = x'))"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_DEF])
 
@@ -187,20 +187,20 @@ let EXISTS_UNIQUE_THM =
 (* Trivial instances of existence.                                           *)
 (* ------------------------------------------------------------------------- *)
 let EXISTS_REFL = 
-    prove((parse_term "!a:A. ?x. x = a"), GEN_TAC
+    prove((parse_term @"!a:A. ?x. x = a"), GEN_TAC
                                           |> THEN 
-                                          <| EXISTS_TAC(parse_term "a:A")
+                                          <| EXISTS_TAC(parse_term @"a:A")
                                           |> THEN <| REFL_TAC)
 
 let EXISTS_UNIQUE_REFL = 
-    prove((parse_term "!a:A. ?!x. x = a"), GEN_TAC
+    prove((parse_term @"!a:A. ?!x. x = a"), GEN_TAC
                                            |> THEN 
                                            <| REWRITE_TAC [EXISTS_UNIQUE_THM]
                                            |> THEN 
                                            <| REPEAT(EQ_TAC
                                                      |> ORELSE <| STRIP_TAC)
                                            |> THENL <| [EXISTS_TAC
-                                                            (parse_term "a:A")
+                                                            (parse_term @"a:A")
                                                         ASM_REWRITE_TAC []]
                                            |> THEN <| REFL_TAC)
 
@@ -209,30 +209,30 @@ let EXISTS_UNIQUE_REFL =
 (* ------------------------------------------------------------------------- *)
 let UNWIND_THM1 = 
     prove
-        ((parse_term "!P (a:A). (?x. a = x /\ P x) <=> P a"), 
+        ((parse_term @"!P (a:A). (?x. a = x /\ P x) <=> P a"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THENL <| [DISCH_THEN
                           (CHOOSE_THEN(CONJUNCTS_THEN2 SUBST1_TAC ACCEPT_TAC))
                       DISCH_TAC
-                      |> THEN <| EXISTS_TAC(parse_term "a:A")
+                      |> THEN <| EXISTS_TAC(parse_term @"a:A")
                       |> THEN <| CONJ_TAC
                       |> THEN <| TRY(FIRST_ASSUM MATCH_ACCEPT_TAC)
                       |> THEN <| REFL_TAC])
 
 let UNWIND_THM2 = 
     prove
-        ((parse_term "!P (a:A). (?x. x = a /\ P x) <=> P a"), 
+        ((parse_term @"!P (a:A). (?x. x = a /\ P x) <=> P a"), 
          REPEAT GEN_TAC
          |> THEN <| CONV_TAC(LAND_CONV(ONCE_DEPTH_CONV SYM_CONV))
          |> THEN <| MATCH_ACCEPT_TAC UNWIND_THM1)
 
 let FORALL_UNWIND_THM2 = 
     prove
-        ((parse_term "!P (a:A). (!x. x = a ==> P x) <=> P a"), 
+        ((parse_term @"!P (a:A). (!x. x = a ==> P x) <=> P a"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
-         |> THENL <| [DISCH_THEN(MP_TAC << SPEC(parse_term "a:A"))
+         |> THENL <| [DISCH_THEN(MP_TAC << SPEC(parse_term @"a:A"))
                       |> THEN <| REWRITE_TAC []
                       DISCH_TAC
                       |> THEN <| GEN_TAC
@@ -241,7 +241,7 @@ let FORALL_UNWIND_THM2 =
 
 let FORALL_UNWIND_THM1 = 
     prove
-        ((parse_term "!P a. (!x. a = x ==> P x) <=> P a"), 
+        ((parse_term @"!P a. (!x. a = x ==> P x) <=> P a"), 
          REPEAT GEN_TAC
          |> THEN <| CONV_TAC(LAND_CONV(ONCE_DEPTH_CONV SYM_CONV))
          |> THEN <| MATCH_ACCEPT_TAC FORALL_UNWIND_THM2)
@@ -251,12 +251,12 @@ let FORALL_UNWIND_THM1 =
 (* ------------------------------------------------------------------------- *)
 let SWAP_FORALL_THM = 
     prove
-        ((parse_term "!P:A->B->bool. (!x y. P x y) <=> (!y x. P x y)"), 
+        ((parse_term @"!P:A->B->bool. (!x y. P x y) <=> (!y x. P x y)"), 
          ITAUT_TAC)
 
 let SWAP_EXISTS_THM = 
     prove
-        ((parse_term "!P:A->B->bool. (?x y. P x y) <=> (?y x. P x y)"), 
+        ((parse_term @"!P:A->B->bool. (?x y. P x y) <=> (?y x. P x y)"), 
          ITAUT_TAC)
 
 (* ------------------------------------------------------------------------- *)
@@ -264,54 +264,54 @@ let SWAP_EXISTS_THM =
 (* ------------------------------------------------------------------------- *)
 let FORALL_AND_THM = 
     prove
-        ((parse_term "!P Q. (!x:A. P x /\ Q x) <=> (!x. P x) /\ (!x. Q x)"), 
+        ((parse_term @"!P Q. (!x:A. P x /\ Q x) <=> (!x. P x) /\ (!x. Q x)"), 
          ITAUT_TAC)
 
 let AND_FORALL_THM = 
     prove
-        ((parse_term "!P Q. (!x. P x) /\ (!x. Q x) <=> (!x:A. P x /\ Q x)"), 
+        ((parse_term @"!P Q. (!x. P x) /\ (!x. Q x) <=> (!x:A. P x /\ Q x)"), 
          ITAUT_TAC)
 let LEFT_AND_FORALL_THM = 
-    prove((parse_term "!P Q. (!x:A. P x) /\ Q <=> (!x:A. P x /\ Q)"), ITAUT_TAC)
+    prove((parse_term @"!P Q. (!x:A. P x) /\ Q <=> (!x:A. P x /\ Q)"), ITAUT_TAC)
 let RIGHT_AND_FORALL_THM = 
-    prove((parse_term "!P Q. P /\ (!x:A. Q x) <=> (!x. P /\ Q x)"), ITAUT_TAC)
+    prove((parse_term @"!P Q. P /\ (!x:A. Q x) <=> (!x. P /\ Q x)"), ITAUT_TAC)
 
 (* ------------------------------------------------------------------------- *)
 (* Existential quantifier and disjunction.                                   *)
 (* ------------------------------------------------------------------------- *)
 let EXISTS_OR_THM = 
     prove
-        ((parse_term "!P Q. (?x:A. P x \/ Q x) <=> (?x. P x) \/ (?x. Q x)"), 
+        ((parse_term @"!P Q. (?x:A. P x \/ Q x) <=> (?x. P x) \/ (?x. Q x)"), 
          ITAUT_TAC)
 
 let OR_EXISTS_THM = 
     prove
-        ((parse_term "!P Q. (?x. P x) \/ (?x. Q x) <=> (?x:A. P x \/ Q x)"), 
+        ((parse_term @"!P Q. (?x. P x) \/ (?x. Q x) <=> (?x:A. P x \/ Q x)"), 
          ITAUT_TAC)
 let LEFT_OR_EXISTS_THM = 
-    prove((parse_term "!P Q. (?x. P x) \/ Q <=> (?x:A. P x \/ Q)"), ITAUT_TAC)
+    prove((parse_term @"!P Q. (?x. P x) \/ Q <=> (?x:A. P x \/ Q)"), ITAUT_TAC)
 let RIGHT_OR_EXISTS_THM = 
-    prove((parse_term "!P Q. P \/ (?x. Q x) <=> (?x:A. P \/ Q x)"), ITAUT_TAC)
+    prove((parse_term @"!P Q. P \/ (?x. Q x) <=> (?x:A. P \/ Q x)"), ITAUT_TAC)
 
 (* ------------------------------------------------------------------------- *)
 (* Existential quantifier and conjunction.                                   *)
 (* ------------------------------------------------------------------------- *)
 let LEFT_EXISTS_AND_THM = 
-    prove((parse_term "!P Q. (?x:A. P x /\ Q) <=> (?x:A. P x) /\ Q"), ITAUT_TAC)
+    prove((parse_term @"!P Q. (?x:A. P x /\ Q) <=> (?x:A. P x) /\ Q"), ITAUT_TAC)
 
 let RIGHT_EXISTS_AND_THM = 
-    prove((parse_term "!P Q. (?x:A. P /\ Q x) <=> P /\ (?x:A. Q x)"), ITAUT_TAC)
+    prove((parse_term @"!P Q. (?x:A. P /\ Q x) <=> P /\ (?x:A. Q x)"), ITAUT_TAC)
 let TRIV_EXISTS_AND_THM = 
     prove
-        ((parse_term "!P Q. (?x:A. P /\ Q) <=> (?x:A. P) /\ (?x:A. Q)"), 
+        ((parse_term @"!P Q. (?x:A. P /\ Q) <=> (?x:A. P) /\ (?x:A. Q)"), 
          ITAUT_TAC)
 let LEFT_AND_EXISTS_THM = 
-    prove((parse_term "!P Q. (?x:A. P x) /\ Q <=> (?x:A. P x /\ Q)"), ITAUT_TAC)
+    prove((parse_term @"!P Q. (?x:A. P x) /\ Q <=> (?x:A. P x /\ Q)"), ITAUT_TAC)
 let RIGHT_AND_EXISTS_THM = 
-    prove((parse_term "!P Q. P /\ (?x:A. Q x) <=> (?x:A. P /\ Q x)"), ITAUT_TAC)
+    prove((parse_term @"!P Q. P /\ (?x:A. Q x) <=> (?x:A. P /\ Q x)"), ITAUT_TAC)
 let TRIV_AND_EXISTS_THM = 
     prove
-        ((parse_term "!P Q. (?x:A. P) /\ (?x:A. Q) <=> (?x:A. P /\ Q)"), 
+        ((parse_term @"!P Q. (?x:A. P) /\ (?x:A. Q) <=> (?x:A. P /\ Q)"), 
          ITAUT_TAC)
 
 (* ------------------------------------------------------------------------- *)
@@ -319,35 +319,35 @@ let TRIV_AND_EXISTS_THM =
 (* ------------------------------------------------------------------------- *)
 let TRIV_FORALL_OR_THM = 
     prove
-        ((parse_term "!P Q. (!x:A. P \/ Q) <=> (!x:A. P) \/ (!x:A. Q)"), 
+        ((parse_term @"!P Q. (!x:A. P \/ Q) <=> (!x:A. P) \/ (!x:A. Q)"), 
          ITAUT_TAC)
 
 let TRIV_OR_FORALL_THM = 
     prove
-        ((parse_term "!P Q. (!x:A. P) \/ (!x:A. Q) <=> (!x:A. P \/ Q)"), 
+        ((parse_term @"!P Q. (!x:A. P) \/ (!x:A. Q) <=> (!x:A. P \/ Q)"), 
          ITAUT_TAC)
 
 (* ------------------------------------------------------------------------- *)
 (* Implication and quantifiers.                                              *)
 (* ------------------------------------------------------------------------- *)
 let RIGHT_IMP_FORALL_THM = 
-    prove((parse_term "!P Q. (P ==> !x:A. Q x) <=> (!x. P ==> Q x)"), ITAUT_TAC)
+    prove((parse_term @"!P Q. (P ==> !x:A. Q x) <=> (!x. P ==> Q x)"), ITAUT_TAC)
 
 let RIGHT_FORALL_IMP_THM = 
-    prove((parse_term "!P Q. (!x. P ==> Q x) <=> (P ==> !x:A. Q x)"), ITAUT_TAC)
+    prove((parse_term @"!P Q. (!x. P ==> Q x) <=> (P ==> !x:A. Q x)"), ITAUT_TAC)
 let LEFT_IMP_EXISTS_THM = 
     prove
-        ((parse_term "!P Q. ((?x:A. P x) ==> Q) <=> (!x. P x ==> Q)"), ITAUT_TAC)
+        ((parse_term @"!P Q. ((?x:A. P x) ==> Q) <=> (!x. P x ==> Q)"), ITAUT_TAC)
 let LEFT_FORALL_IMP_THM = 
     prove
-        ((parse_term "!P Q. (!x. P x ==> Q) <=> ((?x:A. P x) ==> Q)"), ITAUT_TAC)
+        ((parse_term @"!P Q. (!x. P x ==> Q) <=> ((?x:A. P x) ==> Q)"), ITAUT_TAC)
 let TRIV_FORALL_IMP_THM = 
     prove
-        ((parse_term "!P Q. (!x:A. P ==> Q) <=> ((?x:A. P) ==> (!x:A. Q))"), 
+        ((parse_term @"!P Q. (!x:A. P ==> Q) <=> ((?x:A. P) ==> (!x:A. Q))"), 
          ITAUT_TAC)
 let TRIV_EXISTS_IMP_THM = 
     prove
-        ((parse_term "!P Q. (?x:A. P ==> Q) <=> ((!x:A. P) ==> (?x:A. Q))"), 
+        ((parse_term @"!P Q. (?x:A. P ==> Q) <=> ((!x:A. P) ==> (?x:A. Q))"), 
          ITAUT_TAC)
 
 (* ------------------------------------------------------------------------- *)
@@ -355,14 +355,14 @@ let TRIV_EXISTS_IMP_THM =
 (* ------------------------------------------------------------------------- *)
 let EXISTS_UNIQUE_ALT = 
     prove
-        ((parse_term "!P:A->bool. (?!x. P x) <=> (?x. !y. P y <=> (x = y))"), 
+        ((parse_term @"!P:A->bool. (?!x. P x) <=> (?x. !y. P y <=> (x = y))"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_THM]
          |> THEN <| EQ_TAC
          |> THENL <| [DISCH_THEN
-                          (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term "x:A")) 
+                          (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term @"x:A")) 
                                ASSUME_TAC)
-                      |> THEN <| EXISTS_TAC(parse_term "x:A")
+                      |> THEN <| EXISTS_TAC(parse_term @"x:A")
                       |> THEN <| GEN_TAC
                       |> THEN <| EQ_TAC
                       |> THENL <| [DISCH_TAC
@@ -370,7 +370,7 @@ let EXISTS_UNIQUE_ALT =
                                    |> THEN <| ASM_REWRITE_TAC []
                                    DISCH_THEN(SUBST1_TAC << SYM)
                                    |> THEN <| FIRST_ASSUM MATCH_ACCEPT_TAC]
-                      DISCH_THEN(X_CHOOSE_TAC(parse_term "x:A"))
+                      DISCH_THEN(X_CHOOSE_TAC(parse_term @"x:A"))
                       |> THEN <| ASM_REWRITE_TAC [GSYM EXISTS_REFL]
                       |> THEN <| REPEAT GEN_TAC
                       |> THEN <| DISCH_THEN(CONJUNCTS_THEN(SUBST1_TAC << SYM))
@@ -379,14 +379,14 @@ let EXISTS_UNIQUE_ALT =
 let EXISTS_UNIQUE = 
     prove
         ((parse_term 
-              "!P:A->bool. (?!x. P x) <=> (?x. P x /\ !y. P y ==> (y = x))"), 
+              @"!P:A->bool. (?!x. P x) <=> (?x. P x /\ !y. P y ==> (y = x))"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_ALT]
          |> THEN <| AP_TERM_TAC
          |> THEN <| ABS_TAC
          |> THEN 
          <| GEN_REWRITE_TAC (LAND_CONV << BINDER_CONV) 
-                [ITAUT(parse_term "(a <=> b) <=> (a ==> b) /\ (b ==> a)")]
+                [ITAUT(parse_term @"(a <=> b) <=> (a ==> b) /\ (b ==> a)")]
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << ONCE_DEPTH_CONV) [EQ_SYM_EQ]
          |> THEN <| REWRITE_TAC [FORALL_AND_THM]
          |> THEN <| SIMP_TAC []

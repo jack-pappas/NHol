@@ -49,11 +49,11 @@ let mk_thm(asl, c) =
 (* Derived congruence rules; very useful things!                             *)
 (* ------------------------------------------------------------------------- *)
 let MK_CONJ = 
-    let andtm = parse_term "(/\)"
+    let andtm = parse_term @"(/\)"
     fun eq1 eq2 -> MK_COMB(AP_TERM andtm eq1, eq2)
 
 let MK_DISJ = 
-    let ortm = parse_term "(\/)"
+    let ortm = parse_term @"(\/)"
     fun eq1 eq2 -> MK_COMB(AP_TERM ortm eq1, eq2)
 
 let MK_FORALL = 

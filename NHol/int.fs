@@ -63,11 +63,11 @@ open calc_rat
 (* Representing predicate. The "is_int" variant is useful for backwards      *)
 (* compatibility with former definition of "is_int" constant, now removed.   *)
 (* ------------------------------------------------------------------------- *)
-let integer = new_definition(parse_term "integer(x) <=> ?n. abs(x) = &n")
+let integer = new_definition(parse_term @"integer(x) <=> ?n. abs(x) = &n")
 
 let is_int = 
     prove
-        ((parse_term "integer(x) <=> ?n. x = &n \/ x = -- &n"), 
+        ((parse_term @"integer(x) <=> ?n. x = &n \/ x = -- &n"), 
          REWRITE_TAC [integer]
          |> THEN <| AP_TERM_TAC
          |> THEN <| ABS_TAC
@@ -79,8 +79,8 @@ let is_int =
 let int_tybij = 
     new_type_definition "int" ("int_of_real", "real_of_int") 
         (prove
-             ((parse_term "?x. integer x"), 
-              EXISTS_TAC(parse_term "&0")
+             ((parse_term @"?x. integer x"), 
+              EXISTS_TAC(parse_term @"&0")
               |> THEN <| REWRITE_TAC [is_int
                                       REAL_OF_NUM_EQ
                                       EXISTS_OR_THM
@@ -91,7 +91,7 @@ let int_abstr, int_rep =
 
 let dest_int_rep = 
     prove
-        ((parse_term "!i. ?n. (real_of_int i = &n) \/ (real_of_int i = --(&n))"), 
+        ((parse_term @"!i. ?n. (real_of_int i = &n) \/ (real_of_int i = --(&n))"), 
          REWRITE_TAC [GSYM is_int
                       int_rep; int_abstr])
 
@@ -100,31 +100,31 @@ let dest_int_rep =
 (* ------------------------------------------------------------------------- *)
 let int_eq = 
     prove
-        ((parse_term "!x y. (x = y) <=> (real_of_int x = real_of_int y)"), 
+        ((parse_term @"!x y. (x = y) <=> (real_of_int x = real_of_int y)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| ASM_REWRITE_TAC []
-         |> THEN <| POP_ASSUM(MP_TAC << AP_TERM(parse_term "int_of_real"))
+         |> THEN <| POP_ASSUM(MP_TAC << AP_TERM(parse_term @"int_of_real"))
          |> THEN <| REWRITE_TAC [int_abstr])
 
 (* ------------------------------------------------------------------------- *)
 (* Set up interface map.                                                     *)
 (* ------------------------------------------------------------------------- *)
 
-do_list overload_interface ["+", (parse_term "int_add:int->int->int")
-                            "-", (parse_term "int_sub:int->int->int")
-                            "*", (parse_term "int_mul:int->int->int")
-                            "<", (parse_term "int_lt:int->int->bool")
-                            "<=", (parse_term "int_le:int->int->bool")
-                            ">", (parse_term "int_gt:int->int->bool")
-                            ">=", (parse_term "int_ge:int->int->bool")
-                            "--", (parse_term "int_neg:int->int")
-                            "pow", (parse_term "int_pow:int->num->int")
-                            "abs", (parse_term "int_abs:int->int")
-                            "max", (parse_term "int_max:int->int->int")
-                            "min", (parse_term "int_min:int->int->int")
-                            "&", (parse_term "int_of_num:num->int")]
+do_list overload_interface ["+", (parse_term @"int_add:int->int->int")
+                            "-", (parse_term @"int_sub:int->int->int")
+                            "*", (parse_term @"int_mul:int->int->int")
+                            "<", (parse_term @"int_lt:int->int->bool")
+                            "<=", (parse_term @"int_le:int->int->bool")
+                            ">", (parse_term @"int_gt:int->int->bool")
+                            ">=", (parse_term @"int_ge:int->int->bool")
+                            "--", (parse_term @"int_neg:int->int")
+                            "pow", (parse_term @"int_pow:int->num->int")
+                            "abs", (parse_term @"int_abs:int->int")
+                            "max", (parse_term @"int_max:int->int->int")
+                            "min", (parse_term @"int_min:int->int->int")
+                            "&", (parse_term @"int_of_num:num->int")]
 
 let prioritize_int() = prioritize_overload(mk_type("int", []))
 
@@ -132,19 +132,19 @@ let prioritize_int() = prioritize_overload(mk_type("int", []))
 (* Definitions and closure derivations of all operations but "inv" and "/".  *)
 (* ------------------------------------------------------------------------- *)
 let int_le = 
-    new_definition(parse_term "x <= y <=> (real_of_int x) <= (real_of_int y)")
+    new_definition(parse_term @"x <= y <=> (real_of_int x) <= (real_of_int y)")
 
 let int_lt = 
-    new_definition(parse_term "x < y <=> (real_of_int x) < (real_of_int y)")
+    new_definition(parse_term @"x < y <=> (real_of_int x) < (real_of_int y)")
 let int_ge = 
-    new_definition(parse_term "x >= y <=> (real_of_int x) >= (real_of_int y)")
+    new_definition(parse_term @"x >= y <=> (real_of_int x) >= (real_of_int y)")
 let int_gt = 
-    new_definition(parse_term "x > y <=> (real_of_int x) > (real_of_int y)")
-let int_of_num = new_definition(parse_term "&n = int_of_real(real_of_num n)")
+    new_definition(parse_term @"x > y <=> (real_of_int x) > (real_of_int y)")
+let int_of_num = new_definition(parse_term @"&n = int_of_real(real_of_num n)")
 
 let int_of_num_th = 
     prove
-        ((parse_term "!n. real_of_int(int_of_num n) = real_of_num n"), 
+        ((parse_term @"!n. real_of_int(int_of_num n) = real_of_num n"), 
          REWRITE_TAC [int_of_num
                       GSYM int_rep
                       is_int]
@@ -152,16 +152,16 @@ let int_of_num_th =
                                  EXISTS_OR_THM
                                  GSYM EXISTS_REFL])
 
-let int_neg = new_definition(parse_term "--i = int_of_real(--(real_of_int i))")
+let int_neg = new_definition(parse_term @"--i = int_of_real(--(real_of_int i))")
 
 let int_neg_th = 
     prove
-        ((parse_term "!x. real_of_int(int_neg x) = --(real_of_int x)"), 
+        ((parse_term @"!x. real_of_int(int_neg x) = --(real_of_int x)"), 
          REWRITE_TAC [int_neg
                       GSYM int_rep
                       is_int]
          |> THEN <| GEN_TAC
-         |> THEN <| STRIP_ASSUME_TAC(SPEC (parse_term "x:int") dest_int_rep)
+         |> THEN <| STRIP_ASSUME_TAC(SPEC (parse_term @"x:int") dest_int_rep)
          |> THEN <| ASM_REWRITE_TAC [REAL_NEG_NEG
                                      EXISTS_OR_THM
                                      REAL_EQ_NEG2
@@ -170,7 +170,7 @@ let int_neg_th =
 
 let int_add = 
     new_definition
-        (parse_term "x + y = int_of_real((real_of_int x) + (real_of_int y))")
+        (parse_term @"x + y = int_of_real((real_of_int x) + (real_of_int y))")
 
 let int_add_th = 
     prove
@@ -181,22 +181,22 @@ let int_add_th =
                       is_int]
          |> THEN <| REPEAT GEN_TAC
          |> THEN 
-         <| X_CHOOSE_THEN (parse_term "m:num") DISJ_CASES_TAC 
-                (SPEC (parse_term "x:int") dest_int_rep)
+         <| X_CHOOSE_THEN (parse_term @"m:num") DISJ_CASES_TAC 
+                (SPEC (parse_term @"x:int") dest_int_rep)
          |> THEN 
-         <| X_CHOOSE_THEN (parse_term "n:num") DISJ_CASES_TAC 
-                (SPEC (parse_term "y:int") dest_int_rep)
+         <| X_CHOOSE_THEN (parse_term @"n:num") DISJ_CASES_TAC 
+                (SPEC (parse_term @"y:int") dest_int_rep)
          |> THEN 
          <| ASM_REWRITE_TAC [REAL_OF_NUM_ADD; REAL_OF_NUM_EQ; EXISTS_OR_THM]
          |> THEN <| REWRITE_TAC [GSYM EXISTS_REFL]
          |> THEN 
-         <| DISJ_CASES_THEN MP_TAC (SPECL [(parse_term "m:num")
-                                           (parse_term "n:num")] LE_CASES)
+         <| DISJ_CASES_THEN MP_TAC (SPECL [(parse_term @"m:num")
+                                           (parse_term @"n:num")] LE_CASES)
          |> THEN <| REWRITE_TAC [LE_EXISTS]
-         |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term "d:num") SUBST1_TAC)
+         |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term @"d:num") SUBST1_TAC)
          |> THEN <| REWRITE_TAC [GSYM REAL_OF_NUM_ADD
                                  OR_EXISTS_THM; REAL_NEG_ADD]
-         |> THEN <| TRY(EXISTS_TAC(parse_term "d:num")
+         |> THEN <| TRY(EXISTS_TAC(parse_term @"d:num")
                         |> THEN <| REAL_ARITH_TAC)
          |> THEN <| REWRITE_TAC [EXISTS_OR_THM
                                  GSYM REAL_NEG_ADD
@@ -207,7 +207,7 @@ let int_add_th =
 
 let int_sub = 
     new_definition
-        (parse_term "x - y = int_of_real(real_of_int x - real_of_int y)")
+        (parse_term @"x - y = int_of_real(real_of_int x - real_of_int y)")
 
 let int_sub_th = 
     prove
@@ -221,7 +221,7 @@ let int_sub_th =
 
 let int_mul = 
     new_definition
-        (parse_term "x * y = int_of_real ((real_of_int x) * (real_of_int y))")
+        (parse_term @"x * y = int_of_real ((real_of_int x) * (real_of_int y))")
 
 let int_mul_th = 
     prove
@@ -232,11 +232,11 @@ let int_mul_th =
                                  GSYM int_rep
                                  is_int]
          |> THEN 
-         <| X_CHOOSE_THEN (parse_term "m:num") DISJ_CASES_TAC 
-                (SPEC (parse_term "x:int") dest_int_rep)
+         <| X_CHOOSE_THEN (parse_term @"m:num") DISJ_CASES_TAC 
+                (SPEC (parse_term @"x:int") dest_int_rep)
          |> THEN 
-         <| X_CHOOSE_THEN (parse_term "n:num") DISJ_CASES_TAC 
-                (SPEC (parse_term "y:int") dest_int_rep)
+         <| X_CHOOSE_THEN (parse_term @"n:num") DISJ_CASES_TAC 
+                (SPEC (parse_term @"y:int") dest_int_rep)
          |> THEN 
          <| ASM_REWRITE_TAC [REAL_OF_NUM_ADD; REAL_OF_NUM_EQ; EXISTS_OR_THM]
          |> THEN 
@@ -247,11 +247,11 @@ let int_mul_th =
                                  GSYM EXISTS_REFL])
 
 let int_abs = 
-    new_definition(parse_term "abs x = int_of_real(abs(real_of_int x))")
+    new_definition(parse_term @"abs x = int_of_real(abs(real_of_int x))")
 
 let int_abs_th = 
     prove
-        ((parse_term "!x. real_of_int(abs x) = abs(real_of_int x)"), 
+        ((parse_term @"!x. real_of_int(abs x) = abs(real_of_int x)"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [int_abs; real_abs]
          |> THEN <| COND_CASES_TAC
@@ -260,11 +260,11 @@ let int_abs_th =
 
 let int_sgn = 
     new_definition
-        (parse_term "int_sgn x = int_of_real(real_sgn(real_of_int x))")
+        (parse_term @"int_sgn x = int_of_real(real_sgn(real_of_int x))")
 
 let int_sgn_th = 
     prove
-        ((parse_term "!x. real_of_int(int_sgn x) = real_sgn(real_of_int x)"), 
+        ((parse_term @"!x. real_of_int(int_sgn x) = real_sgn(real_of_int x)"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [int_sgn
                                  real_sgn
@@ -302,11 +302,11 @@ let int_min_th =
          |> THEN <| REWRITE_TAC [int_abstr])
 
 let int_pow = 
-    new_definition(parse_term "x pow n = int_of_real((real_of_int x) pow n)")
+    new_definition(parse_term @"x pow n = int_of_real((real_of_int x) pow n)")
 
 let int_pow_th = 
     prove
-        ((parse_term "!x n. real_of_int(x pow n) = (real_of_int x) pow n"), 
+        ((parse_term @"!x n. real_of_int(x pow n) = (real_of_int x) pow n"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [int_pow]
          |> THEN <| INDUCT_TAC
@@ -322,32 +322,32 @@ let int_pow_th =
 (* ------------------------------------------------------------------------- *)
 let INT_IMAGE = 
     prove
-        ((parse_term "!x. (?n. x = &n) \/ (?n. x = --(&n))"), 
+        ((parse_term @"!x. (?n. x = &n) \/ (?n. x = --(&n))"), 
          GEN_TAC
          |> THEN 
-         <| X_CHOOSE_THEN (parse_term "n:num") DISJ_CASES_TAC 
-                (SPEC (parse_term "x:int") dest_int_rep)
-         |> THEN <| POP_ASSUM(MP_TAC << AP_TERM(parse_term "int_of_real"))
+         <| X_CHOOSE_THEN (parse_term @"n:num") DISJ_CASES_TAC 
+                (SPEC (parse_term @"x:int") dest_int_rep)
+         |> THEN <| POP_ASSUM(MP_TAC << AP_TERM(parse_term @"int_of_real"))
          |> THEN <| REWRITE_TAC [int_abstr]
          |> THEN <| DISCH_THEN SUBST1_TAC
          |> THEN <| REWRITE_TAC [int_of_num; int_neg]
          |> THENL <| [DISJ1_TAC; DISJ2_TAC]
-         |> THEN <| EXISTS_TAC(parse_term "n:num")
+         |> THEN <| EXISTS_TAC(parse_term @"n:num")
          |> THEN <| REWRITE_TAC [int_abstr]
          |> THEN <| REWRITE_TAC [GSYM int_of_num
                                  int_of_num_th])
 
 let INT_LT_DISCRETE = 
     prove
-        ((parse_term "!x y. x < y <=> (x + &1) <= y"), 
+        ((parse_term @"!x y. x < y <=> (x + &1) <= y"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [int_le; int_lt; int_add_th]
          |> THEN 
-         <| DISJ_CASES_THEN (X_CHOOSE_THEN (parse_term "m:num") SUBST1_TAC) 
-                (SPEC (parse_term "x:int") INT_IMAGE)
+         <| DISJ_CASES_THEN (X_CHOOSE_THEN (parse_term @"m:num") SUBST1_TAC) 
+                (SPEC (parse_term @"x:int") INT_IMAGE)
          |> THEN 
-         <| DISJ_CASES_THEN (X_CHOOSE_THEN (parse_term "n:num") SUBST1_TAC) 
-                (SPEC (parse_term "y:int") INT_IMAGE)
+         <| DISJ_CASES_THEN (X_CHOOSE_THEN (parse_term @"n:num") SUBST1_TAC) 
+                (SPEC (parse_term @"y:int") INT_IMAGE)
          |> THEN <| REWRITE_TAC [int_neg_th; int_of_num_th]
          |> THEN <| REWRITE_TAC [REAL_LE_NEG2; REAL_LT_NEG2]
          |> THEN 
@@ -361,12 +361,12 @@ let INT_LT_DISCRETE =
          |> THEN <| REWRITE_TAC [GSYM ADD1
                                  ONCE_REWRITE_RULE [ADD_SYM] (GSYM ADD1)]
          |> THEN 
-         <| REWRITE_TAC [SYM(REWRITE_CONV [ARITH_SUC] (parse_term "SUC 0"))]
+         <| REWRITE_TAC [SYM(REWRITE_CONV [ARITH_SUC] (parse_term @"SUC 0"))]
          |> THEN <| REWRITE_TAC [ADD_CLAUSES; LE_SUC_LT; LT_SUC_LE])
 
 let INT_GT_DISCRETE = 
     prove
-        ((parse_term "!x y. x > y <=> x >= (y + &1)"), 
+        ((parse_term @"!x y. x > y <=> x >= (y + &1)"), 
          REWRITE_TAC [int_gt
                       int_ge
                       real_ge
@@ -396,8 +396,8 @@ let dest_intconst tm =
     | _ -> failwith "dest_intconst"
 
 let mk_intconst = 
-    let cast_tm = (parse_term "int_of_num")
-    let neg_tm = (parse_term "int_neg")
+    let cast_tm = (parse_term @"int_of_num")
+    let neg_tm = (parse_term @"int_neg")
     let mk_numconst n = mk_comb(cast_tm, mk_numeral n)
     fun x -> 
         if x </ num_0
@@ -409,12 +409,12 @@ let mk_intconst =
 (* For a more complete procedure, give required term to INT_ARITH (below).   *)
 (* ------------------------------------------------------------------------- *)
 let INT_OF_REAL_THM = 
-    let dest = (parse_term "real_of_int")
-    let real_ty = (parse_type ":real")
-    let int_ty = (parse_type ":int")
+    let dest = (parse_term @"real_of_int")
+    let real_ty = (parse_type @":real")
+    let int_ty = (parse_type @":int")
     let cond_th = 
         prove
-            ((parse_term "real_of_int(if b then x else y) =
+            ((parse_term @"real_of_int(if b then x else y) =
         if b then real_of_int x else real_of_int y"),  
              COND_CASES_TAC
              |> THEN <| REWRITE_TAC [])
@@ -695,13 +695,13 @@ let INT_SUB_TRIANGLE = INT_OF_REAL_THM REAL_SUB_TRIANGLE
 (* ------------------------------------------------------------------------- *)
 let INT_FORALL_POS = 
     prove
-        ((parse_term "!P. (!n. P(&n)) <=> (!i:int. &0 <= i ==> P(i))"), 
+        ((parse_term @"!P. (!n. P(&n)) <=> (!i:int. &0 <= i ==> P(i))"), 
          GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| GEN_TAC
          |> THENL <| [DISJ_CASES_THEN (CHOOSE_THEN SUBST1_TAC) 
-                          (SPEC (parse_term "i:int") INT_IMAGE)
+                          (SPEC (parse_term @"i:int") INT_IMAGE)
                       |> THEN 
                       <| ASM_REWRITE_TAC 
                              [INT_LE_RNEG; INT_ADD_LID; INT_OF_NUM_LE; LE]
@@ -712,25 +712,25 @@ let INT_FORALL_POS =
 
 let INT_EXISTS_POS = 
     prove
-        ((parse_term "!P. (?n. P(&n)) <=> (?i:int. &0 <= i /\ P(i))"), 
+        ((parse_term @"!P. (?n. P(&n)) <=> (?i:int. &0 <= i /\ P(i))"), 
          GEN_TAC
          |> THEN 
-         <| GEN_REWRITE_TAC I [TAUT(parse_term "(p <=> q) <=> (~p <=> ~q)")]
+         <| GEN_REWRITE_TAC I [TAUT(parse_term @"(p <=> q) <=> (~p <=> ~q)")]
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; INT_FORALL_POS]
          |> THEN <| MESON_TAC [])
 
 let INT_FORALL_ABS = 
     prove
-        ((parse_term "!P. (!n. P(&n)) <=> (!x:int. P(abs x))"), 
+        ((parse_term @"!P. (!n. P(&n)) <=> (!x:int. P(abs x))"), 
          REWRITE_TAC [INT_FORALL_POS]
          |> THEN <| MESON_TAC [INT_ABS_POS; INT_ABS_REFL])
 
 let INT_EXISTS_ABS = 
     prove
-        ((parse_term "!P. (?n. P(&n)) <=> (?x:int. P(abs x))"), 
+        ((parse_term @"!P. (?n. P(&n)) <=> (?x:int. P(abs x))"), 
          GEN_TAC
          |> THEN 
-         <| GEN_REWRITE_TAC I [TAUT(parse_term "(p <=> q) <=> (~p <=> ~q)")]
+         <| GEN_REWRITE_TAC I [TAUT(parse_term @"(p <=> q) <=> (~p <=> ~q)")]
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; INT_FORALL_ABS]
          |> THEN <| MESON_TAC [])
 
@@ -743,18 +743,18 @@ let INT_ABS_MUL_1 =
               "!x y. (abs(x * y) = &1) <=> (abs(x) = &1) /\ (abs(y) = &1)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [INT_ABS_MUL]
-         |> THEN <| MP_TAC(SPEC (parse_term "y:int") INT_ABS_POS)
-         |> THEN <| SPEC_TAC((parse_term "abs(y)"), (parse_term "b:int"))
-         |> THEN <| MP_TAC(SPEC (parse_term "x:int") INT_ABS_POS)
-         |> THEN <| SPEC_TAC((parse_term "abs(x)"), (parse_term "a:int"))
+         |> THEN <| MP_TAC(SPEC (parse_term @"y:int") INT_ABS_POS)
+         |> THEN <| SPEC_TAC((parse_term @"abs(y)"), (parse_term @"b:int"))
+         |> THEN <| MP_TAC(SPEC (parse_term @"x:int") INT_ABS_POS)
+         |> THEN <| SPEC_TAC((parse_term @"abs(x)"), (parse_term @"a:int"))
          |> THEN <| REWRITE_TAC [GSYM INT_FORALL_POS
                                  INT_OF_NUM_MUL; INT_OF_NUM_EQ; MULT_EQ_1])
 
 let INT_WOP = 
-    prove((parse_term "(?x. &0 <= x /\ P x) <=>
+    prove((parse_term @"(?x. &0 <= x /\ P x) <=>
     (?x. &0 <= x /\ P x /\ !y. &0 <= y /\ P y ==> x <= y)"),
    ONCE_REWRITE_TAC 
-       [MESON [] (parse_term "(?x. P x /\ Q x) <=> ~(!x. P x ==> ~Q x)")]
+       [MESON [] (parse_term @"(?x. P x /\ Q x) <=> ~(!x. P x ==> ~Q x)")]
    |> THEN <| REWRITE_TAC [IMP_CONJ
                            GSYM INT_FORALL_POS
                            INT_OF_NUM_LE]
@@ -768,29 +768,29 @@ let INT_WOP =
 (* ------------------------------------------------------------------------- *)
 let INT_POW = 
     prove
-        ((parse_term "(x pow 0 = &1) /\
+        ((parse_term @"(x pow 0 = &1) /\
     (!n. x pow (SUC n) = x * x pow n)"), 
          REWRITE_TAC(map INT_OF_REAL_THM (CONJUNCTS real_pow)))
 
 let INT_ABS = 
     prove
-        ((parse_term "!x. abs(x) = if &0 <= x then x else --x"), 
+        ((parse_term @"!x. abs(x) = if &0 <= x then x else --x"), 
          GEN_TAC
-         |> THEN <| MP_TAC(INT_OF_REAL_THM(SPEC (parse_term "x:real") real_abs))
+         |> THEN <| MP_TAC(INT_OF_REAL_THM(SPEC (parse_term @"x:real") real_abs))
          |> THEN <| COND_CASES_TAC
          |> THEN <| REWRITE_TAC [int_eq])
 
 let INT_GE = 
     prove
-        ((parse_term "!x y. x >= y <=> y <= x"), 
+        ((parse_term @"!x y. x >= y <=> y <= x"), 
          REWRITE_TAC [int_ge; int_le; real_ge])
 let INT_GT = 
     prove
-        ((parse_term "!x y. x > y <=> y < x"), 
+        ((parse_term @"!x y. x > y <=> y < x"), 
          REWRITE_TAC [int_gt; int_lt; real_gt])
 let INT_LT = 
     prove
-        ((parse_term "!x y. x < y <=> ~(y <= x)"), 
+        ((parse_term @"!x y. x < y <=> ~(y <= x)"), 
          REWRITE_TAC [int_lt; int_le; real_lt])
 
 (* ------------------------------------------------------------------------- *)
@@ -800,7 +800,7 @@ let INT_ARITH =
     let atom_CONV = 
         let pth = 
             prove
-                ((parse_term "(~(x <= y) <=> y + &1 <= x) /\
+                ((parse_term @"(~(x <= y) <=> y + &1 <= x) /\
         (~(x < y) <=> y <= x) /\
         (~(x = y) <=> x + &1 <= y \/ y + &1 <= x) /\
         (x < y <=> x + &1 <= y)"), 
@@ -822,10 +822,10 @@ let INT_ARITH =
         |> THENC <| PRESIMP_CONV
         |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [INT_GT; INT_GE]
         |> THENC <| NNF_CONV
-        |> THENC <| DEPTH_BINOP_CONV (parse_term "(\/)") CONDS_ELIM_CONV
+        |> THENC <| DEPTH_BINOP_CONV (parse_term @"(\/)") CONDS_ELIM_CONV
         |> THENC <| NNF_NORM_CONV
-    let p_tm = (parse_term "p:bool")
-    let not_tm = (parse_term "(~)")
+    let p_tm = (parse_term @"p:bool")
+    let not_tm = (parse_term @"(~)")
     let pth = TAUT(mk_eq(mk_neg(mk_neg p_tm), p_tm))
     fun tm -> 
         let th0 = INST [tm, p_tm] pth
@@ -842,27 +842,27 @@ let ASM_INT_ARITH_TAC = REPEAT
 (* ------------------------------------------------------------------------- *)
 (* Some pseudo-definitions.                                                  *)
 (* ------------------------------------------------------------------------- *)
-let INT_SUB = INT_ARITH(parse_term "!x y. x - y = x + --y")
+let INT_SUB = INT_ARITH(parse_term @"!x y. x - y = x + --y")
 
-let INT_MAX = INT_ARITH(parse_term "!x y. max x y = if x <= y then y else x")
-let INT_MIN = INT_ARITH(parse_term "!x y. min x y = if x <= y then x else y")
+let INT_MAX = INT_ARITH(parse_term @"!x y. max x y = if x <= y then y else x")
+let INT_MIN = INT_ARITH(parse_term @"!x y. min x y = if x <= y then x else y")
 
 (* ------------------------------------------------------------------------- *)
 (* Archimedian property for the integers.                                    *)
 (* ------------------------------------------------------------------------- *)
 let INT_ARCH = 
     prove
-        ((parse_term "!x d. ~(d = &0) ==> ?c. x < c * d"), 
-         SUBGOAL_THEN (parse_term "!x. &0 <= x ==> ?n. x <= &n") ASSUME_TAC
+        ((parse_term @"!x d. ~(d = &0) ==> ?c. x < c * d"), 
+         SUBGOAL_THEN (parse_term @"!x. &0 <= x ==> ?n. x <= &n") ASSUME_TAC
          |> THENL <| [REWRITE_TAC [GSYM INT_FORALL_POS
                                    INT_OF_NUM_LE]
                       |> THEN <| MESON_TAC [LE_REFL]
                       ALL_TAC]
-         |> THEN <| SUBGOAL_THEN (parse_term "!x. ?n. x <= &n") ASSUME_TAC
+         |> THEN <| SUBGOAL_THEN (parse_term @"!x. ?n. x <= &n") ASSUME_TAC
          |> THENL <| [ASM_MESON_TAC [INT_LE_TOTAL]
                       ALL_TAC]
          |> THEN 
-         <| SUBGOAL_THEN (parse_term "!x d. &0 < d ==> ?c. x < c * d") 
+         <| SUBGOAL_THEN (parse_term @"!x d. &0 < d ==> ?c. x < c * d") 
                 ASSUME_TAC
          |> THENL <| [REPEAT GEN_TAC
                       |> THEN <| REWRITE_TAC [INT_LT_DISCRETE; INT_ADD_LID]
@@ -875,58 +875,58 @@ let INT_ARCH =
                                        "x + &1 <= &n /\ &n * &1 <= &n * d ==> x + &1 <= &n * d")]
                       ALL_TAC]
          |> THEN 
-         <| SUBGOAL_THEN (parse_term "!x d. ~(d = &0) ==> ?c. x < c * d") 
+         <| SUBGOAL_THEN (parse_term @"!x d. ~(d = &0) ==> ?c. x < c * d") 
                 ASSUME_TAC
          |> THENL <| [ASM_MESON_TAC 
-                          [INT_ARITH(parse_term "--x * y = x * --y")
+                          [INT_ARITH(parse_term @"--x * y = x * --y")
                            INT_ARITH
-                               (parse_term "~(d = &0) ==> &0 < d \/ &0 < --d")]
+                               (parse_term @"~(d = &0) ==> &0 < d \/ &0 < --d")]
                       ALL_TAC]
          |> THEN 
          <| ASM_MESON_TAC 
-                [INT_ARITH(parse_term "--x * y = x * --y")
-                 INT_ARITH(parse_term "~(d = &0) ==> &0 < d \/ &0 < --d")])
+                [INT_ARITH(parse_term @"--x * y = x * --y")
+                 INT_ARITH(parse_term @"~(d = &0) ==> &0 < d \/ &0 < --d")])
 
 (* ------------------------------------------------------------------------- *)
 (* Definitions of ("Euclidean") integer division and remainder.              *)
 (* ------------------------------------------------------------------------- *)
 let INT_DIVMOD_EXIST_0 = 
-    prove((parse_term "!m n:int. ?q r. if n = &0 then q = &0 /\ r = m
+    prove((parse_term @"!m n:int. ?q r. if n = &0 then q = &0 /\ r = m
                     else &0 <= r /\ r < abs(n) /\ m = q * n + r"),
                    REPEAT GEN_TAC
-                   |> THEN <| ASM_CASES_TAC (parse_term "n = &0")
+                   |> THEN <| ASM_CASES_TAC (parse_term @"n = &0")
                    |> THEN 
                    <| ASM_REWRITE_TAC [RIGHT_EXISTS_AND_THM; EXISTS_REFL]
                    |> THEN <| GEN_REWRITE_TAC I [SWAP_EXISTS_THM]
                    |> THEN 
                    <| SUBGOAL_THEN 
-                          (parse_term "?r. &0 <= r /\ ?q:int. m = n * q + r") 
+                          (parse_term @"?r. &0 <= r /\ ?q:int. m = n * q + r") 
                           MP_TAC
                    |> THENL <| [FIRST_ASSUM
-                                    (MP_TAC << SPEC(parse_term "--m:int") 
+                                    (MP_TAC << SPEC(parse_term @"--m:int") 
                                      << MATCH_MP INT_ARCH)
                                 |> THEN 
-                                <| DISCH_THEN(X_CHOOSE_TAC(parse_term "s:int"))
+                                <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"s:int"))
                                 |> THEN 
-                                <| EXISTS_TAC(parse_term "m + s * n:int")
+                                <| EXISTS_TAC(parse_term @"m + s * n:int")
                                 |> THEN <| CONJ_TAC
                                 |> THENL <| [ASM_INT_ARITH_TAC
-                                             EXISTS_TAC(parse_term "--s:int")
+                                             EXISTS_TAC(parse_term @"--s:int")
                                              |> THEN <| INT_ARITH_TAC]
                                 GEN_REWRITE_TAC LAND_CONV [INT_WOP]
                                 |> THEN <| MATCH_MP_TAC MONO_EXISTS
-                                |> THEN <| X_GEN_TAC(parse_term "r:int")
+                                |> THEN <| X_GEN_TAC(parse_term @"r:int")
                                 |> THEN 
                                 <| REWRITE_TAC 
                                        [LEFT_AND_EXISTS_THM; 
                                         RIGHT_AND_EXISTS_THM]
                                 |> THEN <| MATCH_MP_TAC MONO_EXISTS
-                                |> THEN <| X_GEN_TAC(parse_term "q:int")
+                                |> THEN <| X_GEN_TAC(parse_term @"q:int")
                                 |> THEN <| STRIP_TAC
                                 |> THEN <| ASM_REWRITE_TAC []
                                 |> THEN 
                                 <| FIRST_X_ASSUM
-                                       (MP_TAC << SPEC(parse_term "r - abs n"))
+                                       (MP_TAC << SPEC(parse_term @"r - abs n"))
                                 |> THEN <| REWRITE_TAC [LEFT_IMP_EXISTS_THM]
                                 |> THEN 
                                 <| DISCH_THEN
@@ -943,7 +943,7 @@ let INT_DIVISION_0 =
     new_specification ["div"
                        "rem"] (REWRITE_RULE [SKOLEM_THM] INT_DIVMOD_EXIST_0)
 
-let INT_DIVISION = prove((parse_term "!m n. ~(n = &0)
+let INT_DIVISION = prove((parse_term @"!m n. ~(n = &0)
            ==> m = m div n * n + m rem n /\ &0 <= m rem n /\ m rem n < abs n"),
           MESON_TAC [INT_DIVISION_0])
 
@@ -952,16 +952,16 @@ let INT_DIVISION = prove((parse_term "!m n. ~(n = &0)
 (* in the file "calc_int.ml", except for div and rem, which are more like N. *)
 (* ------------------------------------------------------------------------- *)
 let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV = 
-    let tth = TAUT(parse_term "(F /\ F <=> F) /\ (F /\ T <=> F) /\
+    let tth = TAUT(parse_term @"(F /\ F <=> F) /\ (F /\ T <=> F) /\
           (T /\ F <=> F) /\ (T /\ T <=> T)")
-    let nth = TAUT(parse_term "(~T <=> F) /\ (~F <=> T)")
+    let nth = TAUT(parse_term @"(~T <=> F) /\ (~F <=> T)")
     let NUM2_EQ_CONV = BINOP_CONV NUM_EQ_CONV
                        |> THENC <| GEN_REWRITE_CONV I [tth]
     let NUM2_NE_CONV = RAND_CONV NUM2_EQ_CONV
                        |> THENC <| GEN_REWRITE_CONV I [nth]
     let [pth_le1; pth_le2a; pth_le2b; pth_le3] = 
         (CONJUNCTS << prove)
-            ((parse_term "(--(&m) <= &n <=> T) /\
+            ((parse_term @"(--(&m) <= &n <=> T) /\
        (&m <= &n <=> m <= n) /\
        (--(&m) <= --(&n) <=> n <= m) /\
        (&m <= --(&n) <=> (m = 0) /\ (n = 0))"), 
@@ -976,7 +976,7 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
                     GEN_REWRITE_CONV I [pth_le3]
                     |> THENC <| NUM2_EQ_CONV]
     let [pth_lt1; pth_lt2a; pth_lt2b; pth_lt3] = 
-        (CONJUNCTS << prove)((parse_term "(&m < --(&n) <=> F) /\
+        (CONJUNCTS << prove)((parse_term @"(&m < --(&n) <=> F) /\
       (&m < &n <=> m < n) /\
       (--(&m) < --(&n) <=> n < m) /\
       (--(&m) < &n <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC [pth_le1;
@@ -992,7 +992,7 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
                     |> THENC <| NUM_LT_CONV
                     GEN_REWRITE_CONV I [pth_lt3]
                     |> THENC <| NUM2_NE_CONV]
-    let [pth_ge1; pth_ge2a; pth_ge2b; pth_ge3] = (CONJUNCTS << prove)((parse_term "(&m >= --(&n) <=> T) /\
+    let [pth_ge1; pth_ge2a; pth_ge2b; pth_ge3] = (CONJUNCTS << prove)((parse_term @"(&m >= --(&n) <=> T) /\
       (&m >= &n <=> n <= m) /\
       (--(&m) >= --(&n) <=> m <= n) /\
       (--(&m) >= &n <=> (m = 0) /\ (n = 0))"), REWRITE_TAC 
@@ -1005,7 +1005,7 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
                     |> THENC <| NUM_LE_CONV
                     GEN_REWRITE_CONV I [pth_ge3]
                     |> THENC <| NUM2_EQ_CONV]
-    let [pth_gt1; pth_gt2a; pth_gt2b; pth_gt3] = (CONJUNCTS << prove)((parse_term "(--(&m) > &n <=> F) /\
+    let [pth_gt1; pth_gt2a; pth_gt2b; pth_gt3] = (CONJUNCTS << prove)((parse_term @"(--(&m) > &n <=> F) /\
       (&m > &n <=> n < m) /\
       (--(&m) > --(&n) <=> m < n) /\
       (&m > --(&n) <=> ~((m = 0) /\ (n = 0)))"), REWRITE_TAC 
@@ -1019,7 +1019,7 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
                     GEN_REWRITE_CONV I [pth_gt3]
                     |> THENC <| NUM2_NE_CONV]
     let [pth_eq1a; pth_eq1b; pth_eq2a; pth_eq2b] = 
-        (CONJUNCTS << prove)((parse_term "((&m = &n) <=> (m = n)) /\
+        (CONJUNCTS << prove)((parse_term @"((&m = &n) <=> (m = n)) /\
       ((--(&m) = --(&n)) <=> (m = n)) /\
       ((--(&m) = &n) <=> (m = 0) /\ (n = 0)) /\
       ((&m = --(&n)) <=> (m = 0) /\ (n = 0))"), REWRITE_TAC [GSYM INT_LE_ANTISYM;
@@ -1038,16 +1038,16 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
     INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV
 
 let INT_NEG_CONV = 
-    let pth = prove((parse_term "(--(&0) = &0) /\
+    let pth = prove((parse_term @"(--(&0) = &0) /\
       (--(--(&x)) = &x)"), REWRITE_TAC [INT_NEG_NEG; INT_NEG_0])
     GEN_REWRITE_CONV I [pth]
 
 let INT_MUL_CONV = 
-    let pth0 = prove((parse_term "(&0 * &x = &0) /\
+    let pth0 = prove((parse_term @"(&0 * &x = &0) /\
       (&0 * --(&x) = &0) /\
       (&x * &0 = &0) /\
       (--(&x) * &0 = &0)"), REWRITE_TAC [INT_MUL_LZERO; INT_MUL_RZERO])
-    let pth1, pth2 = (CONJ_PAIR << prove)((parse_term "((&m * &n = &(m * n)) /\
+    let pth1, pth2 = (CONJ_PAIR << prove)((parse_term @"((&m * &n = &(m * n)) /\
        (--(&m) * --(&n) = &(m * n))) /\
       ((--(&m) * &n = --(&(m * n))) /\
        (&m * --(&n) = --(&(m * n))))"), REWRITE_TAC 
@@ -1061,17 +1061,17 @@ let INT_MUL_CONV =
                 |> THENC <| RAND_CONV(RAND_CONV NUM_MULT_CONV)]
 
 let INT_ADD_CONV = 
-    let neg_tm = (parse_term "(--)")
-    let amp_tm = (parse_term "&")
-    let add_tm = (parse_term "(+)")
-    let dest = dest_binop(parse_term "(+)")
-    let m_tm = (parse_term "m:num")
-    let n_tm = (parse_term "n:num")
-    let pth0 = prove((parse_term "(--(&m) + &m = &0) /\
+    let neg_tm = (parse_term @"(--)")
+    let amp_tm = (parse_term @"&")
+    let add_tm = (parse_term @"(+)")
+    let dest = dest_binop(parse_term @"(+)")
+    let m_tm = (parse_term @"m:num")
+    let n_tm = (parse_term @"n:num")
+    let pth0 = prove((parse_term @"(--(&m) + &m = &0) /\
       (&m + --(&m) = &0)"), REWRITE_TAC [INT_ADD_LINV; INT_ADD_RINV])
     let [pth1; pth2; pth3; pth4; pth5; pth6] = 
         (CONJUNCTS << prove)
-            ((parse_term "(--(&m) + --(&n) = --(&(m + n))) /\
+            ((parse_term @"(--(&m) + --(&n) = --(&(m + n))) /\
       (--(&m) + &(m + n) = &n) /\
       (--(&(m + n)) + &m = --(&n)) /\
       (&(m + n) + --(&m) = &n) /\
@@ -1168,7 +1168,7 @@ let INT_SUB_CONV =
 let INT_POW_CONV = 
     let pth1, pth2 = 
         (CONJ_PAIR << prove)
-            ((parse_term "(&x pow n = &(x EXP n)) /\
+            ((parse_term @"(&x pow n = &(x EXP n)) /\
       ((--(&x)) pow n = if EVEN n then &(x EXP n) else --(&(x EXP n)))"), 
              REWRITE_TAC [INT_OF_NUM_POW; INT_POW_NEG])
     let tth = 
@@ -1176,7 +1176,7 @@ let INT_POW_CONV =
             ((parse_term 
                   "((if T then x:int else y) = x) /\ ((if F then x:int else y) = y)"), 
              REWRITE_TAC [])
-    let neg_tm = (parse_term "(--)")
+    let neg_tm = (parse_term @"(--)")
     (GEN_REWRITE_CONV I [pth1]
      |> THENC <| RAND_CONV NUM_EXP_CONV)
     |> ORELSEC <| (GEN_REWRITE_CONV I [pth2]
@@ -1188,7 +1188,7 @@ let INT_POW_CONV =
                        else RAND_CONV NUM_EXP_CONV tm))
 
 let INT_ABS_CONV = 
-    let pth = prove((parse_term "(abs(--(&x)) = &x) /\
+    let pth = prove((parse_term @"(abs(--(&x)) = &x) /\
       (abs(&x) = &x)"), REWRITE_TAC [INT_ABS_NEG; INT_ABS_NUM])
     GEN_REWRITE_CONV I [pth]
 
@@ -1206,7 +1206,7 @@ let INT_MIN_CONV =
 (* Instantiate the normalizer.                                               *)
 (* ------------------------------------------------------------------------- *)
 let INT_POLY_CONV = 
-    let sth = prove((parse_term "(!x y z. x + (y + z) = (x + y) + z) /\
+    let sth = prove((parse_term @"(!x y z. x + (y + z) = (x + y) + z) /\
       (!x y. x + y = y + x) /\
       (!x. &0 + x = x) /\
       (!x y z. x * (y * z) = (x * y) * z) /\
@@ -1217,7 +1217,7 @@ let INT_POLY_CONV =
       (!x. x pow 0 = &1) /\
       (!x n. x pow (SUC n) = x * x pow n)"), REWRITE_TAC [INT_POW]
                                              |> THEN <| INT_ARITH_TAC)
-    let rth = prove((parse_term "(!x. --x = --(&1) * x) /\
+    let rth = prove((parse_term @"(!x. --x = --(&1) * x) /\
       (!x y. x - y = x + --(&1) * y)"), INT_ARITH_TAC)
     let is_semiring_constant = is_intconst
     let SEMIRING_ADD_CONV = INT_ADD_CONV
@@ -1229,10 +1229,10 @@ let INT_POLY_CONV =
              SEMIRING_POW_CONV) (<)
     INT_POLY_CONV
 
-//make_overloadable "divides" (parse_type ":A->A->bool")
-//make_overloadable "mod" (parse_type ":A->A->A->bool")
-//make_overloadable "coprime" (parse_type ":A#A->bool")
-//make_overloadable "gcd" (parse_type ":A#A->A")
+//make_overloadable "divides" (parse_type @":A->A->bool")
+//make_overloadable "mod" (parse_type @":A->A->A->bool")
+//make_overloadable "coprime" (parse_type @":A#A->bool")
+//make_overloadable "gcd" (parse_type @":A#A->A")
 //parse_as_infix("==", (10, "right"))
 
 (* ------------------------------------------------------------------------- *)
@@ -1241,7 +1241,7 @@ let INT_POLY_CONV =
 let INT_RING, int_ideal_cofactors = 
     let INT_INTEGRAL = 
         prove
-            ((parse_term "(!x. &0 * x = &0) /\
+            ((parse_term @"(!x. &0 * x = &0) /\
        (!x y z. (x + y = x + z) <=> (y = z)) /\
        (!w x y z. (w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))"), 
              REWRITE_TAC [MULT_CLAUSES; EQ_ADD_LCANCEL]
@@ -1251,14 +1251,14 @@ let INT_RING, int_ideal_cofactors =
              |> THEN <| ONCE_REWRITE_TAC [GSYM INT_SUB_0]
              |> THEN <| REWRITE_TAC [GSYM INT_ENTIRE]
              |> THEN <| INT_ARITH_TAC)
-    let int_ty = (parse_type ":int")
+    let int_ty = (parse_type @":int")
     let pure, ideal = 
         RING_AND_IDEAL_CONV
             (dest_intconst, mk_intconst, INT_EQ_CONV, 
-             (parse_term "(--):int->int"), (parse_term "(+):int->int->int"), 
-             (parse_term "(-):int->int->int"), genvar bool_ty, 
-             (parse_term "(*):int->int->int"), genvar bool_ty, 
-             (parse_term "(pow):int->num->int"), INT_INTEGRAL, TRUTH, 
+             (parse_term @"(--):int->int"), (parse_term @"(+):int->int->int"), 
+             (parse_term @"(-):int->int->int"), genvar bool_ty, 
+             (parse_term @"(*):int->int->int"), genvar bool_ty, 
+             (parse_term @"(pow):int->num->int"), INT_INTEGRAL, TRUTH, 
              INT_POLY_CONV)
     pure, (fun tms tm -> 
         if forall (fun t -> type_of t = int_ty) (tm :: tms)
@@ -1269,25 +1269,25 @@ let INT_RING, int_ideal_cofactors =
 (* Arithmetic operations also on div and rem, hence the whole lot.           *)
 (* ------------------------------------------------------------------------- *)
 let INT_DIVMOD_UNIQ = 
-    prove((parse_term "!m n q r:int. m = q * n + r /\ &0 <= r /\ r < abs n
+    prove((parse_term @"!m n q r:int. m = q * n + r /\ &0 <= r /\ r < abs n
                    ==> m div n = q /\ m rem n = r"),
                   REPEAT GEN_TAC
                   |> THEN <| STRIP_TAC
-                  |> THEN <| SUBGOAL_THEN (parse_term "~(n = &0)") MP_TAC
+                  |> THEN <| SUBGOAL_THEN (parse_term @"~(n = &0)") MP_TAC
                   |> THENL <| [ASM_INT_ARITH_TAC; ALL_TAC]
                   |> THEN 
                   <| DISCH_THEN
-                         (STRIP_ASSUME_TAC << SPEC(parse_term "m:int") 
+                         (STRIP_ASSUME_TAC << SPEC(parse_term @"m:int") 
                           << MATCH_MP INT_DIVISION)
-                  |> THEN <| ASM_CASES_TAC(parse_term "m div n = q")
+                  |> THEN <| ASM_CASES_TAC(parse_term @"m div n = q")
                   |> THENL <| [REPEAT(POP_ASSUM MP_TAC)
                                |> THEN <| CONV_TAC INT_RING
                                ALL_TAC]
                   |> THEN 
-                  <| SUBGOAL_THEN (parse_term "abs(m rem n - r) < abs n") MP_TAC
+                  <| SUBGOAL_THEN (parse_term @"abs(m rem n - r) < abs n") MP_TAC
                   |> THENL <| [ASM_INT_ARITH_TAC
-                               MATCH_MP_TAC(TAUT(parse_term "~p ==> p ==> q"))]
-                  |> THEN <| MATCH_MP_TAC(INT_ARITH(parse_term "&1 * abs n <= abs(q - m div n) * abs n /\
+                               MATCH_MP_TAC(TAUT(parse_term @"~p ==> p ==> q"))]
+                  |> THEN <| MATCH_MP_TAC(INT_ARITH(parse_term @"&1 * abs n <= abs(q - m div n) * abs n /\
       abs(m rem n - r) = abs((q - m div n) * n)
       ==> ~(abs(m rem n - r) < abs n)"))
                   |> THEN <| CONJ_TAC
@@ -1303,12 +1303,12 @@ let INT_DIV_CONV, INT_REM_CONV =
             ((parse_term 
                   "q * n + r = m ==> &0 <= r ==> r < abs n ==> m div n = q /\ m rem n = r"), 
              MESON_TAC [INT_DIVMOD_UNIQ])
-    let m = (parse_term "m:int")
-    let n = (parse_term "n:int")
-    let q = (parse_term "q:int")
-    let r = (parse_term "r:int")
-    let dtm = (parse_term "(div)")
-    let mtm = (parse_term "(rem)")
+    let m = (parse_term @"m:int")
+    let n = (parse_term @"n:int")
+    let q = (parse_term @"q:int")
+    let r = (parse_term @"r:int")
+    let dtm = (parse_term @"(div)")
+    let mtm = (parse_term @"(rem)")
     let emod_num x y = 
         let r = mod_num x y
         if r </ Int 0
@@ -1346,22 +1346,22 @@ let INT_DIV_CONV, INT_REM_CONV =
 
 let INT_RED_CONV = 
     let gconv_net = 
-        itlist (uncurry net_of_conv) [(parse_term "x <= y"), INT_LE_CONV
-                                      (parse_term "x < y"), INT_LT_CONV
-                                      (parse_term "x >= y"), INT_GE_CONV
-                                      (parse_term "x > y"), INT_GT_CONV
-                                      (parse_term "x:int = y"), INT_EQ_CONV
-                                      (parse_term "--x"), 
+        itlist (uncurry net_of_conv) [(parse_term @"x <= y"), INT_LE_CONV
+                                      (parse_term @"x < y"), INT_LT_CONV
+                                      (parse_term @"x >= y"), INT_GE_CONV
+                                      (parse_term @"x > y"), INT_GT_CONV
+                                      (parse_term @"x:int = y"), INT_EQ_CONV
+                                      (parse_term @"--x"), 
                                       CHANGED_CONV INT_NEG_CONV
-                                      (parse_term "abs(x)"), INT_ABS_CONV
-                                      (parse_term "x + y"), INT_ADD_CONV
-                                      (parse_term "x - y"), INT_SUB_CONV
-                                      (parse_term "x * y"), INT_MUL_CONV
-                                      (parse_term "x div y"), INT_DIV_CONV
-                                      (parse_term "x rem y"), INT_REM_CONV
-                                      (parse_term "x pow n"), INT_POW_CONV
-                                      (parse_term "max x y"), INT_MAX_CONV
-                                      (parse_term "min x y"), INT_MIN_CONV] 
+                                      (parse_term @"abs(x)"), INT_ABS_CONV
+                                      (parse_term @"x + y"), INT_ADD_CONV
+                                      (parse_term @"x - y"), INT_SUB_CONV
+                                      (parse_term @"x * y"), INT_MUL_CONV
+                                      (parse_term @"x div y"), INT_DIV_CONV
+                                      (parse_term @"x rem y"), INT_REM_CONV
+                                      (parse_term @"x pow n"), INT_POW_CONV
+                                      (parse_term @"max x y"), INT_MAX_CONV
+                                      (parse_term @"min x y"), INT_MIN_CONV] 
             (basic_net())
     REWRITES_CONV gconv_net
 
@@ -1371,66 +1371,66 @@ let INT_REDUCE_CONV = DEPTH_CONV INT_RED_CONV
 (* Set up overloading so we can use same symbols for N, Z and even R.        *)
 (* ------------------------------------------------------------------------- *)
 
-make_overloadable "divides" (parse_type ":A->A->bool");;
-make_overloadable "mod" (parse_type ":A->A->A->bool");;
-make_overloadable "coprime" (parse_type ":A#A->bool");;
-make_overloadable "gcd" (parse_type ":A#A->A");;
+make_overloadable "divides" (parse_type @":A->A->bool");;
+make_overloadable "mod" (parse_type @":A->A->A->bool");;
+make_overloadable "coprime" (parse_type @":A#A->bool");;
+make_overloadable "gcd" (parse_type @":A#A->A");;
 
 (* ------------------------------------------------------------------------- *)
 (* The general notion of congruence: just syntax for equivalence relation.   *)
 (* ------------------------------------------------------------------------- *)
 parse_as_infix("==",(10,"right"));;
 
-let cong = new_definition(parse_term "(x == y) (rel:A->A->bool) <=> rel x y")
+let cong = new_definition(parse_term @"(x == y) (rel:A->A->bool) <=> rel x y")
 
 (* ------------------------------------------------------------------------- *)
 (* Get real moduli defined and out of the way first.                         *)
 (* ------------------------------------------------------------------------- *)
 let real_mod = 
     new_definition
-        (parse_term "real_mod n (x:real) y = ?q. integer q /\ x - y = q * n")
+        (parse_term @"real_mod n (x:real) y = ?q. integer q /\ x - y = q * n")
 
-overload_interface("mod", (parse_term "real_mod"))
+overload_interface("mod", (parse_term @"real_mod"))
 
 (* ------------------------------------------------------------------------- *)
 (* Integer divisibility.                                                     *)
 (* ------------------------------------------------------------------------- *)
 parse_as_infix("divides", (12, "right"))
-overload_interface("divides", (parse_term "int_divides:int->int->bool"))
+overload_interface("divides", (parse_term @"int_divides:int->int->bool"))
 
-let int_divides = new_definition(parse_term "a divides b <=> ?x. b = a * x")
+let int_divides = new_definition(parse_term @"a divides b <=> ?x. b = a * x")
 
 (* ------------------------------------------------------------------------- *)
 (* Integer congruences.                                                      *)
 (* ------------------------------------------------------------------------- *)
 
 parse_as_prefix "mod"
-overload_interface("mod", (parse_term "int_mod:int->int->int->bool"))
+overload_interface("mod", (parse_term @"int_mod:int->int->int->bool"))
 
-let int_mod = new_definition(parse_term "(mod n) x y = n divides (x - y)")
+let int_mod = new_definition(parse_term @"(mod n) x y = n divides (x - y)")
 
 let int_congruent = 
     prove
-        ((parse_term "!x y n. (x == y) (mod n) <=> ?d. x - y = n * d"), 
+        ((parse_term @"!x y n. (x == y) (mod n) <=> ?d. x - y = n * d"), 
          REWRITE_TAC [int_mod; cong; int_divides])
 
 (* ------------------------------------------------------------------------- *)
 (* Integer coprimality.                                                      *)
 (* ------------------------------------------------------------------------- *)
-overload_interface("coprime", (parse_term "int_coprime:int#int->bool"))
+overload_interface("coprime", (parse_term @"int_coprime:int#int->bool"))
 
 let int_coprime = 
-    new_definition(parse_term "!a b. coprime(a,b) <=> ?x y. a * x + b * y = &1")
+    new_definition(parse_term @"!a b. coprime(a,b) <=> ?x y. a * x + b * y = &1")
 
 (* ------------------------------------------------------------------------- *)
 (* A tactic for simple divisibility/congruence/coprimality goals.            *)
 (* ------------------------------------------------------------------------- *)
 let INTEGER_TAC_001 = 
-    let int_ty = (parse_type ":int")
+    let int_ty = (parse_type @":int")
     let INT_POLYEQ_CONV = GEN_REWRITE_CONV I [GSYM INT_SUB_0]
                           |> THENC <| LAND_CONV INT_POLY_CONV
     let ISOLATE_VARIABLE = 
-        let pth = INT_ARITH(parse_term "!a x. a = &0 <=> x = x + a")
+        let pth = INT_ARITH(parse_term @"!a x. a = &0 <=> x = x + a")
         let is_defined v t = 
             let mons = striplist (dest_binary "int_add") t
             mem v mons && forall (fun m -> v = m || not(free_in v m)) mons
@@ -1466,12 +1466,12 @@ let INTEGER_TAC_001 =
                 (itlist SIMPLE_CHOOSE v (itlist SIMPLE_EXISTS v' (ASSUME bod)))
         let th5 = IMP_ANTISYM_RULE (IMP_RULE vars vars') (IMP_RULE vars' vars)
         TRANS th5 (itlist MK_EXISTS (subtract vars [v]) th4)
-    let zero_tm = (parse_term "&0")
-    let one_tm = (parse_term "&1")
+    let zero_tm = (parse_term @"&0")
+    let one_tm = (parse_term @"&1")
     let isolate_monomials = 
-        let mul_tm = (parse_term "(int_mul)")
-        let add_tm = (parse_term "(int_add)")
-        let neg_tm = (parse_term "(int_neg)")
+        let mul_tm = (parse_term @"(int_mul)")
+        let add_tm = (parse_term @"(int_add)")
+        let neg_tm = (parse_term @"(int_neg)")
         let dest_mul = dest_binop mul_tm
         let dest_add = dest_binop add_tm
         let mk_mul = mk_binop mul_tm
@@ -1532,7 +1532,7 @@ let INTEGER_TAC_001 =
          |> THEN <| CONV_TAC INT_RING) gl
     let SCRUB_NEQ_TAC = 
         MATCH_MP_TAC 
-        << MATCH_MP(MESON [] (parse_term "~(x = y) ==> x = y \/ p ==> p"))
+        << MATCH_MP(MESON [] (parse_term @"~(x = y) ==> x = y \/ p ==> p"))
     REWRITE_TAC [int_coprime; int_congruent; int_divides]
     |> THEN <| REPEAT(STRIP_TAC
                       |> ORELSE <| EQ_TAC)
@@ -1550,7 +1550,7 @@ let INTEGER_TAC_001 =
     |> THEN <| CONV_TAC(ONCE_DEPTH_CONV INT_POLYEQ_CONV)
     |> THEN 
     <| REWRITE_TAC [GSYM INT_ENTIRE
-                    TAUT(parse_term "a \/ (b /\ c) <=> (a \/ b) /\ (a \/ c)")]
+                    TAUT(parse_term @"a \/ (b /\ c) <=> (a \/ b) /\ (a \/ c)")]
     |> THEN <| POP_ASSUM_LIST(K ALL_TAC)
     |> THEN <| REPEAT DISCH_TAC
     |> THEN <| CONV_TAC GENVAR_EXISTS_CONV
@@ -1563,11 +1563,11 @@ let INTEGER_RULE_001 tm = prove(tm, INTEGER_TAC_001)
 (* Existence of integer gcd, and the Bezout identity.                        *)
 (* ------------------------------------------------------------------------- *)
 let WF_INT_MEASURE = 
-    prove((parse_term "!P m. (!x. &0 <= m(x)) /\ (!x. (!y. m(y) < m(x) ==> P(y)) ==> P(x))
+    prove((parse_term @"!P m. (!x. &0 <= m(x)) /\ (!x. (!y. m(y) < m(x) ==> P(y)) ==> P(x))
           ==> !x:A. P(x)"),
          REPEAT STRIP_TAC
          |> THEN 
-         <| SUBGOAL_THEN (parse_term "!n x:A. m(x) = &n ==> P(x)") MP_TAC
+         <| SUBGOAL_THEN (parse_term @"!n x:A. m(x) = &n ==> P(x)") MP_TAC
          |> THENL <| [MATCH_MP_TAC num_WF
                       ALL_TAC]
          |> THEN <| REWRITE_TAC [GSYM INT_OF_NUM_LT
@@ -1575,7 +1575,7 @@ let WF_INT_MEASURE =
          |> THEN <| ASM_MESON_TAC [])
 
 let WF_INT_MEASURE_2 = 
-    prove((parse_term "!P m. (!x y. &0 <= m x y) /\
+    prove((parse_term @"!P m. (!x y. &0 <= m x y) /\
           (!x y. (!x' y'. m x' y' < m x y ==> P x' y') ==> P x y)
           ==> !x:A y:B. P x y"),
           REWRITE_TAC [FORALL_UNCURRY;
@@ -1583,38 +1583,38 @@ let WF_INT_MEASURE_2 =
                       WF_INT_MEASURE])
 
 let INT_GCD_EXISTS = 
- prove ((parse_term "!a b. ?d. d divides a /\ d divides b /\ ?x y. d = a * x + b * y"),
+ prove ((parse_term @"!a b. ?d. d divides a /\ d divides b /\ ?x y. d = a * x + b * y"),
   let INT_GCD_EXISTS_CASES = 
-   INT_ARITH (parse_term "(a = &0 \/ b = &0) \/
+   INT_ARITH (parse_term @"(a = &0 \/ b = &0) \/
     abs(a - b) + abs b < abs a + abs b \/ abs(a + b) + abs b < abs a + abs b \/
     abs a + abs(b - a) < abs a + abs b \/ abs a + abs(b + a) < abs a + abs b") in
-  MATCH_MP_TAC WF_INT_MEASURE_2 |>THEN<| EXISTS_TAC (parse_term "\x y. abs(x) + abs(y)") |>THEN<|
+  MATCH_MP_TAC WF_INT_MEASURE_2 |>THEN<| EXISTS_TAC (parse_term @"\x y. abs(x) + abs(y)") |>THEN<|
   REWRITE_TAC[] |>THEN<| REPEAT STRIP_TAC |>THENL<| [INT_ARITH_TAC; ALL_TAC] |>THEN<|
   DISJ_CASES_THEN MP_TAC INT_GCD_EXISTS_CASES |>THENL<|
-   [STRIP_TAC |>THEN<| ASM_REWRITE_TAC[INTEGER_RULE_001 (parse_term "d divides &0")] |>THEN<|
+   [STRIP_TAC |>THEN<| ASM_REWRITE_TAC[INTEGER_RULE_001 (parse_term @"d divides &0")] |>THEN<|
     REWRITE_TAC[INT_MUL_LZERO; INT_ADD_LID; INT_ADD_RID] |>THEN<|
-    MESON_TAC[INTEGER_RULE_001 (parse_term "d divides d"); INT_MUL_RID];
+    MESON_TAC[INTEGER_RULE_001 (parse_term @"d divides d"); INT_MUL_RID];
     DISCH_THEN(REPEAT_TCL DISJ_CASES_THEN (ANTE_RES_THEN MP_TAC)) |>THEN<|
     MATCH_MP_TAC MONO_EXISTS |>THEN<| INTEGER_TAC_001]);;
 
 let INT_GCD_EXISTS_POS = 
- prove ((parse_term "!a b. ?d. &0 <= d /\ d divides a /\ d divides b /\ ?x y. d = a * x + b * y"),
+ prove ((parse_term @"!a b. ?d. &0 <= d /\ d divides a /\ d divides b /\ ?x y. d = a * x + b * y"),
   REPEAT GEN_TAC |>THEN<|
-  X_CHOOSE_TAC (parse_term "d:int") (SPECL [(parse_term "a:int"); (parse_term "b:int")] INT_GCD_EXISTS) |>THEN<|
-  DISJ_CASES_TAC(SPEC (parse_term "d:int") INT_LE_NEGTOTAL) |>THEN<|
-  ASM_MESON_TAC[INTEGER_RULE_001 (parse_term "(--d) divides x <=> d divides x");
-                INT_ARITH (parse_term "a * --x + b * --y = --(a * x + b * y)")]);;
+  X_CHOOSE_TAC (parse_term @"d:int") (SPECL [(parse_term @"a:int"); (parse_term @"b:int")] INT_GCD_EXISTS) |>THEN<|
+  DISJ_CASES_TAC(SPEC (parse_term @"d:int") INT_LE_NEGTOTAL) |>THEN<|
+  ASM_MESON_TAC[INTEGER_RULE_001 (parse_term @"(--d) divides x <=> d divides x");
+                INT_ARITH (parse_term @"a * --x + b * --y = --(a * x + b * y)")]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Hence define (positive) gcd function; add elimination to INTEGER_TAC.     *)
 (* ------------------------------------------------------------------------- *)
-overload_interface("gcd", (parse_term "int_gcd:int#int->int"))
+overload_interface("gcd", (parse_term @"int_gcd:int#int->int"))
 
 let int_gcd = new_specification ["int_gcd"] (REWRITE_RULE[EXISTS_UNCURRY; SKOLEM_THM] INT_GCD_EXISTS_POS);;
 
 let INTEGER_TAC =
   let GCD_ELIM_TAC =
-    let gcd_tm = (parse_term "gcd") in
+    let gcd_tm = (parse_term @"gcd") in
     let dest_gcd tm =
       let l,r = dest_comb tm in
       if l = gcd_tm then dest_pair r else failwith "dest_gcd" in
@@ -1632,16 +1632,16 @@ let INTEGER_RULE tm = prove(tm,INTEGER_TAC);;
 (* ------------------------------------------------------------------------- *)
 (* Mapping from nonnegative integers back to natural numbers.                *)
 (* ------------------------------------------------------------------------- *)
-let num_of_int = new_definition(parse_term "num_of_int x = @n. &n = x")
+let num_of_int = new_definition(parse_term @"num_of_int x = @n. &n = x")
 
 let NUM_OF_INT_OF_NUM = 
     prove
-        ((parse_term "!n. num_of_int(&n) = n"), 
+        ((parse_term @"!n. num_of_int(&n) = n"), 
          REWRITE_TAC [num_of_int; INT_OF_NUM_EQ; SELECT_UNIQUE])
 
 let INT_OF_NUM_OF_INT = 
     prove
-        ((parse_term "!x. &0 <= x ==> &(num_of_int x) = x"), 
+        ((parse_term @"!x. &0 <= x ==> &(num_of_int x) = x"), 
          REWRITE_TAC [GSYM INT_FORALL_POS
                       num_of_int]
          |> THEN <| GEN_TAC
@@ -1650,26 +1650,26 @@ let INT_OF_NUM_OF_INT =
 
 let NUM_OF_INT = 
     prove
-        ((parse_term "!x. &0 <= x <=> (&(num_of_int x) = x)"), 
+        ((parse_term @"!x. &0 <= x <=> (&(num_of_int x) = x)"), 
          MESON_TAC [INT_OF_NUM_OF_INT; INT_POS])
 
 (* ------------------------------------------------------------------------- *)
 (* Now define similar notions over the natural numbers.                      *)
 (* ------------------------------------------------------------------------- *)
-overload_interface("divides", (parse_term "num_divides:num->num->bool"))
-overload_interface("mod", (parse_term "num_mod:num->num->num->bool"))
-overload_interface("coprime", (parse_term "num_coprime:num#num->bool"))
-overload_interface("gcd", (parse_term "num_gcd:num#num->num"))
+overload_interface("divides", (parse_term @"num_divides:num->num->bool"))
+overload_interface("mod", (parse_term @"num_mod:num->num->num->bool"))
+overload_interface("coprime", (parse_term @"num_coprime:num#num->bool"))
+overload_interface("gcd", (parse_term @"num_gcd:num#num->num"))
 
-let num_divides = new_definition(parse_term "a divides b <=> &a divides &b")
+let num_divides = new_definition(parse_term @"a divides b <=> &a divides &b")
 
-let num_mod = new_definition(parse_term "(mod n) x y <=> (mod &n) (&x) (&y)")
+let num_mod = new_definition(parse_term @"(mod n) x y <=> (mod &n) (&x) (&y)")
 let num_congruent = 
     prove
-        ((parse_term "!x y n. (x == y) (mod n) <=> (&x == &y) (mod &n)"), 
+        ((parse_term @"!x y n. (x == y) (mod n) <=> (&x == &y) (mod &n)"), 
          REWRITE_TAC [cong; num_mod])
-let num_coprime = new_definition(parse_term "coprime(a,b) <=> coprime(&a,&b)")
-let num_gcd = new_definition(parse_term "gcd(a,b) = num_of_int(gcd(&a,&b))")
+let num_coprime = new_definition(parse_term @"coprime(a,b) <=> coprime(&a,&b)")
+let num_gcd = new_definition(parse_term @"gcd(a,b) = num_of_int(gcd(&a,&b))")
 
 (* ------------------------------------------------------------------------- *)
 (* Map an assertion over N to an integer equivalent.                         *)
@@ -1678,7 +1678,7 @@ let num_gcd = new_definition(parse_term "gcd(a,b) = num_of_int(gcd(&a,&b))")
 
 let NUM_TO_INT_CONV =
   let pth_relativize = 
-   prove ((parse_term "((!n. P(&n)) <=> (!i. ~(&0 <= i) \/ P i)) /\
+   prove ((parse_term @"((!n. P(&n)) <=> (!i. ~(&0 <= i) \/ P i)) /\
      ((?n. P(&n)) <=> (?i. &0 <= i /\ P i))"),
     REWRITE_TAC[INT_EXISTS_POS; INT_FORALL_POS] |>THEN<| MESON_TAC[])
   let relation_conv = 
@@ -1699,7 +1699,7 @@ let ARITH_RULE =
     PRENEX_CONV |>THENC<|
     (GEN_REWRITE_CONV TOP_SWEEP_CONV << map GSYM)
       [INT_OF_NUM_EQ; INT_OF_NUM_LE; INT_OF_NUM_LT; INT_OF_NUM_GE;
-       INT_OF_NUM_GT; INT_OF_NUM_ADD; SPEC (parse_term "NUMERAL k") INT_OF_NUM_MUL;
+       INT_OF_NUM_GT; INT_OF_NUM_ADD; SPEC (parse_term @"NUMERAL k") INT_OF_NUM_MUL;
        INT_OF_NUM_MAX; INT_OF_NUM_MIN]
   let is_numimage t =
     match t with
@@ -1729,14 +1729,14 @@ let ASM_ARITH_TAC =
 (* ------------------------------------------------------------------------- *)
 
 let NUM_GCD = 
- prove ((parse_term "!a b. &(gcd(a,b)) = gcd(&a,&b)"),
+ prove ((parse_term @"!a b. &(gcd(a,b)) = gcd(&a,&b)"),
   REWRITE_TAC[num_gcd; GSYM NUM_OF_INT; int_gcd]);;
 
 let NUMBER_TAC =
   let pth_relativize = 
-   prove ((parse_term "((!n. P(&n)) <=> (!i. &0 <= i ==> P i)) /\
+   prove ((parse_term @"((!n. P(&n)) <=> (!i. &0 <= i ==> P i)) /\
      ((?n. P(&n)) <=> (?i. &0 <= i /\ P i))"),
-    GEN_REWRITE_TAC RAND_CONV [TAUT (parse_term "(a <=> b) <=> (~a <=> ~b)")] |>THEN<|
+    GEN_REWRITE_TAC RAND_CONV [TAUT (parse_term @"(a <=> b) <=> (~a <=> ~b)")] |>THEN<|
     REWRITE_TAC[NOT_EXISTS_THM; INT_FORALL_POS] |>THEN<| MESON_TAC[])
   let relation_conv =
    GEN_REWRITE_CONV TOP_SWEEP_CONV

@@ -108,7 +108,7 @@ let term_order =
         elif f1 = top
         then true
         else f1 > f2
-    dyn_order(parse_term "T")
+    dyn_order(parse_term @"T")
 
 (* ------------------------------------------------------------------------- *)
 (* Create a gconv net for a theorem as a (cond) rewrite. The "rep" flag      *)
@@ -177,10 +177,10 @@ let net_of_cong th sofar =
 (* ------------------------------------------------------------------------- *)
 let mk_rewrites = 
     let IMP_CONJ_CONV = 
-        REWR_CONV(ITAUT(parse_term "p ==> q ==> r <=> p /\ q ==> r"))
+        REWR_CONV(ITAUT(parse_term @"p ==> q ==> r <=> p /\ q ==> r"))
     let IMP_EXISTS_RULE = 
         let cnv = 
-            REWR_CONV(ITAUT(parse_term "(!x. P x ==> Q) <=> (?x. P x) ==> Q"))
+            REWR_CONV(ITAUT(parse_term @"(!x. P x ==> Q) <=> (?x. P x) ==> Q"))
         fun v th -> CONV_RULE cnv (GEN v th)
     let collect_condition oldhyps th = 
         let conds = subtract (hyp th) oldhyps

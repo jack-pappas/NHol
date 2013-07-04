@@ -54,7 +54,7 @@ open calc_num
 let SEMIRING_NORMALIZERS_CONV = 
     let SEMIRING_PTHS = 
         prove
-            ((parse_term "(!x:A y z. add x (add y z) = add (add x y) z) /\
+            ((parse_term @"(!x:A y z. add x (add y z) = add (add x y) z) /\
      (!x y. add x y = add y x) /\
      (!x. add r0 x = x) /\
      (!x y z. mul x (mul y z) = mul (mul x y) z) /\
@@ -103,7 +103,7 @@ let SEMIRING_NORMALIZERS_CONV =
          (mul x (add y z) = add (mul x y) (mul x z)) /\
          (pwr x (SUC q) = mul x (pwr x q))"), 
              STRIP_TAC
-             |> THEN <| SUBGOAL_THEN (parse_term "(!m:A n. add m n = add n m) /\
+             |> THEN <| SUBGOAL_THEN (parse_term @"(!m:A n. add m n = add n m) /\
       (!m n p. add (add m n) p = add m (add n p)) /\
       (!m n p. add m (add n p) = add n (add m p)) /\
       (!x. add x r0 = x) /\
@@ -117,13 +117,13 @@ let SEMIRING_NORMALIZERS_CONV =
                           MAP_EVERY (fun t -> UNDISCH_THEN t (K ALL_TAC)) 
                               [(parse_term 
                                     "!x:A y z. add x (add y z) = add (add x y) z")
-                               (parse_term "!x:A y. add x y :A = add y x")
+                               (parse_term @"!x:A y. add x y :A = add y x")
                                (parse_term 
                                     "!x:A y z. mul x (mul y z) = mul (mul x y) z")
-                               (parse_term "!x:A y. mul x y :A = mul y x")]
+                               (parse_term @"!x:A y. mul x y :A = mul y x")]
                           |> THEN <| STRIP_TAC]
-             |> THEN <| ASM_REWRITE_TAC [num_CONV(parse_term "2")
-                                         num_CONV(parse_term "1")]
+             |> THEN <| ASM_REWRITE_TAC [num_CONV(parse_term @"2")
+                                         num_CONV(parse_term @"1")]
              |> THEN 
              <| SUBGOAL_THEN 
                     (parse_term 
@@ -145,7 +145,7 @@ let SEMIRING_NORMALIZERS_CONV =
                           ALL_TAC]
              |> THEN 
              <| SUBGOAL_THEN 
-                    (parse_term "!x:A m:num n. pwr (pwr x m) n = pwr x (m * n)") 
+                    (parse_term @"!x:A m:num n. pwr (pwr x m) n = pwr x (m * n)") 
                     (fun th -> ASM_MESON_TAC [th])
              |> THEN <| GEN_TAC
              |> THEN <| GEN_TAC
@@ -173,10 +173,10 @@ let SEMIRING_NORMALIZERS_CONV =
                     let zero_tm = rand(concl pthm_06)
                     let one_tm = rand(lhand(concl pthm_14))
                     let ty = type_of(rand(concl pthm_01))
-                    let p_tm = (parse_term "p:num")
-                    let q_tm = (parse_term "q:num")
-                    let zeron_tm = (parse_term "0")
-                    let onen_tm = (parse_term "1")
+                    let p_tm = (parse_term @"p:num")
+                    let q_tm = (parse_term @"q:num")
+                    let zeron_tm = (parse_term @"0")
+                    let onen_tm = (parse_term @"1")
                     let a_tm = mk_var("a", ty)
                     let b_tm = mk_var("b", ty)
                     let c_tm = mk_var("c", ty)
@@ -849,7 +849,7 @@ let SEMIRING_NORMALIZERS_CONV =
 let NUM_NORMALIZE_CONV = 
     let sth = 
         prove
-            ((parse_term "(!x y z. x + (y + z) = (x + y) + z) /\
+            ((parse_term @"(!x y z. x + (y + z) = (x + y) + z) /\
      (!x y. x + y = y + x) /\
      (!x. 0 + x = x) /\
      (!x y z. x * (y * z) = (x * y) * z) /\

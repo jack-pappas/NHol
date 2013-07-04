@@ -42,12 +42,12 @@ open ind_defs
 (* ------------------------------------------------------------------------- *)
 (* Eta-axiom, corresponding conversion, and extensionality.                  *)
 (* ------------------------------------------------------------------------- *)
-let ETA_AX = new_axiom(parse_term "!t:A->B. (\x. t x) = t")
+let ETA_AX = new_axiom(parse_term @"!t:A->B. (\x. t x) = t")
 
 let ETA_CONV = 
-    let t = (parse_term "t:A->B")
+    let t = (parse_term @"t:A->B")
     let pth = 
-        prove((parse_term "(\x. (t:A->B) x) = t"), MATCH_ACCEPT_TAC ETA_AX)
+        prove((parse_term @"(\x. (t:A->B) x) = t"), MATCH_ACCEPT_TAC ETA_AX)
     fun tm -> 
         try 
             let bv, bod = dest_abs tm
@@ -62,16 +62,16 @@ let ETA_CONV =
 
 let EQ_EXT = 
     prove
-        ((parse_term "!(f:A->B) g. (!x. f x = g x) ==> f = g"), 
+        ((parse_term @"!(f:A->B) g. (!x. f x = g x) ==> f = g"), 
          REPEAT GEN_TAC
          |> THEN 
          <| DISCH_THEN
-                (MP_TAC << ABS(parse_term "x:A") << SPEC(parse_term "x:A"))
+                (MP_TAC << ABS(parse_term @"x:A") << SPEC(parse_term @"x:A"))
          |> THEN <| REWRITE_TAC [ETA_AX])
 
 let FUN_EQ_THM = 
     prove
-        ((parse_term "!(f:A->B) g. f = g <=> (!x. f x = g x)"), 
+        ((parse_term @"!(f:A->B) g. f = g <=> (!x. f x = g x)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THENL <| [DISCH_THEN SUBST1_TAC
@@ -79,7 +79,8 @@ let FUN_EQ_THM =
                       |> THEN <| REFL_TAC
                       MATCH_ACCEPT_TAC EQ_EXT])
 
-new_constant("@", parse_type ":(A->bool)->A")
+
+new_constant("@", parse_type @":(A->bool)->A")
 parse_as_binder "@"
 
 (* ------------------------------------------------------------------------- *)
@@ -89,33 +90,33 @@ let is_select = is_binder "@"
 
 let dest_select = dest_binder "@"
 let mk_select = mk_binder "@"
-let SELECT_AX = new_axiom(parse_term "!P (x:A). P x ==> P((@) P)")
+let SELECT_AX = new_axiom(parse_term @"!P (x:A). P x ==> P((@) P)")
 
 (* ------------------------------------------------------------------------- *)
 (* Useful for compatibility. (The old EXISTS_DEF.)                           *)
 (* ------------------------------------------------------------------------- *)
 let EXISTS_THM = 
     prove
-        ((parse_term "(?) = \P:A->bool. P ((@) P)"), 
+        ((parse_term @"(?) = \P:A->bool. P ((@) P)"), 
          MATCH_MP_TAC EQ_EXT
          |> THEN <| BETA_TAC
-         |> THEN <| X_GEN_TAC(parse_term "P:A->bool")
+         |> THEN <| X_GEN_TAC(parse_term @"P:A->bool")
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM ETA_AX]
          |> THEN <| EQ_TAC
          |> THENL <| [DISCH_THEN(CHOOSE_THEN MP_TAC)
                       |> THEN <| MATCH_ACCEPT_TAC SELECT_AX
                       DISCH_TAC
-                      |> THEN <| EXISTS_TAC(parse_term "((@) P):A")
+                      |> THEN <| EXISTS_TAC(parse_term @"((@) P):A")
                       |> THEN <| POP_ASSUM ACCEPT_TAC])
 
 (* ------------------------------------------------------------------------- *)
 (* Rules and so on for the select operator.                                  *)
 (* ------------------------------------------------------------------------- *)
 let SELECT_RULE = 
-    let P = (parse_term "P:A->bool")
+    let P = (parse_term @"P:A->bool")
     let pth = 
         prove
-            ((parse_term "(?) (P:A->bool) ==> P((@) P)"), 
+            ((parse_term @"(?) (P:A->bool) ==> P((@) P)"), 
              SIMP_TAC [SELECT_AX; ETA_AX])
     fun th -> 
         try 
@@ -126,9 +127,9 @@ let SELECT_RULE =
         | Failure _ -> failwith "SELECT_RULE"
 
 let SELECT_CONV = 
-    let P = (parse_term "P:A->bool")
+    let P = (parse_term @"P:A->bool")
     let pth = 
-        prove((parse_term "(P:A->bool)((@) P) = (?) P"), REWRITE_TAC 
+        prove((parse_term @"(P:A->bool)((@) P) = (?) P"), REWRITE_TAC 
                                                              [EXISTS_THM]
                                                          |> THEN <| BETA_TAC
                                                          |> THEN <| REFL_TAC)
@@ -149,14 +150,14 @@ let SELECT_CONV =
 (* Some basic theorems.                                                      *)
 (* ------------------------------------------------------------------------- *)
 let SELECT_REFL = 
-    prove((parse_term "!x:A. (@y. y = x) = x"), GEN_TAC
+    prove((parse_term @"!x:A. (@y. y = x) = x"), GEN_TAC
                                                 |> THEN <| CONV_TAC SELECT_CONV
-                                                |> THEN <| EXISTS_TAC(parse_term "x:A")
+                                                |> THEN <| EXISTS_TAC(parse_term @"x:A")
                                                 |> THEN <| REFL_TAC)
 
 let SELECT_UNIQUE = 
     prove
-        ((parse_term "!P x. (!y:A. P y = (y = x)) ==> ((@) P = x)"), 
+        ((parse_term @"!P x. (!y:A. P y = (y = x)) ==> ((@) P = x)"), 
          REPEAT STRIP_TAC
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM ETA_AX]
          |> THEN <| ASM_REWRITE_TAC [SELECT_REFL])
@@ -192,7 +193,7 @@ let new_type_definition tyname (absname, repname) th =
 (* ------------------------------------------------------------------------- *)
 let EXCLUDED_MIDDLE = 
     prove
-        ((parse_term "!t. t \/ ~t"), 
+        ((parse_term @"!t. t \/ ~t"), 
          GEN_TAC
          |> THEN 
          <| SUBGOAL_THEN 
@@ -202,8 +203,8 @@ let EXCLUDED_MIDDLE =
          |> THENL 
          <| [CONJ_TAC
              |> THEN <| CONV_TAC SELECT_CONV
-             |> THENL <| [EXISTS_TAC(parse_term "F")
-                          EXISTS_TAC(parse_term "T")]
+             |> THENL <| [EXISTS_TAC(parse_term @"F")
+                          EXISTS_TAC(parse_term @"T")]
              |> THEN <| DISJ1_TAC
              |> THEN <| REFL_TAC
              DISCH_THEN(STRIP_ASSUME_TAC << GSYM)
@@ -211,15 +212,15 @@ let EXCLUDED_MIDDLE =
                             |> THEN <| FIRST_ASSUM ACCEPT_TAC)
              |> THEN <| DISJ2_TAC
              |> THEN <| DISCH_TAC
-             |> THEN <| MP_TAC(ITAUT(parse_term "~(T <=> F)"))
+             |> THEN <| MP_TAC(ITAUT(parse_term @"~(T <=> F)"))
              |> THEN <| PURE_ONCE_ASM_REWRITE_TAC []
-             |> THEN <| ASM_REWRITE_TAC [ITAUT(parse_term "p \/ T <=> T")]])
+             |> THEN <| ASM_REWRITE_TAC [ITAUT(parse_term @"p \/ T <=> T")]])
 
 let BOOL_CASES_AX = 
     prove
-        ((parse_term "!t. (t <=> T) \/ (t <=> F)"), 
+        ((parse_term @"!t. (t <=> T) \/ (t <=> F)"), 
          GEN_TAC
-         |> THEN <| DISJ_CASES_TAC(SPEC (parse_term "t:bool") EXCLUDED_MIDDLE)
+         |> THEN <| DISJ_CASES_TAC(SPEC (parse_term @"t:bool") EXCLUDED_MIDDLE)
          |> THEN <| ASM_REWRITE_TAC [])
 
 (* ------------------------------------------------------------------------- *)
@@ -257,9 +258,9 @@ let DE_MORGAN_THM =
              "!t1 t2. (~(t1 /\ t2) <=> ~t1 \/ ~t2) /\ (~(t1 \/ t2) <=> ~t1 /\ ~t2)")
 
 let NOT_CLAUSES = 
-    TAUT_001(parse_term "(!t. ~ ~t <=> t) /\ (~T <=> F) /\ (~F <=> T)")
-let NOT_IMP = TAUT_001(parse_term "!t1 t2. ~(t1 ==> t2) <=> t1 /\ ~t2")
-let CONTRAPOS_THM = TAUT_001(parse_term "!t1 t2. (~t1 ==> ~t2) <=> (t2 ==> t1)")
+    TAUT_001(parse_term @"(!t. ~ ~t <=> t) /\ (~T <=> F) /\ (~F <=> T)")
+let NOT_IMP = TAUT_001(parse_term @"!t1 t2. ~(t1 ==> t2) <=> t1 /\ ~t2")
+let CONTRAPOS_THM = TAUT_001(parse_term @"!t1 t2. (~t1 ==> ~t2) <=> (t2 ==> t1)")
 
 extend_basic_rewrites [CONJUNCT1 NOT_CLAUSES]
 
@@ -267,8 +268,8 @@ extend_basic_rewrites [CONJUNCT1 NOT_CLAUSES]
 (* Some classically based rules.                                             *)
 (* ------------------------------------------------------------------------- *)
 let CCONTR = 
-    let P = (parse_term "P:bool")
-    let pth = TAUT_001(parse_term "(~P ==> F) ==> P")
+    let P = (parse_term @"P:bool")
+    let pth = TAUT_001(parse_term @"(~P ==> F) ==> P")
     fun tm th -> 
         try 
             let tm' = mk_neg tm
@@ -277,9 +278,9 @@ let CCONTR =
         | Failure _ -> failwith "CCONTR"
 
 let CONTRAPOS_CONV = 
-    let a = (parse_term "a:bool")
-    let b = (parse_term "b:bool")
-    let pth = TAUT_001(parse_term "(a ==> b) <=> (~b ==> ~a)")
+    let a = (parse_term @"a:bool")
+    let b = (parse_term @"b:bool")
+    let pth = TAUT_001(parse_term @"(a ==> b) <=> (~b ==> ~a)")
     fun tm -> 
         try 
             let P, Q = dest_imp tm
@@ -292,8 +293,8 @@ let CONTRAPOS_CONV =
 (* A classicalal "refutation" tactic.                                        *)
 (* ------------------------------------------------------------------------- *)
 let REFUTE_THEN = 
-    let f_tm = (parse_term "F")
-    let conv = REWR_CONV(TAUT_001(parse_term "p <=> ~p ==> F"))
+    let f_tm = (parse_term @"F")
+    let conv = REWR_CONV(TAUT_001(parse_term @"p <=> ~p ==> F"))
     fun ttac (asl, w as gl) -> 
             if w = f_tm
             then ALL_TAC gl
@@ -307,31 +308,31 @@ let REFUTE_THEN =
 (* ------------------------------------------------------------------------- *)
 let NOT_EXISTS_THM = 
     prove
-        ((parse_term "!P. ~(?x:A. P x) <=> (!x. ~(P x))"), 
+        ((parse_term @"!P. ~(?x:A. P x) <=> (!x. ~(P x))"), 
          GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
          |> THENL <| [GEN_TAC
                       |> THEN <| DISCH_TAC
-                      |> THEN <| UNDISCH_TAC(parse_term "~(?x:A. P x)")
+                      |> THEN <| UNDISCH_TAC(parse_term @"~(?x:A. P x)")
                       |> THEN <| REWRITE_TAC []
-                      |> THEN <| EXISTS_TAC(parse_term "x:A")
+                      |> THEN <| EXISTS_TAC(parse_term @"x:A")
                       |> THEN <| POP_ASSUM ACCEPT_TAC
                       DISCH_THEN(CHOOSE_THEN MP_TAC)
                       |> THEN <| ASM_REWRITE_TAC []])
 
 let EXISTS_NOT_THM = 
     prove
-        ((parse_term "!P. (?x:A. ~(P x)) <=> ~(!x. P x)"), 
-         ONCE_REWRITE_TAC [TAUT_001(parse_term "(a <=> ~b) <=> (~a <=> b)")]
+        ((parse_term @"!P. (?x:A. ~(P x)) <=> ~(!x. P x)"), 
+         ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> ~b) <=> (~a <=> b)")]
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM])
 let NOT_FORALL_THM = 
     prove
-        ((parse_term "!P. ~(!x. P x) <=> (?x:A. ~(P x))"), 
+        ((parse_term @"!P. ~(!x. P x) <=> (?x:A. ~(P x))"), 
          MATCH_ACCEPT_TAC(GSYM EXISTS_NOT_THM))
 let FORALL_NOT_THM = 
     prove
-        ((parse_term "!P. (!x. ~(P x)) <=> ~(?x:A. P x)"), 
+        ((parse_term @"!P. (!x. ~(P x)) <=> ~(?x:A. P x)"), 
          MATCH_ACCEPT_TAC(GSYM NOT_EXISTS_THM))
 
 (* ------------------------------------------------------------------------- *)
@@ -339,19 +340,19 @@ let FORALL_NOT_THM =
 (* ------------------------------------------------------------------------- *)
 let FORALL_BOOL_THM = 
     prove
-        ((parse_term "(!b. P b) <=> P T /\ P F"), EQ_TAC
+        ((parse_term @"(!b. P b) <=> P T /\ P F"), EQ_TAC
                                                   |> THEN <| DISCH_TAC
                                                   |> THEN <| ASM_REWRITE_TAC []
                                                   |> THEN <| GEN_TAC
                                                   |> THEN 
                                                   <| BOOL_CASES_TAC
-                                                         (parse_term "b:bool")
+                                                         (parse_term @"b:bool")
                                                   |> THEN <| ASM_REWRITE_TAC [])
 
 let EXISTS_BOOL_THM = 
     prove
-        ((parse_term "(?b. P b) <=> P T \/ P F"), 
-         MATCH_MP_TAC(TAUT_001(parse_term "(~p <=> ~q) ==> (p <=> q)"))
+        ((parse_term @"(?b. P b) <=> P T \/ P F"), 
+         MATCH_MP_TAC(TAUT_001(parse_term @"(~p <=> ~q) ==> (p <=> q)"))
          |> THEN <| REWRITE_TAC [DE_MORGAN_THM; NOT_EXISTS_THM; FORALL_BOOL_THM])
 
 (* ------------------------------------------------------------------------- *)
@@ -359,30 +360,30 @@ let EXISTS_BOOL_THM =
 (* ------------------------------------------------------------------------- *)
 let LEFT_FORALL_OR_THM = 
     prove
-        ((parse_term "!P Q. (!x:A. P x \/ Q) <=> (!x. P x) \/ Q"), 
+        ((parse_term @"!P Q. (!x:A. P x \/ Q) <=> (!x. P x) \/ Q"), 
          REPEAT GEN_TAC
          |> THEN 
-         <| ONCE_REWRITE_TAC [TAUT_001(parse_term "(a <=> b) <=> (~a <=> ~b)")]
+         <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN 
          <| REWRITE_TAC [NOT_FORALL_THM; DE_MORGAN_THM; LEFT_EXISTS_AND_THM])
 
 let RIGHT_FORALL_OR_THM = 
     prove
-        ((parse_term "!P Q. (!x:A. P \/ Q x) <=> P \/ (!x. Q x)"), 
+        ((parse_term @"!P Q. (!x:A. P \/ Q x) <=> P \/ (!x. Q x)"), 
          REPEAT GEN_TAC
          |> THEN 
-         <| ONCE_REWRITE_TAC [TAUT_001(parse_term "(a <=> b) <=> (~a <=> ~b)")]
+         <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN 
          <| REWRITE_TAC [NOT_FORALL_THM; DE_MORGAN_THM; RIGHT_EXISTS_AND_THM])
 
 let LEFT_OR_FORALL_THM = 
   prove
-    ((parse_term "!P Q. (!x:A. P x) \/ Q <=> (!x. P x \/ Q)"), 
+    ((parse_term @"!P Q. (!x:A. P x) \/ Q <=> (!x. P x \/ Q)"), 
      MATCH_ACCEPT_TAC(GSYM LEFT_FORALL_OR_THM))
 
 let RIGHT_OR_FORALL_THM = 
   prove
-    ((parse_term "!P Q. P \/ (!x:A. Q x) <=> (!x. P \/ Q x)"), 
+    ((parse_term @"!P Q. P \/ (!x:A. Q x) <=> (!x. P \/ Q x)"), 
      MATCH_ACCEPT_TAC(GSYM RIGHT_FORALL_OR_THM))
 
 (* ------------------------------------------------------------------------- *)
@@ -390,35 +391,35 @@ let RIGHT_OR_FORALL_THM =
 (* ------------------------------------------------------------------------- *)
 let LEFT_IMP_FORALL_THM = 
     prove
-        ((parse_term "!P Q. ((!x:A. P x) ==> Q) <=> (?x. P x ==> Q)"), 
+        ((parse_term @"!P Q. ((!x:A. P x) ==> Q) <=> (?x. P x ==> Q)"), 
          REPEAT GEN_TAC
          |> THEN 
-         <| ONCE_REWRITE_TAC [TAUT_001(parse_term "(a <=> b) <=> (~a <=> ~b)")]
+         <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; NOT_IMP; LEFT_AND_FORALL_THM])
 
 let LEFT_EXISTS_IMP_THM = 
     prove
-        ((parse_term "!P Q. (?x. P x ==> Q) <=> ((!x:A. P x) ==> Q)"), 
+        ((parse_term @"!P Q. (?x. P x ==> Q) <=> ((!x:A. P x) ==> Q)"), 
          MATCH_ACCEPT_TAC(GSYM LEFT_IMP_FORALL_THM))
 
 let RIGHT_IMP_EXISTS_THM = 
     prove
-        ((parse_term "!P Q. (P ==> ?x:A. Q x) <=> (?x:A. P ==> Q x)"), 
+        ((parse_term @"!P Q. (P ==> ?x:A. Q x) <=> (?x:A. P ==> Q x)"), 
          REPEAT GEN_TAC
          |> THEN 
-         <| ONCE_REWRITE_TAC [TAUT_001(parse_term "(a <=> b) <=> (~a <=> ~b)")]
+         <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; NOT_IMP; RIGHT_AND_FORALL_THM])
 
 let RIGHT_EXISTS_IMP_THM = 
-    prove ((parse_term "!P Q. (?x:A. P ==> Q x) <=> (P ==> ?x:A. Q x)"), 
+    prove ((parse_term @"!P Q. (?x:A. P ==> Q x) <=> (P ==> ?x:A. Q x)"), 
      MATCH_ACCEPT_TAC(GSYM RIGHT_IMP_EXISTS_THM))
 
 (* ------------------------------------------------------------------------- *)
 (* The conditional.                                                          *)
 (* ------------------------------------------------------------------------- *)
-let COND_DEF = new_definition(parse_term "COND = \t t1 t2. @x:A. ((t <=> T) ==> (x = t1)) /\ ((t <=> F) ==> (x = t2)))")
+let COND_DEF = new_definition(parse_term @"COND = \t t1 t2. @x:A. ((t <=> T) ==> (x = t1)) /\ ((t <=> F) ==> (x = t2))")
 
-let COND_CLAUSES = prove((parse_term "!(t1:A) t2. ((if T then t1 else t2) = t1) /\
+let COND_CLAUSES = prove((parse_term @"!(t1:A) t2. ((if T then t1 else t2) = t1) /\
                ((if F then t1 else t2) = t2)"), REWRITE_TAC [COND_DEF])
 
 let is_cond tm = 
@@ -449,16 +450,16 @@ extend_basic_rewrites [COND_CLAUSES]
 
 let COND_EXPAND = 
   prove
-    ((parse_term "!b t1 t2. (if b then t1 else t2) <=> (~b \/ t1) /\ (b \/ t2)"), 
+    ((parse_term @"!b t1 t2. (if b then t1 else t2) <=> (~b \/ t1) /\ (b \/ t2)"), 
      REPEAT GEN_TAC
-     |> THEN <| BOOL_CASES_TAC(parse_term "b:bool")
+     |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
      |> THEN <| REWRITE_TAC [])
 
 let COND_ID = 
   prove
-    ((parse_term "!b (t:A). (if b then t else t) = t"), 
+    ((parse_term @"!b (t:A). (if b then t else t) = t"), 
      REPEAT GEN_TAC
-     |> THEN <| BOOL_CASES_TAC(parse_term "b:bool")
+     |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
      |> THEN <| REWRITE_TAC [])
 
 let COND_RAND = 
@@ -466,7 +467,7 @@ let COND_RAND =
     ((parse_term 
           "!b (f:A->B) x y. f (if b then x else y) = (if b then f x else f y)"), 
      REPEAT GEN_TAC
-     |> THEN <| BOOL_CASES_TAC(parse_term "b:bool")
+     |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
      |> THEN <| REWRITE_TAC [])
 
 let COND_RATOR = 
@@ -474,7 +475,7 @@ let COND_RATOR =
     ((parse_term 
           "!b (f:A->B) g x. (if b then f else g)(x) = (if b then f x else g x)"), 
      REPEAT GEN_TAC
-     |> THEN <| BOOL_CASES_TAC(parse_term "b:bool")
+     |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
      |> THEN <| REWRITE_TAC [])
 
 let COND_ABS = 
@@ -482,7 +483,7 @@ let COND_ABS =
     ((parse_term 
           "!b (f:A->B) g. (\x. if b then f x else g x) = (if b then f else g)"), 
      REPEAT GEN_TAC
-     |> THEN <| BOOL_CASES_TAC(parse_term "b:bool")
+     |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
      |> THEN <| REWRITE_TAC [ETA_AX])
 
 (* ------------------------------------------------------------------------- *)
@@ -512,7 +513,7 @@ let MONO_COND =
         ((parse_term 
               "(A ==> B) /\ (C ==> D) ==> (if b then A else C) ==> (if b then B else D)"), 
          STRIP_TAC
-         |> THEN <| BOOL_CASES_TAC(parse_term "b:bool")
+         |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
          |> THEN <| ASM_REWRITE_TAC [])
 
 monotonicity_theorems := MONO_COND :: (!monotonicity_theorems)
@@ -524,13 +525,13 @@ let COND_ELIM_THM =
     prove
         ((parse_term 
               "(P:A->bool) (if c then x else y) <=> (c ==> P x) /\ (~c ==> P y)"), 
-         BOOL_CASES_TAC(parse_term "c:bool")
+         BOOL_CASES_TAC(parse_term @"c:bool")
          |> THEN <| REWRITE_TAC [])
 
 let COND_ELIM_CONV = HIGHER_REWRITE_CONV [COND_ELIM_THM] true
 
 let (COND_CASES_TAC : tactic) = 
-    let DENEG_RULE = GEN_REWRITE_RULE I [TAUT(parse_term "~ ~ p <=> p")]
+    let DENEG_RULE = GEN_REWRITE_RULE I [TAUT(parse_term @"~ ~ p <=> p")]
     CONV_TAC COND_ELIM_CONV
     |> THEN <| CONJ_TAC
     |> THENL <| [DISCH_THEN(fun th -> ASSUME_TAC th
@@ -549,14 +550,14 @@ let (COND_CASES_TAC : tactic) =
 (* ------------------------------------------------------------------------- *)
 let SKOLEM_THM = 
     prove
-        ((parse_term "!P. (!x:A. ?y:B. P x y) <=> (?y. !x. P x (y x))"), 
+        ((parse_term @"!P. (!x:A. ?y:B. P x y) <=> (?y. !x. P x (y x))"), 
          REPEAT(STRIP_TAC
                 |> ORELSE <| EQ_TAC)
-         |> THENL <| [EXISTS_TAC(parse_term "\x:A. @y:B. P x y")
+         |> THENL <| [EXISTS_TAC(parse_term @"\x:A. @y:B. P x y")
                       |> THEN <| GEN_TAC
                       |> THEN <| BETA_TAC
                       |> THEN <| CONV_TAC SELECT_CONV
-                      EXISTS_TAC(parse_term "(y:A->B) x")]
+                      EXISTS_TAC(parse_term @"(y:A->B) x")]
          |> THEN <| POP_ASSUM MATCH_ACCEPT_TAC)
 
 (* ------------------------------------------------------------------------- *)
@@ -573,7 +574,7 @@ let UNIQUE_SKOLEM_ALT =
 (* and this one intuitionistically and extensionally.                        *)
 (* ------------------------------------------------------------------------- *)
 let UNIQUE_SKOLEM_THM = 
-  prove ((parse_term "!P. (!x:A. ?!y:B. P x y) <=> (?!f. !x. P x (f x))"),
+  prove ((parse_term @"!P. (!x:A. ?!y:B. P x y) <=> (?!f. !x. P x (f x))"),
     GEN_TAC 
     |>THEN<| REWRITE_TAC[EXISTS_UNIQUE_THM; SKOLEM_THM; FORALL_AND_THM] 
     |>THEN<| EQ_TAC 
@@ -582,18 +583,18 @@ let UNIQUE_SKOLEM_THM =
     |>THENL<|
       [REPEAT STRIP_TAC 
        |>THEN<| ONCE_REWRITE_TAC[FUN_EQ_THM] 
-       |>THEN<| X_GEN_TAC (parse_term "x:A") 
+       |>THEN<| X_GEN_TAC (parse_term @"x:A") 
        |>THEN<| FIRST_ASSUM MATCH_MP_TAC 
-       |>THEN<| EXISTS_TAC (parse_term "x:A") 
+       |>THEN<| EXISTS_TAC (parse_term @"x:A") 
        |>THEN<| ASM_REWRITE_TAC[];
        MAP_EVERY X_GEN_TAC 
-         [(parse_term "x:A"); 
-          (parse_term "y1:B"); 
-          (parse_term "y2:B")] 
+         [(parse_term @"x:A"); 
+          (parse_term @"y1:B"); 
+          (parse_term @"y2:B")] 
        |>THEN<| STRIP_TAC 
-       |>THEN<| FIRST_ASSUM(X_CHOOSE_TAC (parse_term "f:A->B")) 
+       |>THEN<| FIRST_ASSUM(X_CHOOSE_TAC (parse_term @"f:A->B")) 
        |>THEN<| SUBGOAL_THEN 
-         (parse_term "(\z. if z = x then y1 else (f:A->B) z) =
+         (parse_term @"(\z. if z = x then y1 else (f:A->B) z) =
                     (\z. if z = x then y2 else (f:A->B) z)") MP_TAC 
        |>THENL<|
         [FIRST_ASSUM MATCH_MP_TAC 
@@ -601,19 +602,19 @@ let UNIQUE_SKOLEM_THM =
          |>THEN<| BETA_TAC 
          |>THEN<| COND_CASES_TAC 
          |>THEN<| ASM_REWRITE_TAC[];
-         DISCH_THEN(MP_TAC << C AP_THM (parse_term "x:A")) 
+         DISCH_THEN(MP_TAC << C AP_THM (parse_term @"x:A")) 
          |>THEN<| REWRITE_TAC[]]]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Extend default congruences for contextual rewriting.                      *)
 (* ------------------------------------------------------------------------- *)
-let COND_CONG = TAUT(parse_term "(g = g') ==>
+let COND_CONG = TAUT(parse_term @"(g = g') ==>
         (g' ==> (t = t')) ==>
         (~g' ==> (e = e')) ==>
         ((if g then t else e) = (if g' then t' else e'))")
 extend_basic_congs [COND_CONG]
 let COND_EQ_CLAUSE = 
-    prove((parse_term "(if x = x then y else z) = y"), REWRITE_TAC [])
+    prove((parse_term @"(if x = x then y else z) = y"), REWRITE_TAC [])
 extend_basic_rewrites [COND_EQ_CLAUSE]
 
 (* ------------------------------------------------------------------------- *)
@@ -621,21 +622,21 @@ extend_basic_rewrites [COND_EQ_CLAUSE]
 (* ------------------------------------------------------------------------- *)
 let bool_INDUCT = 
   prove
-    ((parse_term "!P. P F /\ P T ==> !x. P x"), REPEAT STRIP_TAC
+    ((parse_term @"!P. P F /\ P T ==> !x. P x"), REPEAT STRIP_TAC
                                                 |> THEN 
                                                 <| DISJ_CASES_TAC
                                                        (SPEC 
-                                                            (parse_term "x:bool") 
+                                                            (parse_term @"x:bool") 
                                                             BOOL_CASES_AX)
                                                 |> THEN <| ASM_REWRITE_TAC [])
 
 let bool_RECURSION = 
   prove
-    ((parse_term "!a b:A. ?f. f F = a /\ f T = b"), REPEAT GEN_TAC
+    ((parse_term @"!a b:A. ?f. f F = a /\ f T = b"), REPEAT GEN_TAC
                                                     |> THEN 
                                                     <| EXISTS_TAC
                                                            (parse_term 
-                                                                "\x. if x then b:A else a")
+                                                                @"\x. if x then b:A else a")
                                                     |> THEN <| REWRITE_TAC [])
 
 let inductive_type_store = ref ["bool", (2, bool_INDUCT, bool_RECURSION)]

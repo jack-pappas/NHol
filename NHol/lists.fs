@@ -73,76 +73,76 @@ let LIST_INDUCT_TAC =
 (* Basic definitions.                                                        *)
 (* ------------------------------------------------------------------------- *)
 let HD = 
-    new_recursive_definition list_RECURSION (parse_term "HD(CONS (h:A) t) = h")
+    new_recursive_definition list_RECURSION (parse_term @"HD(CONS (h:A) t) = h")
 
 let TL = 
-    new_recursive_definition list_RECURSION (parse_term "TL(CONS (h:A) t) = t")
-let APPEND = new_recursive_definition list_RECURSION (parse_term "(!l:(A)list. APPEND [] l = l) /\
+    new_recursive_definition list_RECURSION (parse_term @"TL(CONS (h:A) t) = t")
+let APPEND = new_recursive_definition list_RECURSION (parse_term @"(!l:(A)list. APPEND [] l = l) /\
    (!h t l. APPEND (CONS h t) l = CONS h (APPEND t l))")
-let REVERSE = new_recursive_definition list_RECURSION (parse_term "(REVERSE [] = []) /\
+let REVERSE = new_recursive_definition list_RECURSION (parse_term @"(REVERSE [] = []) /\
    (REVERSE (CONS (x:A) l) = APPEND (REVERSE l) [x])")
-let LENGTH = new_recursive_definition list_RECURSION (parse_term "(LENGTH [] = 0) /\
+let LENGTH = new_recursive_definition list_RECURSION (parse_term @"(LENGTH [] = 0) /\
    (!h:A. !t. LENGTH (CONS h t) = SUC (LENGTH t))")
-let MAP = new_recursive_definition list_RECURSION (parse_term "(!f:A->B. MAP f NIL = NIL) /\
+let MAP = new_recursive_definition list_RECURSION (parse_term @"(!f:A->B. MAP f NIL = NIL) /\
    (!f h t. MAP f (CONS h t) = CONS (f h) (MAP f t))")
 let LAST = 
     new_recursive_definition list_RECURSION 
-        (parse_term "LAST (CONS (h:A) t) = if t = [] then h else LAST t")
-let BUTLAST = new_recursive_definition list_RECURSION (parse_term "(BUTLAST [] = []) /\
+        (parse_term @"LAST (CONS (h:A) t) = if t = [] then h else LAST t")
+let BUTLAST = new_recursive_definition list_RECURSION (parse_term @"(BUTLAST [] = []) /\
   (BUTLAST (CONS h t) = if t = [] then [] else CONS h (BUTLAST t))")
-let REPLICATE = new_recursive_definition num_RECURSION (parse_term "(REPLICATE 0 x = []) /\
+let REPLICATE = new_recursive_definition num_RECURSION (parse_term @"(REPLICATE 0 x = []) /\
    (REPLICATE (SUC n) x = CONS x (REPLICATE n x))")
-let NULL = new_recursive_definition list_RECURSION (parse_term "(NULL [] = T) /\
+let NULL = new_recursive_definition list_RECURSION (parse_term @"(NULL [] = T) /\
    (NULL (CONS h t) = F)")
-let ALL = new_recursive_definition list_RECURSION (parse_term "(ALL P [] = T) /\
+let ALL = new_recursive_definition list_RECURSION (parse_term @"(ALL P [] = T) /\
    (ALL P (CONS h t) <=> P h /\ ALL P t)")
-let EX = new_recursive_definition list_RECURSION (parse_term "(EX P [] = F) /\
+let EX = new_recursive_definition list_RECURSION (parse_term @"(EX P [] = F) /\
    (EX P (CONS h t) <=> P h \/ EX P t)")
-let ITLIST = new_recursive_definition list_RECURSION (parse_term "(ITLIST f [] b = b) /\
+let ITLIST = new_recursive_definition list_RECURSION (parse_term @"(ITLIST f [] b = b) /\
    (ITLIST f (CONS h t) b = f h (ITLIST f t b))")
-let MEM = new_recursive_definition list_RECURSION (parse_term "(MEM x [] <=> F) /\
+let MEM = new_recursive_definition list_RECURSION (parse_term @"(MEM x [] <=> F) /\
    (MEM x (CONS h t) <=> (x = h) \/ MEM x t)")
-let ALL2_DEF = new_recursive_definition list_RECURSION (parse_term "(ALL2 P [] l2 <=> (l2 = [])) /\
+let ALL2_DEF = new_recursive_definition list_RECURSION (parse_term @"(ALL2 P [] l2 <=> (l2 = [])) /\
    (ALL2 P (CONS h1 t1) l2 <=>
         if l2 = [] then F
         else P h1 (HD l2) /\ ALL2 P t1 (TL l2))");;
 
 let ALL2 = 
     prove
-        ((parse_term "(ALL2 P [] [] <=> T) /\
+        ((parse_term @"(ALL2 P [] [] <=> T) /\
    (ALL2 P (CONS h1 t1) [] <=> F) /\
    (ALL2 P [] (CONS h2 t2) <=> F) /\
    (ALL2 P (CONS h1 t1) (CONS h2 t2) <=> P h1 h2 /\ ALL2 P t1 t2)"), 
          REWRITE_TAC [distinctness "list"
                       ALL2_DEF; HD; TL])
 
-let MAP2_DEF = new_recursive_definition list_RECURSION (parse_term "(MAP2 f [] l = []) /\
+let MAP2_DEF = new_recursive_definition list_RECURSION (parse_term @"(MAP2 f [] l = []) /\
    (MAP2 f (CONS h1 t1) l = CONS (f h1 (HD l)) (MAP2 f t1 (TL l)))")
 let MAP2 = 
     prove
-        ((parse_term "(MAP2 f [] [] = []) /\
+        ((parse_term @"(MAP2 f [] [] = []) /\
    (MAP2 f (CONS h1 t1) (CONS h2 t2) = CONS (f h1 h2) (MAP2 f t1 t2))"), 
          REWRITE_TAC [MAP2_DEF; HD; TL])
-let EL = new_recursive_definition num_RECURSION (parse_term "(EL 0 l = HD l) /\
+let EL = new_recursive_definition num_RECURSION (parse_term @"(EL 0 l = HD l) /\
    (EL (SUC n) l = EL n (TL l))")
-let FILTER = new_recursive_definition list_RECURSION (parse_term "(FILTER P [] = []) /\
+let FILTER = new_recursive_definition list_RECURSION (parse_term @"(FILTER P [] = []) /\
    (FILTER P (CONS h t) = if P h then CONS h (FILTER P t) else FILTER P t)")
 let ASSOC = 
     new_recursive_definition list_RECURSION 
         (parse_term 
              "ASSOC a (CONS h t) = if FST h = a then SND h else ASSOC a t")
-let ITLIST2_DEF = new_recursive_definition list_RECURSION (parse_term "(ITLIST2 f [] l2 b = b) /\
+let ITLIST2_DEF = new_recursive_definition list_RECURSION (parse_term @"(ITLIST2 f [] l2 b = b) /\
    (ITLIST2 f (CONS h1 t1) l2 b = f h1 (HD l2) (ITLIST2 f t1 (TL l2) b))")
 let ITLIST2 = 
     prove
-        ((parse_term "(ITLIST2 f [] [] b = b) /\
+        ((parse_term @"(ITLIST2 f [] [] b = b) /\
    (ITLIST2 f (CONS h1 t1) (CONS h2 t2) b = f h1 h2 (ITLIST2 f t1 t2 b))"), 
          REWRITE_TAC [ITLIST2_DEF; HD; TL])
-let ZIP_DEF = new_recursive_definition list_RECURSION (parse_term "(ZIP [] l2 = []) /\
+let ZIP_DEF = new_recursive_definition list_RECURSION (parse_term @"(ZIP [] l2 = []) /\
    (ZIP (CONS h1 t1) l2 = CONS (h1,HD l2) (ZIP t1 (TL l2)))")
 let ZIP = 
     prove
-        ((parse_term "(ZIP [] [] = []) /\
+        ((parse_term @"(ZIP [] [] = []) /\
    (ZIP (CONS h1 t1) (CONS h2 t2) = CONS (h1,h2) (ZIP t1 t2))"), 
          REWRITE_TAC [ZIP_DEF; HD; TL])
 
@@ -151,17 +151,17 @@ let ZIP =
 (* ------------------------------------------------------------------------- *)
 let NOT_CONS_NIL = 
     prove
-        ((parse_term "!(h:A) t. ~(CONS h t = [])"), 
+        ((parse_term @"!(h:A) t. ~(CONS h t = [])"), 
          REWRITE_TAC [distinctness "list"])
 
 let LAST_CLAUSES = 
     prove
-        ((parse_term "(LAST [h:A] = h) /\
+        ((parse_term @"(LAST [h:A] = h) /\
    (LAST (CONS h (CONS k t)) = LAST (CONS k t))"), 
          REWRITE_TAC [LAST; NOT_CONS_NIL])
 let APPEND_NIL = 
     prove
-        ((parse_term "!l:A list. APPEND l [] = l"), 
+        ((parse_term @"!l:A list. APPEND l [] = l"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [APPEND])
 let APPEND_ASSOC = 
@@ -178,7 +178,7 @@ let REVERSE_APPEND =
          |> THEN <| ASM_REWRITE_TAC [APPEND; REVERSE; APPEND_NIL; APPEND_ASSOC])
 let REVERSE_REVERSE = 
     prove
-        ((parse_term "!l:A list. REVERSE(REVERSE l) = l"), 
+        ((parse_term @"!l:A list. REVERSE(REVERSE l) = l"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [REVERSE; REVERSE_APPEND; APPEND])
 let CONS_11 = 
@@ -189,14 +189,14 @@ let CONS_11 =
 
 let list_CASES = 
     prove
-        ((parse_term "!l:(A)list. (l = []) \/ ?h t. l = CONS h t"), 
+        ((parse_term @"!l:(A)list. (l = []) \/ ?h t. l = CONS h t"), 
          LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [CONS_11; NOT_CONS_NIL]
          |> THEN <| MESON_TAC [])
 
 let LENGTH_APPEND = 
     prove
-        ((parse_term "!(l:A list) m. LENGTH(APPEND l m) = LENGTH l + LENGTH m"), 
+        ((parse_term @"!(l:A list) m. LENGTH(APPEND l m) = LENGTH l + LENGTH m"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [APPEND; LENGTH; ADD_CLAUSES])
 
@@ -210,12 +210,12 @@ let MAP_APPEND =
 
 let LENGTH_MAP = 
     prove
-        ((parse_term "!l. !f:A->B. LENGTH (MAP f l) = LENGTH l"), 
+        ((parse_term @"!l. !f:A->B. LENGTH (MAP f l) = LENGTH l"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [MAP; LENGTH])
 let LENGTH_EQ_NIL = 
     prove
-        ((parse_term "!l:A list. (LENGTH l = 0) <=> (l = [])"), 
+        ((parse_term @"!l:A list. (LENGTH l = 0) <=> (l = [])"), 
          LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [LENGTH; NOT_CONS_NIL; NOT_SUC])
 
@@ -230,7 +230,7 @@ let LENGTH_EQ_CONS =
 
 let MAP_o = 
     prove
-        ((parse_term "!f:A->B. !g:B->C. !l. MAP (g << f) l = MAP g (MAP f l)"), 
+        ((parse_term @"!f:A->B. !g:B->C. !l. MAP (g << f) l = MAP g (MAP f l)"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
@@ -238,7 +238,7 @@ let MAP_o =
 
 let MAP_EQ = 
     prove
-        ((parse_term "!f g l. ALL (\x. f x = g x) l ==> (MAP f l = MAP g l)"), 
+        ((parse_term @"!f g l. ALL (\x. f x = g x) l ==> (MAP f l = MAP g l)"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
@@ -257,40 +257,40 @@ let ALL_IMP =
 
 let NOT_EX = 
     prove
-        ((parse_term "!P l. ~(EX P l) <=> ALL (\x. ~(P x)) l"), 
+        ((parse_term @"!P l. ~(EX P l) <=> ALL (\x. ~(P x)) l"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [EX; ALL; DE_MORGAN_THM])
 
 let NOT_ALL = 
     prove
-        ((parse_term "!P l. ~(ALL P l) <=> EX (\x. ~(P x)) l"), 
+        ((parse_term @"!P l. ~(ALL P l) <=> EX (\x. ~(P x)) l"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [EX; ALL; DE_MORGAN_THM])
 
 let ALL_MAP = 
     prove
-        ((parse_term "!P f l. ALL P (MAP f l) <=> ALL (P << f) l"), 
+        ((parse_term @"!P f l. ALL P (MAP f l) <=> ALL (P << f) l"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [ALL; MAP; o_THM])
 
 let ALL_T = 
-    prove((parse_term "!l. ALL (\x. T) l"), LIST_INDUCT_TAC
+    prove((parse_term @"!l. ALL (\x. T) l"), LIST_INDUCT_TAC
                                             |> THEN <| ASM_REWRITE_TAC [ALL])
 
 let MAP_EQ_ALL2 = 
     prove
-        ((parse_term "!l m. ALL2 (\x y. f x = f y) l m ==> (MAP f l = MAP f m)"), 
+        ((parse_term @"!l m. ALL2 (\x y. f x = f y) l m ==> (MAP f l = MAP f m)"), 
          REPEAT LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [MAP; ALL2; CONS_11]
          |> THEN <| ASM_MESON_TAC [])
 
 let ALL2_MAP = 
     prove
-        ((parse_term "!P f l. ALL2 P (MAP f l) l <=> ALL (\a. P (f a) a) l"), 
+        ((parse_term @"!P f l. ALL2 P (MAP f l) l <=> ALL (\a. P (f a) a) l"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
@@ -298,7 +298,7 @@ let ALL2_MAP =
 
 let MAP_EQ_DEGEN = 
     prove
-        ((parse_term "!l f. ALL (\x. f(x) = x) l ==> (MAP f l = l)"), 
+        ((parse_term @"!l f. ALL (\x. f(x) = x) l ==> (MAP f l = l)"), 
          LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [ALL; MAP; CONS_11]
          |> THEN <| REPEAT STRIP_TAC
@@ -327,12 +327,12 @@ let ITLIST_APPEND =
 
 let ITLIST_EXTRA = 
     prove
-        ((parse_term "!l. ITLIST f (APPEND l [a]) b = ITLIST f l (f a b)"), 
+        ((parse_term @"!l. ITLIST f (APPEND l [a]) b = ITLIST f l (f a b)"), 
          REWRITE_TAC [ITLIST_APPEND; ITLIST])
 
 let ALL_MP = 
     prove
-        ((parse_term "!P Q l. ALL (\x. P x ==> Q x) l /\ ALL P l ==> ALL Q l"), 
+        ((parse_term @"!P Q l. ALL (\x. P x ==> Q x) l /\ ALL P l ==> ALL Q l"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
@@ -341,14 +341,14 @@ let ALL_MP =
 
 let AND_ALL = 
     prove
-        ((parse_term "!l. ALL P l /\ ALL Q l <=> ALL (\x. P x /\ Q x) l"), 
+        ((parse_term @"!l. ALL P l /\ ALL Q l <=> ALL (\x. P x /\ Q x) l"), 
          CONV_TAC(ONCE_DEPTH_CONV SYM_CONV)
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [ALL; CONJ_ACI])
 
 let EX_IMP = 
     prove
-        ((parse_term "!P Q l. (!x. MEM x l /\ P x ==> Q x) /\ EX P l ==> EX Q l"), 
+        ((parse_term @"!P Q l. (!x. MEM x l /\ P x ==> Q x) /\ EX P l ==> EX Q l"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
@@ -357,7 +357,7 @@ let EX_IMP =
 
 let ALL_MEM = 
     prove
-        ((parse_term "!P l. (!x. MEM x l ==> P x) <=> ALL P l"), 
+        ((parse_term @"!P l. (!x. MEM x l ==> P x) <=> ALL P l"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [ALL; MEM]
@@ -365,13 +365,13 @@ let ALL_MEM =
 
 let LENGTH_REPLICATE = 
     prove
-        ((parse_term "!n x. LENGTH(REPLICATE n x) = n"), 
+        ((parse_term @"!n x. LENGTH(REPLICATE n x) = n"), 
          INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [LENGTH; REPLICATE])
 
 let EX_MAP = 
     prove
-        ((parse_term "!P f l. EX P (MAP f l) <=> EX (P << f) l"), 
+        ((parse_term @"!P f l. EX P (MAP f l) <=> EX (P << f) l"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
@@ -379,7 +379,7 @@ let EX_MAP =
 
 let EXISTS_EX = 
     prove
-        ((parse_term "!P l. (?x. EX (P x) l) <=> EX (\s. ?x. P x s) l"), 
+        ((parse_term @"!P l. (?x. EX (P x) l) <=> EX (\s. ?x. P x s) l"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [EX]
@@ -387,7 +387,7 @@ let EXISTS_EX =
 
 let FORALL_ALL = 
     prove
-        ((parse_term "!P l. (!x. ALL (P x) l) <=> ALL (\s. !x. P x s) l"), 
+        ((parse_term @"!P l. (!x. ALL (P x) l) <=> ALL (\s. !x. P x s) l"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [ALL]
@@ -395,14 +395,14 @@ let FORALL_ALL =
 
 let MEM_APPEND = 
     prove
-        ((parse_term "!x l1 l2. MEM x (APPEND l1 l2) <=> MEM x l1 \/ MEM x l2"), 
+        ((parse_term @"!x l1 l2. MEM x (APPEND l1 l2) <=> MEM x l1 \/ MEM x l2"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [MEM; APPEND; DISJ_ACI])
 
 let MEM_MAP = 
     prove
-        ((parse_term "!f y l. MEM y (MAP f l) <=> ?x. MEM x l /\ (y = f x)"), 
+        ((parse_term @"!f y l. MEM y (MAP f l) <=> ?x. MEM x l /\ (y = f x)"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
@@ -422,7 +422,7 @@ let FILTER_APPEND =
 
 let FILTER_MAP = 
     prove
-        ((parse_term "!P f l. FILTER P (MAP f l) = MAP f (FILTER (P << f) l)"), 
+        ((parse_term @"!P f l. FILTER P (MAP f l) = MAP f (FILTER (P << f) l)"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
@@ -432,7 +432,7 @@ let FILTER_MAP =
 
 let MEM_FILTER = 
     prove
-        ((parse_term "!P l x. MEM x (FILTER P l) <=> P x /\ MEM x l"), 
+        ((parse_term @"!P l x. MEM x (FILTER P l) <=> P x /\ MEM x l"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [MEM; FILTER]
@@ -443,7 +443,7 @@ let MEM_FILTER =
 
 let EX_MEM = 
     prove
-        ((parse_term "!P l. (?x. P x /\ MEM x l) <=> EX P l"), 
+        ((parse_term @"!P l. (?x. P x /\ MEM x l) <=> EX P l"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [EX; MEM]
@@ -467,7 +467,7 @@ let MAP_SND_ZIP =
 
 let MEM_ASSOC = 
     prove
-        ((parse_term "!l x. MEM (x,ASSOC x l) l <=> MEM x (MAP FST l)"), 
+        ((parse_term @"!l x. MEM (x,ASSOC x l) l <=> MEM x (MAP FST l)"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [MEM; MAP; ASSOC]
          |> THEN <| GEN_TAC
@@ -477,7 +477,7 @@ let MEM_ASSOC =
 
 let ALL_APPEND = 
     prove
-        ((parse_term "!P l1 l2. ALL P (APPEND l1 l2) <=> ALL P l1 /\ ALL P l2"), 
+        ((parse_term @"!P l1 l2. ALL P (APPEND l1 l2) <=> ALL P l1 /\ ALL P l2"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [ALL
@@ -486,7 +486,7 @@ let ALL_APPEND =
 
 let MEM_EL = 
     prove
-        ((parse_term "!l n. n < LENGTH l ==> MEM (EL n l) l"), 
+        ((parse_term @"!l n. n < LENGTH l ==> MEM (EL n l) l"), 
          LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [MEM
                                  CONJUNCT1 LT
@@ -496,7 +496,7 @@ let MEM_EL =
 
 let MEM_EXISTS_EL = 
     prove
-        ((parse_term "!l x. MEM x l <=> ?i. i < LENGTH l /\ x = EL i l"), 
+        ((parse_term @"!l x. MEM x l <=> ?i. i < LENGTH l /\ x = EL i l"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [LENGTH
                                      EL
@@ -506,12 +506,12 @@ let MEM_EXISTS_EL =
          |> THEN 
          <| GEN_REWRITE_TAC RAND_CONV 
                 [MESON [num_CASES] 
-                     (parse_term "(?i. P i) <=> P 0 \/ (?i. P(SUC i))")]
+                     (parse_term @"(?i. P i) <=> P 0 \/ (?i. P(SUC i))")]
          |> THEN <| REWRITE_TAC [LT_SUC; LT_0; EL; HD; TL])
 
 let ALL_EL = 
     prove
-        ((parse_term "!P l. (!i. i < LENGTH l ==> P (EL i l)) <=> ALL P l"), 
+        ((parse_term @"!P l. (!i. i < LENGTH l ==> P (EL i l)) <=> ALL P l"), 
          REWRITE_TAC [GSYM ALL_MEM
                       MEM_EXISTS_EL]
          |> THEN <| MESON_TAC [])
@@ -538,14 +538,14 @@ let AND_ALL2 =
 
 let ALL2_ALL = 
     prove
-        ((parse_term "!P l. ALL2 P l l <=> ALL (\x. P x x) l"), 
+        ((parse_term @"!P l. ALL2 P l l <=> ALL (\x. P x x) l"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [ALL2; ALL])
 
 let APPEND_EQ_NIL = 
     prove
-        ((parse_term "!l m. (APPEND l m = []) <=> (l = []) /\ (m = [])"), 
+        ((parse_term @"!l m. (APPEND l m = []) <=> (l = []) /\ (m = [])"), 
          REWRITE_TAC [GSYM LENGTH_EQ_NIL
                       LENGTH_APPEND; ADD_EQ_0])
 
@@ -560,23 +560,23 @@ let LENGTH_MAP2 =
 
 let MAP_EQ_NIL = 
     prove
-        ((parse_term "!f l. MAP f l = [] <=> l = []"), 
+        ((parse_term @"!f l. MAP f l = [] <=> l = []"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [MAP; NOT_CONS_NIL])
 
 let INJECTIVE_MAP = 
-    prove((parse_term "!f:A->B. (!l m. MAP f l = MAP f m ==> l = m) <=>
+    prove((parse_term @"!f:A->B. (!l m. MAP f l = MAP f m ==> l = m) <=>
             (!x y. f x = f y ==> x = y)"),
            GEN_TAC
            |> THEN <| EQ_TAC
            |> THEN <| DISCH_TAC
-           |> THENL <| [MAP_EVERY X_GEN_TAC [(parse_term "x:A")
-                                             (parse_term "y:A")]
+           |> THENL <| [MAP_EVERY X_GEN_TAC [(parse_term @"x:A")
+                                             (parse_term @"y:A")]
                         |> THEN <| DISCH_TAC
                         |> THEN 
-                        <| FIRST_X_ASSUM(MP_TAC << SPECL [(parse_term "[x:A]")
-                                                          (parse_term "[y:A]")])
+                        <| FIRST_X_ASSUM(MP_TAC << SPECL [(parse_term @"[x:A]")
+                                                          (parse_term @"[y:A]")])
                         |> THEN <| ASM_REWRITE_TAC [MAP; CONS_11]
                         REPEAT LIST_INDUCT_TAC
                         |> THEN <| ASM_SIMP_TAC [MAP; NOT_CONS_NIL; CONS_11]
@@ -584,13 +584,13 @@ let INJECTIVE_MAP =
 
 let SURJECTIVE_MAP = 
     prove
-        ((parse_term "!f:A->B. (!m. ?l. MAP f l = m) <=> (!y. ?x. f x = y)"), 
+        ((parse_term @"!f:A->B. (!m. ?l. MAP f l = m) <=> (!y. ?x. f x = y)"), 
          GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
-         |> THENL <| [X_GEN_TAC(parse_term "y:B")
+         |> THENL <| [X_GEN_TAC(parse_term @"y:B")
                       |> THEN 
-                      <| FIRST_X_ASSUM(MP_TAC << SPEC(parse_term "[y:B]"))
+                      <| FIRST_X_ASSUM(MP_TAC << SPEC(parse_term @"[y:B]"))
                       |> THEN <| REWRITE_TAC [LEFT_IMP_EXISTS_THM]
                       |> THEN <| LIST_INDUCT_TAC
                       |> THEN 
@@ -600,14 +600,14 @@ let SURJECTIVE_MAP =
 
 let MAP_ID = 
     prove
-        ((parse_term "!l. MAP (\x. x) l = l"), LIST_INDUCT_TAC
+        ((parse_term @"!l. MAP (\x. x) l = l"), LIST_INDUCT_TAC
                                                |> THEN <| ASM_REWRITE_TAC [MAP])
 let MAP_I = 
-    prove((parse_term "MAP I = I"), REWRITE_TAC [FUN_EQ_THM; I_DEF; MAP_ID])
+    prove((parse_term @"MAP I = I"), REWRITE_TAC [FUN_EQ_THM; I_DEF; MAP_ID])
 
 let APPEND_BUTLAST_LAST = 
     prove
-        ((parse_term "!l. ~(l = []) ==> APPEND (BUTLAST l) [LAST l] = l"), 
+        ((parse_term @"!l. ~(l = []) ==> APPEND (BUTLAST l) [LAST l] = l"), 
          LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [LAST; BUTLAST; NOT_CONS_NIL]
          |> THEN <| COND_CASES_TAC
@@ -623,12 +623,12 @@ let LAST_APPEND =
 
 let LENGTH_TL = 
     prove
-        ((parse_term "!l. ~(l = []) ==> LENGTH(TL l) = LENGTH l - 1"), 
+        ((parse_term @"!l. ~(l = []) ==> LENGTH(TL l) = LENGTH l - 1"), 
          LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [LENGTH; TL; ARITH; SUC_SUB1])
 
 let EL_APPEND = 
-    prove((parse_term "!k l m. EL k (APPEND l m) = if k < LENGTH l then EL k l
+    prove((parse_term @"!k l m. EL k (APPEND l m) = if k < LENGTH l then EL k l
                                else EL (k - LENGTH l) m"),
                               INDUCT_TAC
                               |> THEN <| REWRITE_TAC [EL]
@@ -643,8 +643,8 @@ let EL_APPEND =
                               |> THEN <| ASM_REWRITE_TAC [TL; LT_SUC; SUB_SUC])
 
 let EL_TL = 
-    prove((parse_term "!n. EL n (TL l) = EL (n + 1) l"), REWRITE_TAC [GSYM ADD1
-                                                                      EL])
+    prove((parse_term @"!n. EL n (TL l) = EL (n + 1) l"), REWRITE_TAC [GSYM ADD1
+                                                                       EL])
 
 let EL_CONS = 
     prove
@@ -655,7 +655,7 @@ let EL_CONS =
 
 let LAST_EL = 
     prove
-        ((parse_term "!l. ~(l = []) ==> LAST l = EL (LENGTH l - 1) l"), 
+        ((parse_term @"!l. ~(l = []) ==> LAST l = EL (LENGTH l - 1) l"), 
          LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [LAST; LENGTH; SUC_SUB1]
          |> THEN <| DISCH_TAC
@@ -670,13 +670,13 @@ let HD_APPEND =
          |> THEN <| REWRITE_TAC [HD; APPEND; NOT_CONS_NIL])
 let CONS_HD_TL = 
     prove
-        ((parse_term "!l. ~(l = []) ==> l = CONS (HD l) (TL l)"), 
+        ((parse_term @"!l. ~(l = []) ==> l = CONS (HD l) (TL l)"), 
          LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [NOT_CONS_NIL; HD; TL])
 
 let EL_MAP = 
     prove
-        ((parse_term "!f n l. n < LENGTH l ==> EL n (MAP f l) = f(EL n l)"), 
+        ((parse_term @"!f n l. n < LENGTH l ==> EL n (MAP f l) = f(EL n l)"), 
          GEN_TAC
          |> THEN <| INDUCT_TAC
          |> THEN <| LIST_INDUCT_TAC
@@ -686,7 +686,7 @@ let EL_MAP =
 
 let MAP_REVERSE = 
     prove
-        ((parse_term "!f l. REVERSE(MAP f l) = MAP f (REVERSE l)"), 
+        ((parse_term @"!f l. REVERSE(MAP f l) = MAP f (REVERSE l)"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [MAP; REVERSE; MAP_APPEND])
@@ -703,26 +703,26 @@ let ALL_FILTER =
          |> THEN <| ASM_REWRITE_TAC [ALL])
 
 let APPEND_SING = 
-    prove((parse_term "!h t. APPEND [h] t = CONS h t"), REWRITE_TAC [APPEND])
+    prove((parse_term @"!h t. APPEND [h] t = CONS h t"), REWRITE_TAC [APPEND])
 
 let MEM_APPEND_DECOMPOSE_LEFT = 
     prove
         ((parse_term 
               "!x:A l. MEM x l <=> ?l1 l2. ~(MEM x l1) /\ l = APPEND l1 (CONS x l2)"), 
-         REWRITE_TAC [TAUT(parse_term "(p <=> q) <=> (p ==> q) /\ (q ==> p)")]
+         REWRITE_TAC [TAUT(parse_term @"(p <=> q) <=> (p ==> q) /\ (q ==> p)")]
          |> THEN <| SIMP_TAC [LEFT_IMP_EXISTS_THM; MEM_APPEND; MEM]
-         |> THEN <| X_GEN_TAC(parse_term "x:A")
+         |> THEN <| X_GEN_TAC(parse_term @"x:A")
          |> THEN <| MATCH_MP_TAC list_INDUCT
          |> THEN <| REWRITE_TAC [MEM]
-         |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term "y:A")
-                                         (parse_term "l:A list")]
-         |> THEN <| ASM_CASES_TAC(parse_term "x:A = y")
+         |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term @"y:A")
+                                         (parse_term @"l:A list")]
+         |> THEN <| ASM_CASES_TAC(parse_term @"x:A = y")
          |> THEN <| ASM_MESON_TAC [MEM; APPEND])
 
 let MEM_APPEND_DECOMPOSE = 
     prove
-        ((parse_term "!x:A l. MEM x l <=> ?l1 l2. l = APPEND l1 (CONS x l2)"), 
-         REWRITE_TAC [TAUT(parse_term "(p <=> q) <=> (p ==> q) /\ (q ==> p)")]
+        ((parse_term @"!x:A l. MEM x l <=> ?l1 l2. l = APPEND l1 (CONS x l2)"), 
+         REWRITE_TAC [TAUT(parse_term @"(p <=> q) <=> (p ==> q) /\ (q ==> p)")]
          |> THEN <| SIMP_TAC [LEFT_IMP_EXISTS_THM; MEM_APPEND; MEM]
          |> THEN <| ONCE_REWRITE_TAC [MEM_APPEND_DECOMPOSE_LEFT]
          |> THEN <| MESON_TAC [])
@@ -759,9 +759,9 @@ let mk_flist tms =
 (* ------------------------------------------------------------------------- *)
 let MONO_ALL = 
     prove
-        ((parse_term "(!x:A. P x ==> Q x) ==> ALL P l ==> ALL Q l"), 
+        ((parse_term @"(!x:A. P x ==> Q x) ==> ALL P l ==> ALL Q l"), 
          DISCH_TAC
-         |> THEN <| SPEC_TAC((parse_term "l:A list"), (parse_term "l:A list"))
+         |> THEN <| SPEC_TAC((parse_term @"l:A list"), (parse_term @"l:A list"))
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [ALL]
          |> THEN <| ASM_MESON_TAC [])
@@ -771,8 +771,8 @@ let MONO_ALL2 =
         ((parse_term 
               "(!x y. (P:A->B->bool) x y ==> Q x y) ==> ALL2 P l l' ==> ALL2 Q l l'"), 
          DISCH_TAC
-         |> THEN <| SPEC_TAC((parse_term "l':B list"), (parse_term "l':B list"))
-         |> THEN <| SPEC_TAC((parse_term "l:A list"), (parse_term "l:A list"))
+         |> THEN <| SPEC_TAC((parse_term @"l':B list"), (parse_term @"l':B list"))
+         |> THEN <| SPEC_TAC((parse_term @"l:A list"), (parse_term @"l:A list"))
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [ALL2_DEF]
          |> THEN <| GEN_TAC
@@ -798,4 +798,4 @@ let rec LIST_CONV conv tm =
 let char_INDUCT, char_RECURSION = 
     define_type "char = ASCII bool bool bool bool bool bool bool bool"
 
-new_type_abbrev("string", (parse_type ":char list"))
+new_type_abbrev("string", (parse_type @":char list"))

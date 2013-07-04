@@ -66,13 +66,13 @@ let DENUMERAL = GEN_REWRITE_RULE DEPTH_CONV [NUMERAL];;
 
 let ARITH_ZERO = 
  prove
-  ((parse_term "(NUMERAL 0 = 0) /\
+  ((parse_term @"(NUMERAL 0 = 0) /\
     (BIT0 _0 = _0)"),
    REWRITE_TAC[NUMERAL; BIT0; DENUMERAL ADD_CLAUSES]);;
 
 let ARITH_SUC = 
  prove
-  ((parse_term "(!n. SUC(NUMERAL n) = NUMERAL(SUC n)) /\
+  ((parse_term @"(!n. SUC(NUMERAL n) = NUMERAL(SUC n)) /\
     (SUC _0 = BIT1 _0) /\
     (!n. SUC (BIT0 n) = BIT1 n) /\
     (!n. SUC (BIT1 n) = BIT0 (SUC n))"),
@@ -80,7 +80,7 @@ let ARITH_SUC =
 
 let ARITH_PRE = 
  prove
-  ((parse_term "(!n. PRE(NUMERAL n) = NUMERAL(PRE n)) /\
+  ((parse_term @"(!n. PRE(NUMERAL n) = NUMERAL(PRE n)) /\
     (PRE _0 = _0) /\
     (!n. PRE(BIT0 n) = if n = _0 then _0 else BIT1 (PRE n)) /\
     (!n. PRE(BIT1 n) = BIT0 n)"),
@@ -90,7 +90,7 @@ let ARITH_PRE =
 
 let ARITH_ADD = 
  prove
-  ((parse_term "(!m n. NUMERAL(m) + NUMERAL(n) = NUMERAL(m + n)) /\
+  ((parse_term @"(!m n. NUMERAL(m) + NUMERAL(n) = NUMERAL(m + n)) /\
     (_0 + _0 = _0) /\
     (!n. _0 + BIT0 n = BIT0 n) /\
     (!n.        _0 + BIT1 n = BIT1 n) /\
@@ -105,7 +105,7 @@ let ARITH_ADD =
 
 let ARITH_MULT = 
  prove
-  ((parse_term "(!m n. NUMERAL(m) * NUMERAL(n) = NUMERAL(m * n)) /\
+  ((parse_term @"(!m n. NUMERAL(m) * NUMERAL(n) = NUMERAL(m * n)) /\
     (_0 * _0 = _0) /\
     (!n. _0 * BIT0 n = _0) /\
     (!n. _0 * BIT1 n = _0) /\
@@ -121,7 +121,7 @@ let ARITH_MULT =
  
 let ARITH_EXP = 
  prove
-     ((parse_term "(!m n. (NUMERAL m) EXP (NUMERAL n) = NUMERAL(m EXP n)) /\
+     ((parse_term @"(!m n. (NUMERAL m) EXP (NUMERAL n) = NUMERAL(m EXP n)) /\
        (_0 EXP _0 = BIT1 _0) /\
        (!m. (BIT0 m) EXP _0 = BIT1 _0) /\
        (!m. (BIT1 m) EXP _0 = BIT1 _0) /\
@@ -139,7 +139,7 @@ let ARITH_EXP =
 
 let ARITH_EVEN =
  prove
-   ((parse_term "(!n. EVEN(NUMERAL n) <=> EVEN n) /\
+   ((parse_term @"(!n. EVEN(NUMERAL n) <=> EVEN n) /\
      (EVEN _0 <=> T) /\
      (!n. EVEN(BIT0 n) <=> T) /\
      (!n. EVEN(BIT1 n) <=> F)"),
@@ -147,7 +147,7 @@ let ARITH_EVEN =
 
 let ARITH_ODD =
  prove
-   ((parse_term "(!n. ODD(NUMERAL n) <=> ODD n) /\
+   ((parse_term @"(!n. ODD(NUMERAL n) <=> ODD n) /\
      (ODD _0 <=> F) /\
      (!n. ODD(BIT0 n) <=> F) /\
      (!n. ODD(BIT1 n) <=> T)"),
@@ -155,7 +155,7 @@ let ARITH_ODD =
 
 let ARITH_LE =
  prove
-   ((parse_term "(!m n. NUMERAL m <= NUMERAL n <=> m <= n) /\
+   ((parse_term @"(!m n. NUMERAL m <= NUMERAL n <=> m <= n) /\
      ((_0 <= _0) <=> T) /\
      (!n. (BIT0 n <= _0) <=> n <= _0) /\
      (!n. (BIT1 n <= _0) <=> F) /\
@@ -172,19 +172,19 @@ let ARITH_LE =
                 DENUMERAL MULT_EQ_0; DENUMERAL NOT_SUC] |>THEN<|
     REWRITE_TAC[DENUMERAL NOT_SUC] |>THEN<| REWRITE_TAC[LE_SUC_LT] |>THEN<|
     REWRITE_TAC[LT_MULT_LCANCEL] |>THEN<|
-    SUBGOAL_THEN (parse_term "2 = SUC 1") (fun th -> REWRITE_TAC[th]) |>THENL<|
+    SUBGOAL_THEN (parse_term @"2 = SUC 1") (fun th -> REWRITE_TAC[th]) |>THENL<|
      [REWRITE_TAC[NUMERAL; BIT0; BIT1; DENUMERAL ADD_CLAUSES];
       REWRITE_TAC[DENUMERAL NOT_SUC; NOT_SUC; EQ_MULT_LCANCEL] |>THEN<|
       REWRITE_TAC[ONCE_REWRITE_RULE[DISJ_SYM] LE_LT] |>THEN<|
-      MAP_EVERY X_GEN_TAC [(parse_term "m:num"); (parse_term "n:num")] |>THEN<|
-      SUBGOAL_THEN (parse_term "~(SUC 1 * m = SUC (SUC 1 * n))")
+      MAP_EVERY X_GEN_TAC [(parse_term @"m:num"); (parse_term @"n:num")] |>THEN<|
+      SUBGOAL_THEN (parse_term @"~(SUC 1 * m = SUC (SUC 1 * n))")
         (fun th -> REWRITE_TAC[th]) |>THEN<|
-      DISCH_THEN(MP_TAC << AP_TERM (parse_term "EVEN")) |>THEN<|
+      DISCH_THEN(MP_TAC << AP_TERM (parse_term @"EVEN")) |>THEN<|
       REWRITE_TAC[EVEN_MULT; EVEN_ADD; NUMERAL; BIT1; EVEN]]);;
 
 let ARITH_LT =
  prove
-   ((parse_term "(!m n. NUMERAL m < NUMERAL n <=> m < n) /\
+   ((parse_term @"(!m n. NUMERAL m < NUMERAL n <=> m < n) /\
      ((_0 < _0) <=> F) /\
      (!n. (BIT0 n < _0) <=> F) /\
      (!n. (BIT1 n < _0) <=> F) /\
@@ -203,7 +203,7 @@ let ARITH_GT = REWRITE_RULE[GSYM GE; GSYM GT] ARITH_LT;;
 
 let ARITH_EQ =
  prove
-   ((parse_term "(!m n. (NUMERAL m = NUMERAL n) <=> (m = n)) /\
+   ((parse_term @"(!m n. (NUMERAL m = NUMERAL n) <=> (m = n)) /\
      ((_0 = _0) <=> T) /\
      (!n. (BIT0 n = _0) <=> (n = _0)) /\
      (!n. (BIT1 n = _0) <=> F) /\
@@ -218,7 +218,7 @@ let ARITH_EQ =
 
 let ARITH_SUB =
  prove
-   ((parse_term "(!m n. NUMERAL m - NUMERAL n = NUMERAL(m - n)) /\
+   ((parse_term @"(!m n. NUMERAL m - NUMERAL n = NUMERAL(m - n)) /\
      (_0 - _0 = _0) /\
      (!n. _0 - BIT0 n = _0) /\
      (!n. _0 - BIT1 n = _0) /\
@@ -253,7 +253,7 @@ let ARITH =
 let NUM_EQ_CONV,NUM_LE_CONV,NUM_LT_CONV,NUM_GE_CONV,NUM_GT_CONV =
     let ARITH_GE',ARITH_GT' = 
      (CONJ_PAIR << prove)
-      ((parse_term "(NUMERAL m >= NUMERAL n <=> n <= m) /\
+      ((parse_term @"(NUMERAL m >= NUMERAL n <=> n <= m) /\
         (NUMERAL m > NUMERAL n <=> n < m)"),
          REWRITE_TAC[GE; GT; NUMERAL])
     let NUM_EQ_CONV' =
@@ -278,48 +278,48 @@ let NUM_ODD_CONV =
 
 let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
     let NUM_SUC_CONV,NUM_ADD_CONV',NUM_ADD_CONV =
-      let std_tm = rand (parse_term "2") in
+      let std_tm = rand (parse_term @"2") in
       let bit0_tm,bz_tm = dest_comb std_tm in
       let bit1_tm,zero_tm = dest_comb bz_tm in
-      let n_tm = (parse_term "n:num") 
-      let m_tm = (parse_term "m:num") in
+      let n_tm = (parse_term @"n:num") 
+      let m_tm = (parse_term @"m:num") in
       let [sth_z; sth_0; sth_1] = 
        (CONJUNCTS << prove)
-        ((parse_term "(SUC _0 = BIT1 _0) /\
+        ((parse_term @"(SUC _0 = BIT1 _0) /\
           (SUC(BIT0 n) = BIT1 n) /\
           (SUC(BIT1 n) = BIT0(SUC n))"),
-         SUBST1_TAC(SYM(SPEC (parse_term "_0") NUMERAL)) |>THEN<|
+         SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
          REWRITE_TAC[BIT0; BIT1] |>THEN<|
          REWRITE_TAC[ADD_CLAUSES])
       let [ath_0x; ath_x0; ath_00; ath_01; ath_10; ath_11] = 
        (CONJUNCTS << prove)
-        ((parse_term "(_0 + n = n) /\
+        ((parse_term @"(_0 + n = n) /\
           (n + _0 = n) /\
           (BIT0 m + BIT0 n = BIT0 (m + n)) /\
           (BIT0 m + BIT1 n = BIT1 (m + n)) /\
           (BIT1 m + BIT0 n = BIT1 (m + n)) /\
           (BIT1 m + BIT1 n = BIT0 (SUC (m + n)))"),
-         SUBST1_TAC(SYM(SPEC (parse_term "_0") NUMERAL)) |>THEN<|
+         SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
          REWRITE_TAC[BIT0; BIT1] |>THEN<|
          REWRITE_TAC[ADD_CLAUSES] |>THEN<| REWRITE_TAC[ADD_AC])
       let [cth_0x; cth_x0; cth_00; cth_01; cth_10; cth_11] = 
        (CONJUNCTS << prove)
-        ((parse_term "(SUC(_0 + n) = SUC n) /\
+        ((parse_term @"(SUC(_0 + n) = SUC n) /\
           (SUC(n + _0) = SUC n) /\
           (SUC(BIT0 m + BIT0 n) = BIT1(m + n)) /\
           (SUC(BIT0 m + BIT1 n) = BIT0(SUC(m + n))) /\
           (SUC(BIT1 m + BIT0 n) = BIT0(SUC(m + n))) /\
           (SUC(BIT1 m + BIT1 n) = BIT1(SUC (m + n)))"),
-         SUBST1_TAC(SYM(SPEC (parse_term "_0") NUMERAL)) |>THEN<|
+         SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
          REWRITE_TAC[BIT0; BIT1] |>THEN<|
          REWRITE_TAC[ADD_CLAUSES] |>THEN<| REWRITE_TAC[ADD_AC])
       let pth_suc =
        prove
-        ((parse_term "SUC(NUMERAL n) = NUMERAL(SUC n)"),
+        ((parse_term @"SUC(NUMERAL n) = NUMERAL(SUC n)"),
          REWRITE_TAC[NUMERAL])
       let pth_add =
        prove
-        ((parse_term "NUMERAL m + NUMERAL n = NUMERAL(m + n)"),
+        ((parse_term @"NUMERAL m + NUMERAL n = NUMERAL(m + n)"),
          REWRITE_TAC[NUMERAL]) in
       let rec raw_suc_conv tm =
         let otm = rand tm in
@@ -401,30 +401,30 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
       NUM_SUC_CONV,raw_add_conv,NUM_ADD_CONV in
 
     let NUM_MULT_CONV' =
-      let p_tm  = (parse_term "p:num")
-      let x_tm  = (parse_term "x:num")
-      let y_tm  = (parse_term "y:num")
-      let u_tm  = (parse_term "u:num")
-      let v_tm  = (parse_term "v:num")
-      let w_tm  = (parse_term "w:num")
-      let z_tm  = (parse_term "z:num")
-      let u_tm' = (parse_term "u':num")
-      let w_tm' = (parse_term "w':num")
-      let a_tm  = (parse_term "a:num")
-      let b_tm  = (parse_term "b:num")
-      let c_tm  = (parse_term "c:num")
-      let d_tm  = (parse_term "d:num")
-      let e_tm  = (parse_term "e:num")
-      let c_tm' = (parse_term "c':num")
-      let d_tm' = (parse_term "d':num")
-      let e_tm' = (parse_term "e':num")
-      let s_tm  = (parse_term "s:num")
-      let t_tm  = (parse_term "t:num")
-      let q_tm  = (parse_term "q:num")
-      let r_tm  = (parse_term "r:num") in
+      let p_tm  = (parse_term @"p:num")
+      let x_tm  = (parse_term @"x:num")
+      let y_tm  = (parse_term @"y:num")
+      let u_tm  = (parse_term @"u:num")
+      let v_tm  = (parse_term @"v:num")
+      let w_tm  = (parse_term @"w:num")
+      let z_tm  = (parse_term @"z:num")
+      let u_tm' = (parse_term @"u':num")
+      let w_tm' = (parse_term @"w':num")
+      let a_tm  = (parse_term @"a:num")
+      let b_tm  = (parse_term @"b:num")
+      let c_tm  = (parse_term @"c:num")
+      let d_tm  = (parse_term @"d:num")
+      let e_tm  = (parse_term @"e:num")
+      let c_tm' = (parse_term @"c':num")
+      let d_tm' = (parse_term @"d':num")
+      let e_tm' = (parse_term @"e':num")
+      let s_tm  = (parse_term @"s:num")
+      let t_tm  = (parse_term @"t:num")
+      let q_tm  = (parse_term @"q:num")
+      let r_tm  = (parse_term @"r:num") in
       let pth =
        prove
-        ((parse_term "(u' + v = x) ==>
+        ((parse_term @"(u' + v = x) ==>
          (w' + z = y) ==>
          (p * u = u') ==>
          (p * w = w') ==>
@@ -444,9 +444,9 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
         REWRITE_TAC[LEFT_ADD_DISTRIB; RIGHT_ADD_DISTRIB] |>THEN<|
         REWRITE_TAC[MULT_AC] |>THEN<|
         ONCE_REWRITE_TAC[AC ADD_AC
-         (parse_term "a + (b + c) + d + e = (a + c + d) + (b + e)")] |>THEN<|
+         (parse_term @"a + (b + c) + d + e = (a + c + d) + (b + e)")] |>THEN<|
         SIMP_TAC[EQ_ADD_RCANCEL] |>THEN<| REWRITE_TAC[ADD_AC]) in
-      let dest_mul = dest_binop (parse_term "(* )") in
+      let dest_mul = dest_binop (parse_term @"(* )") in
       let mk_raw_numeral =
         let Z = mk_const("_0",[])
         let BIT0 = mk_const("BIT0",[])
@@ -477,12 +477,12 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
       let MULTIPLICATION_TABLE =
         let pth =
          prove
-          ((parse_term "(_0 * x = _0) /\
+          ((parse_term @"(_0 * x = _0) /\
            (x * _0 = _0) /\
            (BIT1 _0 * x = x) /\
            (x * BIT1 _0 = x)"),
           REWRITE_TAC[BIT1; DENUMERAL MULT_CLAUSES]) in
-        let mk_mul = mk_binop (parse_term "(* )") in
+        let mk_mul = mk_binop (parse_term @"(* )") in
         let odds = map (fun x -> 2 * x + 1) (0--7) in
         let nums = map (fun n -> mk_raw_numeral(Int n)) odds in
         let pairs = allpairs mk_mul nums nums in
@@ -491,7 +491,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
       let NUM_MULT_EVEN_CONV' =
         let pth =
          prove
-          ((parse_term "(BIT0 x * y = BIT0(x * y)) /\
+          ((parse_term @"(BIT0 x * y = BIT0(x * y)) /\
            (x * BIT0 y = BIT0(x * y))"),
           REWRITE_TAC[BIT0; BIT1; DENUMERAL MULT_CLAUSES;
                       DENUMERAL ADD_CLAUSES] |>THEN<|
@@ -499,13 +499,13 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
         GEN_REWRITE_CONV I [pth] in
       let right_th =
        prove
-        ((parse_term "s * BIT1 x = s + BIT0 (s * x)"),
+        ((parse_term @"s * BIT1 x = s + BIT0 (s * x)"),
         REWRITE_TAC[BIT0; BIT1; DENUMERAL ADD_CLAUSES;
                     DENUMERAL MULT_CLAUSES] |>THEN<|
         REWRITE_TAC[LEFT_ADD_DISTRIB; ADD_ASSOC])
       let left_th =
        prove
-        ((parse_term "BIT1 x * s = s + BIT0 (x * s)"),
+        ((parse_term @"BIT1 x * s = s + BIT0 (x * s)"),
         REWRITE_TAC[BIT0; BIT1; DENUMERAL ADD_CLAUSES;
                     DENUMERAL MULT_CLAUSES] |>THEN<|
         REWRITE_TAC[RIGHT_ADD_DISTRIB; ADD_AC]) in
@@ -613,35 +613,35 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
     let NUM_EXP_CONV =
       let pth0 =
        prove
-        ((parse_term "(x EXP n = y) ==> (y * y = z) ==> (x EXP (BIT0 n) = z)"),
+        ((parse_term @"(x EXP n = y) ==> (y * y = z) ==> (x EXP (BIT0 n) = z)"),
          REPEAT(DISCH_THEN(SUBST1_TAC << SYM)) |>THEN<|
          REWRITE_TAC[BIT0; EXP_ADD])
       let pth1 =
        prove
-        ((parse_term "(x EXP n = y) ==> (y * y = w) ==> (x * w = z) ==> (x EXP (BIT1 n) = z)"),
+        ((parse_term @"(x EXP n = y) ==> (y * y = w) ==> (x * w = z) ==> (x EXP (BIT1 n) = z)"),
         REPEAT(DISCH_THEN(SUBST1_TAC << SYM)) |>THEN<|
         REWRITE_TAC[BIT1; EXP_ADD; EXP])
       let pth =
        prove
-        ((parse_term "x EXP _0 = BIT1 _0"),
+        ((parse_term @"x EXP _0 = BIT1 _0"),
          MP_TAC (CONJUNCT1 EXP) |>THEN<| REWRITE_TAC[NUMERAL; BIT1] |>THEN<|
          DISCH_THEN MATCH_ACCEPT_TAC)
       let tth =
        prove
-        ((parse_term "(NUMERAL x) EXP (NUMERAL n) = x EXP n"),
+        ((parse_term @"(NUMERAL x) EXP (NUMERAL n) = x EXP n"),
          REWRITE_TAC[NUMERAL])
       let fth =
        prove
-        ((parse_term "x = NUMERAL x"),
+        ((parse_term @"x = NUMERAL x"),
          REWRITE_TAC[NUMERAL])
-      let n = (parse_term "n:num") 
-      let w = (parse_term "w:num") 
-      let x = (parse_term "x:num")
-      let y = (parse_term "y:num") 
-      let z = (parse_term "z:num")
-      let Z = (parse_term "_0") 
-      let BIT0 = (parse_term "BIT0")
-      let mul = (parse_term "(*)") in
+      let n = (parse_term @"n:num") 
+      let w = (parse_term @"w:num") 
+      let x = (parse_term @"x:num")
+      let y = (parse_term @"y:num") 
+      let z = (parse_term @"z:num")
+      let Z = (parse_term @"_0") 
+      let BIT0 = (parse_term @"BIT0")
+      let mul = (parse_term @"(*)") in
       let tconv = GEN_REWRITE_CONV I [tth] in
       let rec NUM_EXP_CONV l r =
         if r = Z then INST [l,x] pth else
@@ -672,16 +672,16 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
 let NUM_PRE_CONV =
     let tth =
      prove
-      ((parse_term "PRE 0 = 0"),
+      ((parse_term @"PRE 0 = 0"),
        REWRITE_TAC[PRE]) in
     let pth =
      prove
-      ((parse_term "(SUC m = n) ==> (PRE n = m)"),
+      ((parse_term @"(SUC m = n) ==> (PRE n = m)"),
        DISCH_THEN(SUBST1_TAC << SYM) |>THEN<| REWRITE_TAC[PRE])
-    let m = (parse_term "m:num") 
-    let n = (parse_term "n:num") in
-    let suc = (parse_term "SUC") in
-    let pre = (parse_term "PRE") in
+    let m = (parse_term @"m:num") 
+    let n = (parse_term @"n:num") in
+    let suc = (parse_term @"SUC") in
+    let pre = (parse_term @"PRE") in
     fun tm -> try let l,r = dest_comb tm in
                   if not (l = pre) then fail() else
                   let x = dest_numeral r in
@@ -694,19 +694,19 @@ let NUM_PRE_CONV =
 let NUM_SUB_CONV =
     let pth0 =
      prove
-      ((parse_term "p <= n ==> (p - n = 0)"),
+      ((parse_term @"p <= n ==> (p - n = 0)"),
        REWRITE_TAC[SUB_EQ_0])
     let pth1 =
      prove
-      ((parse_term "(m + n = p) ==> (p - n = m)"),
+      ((parse_term @"(m + n = p) ==> (p - n = m)"),
        DISCH_THEN(SUBST1_TAC << SYM) |>THEN<|
        REWRITE_TAC[ADD_SUB])
-    let m = (parse_term "m:num") 
-    let n = (parse_term "n:num") 
-    let p = (parse_term "p:num")
-    let minus = (parse_term "(-)")
-    let plus = (parse_term "(+)")
-    let le = (parse_term "(<=)") in
+    let m = (parse_term @"m:num") 
+    let n = (parse_term @"n:num") 
+    let p = (parse_term @"p:num")
+    let minus = (parse_term @"(-)")
+    let plus = (parse_term @"(+)")
+    let le = (parse_term @"(<=)") in
     fun tm -> try let l,r = dest_binop minus tm in
                   let ln = dest_numeral l
                   let rn = dest_numeral r in
@@ -725,14 +725,14 @@ let NUM_SUB_CONV =
 let NUM_DIV_CONV,NUM_MOD_CONV =
     let pth =
      prove
-      ((parse_term "(q * n + r = m) ==> r < n ==> (m DIV n = q) /\ (m MOD n = r)"),
+      ((parse_term @"(q * n + r = m) ==> r < n ==> (m DIV n = q) /\ (m MOD n = r)"),
        MESON_TAC[DIVMOD_UNIQ])
-    let m = (parse_term "m:num") 
-    let n = (parse_term "n:num") 
-    let q = (parse_term "q:num") 
-    let r = (parse_term "r:num")
-    let dtm = (parse_term "(DIV)") 
-    let mtm = (parse_term "(MOD)") in
+    let m = (parse_term @"m:num") 
+    let n = (parse_term @"n:num") 
+    let q = (parse_term @"q:num") 
+    let r = (parse_term @"r:num")
+    let dtm = (parse_term @"(DIV)") 
+    let mtm = (parse_term @"(MOD)") in
     let NUM_DIVMOD_CONV x y =
       let k = quo_num x y
       let l = mod_num x y in
@@ -751,21 +751,21 @@ let NUM_DIV_CONV,NUM_MOD_CONV =
                with Failure _ -> failwith "NUM_MOD_CONV");;
 
 let NUM_FACT_CONV =
-    let suc = (parse_term "SUC")
-    let mul = (parse_term "(*)") in
+    let suc = (parse_term @"SUC")
+    let mul = (parse_term @"(*)") in
     let pth_0 =
      prove
-      ((parse_term "FACT 0 = 1"),
+      ((parse_term @"FACT 0 = 1"),
        REWRITE_TAC[FACT])
     let pth_suc =
      prove
-      ((parse_term "(SUC x = y) ==> (FACT x = w) ==> (y * w = z) ==> (FACT y = z)"),
+      ((parse_term @"(SUC x = y) ==> (FACT x = w) ==> (y * w = z) ==> (FACT y = z)"),
        REPEAT (DISCH_THEN(SUBST1_TAC << SYM)) |>THEN<|
        REWRITE_TAC[FACT])
-    let w = (parse_term "w:num") 
-    let x = (parse_term "x:num") 
-    let y = (parse_term "y:num") 
-    let z = (parse_term "z:num") in
+    let w = (parse_term @"w:num") 
+    let x = (parse_term @"x:num") 
+    let y = (parse_term @"y:num") 
+    let z = (parse_term @"z:num") in
     let mksuc n =
       let n' = n - (Int 1) in
       NUM_SUC_CONV (mk_comb(suc,mk_numeral n')) in
@@ -804,35 +804,35 @@ let NUM_MIN_CONV =
 let NUM_REL_CONV =
     let gconv_net = 
      itlist (uncurry net_of_conv)
-      [(parse_term "NUMERAL m < NUMERAL n"),NUM_LT_CONV;
-       (parse_term "NUMERAL m <= NUMERAL n"),NUM_LE_CONV;
-       (parse_term "NUMERAL m > NUMERAL n"),NUM_GT_CONV;
-       (parse_term "NUMERAL m >= NUMERAL n"),NUM_GE_CONV;
-       (parse_term "NUMERAL m = NUMERAL n"),NUM_EQ_CONV]
+      [(parse_term @"NUMERAL m < NUMERAL n"),NUM_LT_CONV;
+       (parse_term @"NUMERAL m <= NUMERAL n"),NUM_LE_CONV;
+       (parse_term @"NUMERAL m > NUMERAL n"),NUM_GT_CONV;
+       (parse_term @"NUMERAL m >= NUMERAL n"),NUM_GE_CONV;
+       (parse_term @"NUMERAL m = NUMERAL n"),NUM_EQ_CONV]
       (basic_net()) in
     REWRITES_CONV gconv_net;;
 
 let NUM_RED_CONV =
     let gconv_net = 
      itlist (uncurry net_of_conv)
-      [(parse_term "SUC(NUMERAL n)"),NUM_SUC_CONV;
-       (parse_term "PRE(NUMERAL n)"),NUM_PRE_CONV;
-       (parse_term "FACT(NUMERAL n)"),NUM_FACT_CONV;
-       (parse_term "NUMERAL m < NUMERAL n"),NUM_LT_CONV;
-       (parse_term "NUMERAL m <= NUMERAL n"),NUM_LE_CONV;
-       (parse_term "NUMERAL m > NUMERAL n"),NUM_GT_CONV;
-       (parse_term "NUMERAL m >= NUMERAL n"),NUM_GE_CONV;
-       (parse_term "NUMERAL m = NUMERAL n"),NUM_EQ_CONV;
-       (parse_term "EVEN(NUMERAL n)"),NUM_EVEN_CONV;
-       (parse_term "ODD(NUMERAL n)"),NUM_ODD_CONV;
-       (parse_term "NUMERAL m + NUMERAL n"),NUM_ADD_CONV;
-       (parse_term "NUMERAL m - NUMERAL n"),NUM_SUB_CONV;
-       (parse_term "NUMERAL m * NUMERAL n"),NUM_MULT_CONV;
-       (parse_term "(NUMERAL m) EXP (NUMERAL n)"),NUM_EXP_CONV;
-       (parse_term "(NUMERAL m) DIV (NUMERAL n)"),NUM_DIV_CONV;
-       (parse_term "(NUMERAL m) MOD (NUMERAL n)"),NUM_MOD_CONV;
-       (parse_term "MAX (NUMERAL m) (NUMERAL n)"),NUM_MAX_CONV;
-       (parse_term "MIN (NUMERAL m) (NUMERAL n)"),NUM_MIN_CONV]
+      [(parse_term @"SUC(NUMERAL n)"),NUM_SUC_CONV;
+       (parse_term @"PRE(NUMERAL n)"),NUM_PRE_CONV;
+       (parse_term @"FACT(NUMERAL n)"),NUM_FACT_CONV;
+       (parse_term @"NUMERAL m < NUMERAL n"),NUM_LT_CONV;
+       (parse_term @"NUMERAL m <= NUMERAL n"),NUM_LE_CONV;
+       (parse_term @"NUMERAL m > NUMERAL n"),NUM_GT_CONV;
+       (parse_term @"NUMERAL m >= NUMERAL n"),NUM_GE_CONV;
+       (parse_term @"NUMERAL m = NUMERAL n"),NUM_EQ_CONV;
+       (parse_term @"EVEN(NUMERAL n)"),NUM_EVEN_CONV;
+       (parse_term @"ODD(NUMERAL n)"),NUM_ODD_CONV;
+       (parse_term @"NUMERAL m + NUMERAL n"),NUM_ADD_CONV;
+       (parse_term @"NUMERAL m - NUMERAL n"),NUM_SUB_CONV;
+       (parse_term @"NUMERAL m * NUMERAL n"),NUM_MULT_CONV;
+       (parse_term @"(NUMERAL m) EXP (NUMERAL n)"),NUM_EXP_CONV;
+       (parse_term @"(NUMERAL m) DIV (NUMERAL n)"),NUM_DIV_CONV;
+       (parse_term @"(NUMERAL m) MOD (NUMERAL n)"),NUM_MOD_CONV;
+       (parse_term @"MAX (NUMERAL m) (NUMERAL n)"),NUM_MAX_CONV;
+       (parse_term @"MIN (NUMERAL m) (NUMERAL n)"),NUM_MIN_CONV]
       (basic_net()) in
     REWRITES_CONV gconv_net;;
 
@@ -845,7 +845,7 @@ let NUM_REDUCE_TAC = CONV_TAC NUM_REDUCE_CONV;;
 (* ------------------------------------------------------------------------- *)
 
 let num_CONV =
-    let SUC_tm = (parse_term "SUC") in
+    let SUC_tm = (parse_term @"SUC") in
     fun tm ->
       let n = dest_numeral tm - Int 1 in
       if n < Int 0 then failwith "num_CONV" else
@@ -859,11 +859,11 @@ let num_CONV =
 let EXPAND_CASES_CONV =
     let pth_base =
      prove
-      ((parse_term "(!n. n < 0 ==> P n) <=> T"),
+      ((parse_term @"(!n. n < 0 ==> P n) <=> T"),
        REWRITE_TAC[LT])
     let pth_step =
      prove
-      ((parse_term "(!n. n < SUC k ==> P n) <=> (!n. n < k ==> P n) /\ P k"),
+      ((parse_term @"(!n. n < SUC k ==> P n) <=> (!n. n < k ==> P n) /\ P k"),
        REWRITE_TAC[LT] |>THEN<| MESON_TAC[]) in
     let base_CONV = GEN_REWRITE_CONV I [pth_base]
     let step_CONV =

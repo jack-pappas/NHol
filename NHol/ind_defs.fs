@@ -64,12 +64,12 @@ let RIGHT_BETAS =
 let EXISTS_EQUATION = 
     let pth = 
         prove
-            ((parse_term "!P t. (!x:A. (x = t) ==> P x) ==> (?) P"), 
+            ((parse_term @"!P t. (!x:A. (x = t) ==> P x) ==> (?) P"), 
              REWRITE_TAC [EXISTS_DEF]
              |> THEN <| BETA_TAC
              |> THEN <| REPEAT STRIP_TAC
              |> THEN <| FIRST_ASSUM MATCH_MP_TAC
-             |> THEN <| EXISTS_TAC(parse_term "t:A")
+             |> THEN <| EXISTS_TAC(parse_term @"t:A")
              |> THEN <| FIRST_ASSUM MATCH_MP_TAC
              |> THEN <| REFL_TAC)
     fun tm th -> 
@@ -112,7 +112,7 @@ let derive_nonschematic_inductive_relations =
             GENL avs (DISCH t (UNDISCH th))
         let th4 = itlist (CONJ << proc_fn) thts (proc_fn tht)
         IMP_ANTISYM_RULE (DISCH_ALL th2) (DISCH_ALL th4)
-    let t_tm = (parse_term "T")
+    let t_tm = (parse_term @"T")
     let calculate_simp_sequence = 
         let rec getequs(avs, plis) = 
             if plis = []
@@ -294,26 +294,26 @@ let derive_nonschematic_inductive_relations =
 (* Part 2: Tactic-integrated tools for proving monotonicity automatically.   *)
 (* ========================================================================= *)
 let MONO_AND = 
-    ITAUT(parse_term "(A ==> B) /\ (C ==> D) ==> (A /\ C ==> B /\ D)")
+    ITAUT(parse_term @"(A ==> B) /\ (C ==> D) ==> (A /\ C ==> B /\ D)")
 
-let MONO_OR = ITAUT(parse_term "(A ==> B) /\ (C ==> D) ==> (A \/ C ==> B \/ D)")
+let MONO_OR = ITAUT(parse_term @"(A ==> B) /\ (C ==> D) ==> (A \/ C ==> B \/ D)")
 let MONO_IMP = 
-    ITAUT(parse_term "(B ==> A) /\ (C ==> D) ==> ((A ==> C) ==> (B ==> D))")
-let MONO_NOT = ITAUT(parse_term "(B ==> A) ==> (~A ==> ~B)")
+    ITAUT(parse_term @"(B ==> A) /\ (C ==> D) ==> ((A ==> C) ==> (B ==> D))")
+let MONO_NOT = ITAUT(parse_term @"(B ==> A) ==> (~A ==> ~B)")
 
 let MONO_FORALL = 
     prove
-        ((parse_term "(!x:A. P x ==> Q x) ==> ((!x. P x) ==> (!x. Q x))"), 
+        ((parse_term @"(!x:A. P x ==> Q x) ==> ((!x. P x) ==> (!x. Q x))"), 
          REPEAT STRIP_TAC
          |> THEN <| FIRST_ASSUM MATCH_MP_TAC
          |> THEN <| ASM_REWRITE_TAC [])
 
 let MONO_EXISTS = 
     prove
-        ((parse_term "(!x:A. P x ==> Q x) ==> ((?x. P x) ==> (?x. Q x))"), 
+        ((parse_term @"(!x:A. P x ==> Q x) ==> ((?x. P x) ==> (?x. Q x))"), 
          DISCH_TAC
-         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "x:A"))
-         |> THEN <| EXISTS_TAC(parse_term "x:A")
+         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"x:A"))
+         |> THEN <| EXISTS_TAC(parse_term @"x:A")
          |> THEN <| FIRST_ASSUM MATCH_MP_TAC
          |> THEN <| ASM_REWRITE_TAC [])
 
@@ -327,8 +327,8 @@ let monotonicity_theorems =
 (* Attempt to backchain through the monotonicity theorems.                   *)
 (* ------------------------------------------------------------------------- *)
 let MONO_TAC = 
-    let imp = (parse_term "(==>)")
-    let IMP_REFL = ITAUT(parse_term "!p. p ==> p")
+    let imp = (parse_term @"(==>)")
+    let IMP_REFL = ITAUT(parse_term @"!p. p ==> p")
     let BACKCHAIN_TAC th = 
         let match_fn = PART_MATCH (snd << dest_imp) th
         fun (asl, w) -> 

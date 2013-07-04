@@ -62,28 +62,28 @@ parse_as_infix("treal_mul", (20, "right"))
 parse_as_infix("treal_add", (16, "right"))
 parse_as_infix("treal_le", (12, "right"))
 parse_as_infix("treal_eq", (10, "right"))
-make_overloadable "+" (parse_type ":A->A->A")
-make_overloadable "-" (parse_type ":A->A->A")
-make_overloadable "*" (parse_type ":A->A->A")
-make_overloadable "/" (parse_type ":A->A->A")
-make_overloadable "<" (parse_type ":A->A->bool")
-make_overloadable "<=" (parse_type ":A->A->bool")
-make_overloadable ">" (parse_type ":A->A->bool")
-make_overloadable ">=" (parse_type ":A->A->bool")
-make_overloadable "--" (parse_type ":A->A")
-make_overloadable "pow" (parse_type ":A->num->A")
-make_overloadable "inv" (parse_type ":A->A")
-make_overloadable "abs" (parse_type ":A->A")
-make_overloadable "max" (parse_type ":A->A->A")
-make_overloadable "min" (parse_type ":A->A->A")
-make_overloadable "&" (parse_type ":num->A")
-do_list overload_interface ["+", (parse_term "(+):num->num->num")
-                            "-", (parse_term "(-):num->num->num")
-                            "*", (parse_term "(*):num->num->num")
-                            "<", (parse_term "(<):num->num->bool")
-                            "<=", (parse_term "(<=):num->num->bool")
-                            ">", (parse_term "(>):num->num->bool")
-                            ">=", (parse_term "(>=):num->num->bool")]
+make_overloadable "+" (parse_type @":A->A->A")
+make_overloadable "-" (parse_type @":A->A->A")
+make_overloadable "*" (parse_type @":A->A->A")
+make_overloadable "/" (parse_type @":A->A->A")
+make_overloadable "<" (parse_type @":A->A->bool")
+make_overloadable "<=" (parse_type @":A->A->bool")
+make_overloadable ">" (parse_type @":A->A->bool")
+make_overloadable ">=" (parse_type @":A->A->bool")
+make_overloadable "--" (parse_type @":A->A")
+make_overloadable "pow" (parse_type @":A->num->A")
+make_overloadable "inv" (parse_type @":A->A")
+make_overloadable "abs" (parse_type @":A->A")
+make_overloadable "max" (parse_type @":A->A->A")
+make_overloadable "min" (parse_type @":A->A->A")
+make_overloadable "&" (parse_type @":num->A")
+do_list overload_interface ["+", (parse_term @"(+):num->num->num")
+                            "-", (parse_term @"(-):num->num->num")
+                            "*", (parse_term @"(*):num->num->num")
+                            "<", (parse_term @"(<):num->num->bool")
+                            "<=", (parse_term @"(<=):num->num->bool")
+                            ">", (parse_term @"(>):num->num->bool")
+                            ">=", (parse_term @"(>=):num->num->bool")]
 
 (* ------------------------------------------------------------------------- *)
 (* The main infix overloaded operations                                      *)
@@ -93,57 +93,57 @@ let prioritize_num() = prioritize_overload(mk_type("num", []))
 (* ------------------------------------------------------------------------- *)
 (* Absolute distance function on the naturals.                               *)
 (* ------------------------------------------------------------------------- *)
-let dist = new_definition(parse_term "dist(m,n) = (m - n) + (n - m)")
+let dist = new_definition(parse_term @"dist(m,n) = (m - n) + (n - m)")
 
 (* ------------------------------------------------------------------------- *)
 (* Some easy theorems.                                                       *)
 (* ------------------------------------------------------------------------- *)
 let DIST_REFL = 
     prove
-        ((parse_term "!n. dist(n,n) = 0"), 
+        ((parse_term @"!n. dist(n,n) = 0"), 
          REWRITE_TAC [dist; SUB_REFL; ADD_CLAUSES])
 
 let DIST_LZERO = 
     prove
-        ((parse_term "!n. dist(0,n) = n"), 
+        ((parse_term @"!n. dist(0,n) = n"), 
          REWRITE_TAC [dist; SUB_0; ADD_CLAUSES])
 let DIST_RZERO = 
     prove
-        ((parse_term "!n. dist(n,0) = n"), 
+        ((parse_term @"!n. dist(n,0) = n"), 
          REWRITE_TAC [dist; SUB_0; ADD_CLAUSES])
 let DIST_SYM = 
     prove
-        ((parse_term "!m n. dist(m,n) = dist(n,m)"), 
+        ((parse_term @"!m n. dist(m,n) = dist(n,m)"), 
          REWRITE_TAC [dist]
          |> THEN <| MATCH_ACCEPT_TAC ADD_SYM)
 let DIST_LADD = 
     prove
-        ((parse_term "!m p n. dist(m + n,m + p) = dist(n,p)"), 
+        ((parse_term @"!m p n. dist(m + n,m + p) = dist(n,p)"), 
          REWRITE_TAC [dist; SUB_ADD_LCANCEL])
 let DIST_RADD = 
     prove
-        ((parse_term "!m p n. dist(m + p,n + p) = dist(m,n)"), 
+        ((parse_term @"!m p n. dist(m + p,n + p) = dist(m,n)"), 
          REWRITE_TAC [dist; SUB_ADD_RCANCEL])
 let DIST_LADD_0 = 
     prove
-        ((parse_term "!m n. dist(m + n,m) = n"), 
+        ((parse_term @"!m n. dist(m + n,m) = n"), 
          REWRITE_TAC [dist; ADD_SUB2; ADD_SUBR2; ADD_CLAUSES])
 let DIST_RADD_0 = 
     prove
-        ((parse_term "!m n. dist(m,m + n) = n"), 
+        ((parse_term @"!m n. dist(m,m + n) = n"), 
          ONCE_REWRITE_TAC [DIST_SYM]
          |> THEN <| MATCH_ACCEPT_TAC DIST_LADD_0)
 let DIST_LMUL = 
     prove
-        ((parse_term "!m n p. m * dist(n,p) = dist(m * n,m * p)"), 
+        ((parse_term @"!m n p. m * dist(n,p) = dist(m * n,m * p)"), 
          REWRITE_TAC [dist; LEFT_ADD_DISTRIB; LEFT_SUB_DISTRIB])
 let DIST_RMUL = 
     prove
-        ((parse_term "!m n p. dist(m,n) * p = dist(m * p,n * p)"), 
+        ((parse_term @"!m n p. dist(m,n) * p = dist(m * p,n * p)"), 
          REWRITE_TAC [dist; RIGHT_ADD_DISTRIB; RIGHT_SUB_DISTRIB])
 let DIST_EQ_0 = 
     prove
-        ((parse_term "!m n. (dist(m,n) = 0) <=> (m = n)"), 
+        ((parse_term @"!m n. (dist(m,n) = 0) <=> (m = n)"), 
          REWRITE_TAC [dist; ADD_EQ_0; SUB_EQ_0; LE_ANTISYM])
 
 (* ------------------------------------------------------------------------- *)
@@ -153,18 +153,18 @@ let DIST_ELIM_THM =
     prove
         ((parse_term 
               "P(dist(x,y)) <=> !d. ((x = y + d) ==> P(d)) /\ ((y = x + d) ==> P(d))"), 
-         DISJ_CASES_TAC(SPECL [(parse_term "x:num")
-                               (parse_term "y:num")] LE_CASES)
+         DISJ_CASES_TAC(SPECL [(parse_term @"x:num")
+                               (parse_term @"y:num")] LE_CASES)
          |> THEN 
          <| POP_ASSUM
-                (X_CHOOSE_THEN (parse_term "e:num") SUBST1_TAC 
+                (X_CHOOSE_THEN (parse_term @"e:num") SUBST1_TAC 
                  << REWRITE_RULE [LE_EXISTS])
          |> THEN <| REWRITE_TAC [dist; ADD_SUB; ADD_SUB2; ADD_SUBR; ADD_SUBR2]
          |> THEN <| REWRITE_TAC [ADD_CLAUSES; EQ_ADD_LCANCEL]
          |> THEN <| GEN_REWRITE_TAC (RAND_CONV << ONCE_DEPTH_CONV) [EQ_SYM_EQ]
          |> THEN <| REWRITE_TAC [GSYM ADD_ASSOC
                                  EQ_ADD_LCANCEL_0; ADD_EQ_0]
-         |> THEN <| ASM_CASES_TAC(parse_term "e = 0")
+         |> THEN <| ASM_CASES_TAC(parse_term @"e = 0")
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| EQ_TAC
          |> THEN <| REPEAT STRIP_TAC
@@ -208,37 +208,37 @@ let DIST_LE_CASES, DIST_ADDBOUND, DIST_TRIANGLE, DIST_ADD2, DIST_ADD2_REV =
                                      LE_ADD; LE_ADD_LCANCEL])
     let DIST_ADDBOUND = 
         prove
-            ((parse_term "!m n. dist(m,n) <= m + n"), 
+            ((parse_term @"!m n. dist(m,n) <= m + n"), 
              REPEAT GEN_TAC
              |> THEN <| DIST_ELIM_TAC
              |> THENL <| [ONCE_REWRITE_TAC [ADD_SYM]
                           ALL_TAC]
              |> THEN <| REWRITE_TAC [ADD_ASSOC; LE_ADDR])
-    let [DIST_TRIANGLE; DIST_ADD2; DIST_ADD2_REV] = (CONJUNCTS << prove)((parse_term "(!m n p. dist(m,p) <= dist(m,n) + dist(n,p)) /\
+    let [DIST_TRIANGLE; DIST_ADD2; DIST_ADD2_REV] = (CONJUNCTS << prove)((parse_term @"(!m n p. dist(m,p) <= dist(m,n) + dist(n,p)) /\
      (!m n p q. dist(m + n,p + q) <= dist(m,p) + dist(n,q)) /\
      (!m n p q. dist(m,p) <= dist(m + n,p + q) + dist(n,q))"), DIST_ELIM_TAC')
     DIST_LE_CASES, DIST_ADDBOUND, DIST_TRIANGLE, DIST_ADD2, DIST_ADD2_REV
 
 let DIST_TRIANGLE_LE = 
     prove
-        ((parse_term "!m n p q. dist(m,n) + dist(n,p) <= q ==> dist(m,p) <= q"), 
+        ((parse_term @"!m n p q. dist(m,n) + dist(n,p) <= q ==> dist(m,p) <= q"), 
          REPEAT STRIP_TAC
          |> THEN <| MATCH_MP_TAC LE_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "dist(m,n) + dist(n,p)")
+         |> THEN <| EXISTS_TAC(parse_term @"dist(m,n) + dist(n,p)")
          |> THEN <| ASM_REWRITE_TAC [DIST_TRIANGLE])
 
 let DIST_TRIANGLES_LE = 
-    prove((parse_term "!m n p q r s.
+    prove((parse_term @"!m n p q r s.
         dist(m,n) <= r /\ dist(p,q) <= s ==> dist(m,p) <= dist(n,q) + r + s"),
        REPEAT STRIP_TAC
        |> THEN <| MATCH_MP_TAC DIST_TRIANGLE_LE
-       |> THEN <| EXISTS_TAC(parse_term "n:num")
+       |> THEN <| EXISTS_TAC(parse_term @"n:num")
        |> THEN <| GEN_REWRITE_TAC RAND_CONV [ADD_SYM]
        |> THEN <| REWRITE_TAC [GSYM ADD_ASSOC]
        |> THEN <| MATCH_MP_TAC LE_ADD2
        |> THEN <| ASM_REWRITE_TAC []
        |> THEN <| MATCH_MP_TAC DIST_TRIANGLE_LE
-       |> THEN <| EXISTS_TAC(parse_term "q:num")
+       |> THEN <| EXISTS_TAC(parse_term @"q:num")
        |> THEN <| GEN_REWRITE_TAC RAND_CONV [ADD_SYM]
        |> THEN <| REWRITE_TAC [LE_ADD_LCANCEL]
        |> THEN <| ONCE_REWRITE_TAC [DIST_SYM]
@@ -249,7 +249,7 @@ let DIST_TRIANGLES_LE =
 (* ------------------------------------------------------------------------- *)
 let BOUNDS_LINEAR = 
     prove
-        ((parse_term "!A B C. (!n. A * n <= B * n + C) <=> A <= B"), 
+        ((parse_term @"!A B C. (!n. A * n <= B * n + C) <=> A <= B"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THENL <| [CONV_TAC CONTRAPOS_CONV
@@ -258,7 +258,7 @@ let BOUNDS_LINEAR =
                       <| DISCH_THEN
                              (CHOOSE_THEN SUBST1_TAC << REWRITE_RULE [LT_EXISTS])
                       |> THEN <| REWRITE_TAC [RIGHT_ADD_DISTRIB; LE_ADD_LCANCEL]
-                      |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term "SUC C"))
+                      |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term @"SUC C"))
                       |> THEN 
                       <| REWRITE_TAC 
                              [NOT_LE; MULT_CLAUSES; ADD_CLAUSES; LT_SUC_LE]
@@ -271,37 +271,37 @@ let BOUNDS_LINEAR =
 
 let BOUNDS_LINEAR_0 = 
     prove
-        ((parse_term "!A B. (!n. A * n <= B) <=> (A = 0)"), 
+        ((parse_term @"!A B. (!n. A * n <= B) <=> (A = 0)"), 
          REPEAT GEN_TAC
-         |> THEN <| MP_TAC(SPECL [(parse_term "A:num")
-                                  (parse_term "0")
-                                  (parse_term "B:num")] BOUNDS_LINEAR)
+         |> THEN <| MP_TAC(SPECL [(parse_term @"A:num")
+                                  (parse_term @"0")
+                                  (parse_term @"B:num")] BOUNDS_LINEAR)
          |> THEN <| REWRITE_TAC [MULT_CLAUSES; ADD_CLAUSES; LE])
 
 let BOUNDS_DIVIDED = 
-    prove((parse_term "!P. (?B. !n. P(n) <= B) <=>
+    prove((parse_term @"!P. (?B. !n. P(n) <= B) <=>
        (?A B. !n. n * P(n) <= A * n + B)"),
       GEN_TAC
       |> THEN <| EQ_TAC
       |> THEN <| STRIP_TAC
-      |> THENL <| [MAP_EVERY EXISTS_TAC [(parse_term "B:num")
-                                         (parse_term "0")]
+      |> THENL <| [MAP_EVERY EXISTS_TAC [(parse_term @"B:num")
+                                         (parse_term @"0")]
                    |> THEN <| GEN_TAC
                    |> THEN <| REWRITE_TAC [ADD_CLAUSES]
                    |> THEN <| GEN_REWRITE_TAC RAND_CONV [MULT_SYM]
                    |> THEN <| ASM_REWRITE_TAC [LE_MULT_LCANCEL]
-                   EXISTS_TAC(parse_term "P(0) + A + B")
+                   EXISTS_TAC(parse_term @"P(0) + A + B")
                    |> THEN <| GEN_TAC
                    |> THEN 
                    <| MP_TAC
-                          (SPECL [(parse_term "n:num")
-                                  (parse_term "(P:num->num) n")
-                                  (parse_term "P(0) + A + B")] LE_MULT_LCANCEL)
-                   |> THEN <| ASM_CASES_TAC(parse_term "n = 0")
+                          (SPECL [(parse_term @"n:num")
+                                  (parse_term @"(P:num->num) n")
+                                  (parse_term @"P(0) + A + B")] LE_MULT_LCANCEL)
+                   |> THEN <| ASM_CASES_TAC(parse_term @"n = 0")
                    |> THEN <| ASM_REWRITE_TAC [LE_ADD]
                    |> THEN <| DISCH_THEN(SUBST1_TAC << SYM)
                    |> THEN <| MATCH_MP_TAC LE_TRANS
-                   |> THEN <| EXISTS_TAC(parse_term "A * n + B")
+                   |> THEN <| EXISTS_TAC(parse_term @"A * n + B")
                    |> THEN <| ASM_REWRITE_TAC []
                    |> THEN <| REWRITE_TAC [LEFT_ADD_DISTRIB]
                    |> THEN <| GEN_REWRITE_TAC RAND_CONV [ADD_SYM]
@@ -310,67 +310,67 @@ let BOUNDS_DIVIDED =
                    |> THEN <| REWRITE_TAC [GSYM ADD_ASSOC
                                            LE_ADD_LCANCEL]
                    |> THEN <| MATCH_MP_TAC LE_TRANS
-                   |> THEN <| EXISTS_TAC(parse_term "B * n")
+                   |> THEN <| EXISTS_TAC(parse_term @"B * n")
                    |> THEN <| REWRITE_TAC [LE_ADD]
-                   |> THEN <| UNDISCH_TAC(parse_term "~(n = 0)")
+                   |> THEN <| UNDISCH_TAC(parse_term @"~(n = 0)")
                    |> THEN 
-                   <| SPEC_TAC((parse_term "n:num"), (parse_term "n:num"))
+                   <| SPEC_TAC((parse_term @"n:num"), (parse_term @"n:num"))
                    |> THEN <| INDUCT_TAC
                    |> THEN <| ASM_REWRITE_TAC [MULT_CLAUSES; LE_ADD]])
 
 let BOUNDS_NOTZERO = 
-    prove((parse_term "!P A B. (P 0 0 = 0) /\ (!m n. P m n <= A * (m + n) + B) ==>
+    prove((parse_term @"!P A B. (P 0 0 = 0) /\ (!m n. P m n <= A * (m + n) + B) ==>
        (?B. !m n. P m n <= B * (m + n))"),
       REPEAT STRIP_TAC
-      |> THEN <| EXISTS_TAC(parse_term "A + B")
+      |> THEN <| EXISTS_TAC(parse_term @"A + B")
       |> THEN <| REPEAT GEN_TAC
-      |> THEN <| ASM_CASES_TAC(parse_term "m + n = 0")
+      |> THEN <| ASM_CASES_TAC(parse_term @"m + n = 0")
       |> THENL <| [RULE_ASSUM_TAC(REWRITE_RULE [ADD_EQ_0])
                    |> THEN <| ASM_REWRITE_TAC [LE_0]
                    MATCH_MP_TAC LE_TRANS
-                   |> THEN <| EXISTS_TAC(parse_term "A * (m + n) + B")
+                   |> THEN <| EXISTS_TAC(parse_term @"A * (m + n) + B")
                    |> THEN <| ASM_REWRITE_TAC []
                    |> THEN <| REWRITE_TAC [RIGHT_ADD_DISTRIB; LE_ADD_LCANCEL]
-                   |> THEN <| UNDISCH_TAC(parse_term "~(m + n = 0)")
+                   |> THEN <| UNDISCH_TAC(parse_term @"~(m + n = 0)")
                    |> THEN 
-                   <| SPEC_TAC((parse_term "m + n"), (parse_term "p:num"))
+                   <| SPEC_TAC((parse_term @"m + n"), (parse_term @"p:num"))
                    |> THEN <| INDUCT_TAC
                    |> THEN <| REWRITE_TAC [MULT_CLAUSES; LE_ADD]])
 
 let BOUNDS_IGNORE = 
     prove
-        ((parse_term "!P Q. (?B. !i. P(i) <= Q(i) + B) <=>
+        ((parse_term @"!P Q. (?B. !i. P(i) <= Q(i) + B) <=>
          (?B N. !i. N <= i ==> P(i) <= Q(i) + B)"),
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| STRIP_TAC
          |> THENL 
-         <| [EXISTS_TAC(parse_term "B:num")
+         <| [EXISTS_TAC(parse_term @"B:num")
              |> THEN <| ASM_REWRITE_TAC []
              POP_ASSUM MP_TAC
-             |> THEN <| SPEC_TAC((parse_term "B:num"), (parse_term "B:num"))
-             |> THEN <| SPEC_TAC((parse_term "N:num"), (parse_term "N:num"))
+             |> THEN <| SPEC_TAC((parse_term @"B:num"), (parse_term @"B:num"))
+             |> THEN <| SPEC_TAC((parse_term @"N:num"), (parse_term @"N:num"))
              |> THEN <| INDUCT_TAC
              |> THENL <| [REWRITE_TAC [LE_0]
                           |> THEN <| GEN_TAC
                           |> THEN <| DISCH_TAC
-                          |> THEN <| EXISTS_TAC(parse_term "B:num")
+                          |> THEN <| EXISTS_TAC(parse_term @"B:num")
                           |> THEN <| ASM_REWRITE_TAC []
                           GEN_TAC
                           |> THEN <| DISCH_TAC
                           |> THEN <| FIRST_ASSUM MATCH_MP_TAC
-                          |> THEN <| EXISTS_TAC(parse_term "B + P(N:num)")
-                          |> THEN <| X_GEN_TAC(parse_term "i:num")
+                          |> THEN <| EXISTS_TAC(parse_term @"B + P(N:num)")
+                          |> THEN <| X_GEN_TAC(parse_term @"i:num")
                           |> THEN <| DISCH_TAC
-                          |> THEN <| ASM_CASES_TAC(parse_term "SUC N <= i")
+                          |> THEN <| ASM_CASES_TAC(parse_term @"SUC N <= i")
                           |> THENL <| [MATCH_MP_TAC LE_TRANS
                                        |> THEN 
-                                       <| EXISTS_TAC(parse_term "Q(i:num) + B")
+                                       <| EXISTS_TAC(parse_term @"Q(i:num) + B")
                                        |> THEN 
                                        <| REWRITE_TAC [LE_ADD; ADD_ASSOC]
                                        |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                                        |> THEN <| ASM_REWRITE_TAC []
-                                       UNDISCH_TAC(parse_term "~(SUC N <= i)")
+                                       UNDISCH_TAC(parse_term @"~(SUC N <= i)")
                                        |> THEN <| REWRITE_TAC [NOT_LE; LT]
                                        |> THEN <| ASM_REWRITE_TAC [GSYM NOT_LE]
                                        |> THEN <| DISCH_THEN SUBST1_TAC
@@ -388,35 +388,35 @@ let is_nadd =
 
 let is_nadd_0 = 
     prove
-        ((parse_term "is_nadd (\n. 0)"), 
+        ((parse_term @"is_nadd (\n. 0)"), 
          REWRITE_TAC [is_nadd; MULT_CLAUSES; DIST_REFL; LE_0])
 let nadd_abs, nadd_rep = 
     new_basic_type_definition "nadd" ("mk_nadd", "dest_nadd") is_nadd_0
 
-override_interface("fn", (parse_term "dest_nadd"))
-override_interface("afn", (parse_term "mk_nadd"))
+override_interface("fn", (parse_term @"dest_nadd"))
+override_interface("afn", (parse_term @"mk_nadd"))
 
 (* ------------------------------------------------------------------------- *)
 (* Properties of nearly-additive functions.                                  *)
 (* ------------------------------------------------------------------------- *)
 let NADD_CAUCHY = 
     prove
-        ((parse_term "!x. ?B. !m n. dist(m * fn x n,n * fn x m) <= B * (m + n)"), 
+        ((parse_term @"!x. ?B. !m n. dist(m * fn x n,n * fn x m) <= B * (m + n)"), 
          REWRITE_TAC [GSYM is_nadd
                       nadd_rep; nadd_abs; ETA_AX])
 
 let NADD_BOUND = 
     prove
-        ((parse_term "!x. ?A B. !n. fn x n <= A * n + B"), 
+        ((parse_term @"!x. ?A B. !n. fn x n <= A * n + B"), 
          GEN_TAC
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B:num") 
-                (SPEC (parse_term "x:nadd") NADD_CAUCHY)
-         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term "B + fn x 1")
-                                          (parse_term "B:num")]
+         <| X_CHOOSE_TAC (parse_term @"B:num") 
+                (SPEC (parse_term @"x:nadd") NADD_CAUCHY)
+         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"B + fn x 1")
+                                          (parse_term @"B:num")]
          |> THEN <| GEN_TAC
-         |> THEN <| POP_ASSUM(MP_TAC << SPECL [(parse_term "n:num")
-                                               (parse_term "1")])
+         |> THEN <| POP_ASSUM(MP_TAC << SPECL [(parse_term @"n:num")
+                                               (parse_term @"1")])
          |> THEN <| REWRITE_TAC [DIST_LE_CASES; MULT_CLAUSES]
          |> THEN <| DISCH_THEN(MP_TAC << CONJUNCT2)
          |> THEN 
@@ -425,14 +425,14 @@ let NADD_BOUND =
 
 let NADD_MULTIPLICATIVE = 
     prove
-        ((parse_term "!x. ?B. !m n. dist(fn x (m * n),m * fn x n) <= B * m + B"), 
+        ((parse_term @"!x. ?B. !m n. dist(fn x (m * n),m * fn x n) <= B * m + B"), 
          GEN_TAC
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B:num") 
-                (SPEC (parse_term "x:nadd") NADD_CAUCHY)
-         |> THEN <| EXISTS_TAC(parse_term "B + fn x 0")
+         <| X_CHOOSE_TAC (parse_term @"B:num") 
+                (SPEC (parse_term @"x:nadd") NADD_CAUCHY)
+         |> THEN <| EXISTS_TAC(parse_term @"B + fn x 0")
          |> THEN <| REPEAT GEN_TAC
-         |> THEN <| ASM_CASES_TAC(parse_term "n = 0")
+         |> THEN <| ASM_CASES_TAC(parse_term @"n = 0")
          |> THENL <| [MATCH_MP_TAC(LE_IMP DIST_ADDBOUND)
                       |> THEN 
                       <| ASM_REWRITE_TAC 
@@ -440,8 +440,8 @@ let NADD_MULTIPLICATIVE =
                       |> THEN <| REWRITE_TAC [LE_EXISTS]
                       |> THEN <| CONV_TAC(ONCE_DEPTH_CONV NUM_CANCEL_CONV)
                       |> THEN <| REWRITE_TAC [GSYM EXISTS_REFL]
-                      UNDISCH_TAC(parse_term "~(n = 0)")]
-         |> THEN <| REWRITE_TAC [TAUT(parse_term "(~a ==> b) <=> a \/ b")
+                      UNDISCH_TAC(parse_term @"~(n = 0)")]
+         |> THEN <| REWRITE_TAC [TAUT(parse_term @"(~a ==> b) <=> a \/ b")
                                  GSYM LE_MULT_LCANCEL
                                  DIST_LMUL]
          |> THEN <| REWRITE_TAC [MULT_ASSOC]
@@ -457,23 +457,23 @@ let NADD_MULTIPLICATIVE =
 
 let NADD_ADDITIVE = 
     prove
-        ((parse_term "!x. ?B. !m n. dist(fn x (m + n),fn x m + fn x n) <= B"), 
+        ((parse_term @"!x. ?B. !m n. dist(fn x (m + n),fn x m + fn x n) <= B"), 
          GEN_TAC
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B:num") 
-                (SPEC (parse_term "x:nadd") NADD_CAUCHY)
-         |> THEN <| EXISTS_TAC(parse_term "3 * B + fn x 0")
+         <| X_CHOOSE_TAC (parse_term @"B:num") 
+                (SPEC (parse_term @"x:nadd") NADD_CAUCHY)
+         |> THEN <| EXISTS_TAC(parse_term @"3 * B + fn x 0")
          |> THEN <| REPEAT GEN_TAC
-         |> THEN <| ASM_CASES_TAC(parse_term "m + n = 0")
+         |> THEN <| ASM_CASES_TAC(parse_term @"m + n = 0")
          |> THENL <| [RULE_ASSUM_TAC(REWRITE_RULE [ADD_EQ_0])
                       |> THEN <| ONCE_REWRITE_TAC [DIST_SYM]
                       |> THEN 
                       <| ASM_REWRITE_TAC [ADD_CLAUSES; DIST_LADD_0; LE_ADDR]
                       MATCH_MP_TAC LE_TRANS
-                      |> THEN <| EXISTS_TAC(parse_term "3 * B")
+                      |> THEN <| EXISTS_TAC(parse_term @"3 * B")
                       |> THEN <| REWRITE_TAC [LE_ADD]
-                      |> THEN <| UNDISCH_TAC(parse_term "~(m + n = 0)")]
-         |> THEN <| REWRITE_TAC [TAUT(parse_term "(~a ==> b) <=> a \/ b")
+                      |> THEN <| UNDISCH_TAC(parse_term @"~(m + n = 0)")]
+         |> THEN <| REWRITE_TAC [TAUT(parse_term @"(~a ==> b) <=> a \/ b")
                                  GSYM LE_MULT_LCANCEL]
          |> THEN <| REWRITE_TAC [DIST_LMUL; LEFT_ADD_DISTRIB]
          |> THEN 
@@ -486,7 +486,7 @@ let NADD_ADDITIVE =
                      "(m + n) * 3 * B = B * (m + m + n) + B * (n + m + n)") 
                 SUBST1_TAC
          |> THENL <| [REWRITE_TAC 
-                          [SYM(REWRITE_CONV [ARITH] (parse_term "1 + 1 + 1"))]
+                          [SYM(REWRITE_CONV [ARITH] (parse_term @"1 + 1 + 1"))]
                       |> THEN 
                       <| REWRITE_TAC 
                              [RIGHT_ADD_DISTRIB; LEFT_ADD_DISTRIB; MULT_CLAUSES]
@@ -498,32 +498,32 @@ let NADD_ADDITIVE =
 
 let NADD_SUC = 
     prove
-        ((parse_term "!x. ?B. !n. dist(fn x (SUC n),fn x n) <= B"), 
+        ((parse_term @"!x. ?B. !n. dist(fn x (SUC n),fn x n) <= B"), 
          GEN_TAC
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B:num") 
-                (SPEC (parse_term "x:nadd") NADD_ADDITIVE)
-         |> THEN <| EXISTS_TAC(parse_term "B + fn x 1")
+         <| X_CHOOSE_TAC (parse_term @"B:num") 
+                (SPEC (parse_term @"x:nadd") NADD_ADDITIVE)
+         |> THEN <| EXISTS_TAC(parse_term @"B + fn x 1")
          |> THEN <| GEN_TAC
          |> THEN <| MATCH_MP_TAC(LE_IMP DIST_TRIANGLE)
-         |> THEN <| EXISTS_TAC(parse_term "fn x n + fn x 1")
+         |> THEN <| EXISTS_TAC(parse_term @"fn x n + fn x 1")
          |> THEN <| ASM_REWRITE_TAC [ADD1]
          |> THEN <| MATCH_MP_TAC LE_ADD2
          |> THEN <| ASM_REWRITE_TAC [DIST_LADD_0; LE_REFL])
 
 let NADD_DIST_LEMMA = 
     prove
-        ((parse_term "!x. ?B. !m n. dist(fn x (m + n),fn x m) <= B * n"), 
+        ((parse_term @"!x. ?B. !m n. dist(fn x (m + n),fn x m) <= B * n"), 
          GEN_TAC
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B:num") 
-                (SPEC (parse_term "x:nadd") NADD_SUC)
-         |> THEN <| EXISTS_TAC(parse_term "B:num")
+         <| X_CHOOSE_TAC (parse_term @"B:num") 
+                (SPEC (parse_term @"x:nadd") NADD_SUC)
+         |> THEN <| EXISTS_TAC(parse_term @"B:num")
          |> THEN <| GEN_TAC
          |> THEN <| INDUCT_TAC
          |> THEN <| REWRITE_TAC [ADD_CLAUSES; DIST_REFL; LE_0]
          |> THEN <| MATCH_MP_TAC(LE_IMP DIST_TRIANGLE)
-         |> THEN <| EXISTS_TAC(parse_term "fn x (m + n)")
+         |> THEN <| EXISTS_TAC(parse_term @"fn x (m + n)")
          |> THEN <| REWRITE_TAC [ADD1; LEFT_ADD_DISTRIB]
          |> THEN <| GEN_REWRITE_TAC RAND_CONV [ADD_SYM]
          |> THEN <| MATCH_MP_TAC LE_ADD2
@@ -532,16 +532,16 @@ let NADD_DIST_LEMMA =
 
 let NADD_DIST = 
     prove
-        ((parse_term "!x. ?B. !m n. dist(fn x m,fn x n) <= B * dist(m,n)"), 
+        ((parse_term @"!x. ?B. !m n. dist(fn x m,fn x n) <= B * dist(m,n)"), 
          GEN_TAC
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B:num") 
-                (SPEC (parse_term "x:nadd") NADD_DIST_LEMMA)
-         |> THEN <| EXISTS_TAC(parse_term "B:num")
+         <| X_CHOOSE_TAC (parse_term @"B:num") 
+                (SPEC (parse_term @"x:nadd") NADD_DIST_LEMMA)
+         |> THEN <| EXISTS_TAC(parse_term @"B:num")
          |> THEN <| REPEAT GEN_TAC
          |> THEN 
-         <| DISJ_CASES_THEN MP_TAC (SPECL [(parse_term "m:num")
-                                           (parse_term "n:num")] LE_CASES)
+         <| DISJ_CASES_THEN MP_TAC (SPECL [(parse_term @"m:num")
+                                           (parse_term @"n:num")] LE_CASES)
          |> THEN 
          <| DISCH_THEN(CHOOSE_THEN SUBST1_TAC << ONCE_REWRITE_RULE [LE_EXISTS])
          |> THENL <| [ONCE_REWRITE_TAC [DIST_SYM]
@@ -554,20 +554,20 @@ let NADD_ALTMUL =
               "!x y. ?A B. !n. dist(n * fn x (fn y n),fn x n * fn y n) <= A * n + B"), 
          REPEAT GEN_TAC
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B:num") 
-                (SPEC (parse_term "x:nadd") NADD_CAUCHY)
-         |> THEN <| MP_TAC(SPEC (parse_term "y:nadd") NADD_BOUND)
+         <| X_CHOOSE_TAC (parse_term @"B:num") 
+                (SPEC (parse_term @"x:nadd") NADD_CAUCHY)
+         |> THEN <| MP_TAC(SPEC (parse_term @"y:nadd") NADD_BOUND)
          |> THEN 
          <| DISCH_THEN
-                (X_CHOOSE_THEN (parse_term "M:num") 
-                     (X_CHOOSE_TAC(parse_term "L:num")))
-         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term "B * (1 + M)")
-                                          (parse_term "B * L")]
+                (X_CHOOSE_THEN (parse_term @"M:num") 
+                     (X_CHOOSE_TAC(parse_term @"L:num")))
+         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"B * (1 + M)")
+                                          (parse_term @"B * L")]
          |> THEN <| GEN_TAC
          |> THEN 
          <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV << RAND_CONV) [MULT_SYM]
          |> THEN <| MATCH_MP_TAC LE_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "B * (n + fn y n)")
+         |> THEN <| EXISTS_TAC(parse_term @"B * (n + fn y n)")
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| REWRITE_TAC [LEFT_ADD_DISTRIB; RIGHT_ADD_DISTRIB]
          |> THEN <| REWRITE_TAC [MULT_CLAUSES
@@ -577,22 +577,22 @@ let NADD_ALTMUL =
                                      GSYM MULT_ASSOC
                                      LE_MULT_LCANCEL])
 
-override_interface("===", (parse_term "(nadd_eq):nadd->nadd->bool"))
+override_interface("===", (parse_term @"(nadd_eq):nadd->nadd->bool"))
 
 (* ------------------------------------------------------------------------- *)
 (* Definition of the equivalence relation and proof that it *is* one.        *)
 (* ------------------------------------------------------------------------- *)
 let nadd_eq = 
-    new_definition(parse_term "x === y <=> ?B. !n. dist(fn x n,fn y n) <= B")
+    new_definition(parse_term @"x === y <=> ?B. !n. dist(fn x n,fn y n) <= B")
 
 let NADD_EQ_REFL = 
     prove
-        ((parse_term "!x. x === x"), 
+        ((parse_term @"!x. x === x"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_eq; DIST_REFL; LE_0])
 
 let NADD_EQ_SYM = 
-    prove((parse_term "!x y. x === y <=> y === x"), REPEAT GEN_TAC
+    prove((parse_term @"!x y. x === y <=> y === x"), REPEAT GEN_TAC
                                                     |> THEN 
                                                     <| REWRITE_TAC [nadd_eq]
                                                     |> THEN 
@@ -604,30 +604,30 @@ let NADD_EQ_SYM =
 
 let NADD_EQ_TRANS = 
     prove
-        ((parse_term "!x y z. x === y /\ y === z ==> x === z"), 
+        ((parse_term @"!x y z. x === y /\ y === z ==> x === z"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_eq]
          |> THEN 
          <| DISCH_THEN
-                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term "B1:num")) 
-                     (X_CHOOSE_TAC(parse_term "B2:num")))
-         |> THEN <| EXISTS_TAC(parse_term "B1 + B2")
-         |> THEN <| X_GEN_TAC(parse_term "n:num")
+                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term @"B1:num")) 
+                     (X_CHOOSE_TAC(parse_term @"B2:num")))
+         |> THEN <| EXISTS_TAC(parse_term @"B1 + B2")
+         |> THEN <| X_GEN_TAC(parse_term @"n:num")
          |> THEN <| MATCH_MP_TAC(LE_IMP DIST_TRIANGLE)
-         |> THEN <| EXISTS_TAC(parse_term "fn y n")
+         |> THEN <| EXISTS_TAC(parse_term @"fn y n")
          |> THEN <| MATCH_MP_TAC LE_ADD2
          |> THEN <| ASM_REWRITE_TAC [])
 
-override_interface("&", (parse_term "nadd_of_num:num->nadd"))
+override_interface("&", (parse_term @"nadd_of_num:num->nadd"))
 
 (* ------------------------------------------------------------------------- *)
 (* Injection of the natural numbers.                                         *)
 (* ------------------------------------------------------------------------- *)
-let nadd_of_num = new_definition(parse_term "&k = afn(\n. k * n)")
+let nadd_of_num = new_definition(parse_term @"&k = afn(\n. k * n)")
 
 let NADD_OF_NUM = 
     prove
-        ((parse_term "!k. fn(&k) = \n. k * n"), 
+        ((parse_term @"!k. fn(&k) = \n. k * n"), 
          REWRITE_TAC [nadd_of_num
                       GSYM nadd_rep
                       is_nadd]
@@ -635,14 +635,14 @@ let NADD_OF_NUM =
 
 let NADD_OF_NUM_WELLDEF = 
     prove
-        ((parse_term "!m n. (m = n) ==> &m === &n"), 
+        ((parse_term @"!m n. (m = n) ==> &m === &n"), 
          REPEAT GEN_TAC
          |> THEN <| DISCH_THEN SUBST1_TAC
          |> THEN <| MATCH_ACCEPT_TAC NADD_EQ_REFL)
 
 let NADD_OF_NUM_EQ = 
     prove
-        ((parse_term "!m n. (&m === &n) <=> (m = n)"), 
+        ((parse_term @"!m n. (&m === &n) <=> (m = n)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| REWRITE_TAC [NADD_OF_NUM_WELLDEF]
@@ -650,29 +650,29 @@ let NADD_OF_NUM_EQ =
          |> THEN <| REWRITE_TAC [GSYM DIST_RMUL
                                  BOUNDS_LINEAR_0; DIST_EQ_0])
 
-override_interface("<<=", (parse_term "nadd_le:nadd->nadd->bool"))
+override_interface("<<=", (parse_term @"nadd_le:nadd->nadd->bool"))
 
 (* ------------------------------------------------------------------------- *)
 (* Definition of (reflexive) ordering and the only special property needed.  *)
 (* ------------------------------------------------------------------------- *)
 let nadd_le = 
-    new_definition(parse_term "x <<= y <=> ?B. !n. fn x n <= fn y n + B")
+    new_definition(parse_term @"x <<= y <=> ?B. !n. fn x n <= fn y n + B")
 
 let NADD_LE_WELLDEF_LEMMA = 
     prove
-        ((parse_term "!x x' y y'. x === x' /\ y === y' /\ x <<= y ==> x' <<= y'"), 
+        ((parse_term @"!x x' y y'. x === x' /\ y === y' /\ x <<= y ==> x' <<= y'"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_eq; nadd_le]
          |> THEN <| REWRITE_TAC [DIST_LE_CASES; FORALL_AND_THM]
          |> THEN 
          <| DISCH_THEN
-                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term "B1:num")) MP_TAC)
+                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term @"B1:num")) MP_TAC)
          |> THEN 
          <| DISCH_THEN
-                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term "B2:num")) MP_TAC)
-         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "B:num"))
-         |> THEN <| EXISTS_TAC(parse_term "(B2 + B) + B1")
-         |> THEN <| X_GEN_TAC(parse_term "n:num")
+                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term @"B2:num")) MP_TAC)
+         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"B:num"))
+         |> THEN <| EXISTS_TAC(parse_term @"(B2 + B) + B1")
+         |> THEN <| X_GEN_TAC(parse_term @"n:num")
          |> THEN <| FIRST_ASSUM(MATCH_MP_TAC << LE_IMP << CONJUNCT2)
          |> THEN <| REWRITE_TAC [ADD_ASSOC; LE_ADD_RCANCEL]
          |> THEN <| FIRST_ASSUM(MATCH_MP_TAC << LE_IMP)
@@ -687,49 +687,49 @@ let NADD_LE_WELLDEF =
          |> THEN <| DISCH_TAC
          |> THEN <| MATCH_MP_TAC NADD_LE_WELLDEF_LEMMA
          |> THEN <| ASM_REWRITE_TAC []
-         |> THENL <| [MAP_EVERY EXISTS_TAC [(parse_term "x:nadd")
-                                            (parse_term "y:nadd")]
-                      MAP_EVERY EXISTS_TAC [(parse_term "x':nadd")
-                                            (parse_term "y':nadd")]
+         |> THENL <| [MAP_EVERY EXISTS_TAC [(parse_term @"x:nadd")
+                                            (parse_term @"y:nadd")]
+                      MAP_EVERY EXISTS_TAC [(parse_term @"x':nadd")
+                                            (parse_term @"y':nadd")]
                       |> THEN <| ONCE_REWRITE_TAC [NADD_EQ_SYM]]
          |> THEN <| ASM_REWRITE_TAC [])
 
 let NADD_LE_REFL = 
-    prove((parse_term "!x. x <<= x"), REWRITE_TAC [nadd_le; LE_ADD])
+    prove((parse_term @"!x. x <<= x"), REWRITE_TAC [nadd_le; LE_ADD])
 
 let NADD_LE_TRANS = 
     prove
-        ((parse_term "!x y z. x <<= y /\ y <<= z ==> x <<= z"), 
+        ((parse_term @"!x y z. x <<= y /\ y <<= z ==> x <<= z"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_le]
          |> THEN 
          <| DISCH_THEN
-                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term "B1:num")) MP_TAC)
-         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "B2:num"))
-         |> THEN <| EXISTS_TAC(parse_term "B2 + B1")
+                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term @"B1:num")) MP_TAC)
+         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"B2:num"))
+         |> THEN <| EXISTS_TAC(parse_term @"B2 + B1")
          |> THEN <| GEN_TAC
          |> THEN <| FIRST_ASSUM(MATCH_MP_TAC << LE_IMP)
          |> THEN <| ASM_REWRITE_TAC [ADD_ASSOC; LE_ADD_RCANCEL])
 
 let NADD_LE_ANTISYM = 
     prove
-        ((parse_term "!x y. x <<= y /\ y <<= x <=> (x === y)"), 
+        ((parse_term @"!x y. x <<= y /\ y <<= x <=> (x === y)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_le; nadd_eq; DIST_LE_CASES]
          |> THEN <| EQ_TAC
          |> THENL <| [DISCH_THEN
-                          (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term "B1:num")) 
-                               (X_CHOOSE_TAC(parse_term "B2:num")))
-                      |> THEN <| EXISTS_TAC(parse_term "B1 + B2")
+                          (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term @"B1:num")) 
+                               (X_CHOOSE_TAC(parse_term @"B2:num")))
+                      |> THEN <| EXISTS_TAC(parse_term @"B1 + B2")
                       |> THEN <| GEN_TAC
                       |> THEN <| CONJ_TAC
                       |> THEN <| FIRST_ASSUM(MATCH_MP_TAC << LE_IMP)
                       |> THEN 
                       <| ASM_REWRITE_TAC 
                              [ADD_ASSOC; LE_ADD_RCANCEL; LE_ADD; LE_ADDR]
-                      DISCH_THEN(X_CHOOSE_TAC(parse_term "B:num"))
+                      DISCH_THEN(X_CHOOSE_TAC(parse_term @"B:num"))
                       |> THEN <| CONJ_TAC
-                      |> THEN <| EXISTS_TAC(parse_term "B:num")
+                      |> THEN <| EXISTS_TAC(parse_term @"B:num")
                       |> THEN <| ASM_REWRITE_TAC []])
 
 let NADD_LE_TOTAL_LEMMA = 
@@ -743,11 +743,11 @@ let NADD_LE_TOTAL_LEMMA =
          |> THEN <| GEN_TAC
          |> THEN 
          <| POP_ASSUM
-                (X_CHOOSE_TAC(parse_term "n:num") 
-                 << SPEC(parse_term "B + fn x 0"))
-         |> THEN <| EXISTS_TAC(parse_term "n:num")
+                (X_CHOOSE_TAC(parse_term @"n:num") 
+                 << SPEC(parse_term @"B + fn x 0"))
+         |> THEN <| EXISTS_TAC(parse_term @"n:num")
          |> THEN <| POP_ASSUM MP_TAC
-         |> THEN <| ASM_CASES_TAC(parse_term "n = 0")
+         |> THEN <| ASM_CASES_TAC(parse_term @"n = 0")
          |> THEN <| ASM_REWRITE_TAC [NOT_LT; ADD_ASSOC; LE_ADDR]
          |> THEN <| CONV_TAC CONTRAPOS_CONV
          |> THEN <| REWRITE_TAC [NOT_LT]
@@ -756,7 +756,7 @@ let NADD_LE_TOTAL_LEMMA =
 
 let NADD_LE_TOTAL = 
     prove
-        ((parse_term "!x y. x <<= y \/ y <<= x"), REPEAT GEN_TAC
+        ((parse_term @"!x y. x <<= y \/ y <<= x"), REPEAT GEN_TAC
                                                   |> THEN 
                                                   <| GEN_REWRITE_TAC I 
                                                          [TAUT
@@ -764,14 +764,14 @@ let NADD_LE_TOTAL =
                                                                    "a <=> ~ ~ a")]
                                                   |> THEN 
                                                   <| X_CHOOSE_TAC 
-                                                         (parse_term "B1:num") 
+                                                         (parse_term @"B1:num") 
                                                          (SPEC 
                                                               (parse_term 
                                                                    "x:nadd") 
                                                               NADD_CAUCHY)
                                                   |> THEN 
                                                   <| X_CHOOSE_TAC 
-                                                         (parse_term "B2:num") 
+                                                         (parse_term @"B2:num") 
                                                          (SPEC 
                                                               (parse_term 
                                                                    "y:nadd") 
@@ -856,39 +856,39 @@ let NADD_LE_TOTAL =
 
 let NADD_ARCH = 
     prove
-        ((parse_term "!x. ?n. x <<= &n"), 
+        ((parse_term @"!x. ?n. x <<= &n"), 
          REWRITE_TAC [nadd_le; NADD_OF_NUM; NADD_BOUND])
 
 let NADD_OF_NUM_LE = 
     prove
-        ((parse_term "!m n. (&m <<= &n) <=> m <= n"), 
+        ((parse_term @"!m n. (&m <<= &n) <=> m <= n"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_le; NADD_OF_NUM]
          |> THEN <| REWRITE_TAC [BOUNDS_LINEAR])
 
-override_interface("++", (parse_term "nadd_add:nadd->nadd->nadd"))
+override_interface("++", (parse_term @"nadd_add:nadd->nadd->nadd"))
 
 (* ------------------------------------------------------------------------- *)
 (* Addition.                                                                 *)
 (* ------------------------------------------------------------------------- *)
-let nadd_add = new_definition(parse_term "x ++ y = afn(\n. fn x n + fn y n)")
+let nadd_add = new_definition(parse_term @"x ++ y = afn(\n. fn x n + fn y n)")
 
 let NADD_ADD = 
     prove
-        ((parse_term "!x y. fn(x ++ y) = \n. fn x n + fn y n"), 
+        ((parse_term @"!x y. fn(x ++ y) = \n. fn x n + fn y n"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_add
                                  GSYM nadd_rep
                                  is_nadd]
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B1:num") 
-                (SPEC (parse_term "x:nadd") NADD_CAUCHY)
+         <| X_CHOOSE_TAC (parse_term @"B1:num") 
+                (SPEC (parse_term @"x:nadd") NADD_CAUCHY)
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B2:num") 
-                (SPEC (parse_term "y:nadd") NADD_CAUCHY)
-         |> THEN <| EXISTS_TAC(parse_term "B1 + B2")
-         |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term "m:num")
-                                         (parse_term "n:num")]
+         <| X_CHOOSE_TAC (parse_term @"B2:num") 
+                (SPEC (parse_term @"y:nadd") NADD_CAUCHY)
+         |> THEN <| EXISTS_TAC(parse_term @"B1 + B2")
+         |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term @"m:num")
+                                         (parse_term @"n:num")]
          |> THEN 
          <| GEN_REWRITE_TAC (LAND_CONV << ONCE_DEPTH_CONV) [LEFT_ADD_DISTRIB]
          |> THEN <| MATCH_MP_TAC(LE_IMP DIST_ADD2)
@@ -904,10 +904,10 @@ let NADD_ADD_WELLDEF =
          |> THEN <| REWRITE_TAC [nadd_eq; NADD_ADD]
          |> THEN 
          <| DISCH_THEN
-                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term "B1:num")) 
-                     (X_CHOOSE_TAC(parse_term "B2:num")))
-         |> THEN <| EXISTS_TAC(parse_term "B1 + B2")
-         |> THEN <| X_GEN_TAC(parse_term "n:num")
+                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term @"B1:num")) 
+                     (X_CHOOSE_TAC(parse_term @"B2:num")))
+         |> THEN <| EXISTS_TAC(parse_term @"B1 + B2")
+         |> THEN <| X_GEN_TAC(parse_term @"n:num")
          |> THEN <| MATCH_MP_TAC(LE_IMP DIST_ADD2)
          |> THEN <| MATCH_MP_TAC LE_ADD2
          |> THEN <| ASM_REWRITE_TAC [])
@@ -917,7 +917,7 @@ let NADD_ADD_WELLDEF =
 (* ------------------------------------------------------------------------- *)
 let NADD_ADD_SYM = 
     prove
-        ((parse_term "!x y. (x ++ y) === (y ++ x)"), 
+        ((parse_term @"!x y. (x ++ y) === (y ++ x)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_add]
          |> THEN <| GEN_REWRITE_TAC (RAND_CONV << ONCE_DEPTH_CONV) [ADD_SYM]
@@ -925,61 +925,61 @@ let NADD_ADD_SYM =
 
 let NADD_ADD_ASSOC = 
     prove
-        ((parse_term "!x y z. (x ++ (y ++ z)) === ((x ++ y) ++ z)"), 
+        ((parse_term @"!x y z. (x ++ (y ++ z)) === ((x ++ y) ++ z)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [nadd_add]
          |> THEN <| REWRITE_TAC [NADD_ADD; ADD_ASSOC; NADD_EQ_REFL])
 
 let NADD_ADD_LID = 
     prove
-        ((parse_term "!x. (&0 ++ x) === x"), 
+        ((parse_term @"!x. (&0 ++ x) === x"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_eq; NADD_ADD; NADD_OF_NUM]
          |> THEN <| REWRITE_TAC [MULT_CLAUSES; ADD_CLAUSES; DIST_REFL; LE_0])
 
 let NADD_ADD_LCANCEL = 
     prove
-        ((parse_term "!x y z. (x ++ y) === (x ++ z) ==> y === z"), 
+        ((parse_term @"!x y z. (x ++ y) === (x ++ z) ==> y === z"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_eq; NADD_ADD; DIST_LADD])
 
 let NADD_LE_ADD = 
     prove
-        ((parse_term "!x y. x <<= (x ++ y)"), 
+        ((parse_term @"!x y. x <<= (x ++ y)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_le; NADD_ADD]
-         |> THEN <| EXISTS_TAC(parse_term "0")
+         |> THEN <| EXISTS_TAC(parse_term @"0")
          |> THEN <| REWRITE_TAC [ADD_CLAUSES; LE_ADD])
 
 let NADD_LE_EXISTS = 
     prove
-        ((parse_term "!x y. x <<= y ==> ?d. y === x ++ d"), 
+        ((parse_term @"!x y. x <<= y ==> ?d. y === x ++ d"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_le]
-         |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term "B:num") MP_TAC)
+         |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term @"B:num") MP_TAC)
          |> THEN <| REWRITE_TAC [LE_EXISTS; SKOLEM_THM]
          |> THEN 
          <| DISCH_THEN
-                (X_CHOOSE_THEN (parse_term "d:num->num") (ASSUME_TAC << GSYM))
-         |> THEN <| EXISTS_TAC(parse_term "afn d")
+                (X_CHOOSE_THEN (parse_term @"d:num->num") (ASSUME_TAC << GSYM))
+         |> THEN <| EXISTS_TAC(parse_term @"afn d")
          |> THEN <| REWRITE_TAC [nadd_eq; NADD_ADD]
-         |> THEN <| EXISTS_TAC(parse_term "B:num")
-         |> THEN <| X_GEN_TAC(parse_term "n:num")
-         |> THEN <| SUBGOAL_THEN (parse_term "fn(afn d) = d") SUBST1_TAC
+         |> THEN <| EXISTS_TAC(parse_term @"B:num")
+         |> THEN <| X_GEN_TAC(parse_term @"n:num")
+         |> THEN <| SUBGOAL_THEN (parse_term @"fn(afn d) = d") SUBST1_TAC
          |> THENL <| [REWRITE_TAC [GSYM nadd_rep
                                    is_nadd]
                       |> THEN 
-                      <| X_CHOOSE_TAC (parse_term "B1:num") 
-                             (SPEC (parse_term "x:nadd") NADD_CAUCHY)
+                      <| X_CHOOSE_TAC (parse_term @"B1:num") 
+                             (SPEC (parse_term @"x:nadd") NADD_CAUCHY)
                       |> THEN 
-                      <| X_CHOOSE_TAC (parse_term "B2:num") 
-                             (SPEC (parse_term "y:nadd") NADD_CAUCHY)
-                      |> THEN <| EXISTS_TAC(parse_term "B1 + (B2 + B)")
+                      <| X_CHOOSE_TAC (parse_term @"B2:num") 
+                             (SPEC (parse_term @"y:nadd") NADD_CAUCHY)
+                      |> THEN <| EXISTS_TAC(parse_term @"B1 + (B2 + B)")
                       |> THEN <| REPEAT GEN_TAC
                       |> THEN <| MATCH_MP_TAC(LE_IMP DIST_ADD2_REV)
                       |> THEN 
-                      <| MAP_EVERY EXISTS_TAC [(parse_term "m * fn x n")
-                                               (parse_term "n * fn x m")]
+                      <| MAP_EVERY EXISTS_TAC [(parse_term @"m * fn x n")
+                                               (parse_term @"n * fn x m")]
                       |> THEN <| ONCE_REWRITE_TAC [RIGHT_ADD_DISTRIB]
                       |> THEN <| GEN_REWRITE_TAC RAND_CONV [ADD_SYM]
                       |> THEN <| MATCH_MP_TAC LE_ADD2
@@ -1004,55 +1004,55 @@ let NADD_LE_EXISTS =
 
 let NADD_OF_NUM_ADD = 
     prove
-        ((parse_term "!m n. &m ++ &n === &(m + n)"), 
+        ((parse_term @"!m n. &m ++ &n === &(m + n)"), 
          REWRITE_TAC [nadd_eq; NADD_OF_NUM; NADD_ADD]
          |> THEN <| REWRITE_TAC [RIGHT_ADD_DISTRIB; DIST_REFL; LE_0])
 
-override_interface("**", (parse_term "nadd_mul:nadd->nadd->nadd"))
+override_interface("**", (parse_term @"nadd_mul:nadd->nadd->nadd"))
 
 (* ------------------------------------------------------------------------- *)
 (* Multiplication.                                                           *)
 (* ------------------------------------------------------------------------- *)
-let nadd_mul = new_definition(parse_term "x ** y = afn(\n. fn x (fn y n))")
+let nadd_mul = new_definition(parse_term @"x ** y = afn(\n. fn x (fn y n))")
 
 let NADD_MUL = 
     prove
-        ((parse_term "!x y. fn(x ** y) = \n. fn x (fn y n)"), 
+        ((parse_term @"!x y. fn(x ** y) = \n. fn x (fn y n)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_mul
                                  GSYM nadd_rep
                                  is_nadd]
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B:num") 
-                (SPEC (parse_term "y:nadd") NADD_CAUCHY)
+         <| X_CHOOSE_TAC (parse_term @"B:num") 
+                (SPEC (parse_term @"y:nadd") NADD_CAUCHY)
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "C:num") 
-                (SPEC (parse_term "x:nadd") NADD_DIST)
+         <| X_CHOOSE_TAC (parse_term @"C:num") 
+                (SPEC (parse_term @"x:nadd") NADD_DIST)
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "D:num") 
-                (SPEC (parse_term "x:nadd") NADD_MULTIPLICATIVE)
+         <| X_CHOOSE_TAC (parse_term @"D:num") 
+                (SPEC (parse_term @"x:nadd") NADD_MULTIPLICATIVE)
          |> THEN <| MATCH_MP_TAC BOUNDS_NOTZERO
          |> THEN <| REWRITE_TAC [MULT_CLAUSES; DIST_REFL]
-         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term "D + C * B")
-                                          (parse_term "D + D")]
+         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"D + C * B")
+                                          (parse_term @"D + D")]
          |> THEN <| REPEAT GEN_TAC
          |> THEN <| MATCH_MP_TAC LE_TRANS
          |> THEN 
-         <| EXISTS_TAC(parse_term "(D * m + D) + (D * n + D) + C * B * (m + n)")
+         <| EXISTS_TAC(parse_term @"(D * m + D) + (D * n + D) + C * B * (m + n)")
          |> THEN <| CONJ_TAC
          |> THENL 
          <| [MATCH_MP_TAC(LE_IMP DIST_TRIANGLE)
-             |> THEN <| EXISTS_TAC(parse_term "fn x (m * fn y n)")
+             |> THEN <| EXISTS_TAC(parse_term @"fn x (m * fn y n)")
              |> THEN <| MATCH_MP_TAC LE_ADD2
              |> THEN <| ONCE_REWRITE_TAC [DIST_SYM]
              |> THEN <| ASM_REWRITE_TAC []
              |> THEN <| MATCH_MP_TAC(LE_IMP DIST_TRIANGLE)
-             |> THEN <| EXISTS_TAC(parse_term "fn x (n * fn y m)")
+             |> THEN <| EXISTS_TAC(parse_term @"fn x (n * fn y m)")
              |> THEN <| MATCH_MP_TAC LE_ADD2
              |> THEN <| ONCE_REWRITE_TAC [DIST_SYM]
              |> THEN <| ASM_REWRITE_TAC []
              |> THEN <| MATCH_MP_TAC LE_TRANS
-             |> THEN <| EXISTS_TAC(parse_term "C * dist(m * fn y n,n * fn y m)")
+             |> THEN <| EXISTS_TAC(parse_term @"C * dist(m * fn y n,n * fn y m)")
              |> THEN <| ASM_REWRITE_TAC [LE_MULT_LCANCEL]
              MATCH_MP_TAC EQ_IMP_LE
              |> THEN 
@@ -1064,30 +1064,30 @@ let NADD_MUL =
 (* ------------------------------------------------------------------------- *)
 let NADD_MUL_SYM = 
     prove
-        ((parse_term "!x y. (x ** y) === (y ** x)"), 
+        ((parse_term @"!x y. (x ** y) === (y ** x)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_eq; NADD_MUL]
          |> THEN 
-         <| X_CHOOSE_THEN (parse_term "A1:num") MP_TAC 
-                (SPECL [(parse_term "x:nadd")
-                        (parse_term "y:nadd")] NADD_ALTMUL)
-         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "B1:num"))
+         <| X_CHOOSE_THEN (parse_term @"A1:num") MP_TAC 
+                (SPECL [(parse_term @"x:nadd")
+                        (parse_term @"y:nadd")] NADD_ALTMUL)
+         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"B1:num"))
          |> THEN 
-         <| X_CHOOSE_THEN (parse_term "A2:num") MP_TAC 
-                (SPECL [(parse_term "y:nadd")
-                        (parse_term "x:nadd")] NADD_ALTMUL)
-         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "B2:num"))
+         <| X_CHOOSE_THEN (parse_term @"A2:num") MP_TAC 
+                (SPECL [(parse_term @"y:nadd")
+                        (parse_term @"x:nadd")] NADD_ALTMUL)
+         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"B2:num"))
          |> THEN <| REWRITE_TAC [BOUNDS_DIVIDED]
          |> THEN <| REWRITE_TAC [DIST_LMUL]
-         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term "A1 + A2")
-                                          (parse_term "B1 + B2")]
+         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"A1 + A2")
+                                          (parse_term @"B1 + B2")]
          |> THEN <| GEN_TAC
          |> THEN <| REWRITE_TAC [RIGHT_ADD_DISTRIB]
          |> THEN 
          <| ONCE_REWRITE_TAC 
-                [AC ADD_AC (parse_term "(a + b) + (c + d) = (a + c) + (b + d)")]
+                [AC ADD_AC (parse_term @"(a + b) + (c + d) = (a + c) + (b + d)")]
          |> THEN <| MATCH_MP_TAC(LE_IMP DIST_TRIANGLE)
-         |> THEN <| EXISTS_TAC(parse_term "fn x n * fn y n")
+         |> THEN <| EXISTS_TAC(parse_term @"fn x n * fn y n")
          |> THEN <| MATCH_MP_TAC LE_ADD2
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| ONCE_REWRITE_TAC [DIST_SYM]
@@ -1096,57 +1096,57 @@ let NADD_MUL_SYM =
 
 let NADD_MUL_ASSOC = 
     prove
-        ((parse_term "!x y z. (x ** (y ** z)) === ((x ** y) ** z)"), 
+        ((parse_term @"!x y z. (x ** (y ** z)) === ((x ** y) ** z)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [nadd_mul]
          |> THEN <| REWRITE_TAC [NADD_MUL; NADD_EQ_REFL])
 
 let NADD_MUL_LID = 
     prove
-        ((parse_term "!x. (&1 ** x) === x"), 
+        ((parse_term @"!x. (&1 ** x) === x"), 
          REWRITE_TAC [NADD_OF_NUM; nadd_mul; MULT_CLAUSES]
          |> THEN <| REWRITE_TAC [nadd_abs; NADD_EQ_REFL; ETA_AX])
 
 let NADD_LDISTRIB = 
     prove
-        ((parse_term "!x y z. x ** (y ++ z) === (x ** y) ++ (x ** z)"), 
+        ((parse_term @"!x y z. x ** (y ++ z) === (x ** y) ++ (x ** z)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_eq]
          |> THEN <| REWRITE_TAC [NADD_ADD; NADD_MUL]
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B:num") 
-                (SPEC (parse_term "x:nadd") NADD_ADDITIVE)
-         |> THEN <| EXISTS_TAC(parse_term "B:num")
+         <| X_CHOOSE_TAC (parse_term @"B:num") 
+                (SPEC (parse_term @"x:nadd") NADD_ADDITIVE)
+         |> THEN <| EXISTS_TAC(parse_term @"B:num")
          |> THEN <| ASM_REWRITE_TAC [])
 
 let NADD_MUL_WELLDEF_LEMMA = 
     prove
-        ((parse_term "!x y y'. y === y' ==> (x ** y) === (x ** y')"), 
+        ((parse_term @"!x y y'. y === y' ==> (x ** y) === (x ** y')"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_eq; NADD_MUL]
-         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "B1:num"))
+         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"B1:num"))
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B2:num") 
-                (SPEC (parse_term "x:nadd") NADD_DIST)
-         |> THEN <| EXISTS_TAC(parse_term "B2 * B1")
-         |> THEN <| X_GEN_TAC(parse_term "n:num")
+         <| X_CHOOSE_TAC (parse_term @"B2:num") 
+                (SPEC (parse_term @"x:nadd") NADD_DIST)
+         |> THEN <| EXISTS_TAC(parse_term @"B2 * B1")
+         |> THEN <| X_GEN_TAC(parse_term @"n:num")
          |> THEN <| MATCH_MP_TAC LE_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "B2 * dist(fn y n,fn y' n)")
+         |> THEN <| EXISTS_TAC(parse_term @"B2 * dist(fn y n,fn y' n)")
          |> THEN <| ASM_REWRITE_TAC [LE_MULT_LCANCEL])
 
 let NADD_MUL_WELLDEF = 
-    prove((parse_term "!x x' y y'. x === x' /\ y === y'
+    prove((parse_term @"!x x' y y'. x === x' /\ y === y'
                ==> (x ** y) === (x' ** y')"),
               REPEAT GEN_TAC
               |> THEN <| STRIP_TAC
               |> THEN <| MATCH_MP_TAC NADD_EQ_TRANS
-              |> THEN <| EXISTS_TAC(parse_term "x' ** y")
+              |> THEN <| EXISTS_TAC(parse_term @"x' ** y")
               |> THEN <| CONJ_TAC
               |> THENL <| [MATCH_MP_TAC NADD_EQ_TRANS
-                           |> THEN <| EXISTS_TAC(parse_term "y ** x'")
+                           |> THEN <| EXISTS_TAC(parse_term @"y ** x'")
                            |> THEN <| REWRITE_TAC [NADD_MUL_SYM]
                            |> THEN <| MATCH_MP_TAC NADD_EQ_TRANS
-                           |> THEN <| EXISTS_TAC(parse_term "y ** x")
+                           |> THEN <| EXISTS_TAC(parse_term @"y ** x")
                            |> THEN <| REWRITE_TAC [NADD_MUL_SYM]
                            ALL_TAC]
               |> THEN <| MATCH_MP_TAC NADD_MUL_WELLDEF_LEMMA
@@ -1154,7 +1154,7 @@ let NADD_MUL_WELLDEF =
 
 let NADD_OF_NUM_MUL = 
     prove
-        ((parse_term "!m n. &m ** &n === &(m * n)"), 
+        ((parse_term @"!m n. &m ** &n === &(m * n)"), 
          REWRITE_TAC [nadd_eq; NADD_OF_NUM; NADD_MUL]
          |> THEN <| REWRITE_TAC [MULT_ASSOC; DIST_REFL; LE_0])
 
@@ -1163,13 +1163,13 @@ let NADD_OF_NUM_MUL =
 (* ------------------------------------------------------------------------- *)
 let NADD_LE_0 = 
     prove
-        ((parse_term "!x. &0 <<= x"), 
+        ((parse_term @"!x. &0 <<= x"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_le; NADD_OF_NUM; MULT_CLAUSES; LE_0])
 
 let NADD_EQ_IMP_LE = 
     prove
-        ((parse_term "!x y. x === y ==> x <<= y"), REPEAT GEN_TAC
+        ((parse_term @"!x y. x === y ==> x <<= y"), REPEAT GEN_TAC
                                                    |> THEN 
                                                    <| REWRITE_TAC 
                                                           [nadd_eq; nadd_le; 
@@ -1181,22 +1181,22 @@ let NADD_EQ_IMP_LE =
                                                                     "B:num"))
                                                    |> THEN 
                                                    <| EXISTS_TAC
-                                                          (parse_term "B:num")
+                                                          (parse_term @"B:num")
                                                    |> THEN <| ASM_REWRITE_TAC [])
 
 let NADD_LE_LMUL = 
     prove
-        ((parse_term "!x y z. y <<= z ==> (x ** y) <<= (x ** z)"), 
+        ((parse_term @"!x y z. y <<= z ==> (x ** y) <<= (x ** z)"), 
          REPEAT GEN_TAC
          |> THEN 
          <| DISCH_THEN
-                (X_CHOOSE_TAC(parse_term "d:nadd") << MATCH_MP NADD_LE_EXISTS)
+                (X_CHOOSE_TAC(parse_term @"d:nadd") << MATCH_MP NADD_LE_EXISTS)
          |> THEN <| MATCH_MP_TAC NADD_LE_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "x ** y ++ x ** d")
+         |> THEN <| EXISTS_TAC(parse_term @"x ** y ++ x ** d")
          |> THEN <| REWRITE_TAC [NADD_LE_ADD]
          |> THEN <| MATCH_MP_TAC NADD_EQ_IMP_LE
          |> THEN <| MATCH_MP_TAC NADD_EQ_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "x ** (y ++ d)")
+         |> THEN <| EXISTS_TAC(parse_term @"x ** (y ++ d)")
          |> THEN <| ONCE_REWRITE_TAC [NADD_EQ_SYM]
          |> THEN <| REWRITE_TAC [NADD_LDISTRIB]
          |> THEN <| MATCH_MP_TAC NADD_MUL_WELLDEF
@@ -1204,12 +1204,12 @@ let NADD_LE_LMUL =
 
 let NADD_LE_RMUL = 
     prove
-        ((parse_term "!x y z. x <<= y ==> (x ** z) <<= (y ** z)"), 
+        ((parse_term @"!x y z. x <<= y ==> (x ** z) <<= (y ** z)"), 
          MESON_TAC [NADD_LE_LMUL; NADD_LE_WELLDEF; NADD_MUL_SYM])
 
 let NADD_LE_RADD = 
     prove
-        ((parse_term "!x y z. x ++ z <<= y ++ z <=> x <<= y"), 
+        ((parse_term @"!x y z. x ++ z <<= y ++ z <=> x <<= y"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_le; NADD_ADD]
          |> THEN 
@@ -1223,11 +1223,11 @@ let NADD_LE_RADD =
 
 let NADD_LE_LADD = 
     prove
-        ((parse_term "!x y z. x ++ y <<= x ++ z <=> y <<= z"), 
+        ((parse_term @"!x y z. x ++ y <<= x ++ z <=> y <<= z"), 
          MESON_TAC [NADD_LE_RADD; NADD_ADD_SYM; NADD_LE_WELLDEF])
 let NADD_RDISTRIB = 
     prove
-        ((parse_term "!x y z. (x ++ y) ** z === x ** z ++ y ** z"), 
+        ((parse_term @"!x y z. (x ++ y) ** z === x ** z ++ y ** z"), 
          MESON_TAC 
              [NADD_LDISTRIB; NADD_MUL_SYM; NADD_ADD_WELLDEF; NADD_EQ_TRANS; 
               NADD_EQ_REFL; NADD_EQ_SYM])
@@ -1237,27 +1237,27 @@ let NADD_RDISTRIB =
 (* ------------------------------------------------------------------------- *)
 let NADD_ARCH_MULT = 
     prove
-        ((parse_term "!x k. ~(x === &0) ==> ?N. &k <<= &N ** x"), 
+        ((parse_term @"!x k. ~(x === &0) ==> ?N. &k <<= &N ** x"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_eq; nadd_le; NOT_EXISTS_THM]
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "B:num") 
-                (SPEC (parse_term "x:nadd") NADD_CAUCHY)
-         |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term "B + k"))
+         <| X_CHOOSE_TAC (parse_term @"B:num") 
+                (SPEC (parse_term @"x:nadd") NADD_CAUCHY)
+         |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term @"B + k"))
          |> THEN <| REWRITE_TAC [NOT_FORALL_THM; NADD_OF_NUM]
          |> THEN <| REWRITE_TAC [MULT_CLAUSES; DIST_RZERO; NOT_LE]
-         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "N:num"))
-         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term "N:num")
-                                          (parse_term "B * N")]
-         |> THEN <| X_GEN_TAC(parse_term "i:num")
+         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"N:num"))
+         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"N:num")
+                                          (parse_term @"B * N")]
+         |> THEN <| X_GEN_TAC(parse_term @"i:num")
          |> THEN <| REWRITE_TAC [NADD_MUL; NADD_OF_NUM]
          |> THEN 
          <| MATCH_MP_TAC(GEN_ALL(fst(EQ_IMP_RULE(SPEC_ALL LE_ADD_RCANCEL))))
-         |> THEN <| EXISTS_TAC(parse_term "B * i")
+         |> THEN <| EXISTS_TAC(parse_term @"B * i")
          |> THEN <| REWRITE_TAC [GSYM ADD_ASSOC
                                  GSYM LEFT_ADD_DISTRIB]
          |> THEN <| MATCH_MP_TAC LE_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "i * fn x N")
+         |> THEN <| EXISTS_TAC(parse_term @"i * fn x N")
          |> THEN <| RULE_ASSUM_TAC(REWRITE_RULE [DIST_LE_CASES])
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| REWRITE_TAC [GSYM RIGHT_ADD_DISTRIB]
@@ -1270,39 +1270,39 @@ let NADD_ARCH_MULT =
 
 let NADD_ARCH_ZERO = 
     prove
-        ((parse_term "!x k. (!n. &n ** x <<= k) ==> (x === &0)"), 
+        ((parse_term @"!x k. (!n. &n ** x <<= k) ==> (x === &0)"), 
          REPEAT GEN_TAC
          |> THEN <| CONV_TAC CONTRAPOS_CONV
          |> THEN <| DISCH_TAC
          |> THEN <| REWRITE_TAC [NOT_FORALL_THM]
          |> THEN 
-         <| X_CHOOSE_TAC (parse_term "p:num") 
-                (SPEC (parse_term "k:nadd") NADD_ARCH)
+         <| X_CHOOSE_TAC (parse_term @"p:num") 
+                (SPEC (parse_term @"k:nadd") NADD_ARCH)
          |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP NADD_ARCH_MULT)
          |> THEN 
          <| DISCH_THEN
-                (X_CHOOSE_TAC(parse_term "N:num") << SPEC(parse_term "p:num"))
-         |> THEN <| EXISTS_TAC(parse_term "N + 1")
+                (X_CHOOSE_TAC(parse_term @"N:num") << SPEC(parse_term @"p:num"))
+         |> THEN <| EXISTS_TAC(parse_term @"N + 1")
          |> THEN <| DISCH_TAC
-         |> THEN <| UNDISCH_TAC(parse_term "~(x === &0)")
+         |> THEN <| UNDISCH_TAC(parse_term @"~(x === &0)")
          |> THEN <| REWRITE_TAC [GSYM NADD_LE_ANTISYM
                                  NADD_LE_0]
          |> THEN 
          <| MATCH_MP_TAC(GEN_ALL(fst(EQ_IMP_RULE(SPEC_ALL NADD_LE_RADD))))
-         |> THEN <| EXISTS_TAC(parse_term "&N ** x")
+         |> THEN <| EXISTS_TAC(parse_term @"&N ** x")
          |> THEN <| MATCH_MP_TAC NADD_LE_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "k:nadd")
+         |> THEN <| EXISTS_TAC(parse_term @"k:nadd")
          |> THEN <| CONJ_TAC
          |> THENL 
-         <| [SUBGOAL_THEN (parse_term "&(N + 1) ** x === x ++ &N ** x") MP_TAC
+         <| [SUBGOAL_THEN (parse_term @"&(N + 1) ** x === x ++ &N ** x") MP_TAC
              |> THENL <| [ONCE_REWRITE_TAC [ADD_SYM]
                           |> THEN <| MATCH_MP_TAC NADD_EQ_TRANS
-                          |> THEN <| EXISTS_TAC(parse_term "&1 ** x ++ &N ** x")
+                          |> THEN <| EXISTS_TAC(parse_term @"&1 ** x ++ &N ** x")
                           |> THEN <| CONJ_TAC
                           |> THENL 
                           <| [MATCH_MP_TAC NADD_EQ_TRANS
                               |> THEN 
-                              <| EXISTS_TAC(parse_term "(&1 ++ &N) ** x")
+                              <| EXISTS_TAC(parse_term @"(&1 ++ &N) ** x")
                               |> THEN <| CONJ_TAC
                               |> THENL 
                               <| [MESON_TAC 
@@ -1319,26 +1319,26 @@ let NADD_ARCH_ZERO =
 
 let NADD_ARCH_LEMMA = 
     prove
-        ((parse_term "!x y z. (!n. &n ** x <<= &n ** y ++ z) ==> x <<= y"), 
+        ((parse_term @"!x y z. (!n. &n ** x <<= &n ** y ++ z) ==> x <<= y"), 
          REPEAT STRIP_TAC
-         |> THEN <| DISJ_CASES_TAC(SPECL [(parse_term "x:nadd")
-                                          (parse_term "y:nadd")] NADD_LE_TOTAL)
+         |> THEN <| DISJ_CASES_TAC(SPECL [(parse_term @"x:nadd")
+                                          (parse_term @"y:nadd")] NADD_LE_TOTAL)
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN 
          <| FIRST_ASSUM
-                (X_CHOOSE_TAC(parse_term "d:nadd") << MATCH_MP NADD_LE_EXISTS)
+                (X_CHOOSE_TAC(parse_term @"d:nadd") << MATCH_MP NADD_LE_EXISTS)
          |> THEN <| MATCH_MP_TAC NADD_EQ_IMP_LE
          |> THEN <| MATCH_MP_TAC NADD_EQ_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "y ++ d")
+         |> THEN <| EXISTS_TAC(parse_term @"y ++ d")
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| MATCH_MP_TAC NADD_EQ_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "y ++ &0")
+         |> THEN <| EXISTS_TAC(parse_term @"y ++ &0")
          |> THEN <| CONJ_TAC
          |> THENL 
          <| [MATCH_MP_TAC NADD_ADD_WELLDEF
              |> THEN <| REWRITE_TAC [NADD_EQ_REFL]
              |> THEN <| MATCH_MP_TAC NADD_ARCH_ZERO
-             |> THEN <| EXISTS_TAC(parse_term "z:nadd")
+             |> THEN <| EXISTS_TAC(parse_term @"z:nadd")
              |> THEN 
              <| ASM_MESON_TAC 
                     [NADD_MUL_WELLDEF; NADD_LE_WELLDEF; NADD_LDISTRIB; 
@@ -1351,42 +1351,42 @@ let NADD_ARCH_LEMMA =
 (* ------------------------------------------------------------------------- *)
 let NADD_COMPLETE = 
     prove
-        ((parse_term "!P. (?x. P x) /\ (?M. !x. P x ==> x <<= M) ==>
+        ((parse_term @"!P. (?x. P x) /\ (?M. !x. P x ==> x <<= M) ==>
        ?M. (!x. P x ==> x <<= M) /\
            !M'. (!x. P x ==> x <<= M') ==> M <<= M'"), 
          GEN_TAC
          |> THEN 
          <| DISCH_THEN
-                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term "a:nadd")) 
-                     (X_CHOOSE_TAC(parse_term "m:nadd")))
-         |> THEN <| SUBGOAL_THEN (parse_term "!n. ?r. (?x. P x /\ &r <<= &n ** x) /\
+                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term @"a:nadd")) 
+                     (X_CHOOSE_TAC(parse_term @"m:nadd")))
+         |> THEN <| SUBGOAL_THEN (parse_term @"!n. ?r. (?x. P x /\ &r <<= &n ** x) /\
              !r'. (?x. P x /\ &r' <<= &n ** x) ==> r' <= r") MP_TAC
          |> THENL <| [GEN_TAC
                       |> THEN <| REWRITE_TAC [GSYM num_MAX]
                       |> THEN <| CONJ_TAC
                       |> THENL 
-                      <| [MAP_EVERY EXISTS_TAC [(parse_term "0")
-                                                (parse_term "a:nadd")]
+                      <| [MAP_EVERY EXISTS_TAC [(parse_term @"0")
+                                                (parse_term @"a:nadd")]
                           |> THEN <| ASM_REWRITE_TAC [NADD_LE_0]
-                          X_CHOOSE_TAC (parse_term "N:num") 
-                              (SPEC (parse_term "m:nadd") NADD_ARCH)
-                          |> THEN <| EXISTS_TAC(parse_term "n * N")
-                          |> THEN <| X_GEN_TAC(parse_term "p:num")
+                          X_CHOOSE_TAC (parse_term @"N:num") 
+                              (SPEC (parse_term @"m:nadd") NADD_ARCH)
+                          |> THEN <| EXISTS_TAC(parse_term @"n * N")
+                          |> THEN <| X_GEN_TAC(parse_term @"p:num")
                           |> THEN 
                           <| DISCH_THEN
-                                 (X_CHOOSE_THEN (parse_term "w:nadd") 
+                                 (X_CHOOSE_THEN (parse_term @"w:nadd") 
                                       STRIP_ASSUME_TAC)
                           |> THEN <| ONCE_REWRITE_TAC [GSYM NADD_OF_NUM_LE]
                           |> THEN <| MATCH_MP_TAC NADD_LE_TRANS
-                          |> THEN <| EXISTS_TAC(parse_term "&n ** w")
+                          |> THEN <| EXISTS_TAC(parse_term @"&n ** w")
                           |> THEN <| ASM_REWRITE_TAC []
                           |> THEN <| MATCH_MP_TAC NADD_LE_TRANS
-                          |> THEN <| EXISTS_TAC(parse_term "&n ** &N")
+                          |> THEN <| EXISTS_TAC(parse_term @"&n ** &N")
                           |> THEN <| CONJ_TAC
                           |> THENL 
                           <| [MATCH_MP_TAC NADD_LE_LMUL
                               |> THEN <| MATCH_MP_TAC NADD_LE_TRANS
-                              |> THEN <| EXISTS_TAC(parse_term "m:nadd")
+                              |> THEN <| EXISTS_TAC(parse_term @"m:nadd")
                               |> THEN <| ASM_REWRITE_TAC []
                               |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                               |> THEN <| ASM_REWRITE_TAC []
@@ -1395,49 +1395,49 @@ let NADD_COMPLETE =
                       ONCE_REWRITE_TAC [SKOLEM_THM]
                       |> THEN 
                       <| DISCH_THEN
-                             (X_CHOOSE_THEN (parse_term "r:num->num") 
+                             (X_CHOOSE_THEN (parse_term @"r:num->num") 
                                   (fun th -> 
                                       let th1, th2 = 
                                           CONJ_PAIR
-                                              (SPEC (parse_term "n:num") th)
+                                              (SPEC (parse_term @"n:num") th)
                                       MAP_EVERY 
-                                          (MP_TAC << GEN(parse_term "n:num")) 
+                                          (MP_TAC << GEN(parse_term @"n:num")) 
                                           [th1; th2]))
                       |> THEN 
                       <| DISCH_THEN
-                             (MP_TAC << GEN(parse_term "n:num") 
-                              << SPECL [(parse_term "n:num")
-                                        (parse_term "SUC(r(n:num))")])
+                             (MP_TAC << GEN(parse_term @"n:num") 
+                              << SPECL [(parse_term @"n:num")
+                                        (parse_term @"SUC(r(n:num))")])
                       |> THEN 
                       <| REWRITE_TAC [LE_SUC_LT; LT_REFL; NOT_EXISTS_THM]
                       |> THEN 
                       <| DISCH_THEN
-                             (ASSUME_TAC << GENL [(parse_term "n:num")
-                                                  (parse_term "x:nadd")] 
+                             (ASSUME_TAC << GENL [(parse_term @"n:num")
+                                                  (parse_term @"x:nadd")] 
                               << MATCH_MP
                                      (ITAUT
                                           (parse_term 
                                                "(a \/ b) /\ ~(c /\ b) ==> c ==> a")) 
                               << CONJ
-                                     (SPECL [(parse_term "&n ** x")
-                                             (parse_term "&(SUC(r(n:num)))")] 
+                                     (SPECL [(parse_term @"&n ** x")
+                                             (parse_term @"&(SUC(r(n:num)))")] 
                                           NADD_LE_TOTAL) << SPEC_ALL)
                       |> THEN <| DISCH_TAC]
          |> THEN 
-         <| SUBGOAL_THEN (parse_term "!n i. i * r(n) <= n * r(i) + n") 
+         <| SUBGOAL_THEN (parse_term @"!n i. i * r(n) <= n * r(i) + n") 
                 ASSUME_TAC
          |> THENL <| [REPEAT GEN_TAC
                       |> THEN 
                       <| FIRST_ASSUM
-                             (X_CHOOSE_THEN (parse_term "x:nadd") 
-                                  STRIP_ASSUME_TAC << SPEC(parse_term "n:num"))
+                             (X_CHOOSE_THEN (parse_term @"x:nadd") 
+                                  STRIP_ASSUME_TAC << SPEC(parse_term @"n:num"))
                       |> THEN <| ONCE_REWRITE_TAC [GSYM NADD_OF_NUM_LE]
                       |> THEN <| MATCH_MP_TAC NADD_LE_TRANS
-                      |> THEN <| EXISTS_TAC(parse_term "&i ** &n ** x")
+                      |> THEN <| EXISTS_TAC(parse_term @"&i ** &n ** x")
                       |> THEN <| CONJ_TAC
                       |> THENL 
                       <| [MATCH_MP_TAC NADD_LE_TRANS
-                          |> THEN <| EXISTS_TAC(parse_term "&i ** &(r(n:num))")
+                          |> THEN <| EXISTS_TAC(parse_term @"&i ** &(r(n:num))")
                           |> THEN <| CONJ_TAC
                           |> THENL <| [MATCH_MP_TAC NADD_EQ_IMP_LE
                                        |> THEN <| ONCE_REWRITE_TAC [NADD_EQ_SYM]
@@ -1447,24 +1447,24 @@ let NADD_COMPLETE =
                                        |> THEN <| ASM_REWRITE_TAC []]
                           MATCH_MP_TAC NADD_LE_TRANS
                           |> THEN 
-                          <| EXISTS_TAC(parse_term "&n ** &(SUC(r(i:num)))")
+                          <| EXISTS_TAC(parse_term @"&n ** &(SUC(r(i:num)))")
                           |> THEN <| CONJ_TAC
                           |> THENL <| [MATCH_MP_TAC NADD_LE_TRANS
                                        |> THEN 
-                                       <| EXISTS_TAC(parse_term "&n ** &i ** x")
+                                       <| EXISTS_TAC(parse_term @"&n ** &i ** x")
                                        |> THEN <| CONJ_TAC
                                        |> THENL 
                                        <| [MATCH_MP_TAC NADD_EQ_IMP_LE
                                            |> THEN <| MATCH_MP_TAC NADD_EQ_TRANS
                                            |> THEN 
                                            <| EXISTS_TAC
-                                                  (parse_term "(&i ** &n) ** x")
+                                                  (parse_term @"(&i ** &n) ** x")
                                            |> THEN 
                                            <| REWRITE_TAC [NADD_MUL_ASSOC]
                                            |> THEN <| MATCH_MP_TAC NADD_EQ_TRANS
                                            |> THEN 
                                            <| EXISTS_TAC
-                                                  (parse_term "(&n ** &i) ** x")
+                                                  (parse_term @"(&n ** &i) ** x")
                                            |> THEN 
                                            <| REWRITE_TAC 
                                                   [ONCE_REWRITE_RULE 
@@ -1483,11 +1483,11 @@ let NADD_COMPLETE =
                                        |> THEN <| MATCH_MP_TAC NADD_EQ_IMP_LE
                                        |> THEN <| REWRITE_TAC [NADD_OF_NUM_MUL]]]
                       ALL_TAC]
-         |> THEN <| EXISTS_TAC(parse_term "afn r")
-         |> THEN <| SUBGOAL_THEN (parse_term "fn(afn r) = r") ASSUME_TAC
+         |> THEN <| EXISTS_TAC(parse_term @"afn r")
+         |> THEN <| SUBGOAL_THEN (parse_term @"fn(afn r) = r") ASSUME_TAC
          |> THENL <| [REWRITE_TAC [GSYM nadd_rep]
                       |> THEN <| REWRITE_TAC [is_nadd; DIST_LE_CASES]
-                      |> THEN <| EXISTS_TAC(parse_term "1")
+                      |> THEN <| EXISTS_TAC(parse_term @"1")
                       |> THEN <| REWRITE_TAC [MULT_CLAUSES]
                       |> THEN <| REWRITE_TAC [FORALL_AND_THM]
                       |> THEN <| GEN_REWRITE_TAC RAND_CONV [SWAP_FORALL_THM]
@@ -1496,20 +1496,20 @@ let NADD_COMPLETE =
                              (LAND_CONV << funpow 2 BINDER_CONV 
                               << funpow 2 RAND_CONV) [ADD_SYM]
                       |> THEN <| REWRITE_TAC []
-                      |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term "i:num")
-                                                      (parse_term "n:num")]
+                      |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term @"i:num")
+                                                      (parse_term @"n:num")]
                       |> THEN <| MATCH_MP_TAC LE_TRANS
-                      |> THEN <| EXISTS_TAC(parse_term "n * r(i:num) + n")
+                      |> THEN <| EXISTS_TAC(parse_term @"n * r(i:num) + n")
                       |> THEN <| ASM_REWRITE_TAC [ADD_ASSOC; LE_ADD]
                       ALL_TAC]
          |> THEN <| CONJ_TAC
-         |> THENL <| [X_GEN_TAC(parse_term "x:nadd")
+         |> THENL <| [X_GEN_TAC(parse_term @"x:nadd")
                       |> THEN <| DISCH_TAC
                       |> THEN <| MATCH_MP_TAC NADD_ARCH_LEMMA
-                      |> THEN <| EXISTS_TAC(parse_term "&2")
-                      |> THEN <| X_GEN_TAC(parse_term "n:num")
+                      |> THEN <| EXISTS_TAC(parse_term @"&2")
+                      |> THEN <| X_GEN_TAC(parse_term @"n:num")
                       |> THEN <| MATCH_MP_TAC NADD_LE_TRANS
-                      |> THEN <| EXISTS_TAC(parse_term "&(SUC(r(n:num)))")
+                      |> THEN <| EXISTS_TAC(parse_term @"&(SUC(r(n:num)))")
                       |> THEN <| CONJ_TAC
                       |> THENL 
                       <| [FIRST_ASSUM MATCH_MP_TAC
@@ -1525,26 +1525,26 @@ let NADD_COMPLETE =
                           |> THEN <| REWRITE_TAC [GSYM ADD_ASSOC]
                           |> THEN <| ONCE_REWRITE_TAC [ADD_SYM]
                           |> THEN <| ONCE_REWRITE_TAC [BOUNDS_IGNORE]
-                          |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term "0")
-                                                           (parse_term "n:num")]
-                          |> THEN <| X_GEN_TAC(parse_term "i:num")
+                          |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"0")
+                                                           (parse_term @"n:num")]
+                          |> THEN <| X_GEN_TAC(parse_term @"i:num")
                           |> THEN <| DISCH_TAC
                           |> THEN <| GEN_REWRITE_TAC LAND_CONV [MULT_SYM]
                           |> THEN <| MATCH_MP_TAC LE_TRANS
-                          |> THEN <| EXISTS_TAC(parse_term "n * r(i:num) + n")
+                          |> THEN <| EXISTS_TAC(parse_term @"n * r(i:num) + n")
                           |> THEN 
                           <| ASM_REWRITE_TAC [LE_ADD_LCANCEL; ADD_CLAUSES]]
-                      X_GEN_TAC(parse_term "z:nadd")
+                      X_GEN_TAC(parse_term @"z:nadd")
                       |> THEN <| DISCH_TAC
                       |> THEN <| MATCH_MP_TAC NADD_ARCH_LEMMA
-                      |> THEN <| EXISTS_TAC(parse_term "&1")
-                      |> THEN <| X_GEN_TAC(parse_term "n:num")
+                      |> THEN <| EXISTS_TAC(parse_term @"&1")
+                      |> THEN <| X_GEN_TAC(parse_term @"n:num")
                       |> THEN <| MATCH_MP_TAC NADD_LE_TRANS
-                      |> THEN <| EXISTS_TAC(parse_term "&(r(n:num)) ++ &1")
+                      |> THEN <| EXISTS_TAC(parse_term @"&(r(n:num)) ++ &1")
                       |> THEN <| CONJ_TAC
                       |> THENL <| [ASM_REWRITE_TAC 
                                        [nadd_le; NADD_ADD; NADD_MUL; NADD_OF_NUM]
-                                   |> THEN <| EXISTS_TAC(parse_term "0")
+                                   |> THEN <| EXISTS_TAC(parse_term @"0")
                                    |> THEN 
                                    <| REWRITE_TAC [ADD_CLAUSES; MULT_CLAUSES]
                                    |> THEN <| GEN_TAC
@@ -1555,12 +1555,12 @@ let NADD_COMPLETE =
                                    REWRITE_TAC [NADD_LE_RADD]
                                    |> THEN 
                                    <| FIRST_ASSUM
-                                          (X_CHOOSE_THEN (parse_term "x:nadd") 
+                                          (X_CHOOSE_THEN (parse_term @"x:nadd") 
                                                MP_TAC 
-                                           << SPEC(parse_term "n:num"))
+                                           << SPEC(parse_term @"n:num"))
                                    |> THEN <| DISCH_THEN STRIP_ASSUME_TAC
                                    |> THEN <| MATCH_MP_TAC NADD_LE_TRANS
-                                   |> THEN <| EXISTS_TAC(parse_term "&n ** x")
+                                   |> THEN <| EXISTS_TAC(parse_term @"&n ** x")
                                    |> THEN <| ASM_REWRITE_TAC []
                                    |> THEN <| MATCH_MP_TAC NADD_LE_LMUL
                                    |> THEN <| FIRST_ASSUM MATCH_MP_TAC
@@ -1571,17 +1571,17 @@ let NADD_COMPLETE =
 (* ------------------------------------------------------------------------- *)
 let NADD_UBOUND = 
     prove
-        ((parse_term "!x. ?B N. !n. N <= n ==> fn x n <= B * n"), 
+        ((parse_term @"!x. ?B N. !n. N <= n ==> fn x n <= B * n"), 
          GEN_TAC
          |> THEN 
-         <| X_CHOOSE_THEN (parse_term "A1:num") 
-                (X_CHOOSE_TAC(parse_term "A2:num")) 
-                (SPEC (parse_term "x:nadd") NADD_BOUND)
-         |> THEN <| EXISTS_TAC(parse_term "A1 + A2")
-         |> THEN <| EXISTS_TAC(parse_term "1")
+         <| X_CHOOSE_THEN (parse_term @"A1:num") 
+                (X_CHOOSE_TAC(parse_term @"A2:num")) 
+                (SPEC (parse_term @"x:nadd") NADD_BOUND)
+         |> THEN <| EXISTS_TAC(parse_term @"A1 + A2")
+         |> THEN <| EXISTS_TAC(parse_term @"1")
          |> THEN <| REPEAT STRIP_TAC
          |> THEN <| MATCH_MP_TAC LE_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "A1 * n + A2")
+         |> THEN <| EXISTS_TAC(parse_term @"A1 * n + A2")
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| REWRITE_TAC [RIGHT_ADD_DISTRIB; LE_ADD_LCANCEL]
          |> THEN 
@@ -1590,54 +1590,54 @@ let NADD_UBOUND =
 
 let NADD_NONZERO = 
     prove
-        ((parse_term "!x. ~(x === &0) ==> ?N. !n. N <= n ==> ~(fn x n = 0)"), 
+        ((parse_term @"!x. ~(x === &0) ==> ?N. !n. N <= n ==> ~(fn x n = 0)"), 
          GEN_TAC
          |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP NADD_ARCH_MULT)
-         |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term "1"))
+         |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term @"1"))
          |> THEN <| REWRITE_TAC [nadd_le; NADD_MUL; NADD_OF_NUM; MULT_CLAUSES]
          |> THEN 
          <| DISCH_THEN
-                (X_CHOOSE_THEN (parse_term "A1:num") 
-                     (X_CHOOSE_TAC(parse_term "A2:num")))
-         |> THEN <| EXISTS_TAC(parse_term "A2 + 1")
-         |> THEN <| X_GEN_TAC(parse_term "n:num")
+                (X_CHOOSE_THEN (parse_term @"A1:num") 
+                     (X_CHOOSE_TAC(parse_term @"A2:num")))
+         |> THEN <| EXISTS_TAC(parse_term @"A2 + 1")
+         |> THEN <| X_GEN_TAC(parse_term @"n:num")
          |> THEN <| REPEAT DISCH_TAC
          |> THEN <| FIRST_ASSUM(UNDISCH_TAC << check is_forall << concl)
          |> THEN <| REWRITE_TAC [NOT_FORALL_THM
                                  NOT_LE
                                  GSYM LE_SUC_LT
                                  ADD1]
-         |> THEN <| EXISTS_TAC(parse_term "n:num")
+         |> THEN <| EXISTS_TAC(parse_term @"n:num")
          |> THEN <| ASM_REWRITE_TAC [MULT_CLAUSES; ADD_CLAUSES])
 
 let NADD_LBOUND = 
     prove
-        ((parse_term "!x. ~(x === &0) ==> ?A N. !n. N <= n ==> n <= A * fn x n"), 
+        ((parse_term @"!x. ~(x === &0) ==> ?A N. !n. N <= n ==> n <= A * fn x n"), 
          GEN_TAC
          |> THEN <| DISCH_TAC
          |> THEN 
          <| FIRST_ASSUM
-                (X_CHOOSE_TAC(parse_term "N:num") << MATCH_MP NADD_NONZERO)
+                (X_CHOOSE_TAC(parse_term @"N:num") << MATCH_MP NADD_NONZERO)
          |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP NADD_ARCH_MULT)
-         |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term "1"))
+         |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term @"1"))
          |> THEN <| REWRITE_TAC [nadd_le; NADD_MUL; NADD_OF_NUM; MULT_CLAUSES]
          |> THEN 
          <| DISCH_THEN
-                (X_CHOOSE_THEN (parse_term "A1:num") 
-                     (X_CHOOSE_TAC(parse_term "A2:num")))
-         |> THEN <| EXISTS_TAC(parse_term "A1 + A2")
-         |> THEN <| EXISTS_TAC(parse_term "N:num")
+                (X_CHOOSE_THEN (parse_term @"A1:num") 
+                     (X_CHOOSE_TAC(parse_term @"A2:num")))
+         |> THEN <| EXISTS_TAC(parse_term @"A1 + A2")
+         |> THEN <| EXISTS_TAC(parse_term @"N:num")
          |> THEN <| GEN_TAC
          |> THEN <| DISCH_THEN(ANTE_RES_THEN ASSUME_TAC)
          |> THEN <| MATCH_MP_TAC LE_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "A1 * fn x n + A2")
+         |> THEN <| EXISTS_TAC(parse_term @"A1 * fn x n + A2")
          |> THEN <| ASM_REWRITE_TAC [RIGHT_ADD_DISTRIB; LE_ADD_LCANCEL]
          |> THEN 
          <| GEN_REWRITE_TAC LAND_CONV [GSYM(el 3 (CONJUNCTS MULT_CLAUSES))]
          |> THEN <| REWRITE_TAC [LE_MULT_LCANCEL]
          |> THEN <| DISJ2_TAC
          |> THEN 
-         <| REWRITE_TAC [GSYM(REWRITE_CONV [ARITH_SUC] (parse_term "SUC 0"))]
+         <| REWRITE_TAC [GSYM(REWRITE_CONV [ARITH_SUC] (parse_term @"SUC 0"))]
          |> THEN <| ASM_REWRITE_TAC [GSYM NOT_LT
                                      LT])
 
@@ -1645,47 +1645,47 @@ let NADD_LBOUND =
 (* Auxiliary function for the multiplicative inverse.                        *)
 (* ------------------------------------------------------------------------- *)
 let nadd_rinv = 
-    new_definition(parse_term "nadd_rinv(x) = \n. (n * n) DIV (fn x n)")
+    new_definition(parse_term @"nadd_rinv(x) = \n. (n * n) DIV (fn x n)")
 
 let NADD_MUL_LINV_LEMMA0 = 
     prove
-        ((parse_term "!x. ~(x === &0) ==> ?A B. !n. nadd_rinv x n <= A * n + B"), 
+        ((parse_term @"!x. ~(x === &0) ==> ?A B. !n. nadd_rinv x n <= A * n + B"), 
          GEN_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| ONCE_REWRITE_TAC [BOUNDS_IGNORE]
          |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP NADD_LBOUND)
          |> THEN 
          <| DISCH_THEN
-                (X_CHOOSE_THEN (parse_term "A:num") 
-                     (X_CHOOSE_TAC(parse_term "N:num")))
-         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term "A:num")
-                                          (parse_term "0")
-                                          (parse_term "SUC N")]
+                (X_CHOOSE_THEN (parse_term @"A:num") 
+                     (X_CHOOSE_TAC(parse_term @"N:num")))
+         |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"A:num")
+                                          (parse_term @"0")
+                                          (parse_term @"SUC N")]
          |> THEN <| GEN_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| REWRITE_TAC [ADD_CLAUSES]
-         |> THEN <| MP_TAC(SPECL [(parse_term "nadd_rinv x n")
-                                  (parse_term "A * n")
-                                  (parse_term "n:num")] LE_MULT_RCANCEL)
-         |> THEN <| UNDISCH_TAC(parse_term "SUC N <= n")
-         |> THEN <| ASM_CASES_TAC(parse_term "n = 0")
+         |> THEN <| MP_TAC(SPECL [(parse_term @"nadd_rinv x n")
+                                  (parse_term @"A * n")
+                                  (parse_term @"n:num")] LE_MULT_RCANCEL)
+         |> THEN <| UNDISCH_TAC(parse_term @"SUC N <= n")
+         |> THEN <| ASM_CASES_TAC(parse_term @"n = 0")
          |> THEN <| ASM_REWRITE_TAC [LE; NOT_SUC]
          |> THEN <| DISCH_TAC
          |> THEN <| DISCH_THEN(SUBST1_TAC << SYM)
          |> THEN <| MATCH_MP_TAC LE_TRANS
-         |> THEN <| EXISTS_TAC(parse_term "nadd_rinv x n * A * fn x n")
+         |> THEN <| EXISTS_TAC(parse_term @"nadd_rinv x n * A * fn x n")
          |> THEN <| ASM_REWRITE_TAC [LE_MULT_LCANCEL]
          |> THEN <| CONJ_TAC
          |> THENL <| [DISJ2_TAC
                       |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                       |> THEN <| MATCH_MP_TAC LE_TRANS
-                      |> THEN <| EXISTS_TAC(parse_term "SUC N")
+                      |> THEN <| EXISTS_TAC(parse_term @"SUC N")
                       |> THEN <| ASM_REWRITE_TAC [LE; LE_REFL]
                       GEN_REWRITE_TAC LAND_CONV [MULT_SYM]
                       |> THEN <| REWRITE_TAC [GSYM MULT_ASSOC
                                               LE_MULT_LCANCEL]
                       |> THEN <| DISJ2_TAC
-                      |> THEN <| ASM_CASES_TAC(parse_term "fn x n = 0")
+                      |> THEN <| ASM_CASES_TAC(parse_term @"fn x n = 0")
                       |> THEN <| ASM_REWRITE_TAC [MULT_CLAUSES; LE_0; nadd_rinv]
                       |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP DIVISION)
                       |> THEN 
@@ -1705,7 +1705,7 @@ let NADD_MUL_LINV_LEMMA1 =
          |> THEN 
          <| DISCH_THEN
                 (CONJUNCTS_THEN2 SUBST1_TAC ASSUME_TAC 
-                 << SPEC(parse_term "n * n"))
+                 << SPEC(parse_term @"n * n"))
          |> THEN <| REWRITE_TAC [nadd_rinv]
          |> THEN 
          <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV << LAND_CONV) [MULT_SYM]
@@ -1714,25 +1714,25 @@ let NADD_MUL_LINV_LEMMA1 =
          |> THEN <| FIRST_ASSUM MATCH_ACCEPT_TAC)
 
 let NADD_MUL_LINV_LEMMA2 = 
-    prove((parse_term "!x. ~(x === &0) ==> ?N. !n. N <= n ==>
+    prove((parse_term @"!x. ~(x === &0) ==> ?N. !n. N <= n ==>
          dist(fn x n * nadd_rinv(x) n, n * n) <= fn x n"),
         GEN_TAC
         |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP NADD_NONZERO)
-        |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "N:num"))
-        |> THEN <| EXISTS_TAC(parse_term "N:num")
+        |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"N:num"))
+        |> THEN <| EXISTS_TAC(parse_term @"N:num")
         |> THEN <| REPEAT STRIP_TAC
         |> THEN <| MATCH_MP_TAC NADD_MUL_LINV_LEMMA1
         |> THEN <| FIRST_ASSUM MATCH_MP_TAC
         |> THEN <| ASM_REWRITE_TAC [])
 
 let NADD_MUL_LINV_LEMMA3 = 
-    prove((parse_term "!x. ~(x === &0) ==> ?N. !m n. N <= n ==>
+    prove((parse_term @"!x. ~(x === &0) ==> ?N. !m n. N <= n ==>
         dist(m * fn x m * fn x n * nadd_rinv(x) n,
              m * fn x m * n * n) <= m * fn x m * fn x n"),
             GEN_TAC
             |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP NADD_MUL_LINV_LEMMA2)
-            |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "N:num"))
-            |> THEN <| EXISTS_TAC(parse_term "N:num")
+            |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"N:num"))
+            |> THEN <| EXISTS_TAC(parse_term @"N:num")
             |> THEN <| REPEAT STRIP_TAC
             |> THEN <| REWRITE_TAC [GSYM DIST_LMUL
                                     MULT_ASSOC]
@@ -1742,51 +1742,51 @@ let NADD_MUL_LINV_LEMMA3 =
             |> THEN <| ASM_REWRITE_TAC [])
 
 let NADD_MUL_LINV_LEMMA4 = 
-    prove((parse_term "!x. ~(x === &0) ==> ?N. !m n. N <= m /\ N <= n ==>
+    prove((parse_term @"!x. ~(x === &0) ==> ?N. !m n. N <= m /\ N <= n ==>
         (fn x m * fn x n) * dist(m * nadd_rinv(x) n,n * nadd_rinv(x) m) <=
           (m * n) * dist(m * fn x n,n * fn x m) + (fn x m * fn x n) * (m + n)"),
          GEN_TAC
          |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP NADD_MUL_LINV_LEMMA3)
-         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "N:num"))
-         |> THEN <| EXISTS_TAC(parse_term "N:num")
+         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"N:num"))
+         |> THEN <| EXISTS_TAC(parse_term @"N:num")
          |> THEN <| REPEAT STRIP_TAC
          |> THEN <| REWRITE_TAC [DIST_LMUL; LEFT_ADD_DISTRIB]
          |> THEN <| GEN_REWRITE_TAC (RAND_CONV << LAND_CONV) [DIST_SYM]
          |> THEN <| MATCH_MP_TAC DIST_TRIANGLES_LE
          |> THEN <| CONJ_TAC
          |> THENL 
-         <| [ANTE_RES_THEN (MP_TAC << SPEC(parse_term "m:num")) 
-                 (ASSUME(parse_term "N <= n"))
-             ANTE_RES_THEN (MP_TAC << SPEC(parse_term "n:num")) 
-                 (ASSUME(parse_term "N <= m"))]
+         <| [ANTE_RES_THEN (MP_TAC << SPEC(parse_term @"m:num")) 
+                 (ASSUME(parse_term @"N <= n"))
+             ANTE_RES_THEN (MP_TAC << SPEC(parse_term @"n:num")) 
+                 (ASSUME(parse_term @"N <= m"))]
          |> THEN <| MATCH_MP_TAC EQ_IMP
          |> THEN <| REWRITE_TAC [MULT_AC])
 
 let NADD_MUL_LINV_LEMMA5 = 
-    prove((parse_term "!x. ~(x === &0) ==> ?B N. !m n. N <= m /\ N <= n ==>
+    prove((parse_term @"!x. ~(x === &0) ==> ?B N. !m n. N <= m /\ N <= n ==>
         (fn x m * fn x n) * dist(m * nadd_rinv(x) n,n * nadd_rinv(x) m) <=
         B * (m * n) * (m + n)"),
        GEN_TAC
        |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP NADD_MUL_LINV_LEMMA4)
-       |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term "N1:num"))
+       |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"N1:num"))
        |> THEN 
-       <| X_CHOOSE_TAC (parse_term "B1:num") 
-              (SPEC (parse_term "x:nadd") NADD_CAUCHY)
+       <| X_CHOOSE_TAC (parse_term @"B1:num") 
+              (SPEC (parse_term @"x:nadd") NADD_CAUCHY)
        |> THEN 
-       <| X_CHOOSE_THEN (parse_term "B2:num") 
-              (X_CHOOSE_TAC(parse_term "N2:num")) 
-              (SPEC (parse_term "x:nadd") NADD_UBOUND)
-       |> THEN <| EXISTS_TAC(parse_term "B1 + B2 * B2")
-       |> THEN <| EXISTS_TAC(parse_term "N1 + N2")
+       <| X_CHOOSE_THEN (parse_term @"B2:num") 
+              (X_CHOOSE_TAC(parse_term @"N2:num")) 
+              (SPEC (parse_term @"x:nadd") NADD_UBOUND)
+       |> THEN <| EXISTS_TAC(parse_term @"B1 + B2 * B2")
+       |> THEN <| EXISTS_TAC(parse_term @"N1 + N2")
        |> THEN <| REPEAT STRIP_TAC
        |> THEN <| MATCH_MP_TAC LE_TRANS
-       |> THEN <| EXISTS_TAC(parse_term "(m * n) * dist(m * fn x n,n * fn x m) +
+       |> THEN <| EXISTS_TAC(parse_term @"(m * n) * dist(m * fn x n,n * fn x m) +
               (fn x m * fn x n) * (m + n)") 
        |> THEN <| CONJ_TAC
        |> THENL <| [FIRST_ASSUM MATCH_MP_TAC
                     |> THEN <| CONJ_TAC
                     |> THEN <| MATCH_MP_TAC LE_TRANS
-                    |> THEN <| EXISTS_TAC(parse_term "N1 + N2")
+                    |> THEN <| EXISTS_TAC(parse_term @"N1 + N2")
                     |> THEN <| ASM_REWRITE_TAC [LE_ADD; LE_ADDR]
                     REWRITE_TAC [RIGHT_ADD_DISTRIB]
                     |> THEN <| MATCH_MP_TAC LE_ADD2]
@@ -1805,11 +1805,11 @@ let NADD_MUL_LINV_LEMMA5 =
                     |> THEN <| CONJ_TAC
                     |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                     |> THEN <| MATCH_MP_TAC LE_TRANS
-                    |> THEN <| EXISTS_TAC(parse_term "N1 + N2")
+                    |> THEN <| EXISTS_TAC(parse_term @"N1 + N2")
                     |> THEN <| ASM_REWRITE_TAC [LE_ADD; LE_ADDR]])
 
 let NADD_MUL_LINV_LEMMA6 = 
-    prove((parse_term "!x. ~(x === &0) ==> ?B N. !m n. N <= m /\ N <= n ==>
+    prove((parse_term @"!x. ~(x === &0) ==> ?B N. !m n. N <= m /\ N <= n ==>
         (m * n) * dist(m * nadd_rinv(x) n,n * nadd_rinv(x) m) <=
         B * (m * n) * (m + n)"),
        GEN_TAC
@@ -1817,18 +1817,18 @@ let NADD_MUL_LINV_LEMMA6 =
        |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP NADD_MUL_LINV_LEMMA5)
        |> THEN 
        <| DISCH_THEN
-              (X_CHOOSE_THEN (parse_term "B1:num") 
-                   (X_CHOOSE_TAC(parse_term "N1:num")))
+              (X_CHOOSE_THEN (parse_term @"B1:num") 
+                   (X_CHOOSE_TAC(parse_term @"N1:num")))
        |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP NADD_LBOUND)
        |> THEN 
        <| DISCH_THEN
-              (X_CHOOSE_THEN (parse_term "B2:num") 
-                   (X_CHOOSE_TAC(parse_term "N2:num")))
-       |> THEN <| EXISTS_TAC(parse_term "B1 * B2 * B2")
-       |> THEN <| EXISTS_TAC(parse_term "N1 + N2")
+              (X_CHOOSE_THEN (parse_term @"B2:num") 
+                   (X_CHOOSE_TAC(parse_term @"N2:num")))
+       |> THEN <| EXISTS_TAC(parse_term @"B1 * B2 * B2")
+       |> THEN <| EXISTS_TAC(parse_term @"N1 + N2")
        |> THEN <| REPEAT STRIP_TAC
        |> THEN <| MATCH_MP_TAC LE_TRANS
-       |> THEN <| EXISTS_TAC(parse_term "(B2 * B2) * (fn x m * fn x n) *
+       |> THEN <| EXISTS_TAC(parse_term @"(B2 * B2) * (fn x m * fn x n) *
               dist (m * nadd_rinv x n,n * nadd_rinv x m)")
        |> THEN <| CONJ_TAC
        |> THENL <| [REWRITE_TAC [MULT_ASSOC; LE_MULT_RCANCEL]
@@ -1850,32 +1850,32 @@ let NADD_MUL_LINV_LEMMA6 =
                     |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                     |> THEN <| CONJ_TAC]
        |> THEN <| MATCH_MP_TAC LE_TRANS
-       |> THEN <| EXISTS_TAC(parse_term "N1 + N2")
+       |> THEN <| EXISTS_TAC(parse_term @"N1 + N2")
        |> THEN <| ASM_REWRITE_TAC [LE_ADD; LE_ADDR])
 
 let NADD_MUL_LINV_LEMMA7 = 
-    prove((parse_term "!x. ~(x === &0) ==> ?B N. !m n. N <= m /\ N <= n ==>
+    prove((parse_term @"!x. ~(x === &0) ==> ?B N. !m n. N <= m /\ N <= n ==>
         dist(m * nadd_rinv(x) n,n * nadd_rinv(x) m) <= B * (m + n)"),
        GEN_TAC
        |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP NADD_MUL_LINV_LEMMA6)
        |> THEN 
        <| DISCH_THEN
-              (X_CHOOSE_THEN (parse_term "B:num") 
-                   (X_CHOOSE_TAC(parse_term "N:num")))
-       |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term "B:num")
-                                        (parse_term "N + 1")]
-       |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term "m:num")
-                                       (parse_term "n:num")]
+              (X_CHOOSE_THEN (parse_term @"B:num") 
+                   (X_CHOOSE_TAC(parse_term @"N:num")))
+       |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"B:num")
+                                        (parse_term @"N + 1")]
+       |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term @"m:num")
+                                       (parse_term @"n:num")]
        |> THEN <| STRIP_TAC
-       |> THEN <| SUBGOAL_THEN (parse_term "N <= m /\ N <= n") MP_TAC
+       |> THEN <| SUBGOAL_THEN (parse_term @"N <= m /\ N <= n") MP_TAC
        |> THENL <| [CONJ_TAC
                     |> THEN <| MATCH_MP_TAC LE_TRANS
-                    |> THEN <| EXISTS_TAC(parse_term "N + 1")
+                    |> THEN <| EXISTS_TAC(parse_term @"N + 1")
                     |> THEN <| ASM_REWRITE_TAC [LE_ADD]
                     DISCH_THEN(ANTE_RES_THEN MP_TAC)
                     |> THEN 
                     <| ONCE_REWRITE_TAC 
-                           [AC MULT_AC (parse_term "a * b * c = b * a * c")]
+                           [AC MULT_AC (parse_term @"a * b * c = b * a * c")]
                     |> THEN <| REWRITE_TAC [LE_MULT_LCANCEL]
                     |> THEN <| DISCH_THEN(DISJ_CASES_THEN2 MP_TAC ACCEPT_TAC)
                     |> THEN <| CONV_TAC CONTRAPOS_CONV
@@ -1887,26 +1887,26 @@ let NADD_MUL_LINV_LEMMA7 =
                     <| REWRITE_TAC 
                            [EQT_ELIM
                                 (REWRITE_CONV [ARITH] 
-                                     (parse_term "SUC 0 = 1 * 1"))]
+                                     (parse_term @"SUC 0 = 1 * 1"))]
                     |> THEN <| MATCH_MP_TAC LE_MULT2
                     |> THEN <| CONJ_TAC
                     |> THEN <| MATCH_MP_TAC LE_TRANS
-                    |> THEN <| EXISTS_TAC(parse_term "N + 1")
+                    |> THEN <| EXISTS_TAC(parse_term @"N + 1")
                     |> THEN <| ASM_REWRITE_TAC [LE_ADDR]])
 
 let NADD_MUL_LINV_LEMMA7a = 
     prove
-        ((parse_term "!x. ~(x === &0) ==> !N. ?A B. !m n. m <= N ==>
+        ((parse_term @"!x. ~(x === &0) ==> !N. ?A B. !m n. m <= N ==>
         dist(m * nadd_rinv(x) n,n * nadd_rinv(x) m) <= A * n + B"),
        GEN_TAC
        |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP NADD_MUL_LINV_LEMMA0)
        |> THEN 
        <| DISCH_THEN
-              (X_CHOOSE_THEN (parse_term "A0:num") 
-                   (X_CHOOSE_TAC(parse_term "B0:num")))
+              (X_CHOOSE_THEN (parse_term @"A0:num") 
+                   (X_CHOOSE_TAC(parse_term @"B0:num")))
        |> THEN <| INDUCT_TAC
-       |> THENL <| [MAP_EVERY EXISTS_TAC [(parse_term "nadd_rinv x 0")
-                                          (parse_term "0")]
+       |> THENL <| [MAP_EVERY EXISTS_TAC [(parse_term @"nadd_rinv x 0")
+                                          (parse_term @"0")]
                     |> THEN <| REPEAT GEN_TAC
                     |> THEN <| REWRITE_TAC [LE]
                     |> THEN <| DISCH_THEN SUBST1_TAC
@@ -1915,12 +1915,12 @@ let NADD_MUL_LINV_LEMMA7a =
                     |> THEN <| GEN_REWRITE_TAC RAND_CONV [MULT_SYM]
                     |> THEN <| MATCH_ACCEPT_TAC LE_REFL
                     FIRST_ASSUM
-                        (X_CHOOSE_THEN (parse_term "A:num") 
-                             (X_CHOOSE_TAC(parse_term "B:num")))
+                        (X_CHOOSE_THEN (parse_term @"A:num") 
+                             (X_CHOOSE_TAC(parse_term @"B:num")))
                     |> THEN 
                     <| EXISTS_TAC
-                           (parse_term "A + (nadd_rinv(x)(SUC N) + SUC N * A0)")
-                    |> THEN <| EXISTS_TAC(parse_term "SUC N * B0 + B")
+                           (parse_term @"A + (nadd_rinv(x)(SUC N) + SUC N * A0)")
+                    |> THEN <| EXISTS_TAC(parse_term @"SUC N * B0 + B")
                     |> THEN <| REPEAT GEN_TAC
                     |> THEN <| REWRITE_TAC [LE]
                     |> THEN 
@@ -1947,7 +1947,7 @@ let NADD_MUL_LINV_LEMMA7a =
                                      GEN_REWRITE_TAC LAND_CONV [MULT_SYM]
                                      |> THEN <| MATCH_ACCEPT_TAC LE_ADD]
                                  MATCH_MP_TAC LE_TRANS
-                                 |> THEN <| EXISTS_TAC(parse_term "A * n + B")
+                                 |> THEN <| EXISTS_TAC(parse_term @"A * n + B")
                                  |> THEN <| CONJ_TAC
                                  |> THENL <| [FIRST_ASSUM MATCH_MP_TAC
                                               |> THEN <| ASM_REWRITE_TAC []
@@ -1959,38 +1959,38 @@ let NADD_MUL_LINV_LEMMA7a =
                                                                       LE_ADD]]]])
 
 let NADD_MUL_LINV_LEMMA8 = 
-    prove((parse_term "!x. ~(x === &0) ==>
+    prove((parse_term @"!x. ~(x === &0) ==>
         ?B. !m n. dist(m * nadd_rinv(x) n,n * nadd_rinv(x) m) <= B * (m + n)"),
        GEN_TAC
        |> THEN <| DISCH_TAC
        |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP NADD_MUL_LINV_LEMMA7)
        |> THEN 
        <| DISCH_THEN
-              (X_CHOOSE_THEN (parse_term "B0:num") 
-                   (X_CHOOSE_TAC(parse_term "N:num")))
+              (X_CHOOSE_THEN (parse_term @"B0:num") 
+                   (X_CHOOSE_TAC(parse_term @"N:num")))
        |> THEN 
        <| FIRST_ASSUM
-              (MP_TAC << SPEC(parse_term "N:num") 
+              (MP_TAC << SPEC(parse_term @"N:num") 
                << MATCH_MP NADD_MUL_LINV_LEMMA7a)
        |> THEN 
        <| DISCH_THEN
-              (X_CHOOSE_THEN (parse_term "A:num") 
-                   (X_CHOOSE_TAC(parse_term "B:num")))
+              (X_CHOOSE_THEN (parse_term @"A:num") 
+                   (X_CHOOSE_TAC(parse_term @"B:num")))
        |> THEN <| MATCH_MP_TAC BOUNDS_NOTZERO
        |> THEN <| REWRITE_TAC [DIST_REFL]
-       |> THEN <| EXISTS_TAC(parse_term "A + B0")
-       |> THEN <| EXISTS_TAC(parse_term "B:num")
+       |> THEN <| EXISTS_TAC(parse_term @"A + B0")
+       |> THEN <| EXISTS_TAC(parse_term @"B:num")
        |> THEN <| REPEAT GEN_TAC
        |> THEN 
        <| DISJ_CASES_THEN2 ASSUME_TAC MP_TAC 
-              (SPECL [(parse_term "N:num")
-                      (parse_term "m:num")] LE_CASES)
+              (SPECL [(parse_term @"N:num")
+                      (parse_term @"m:num")] LE_CASES)
        |> THENL <| [DISJ_CASES_THEN2 ASSUME_TAC MP_TAC 
-                        (SPECL [(parse_term "N:num")
-                                (parse_term "n:num")] LE_CASES)
+                        (SPECL [(parse_term @"N:num")
+                                (parse_term @"n:num")] LE_CASES)
                     |> THENL <| [MATCH_MP_TAC LE_TRANS
                                  |> THEN 
-                                 <| EXISTS_TAC(parse_term "B0 * (m + n)")
+                                 <| EXISTS_TAC(parse_term @"B0 * (m + n)")
                                  |> THEN <| CONJ_TAC
                                  |> THENL <| [FIRST_ASSUM MATCH_MP_TAC
                                               |> THEN <| ASM_REWRITE_TAC []
@@ -2004,7 +2004,7 @@ let NADD_MUL_LINV_LEMMA8 =
                                                                       LE_ADD]]
                                  DISCH_THEN(ANTE_RES_THEN ASSUME_TAC)
                                  |> THEN <| MATCH_MP_TAC LE_TRANS
-                                 |> THEN <| EXISTS_TAC(parse_term "A * m + B")
+                                 |> THEN <| EXISTS_TAC(parse_term @"A * m + B")
                                  |> THEN <| ONCE_REWRITE_TAC [DIST_SYM]
                                  |> THEN <| ASM_REWRITE_TAC [LE_ADD_RCANCEL]
                                  |> THEN <| REWRITE_TAC [LEFT_ADD_DISTRIB
@@ -2013,7 +2013,7 @@ let NADD_MUL_LINV_LEMMA8 =
                                                          LE_ADD]]
                     DISCH_THEN(ANTE_RES_THEN ASSUME_TAC)
                     |> THEN <| MATCH_MP_TAC LE_TRANS
-                    |> THEN <| EXISTS_TAC(parse_term "A * n + B")
+                    |> THEN <| EXISTS_TAC(parse_term @"A * n + B")
                     |> THEN <| ASM_REWRITE_TAC [LE_ADD_RCANCEL]
                     |> THEN 
                     <| GEN_REWRITE_TAC (RAND_CONV << RAND_CONV) [ADD_SYM]
@@ -2027,9 +2027,9 @@ let NADD_MUL_LINV_LEMMA8 =
 (* ------------------------------------------------------------------------- *)
 let nadd_inv = 
     new_definition
-        (parse_term "nadd_inv(x) = if x === &0 then &0 else afn(nadd_rinv x)")
+        (parse_term @"nadd_inv(x) = if x === &0 then &0 else afn(nadd_rinv x)")
 
-override_interface("inv", (parse_term "nadd_inv:nadd->nadd"))
+override_interface("inv", (parse_term @"nadd_inv:nadd->nadd"))
 
 let NADD_INV = 
     prove
@@ -2037,7 +2037,7 @@ let NADD_INV =
               "!x. fn(nadd_inv x) = if x === &0 then (\n. 0) else nadd_rinv x"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_inv]
-         |> THEN <| ASM_CASES_TAC(parse_term "x === &0")
+         |> THEN <| ASM_CASES_TAC(parse_term @"x === &0")
          |> THEN <| ASM_REWRITE_TAC [NADD_OF_NUM; MULT_CLAUSES]
          |> THEN <| REWRITE_TAC [GSYM nadd_rep
                                  is_nadd]
@@ -2046,45 +2046,45 @@ let NADD_INV =
 
 let NADD_MUL_LINV = 
     prove
-        ((parse_term "!x. ~(x === &0) ==> inv(x) ** x === &1"), 
+        ((parse_term @"!x. ~(x === &0) ==> inv(x) ** x === &1"), 
          GEN_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| REWRITE_TAC [nadd_eq; NADD_MUL]
          |> THEN <| ONCE_REWRITE_TAC [BOUNDS_DIVIDED]
          |> THEN 
-         <| X_CHOOSE_THEN (parse_term "A1:num") 
-                (X_CHOOSE_TAC(parse_term "B1:num")) 
-                (SPECL [(parse_term "inv(x)")
-                        (parse_term "x:nadd")] NADD_ALTMUL)
+         <| X_CHOOSE_THEN (parse_term @"A1:num") 
+                (X_CHOOSE_TAC(parse_term @"B1:num")) 
+                (SPECL [(parse_term @"inv(x)")
+                        (parse_term @"x:nadd")] NADD_ALTMUL)
          |> THEN <| REWRITE_TAC [DIST_LMUL; NADD_OF_NUM; MULT_CLAUSES]
          |> THEN 
          <| FIRST_ASSUM
-                (X_CHOOSE_TAC(parse_term "N:num") 
+                (X_CHOOSE_TAC(parse_term @"N:num") 
                  << MATCH_MP NADD_MUL_LINV_LEMMA2)
          |> THEN 
-         <| X_CHOOSE_THEN (parse_term "A':num") 
-                (X_CHOOSE_TAC(parse_term "B':num")) 
-                (SPEC (parse_term "x:nadd") NADD_BOUND)
+         <| X_CHOOSE_THEN (parse_term @"A':num") 
+                (X_CHOOSE_TAC(parse_term @"B':num")) 
+                (SPEC (parse_term @"x:nadd") NADD_BOUND)
          |> THEN 
          <| SUBGOAL_THEN 
                 (parse_term 
                      "?A2 B2. !n. dist(fn x n * nadd_rinv x n,n * n) <= A2 * n + B2") 
                 STRIP_ASSUME_TAC
-         |> THENL <| [EXISTS_TAC(parse_term "A':num")
+         |> THENL <| [EXISTS_TAC(parse_term @"A':num")
                       |> THEN <| ONCE_REWRITE_TAC [BOUNDS_IGNORE]
-                      |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term "B':num")
-                                                       (parse_term "N:num")]
+                      |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"B':num")
+                                                       (parse_term @"N:num")]
                       |> THEN <| REPEAT STRIP_TAC
                       |> THEN <| MATCH_MP_TAC LE_TRANS
-                      |> THEN <| EXISTS_TAC(parse_term "fn x n")
+                      |> THEN <| EXISTS_TAC(parse_term @"fn x n")
                       |> THEN <| ASM_REWRITE_TAC []
                       |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                       |> THEN <| ASM_REWRITE_TAC []
-                      MAP_EVERY EXISTS_TAC [(parse_term "A1 + A2")
-                                            (parse_term "B1 + B2")]
+                      MAP_EVERY EXISTS_TAC [(parse_term @"A1 + A2")
+                                            (parse_term @"B1 + B2")]
                       |> THEN <| GEN_TAC
                       |> THEN <| MATCH_MP_TAC DIST_TRIANGLE_LE
-                      |> THEN <| EXISTS_TAC(parse_term "fn (inv x) n * fn x n")
+                      |> THEN <| EXISTS_TAC(parse_term @"fn (inv x) n * fn x n")
                       |> THEN <| REWRITE_TAC [RIGHT_ADD_DISTRIB]
                       |> THEN 
                       <| ONCE_REWRITE_TAC 
@@ -2099,7 +2099,7 @@ let NADD_MUL_LINV =
                       |> THEN <| ASM_REWRITE_TAC [NADD_INV]])
 
 let NADD_INV_0 = 
-    prove((parse_term "inv(&0) === &0"), REWRITE_TAC [nadd_inv; NADD_EQ_REFL])
+    prove((parse_term @"inv(&0) === &0"), REWRITE_TAC [nadd_inv; NADD_EQ_REFL])
 
 (* ------------------------------------------------------------------------- *)
 (* Welldefinedness follows from already established principles because if    *)
@@ -2107,7 +2107,7 @@ let NADD_INV_0 =
 (* ------------------------------------------------------------------------- *)
 let NADD_INV_WELLDEF = 
     prove
-        ((parse_term "!x y. x === y ==> inv(x) === inv(y)"), 
+        ((parse_term @"!x y. x === y ==> inv(x) === inv(y)"), 
          let TAC tm ths = 
              MATCH_MP_TAC NADD_EQ_TRANS
              |> THEN <| EXISTS_TAC tm
@@ -2115,24 +2115,24 @@ let NADD_INV_WELLDEF =
              |> THENL <| [ALL_TAC
                           ASM_MESON_TAC ths]
          REPEAT STRIP_TAC
-         |> THEN <| ASM_CASES_TAC(parse_term "x === &0")
-         |> THENL <| [SUBGOAL_THEN (parse_term "y === &0") ASSUME_TAC
+         |> THEN <| ASM_CASES_TAC(parse_term @"x === &0")
+         |> THENL <| [SUBGOAL_THEN (parse_term @"y === &0") ASSUME_TAC
                       |> THENL <| [ASM_MESON_TAC [NADD_EQ_TRANS; NADD_EQ_SYM]
                                    ASM_REWRITE_TAC [nadd_inv; NADD_EQ_REFL]]
-                      SUBGOAL_THEN (parse_term "~(y === &0)") ASSUME_TAC
+                      SUBGOAL_THEN (parse_term @"~(y === &0)") ASSUME_TAC
                       |> THENL <| [ASM_MESON_TAC [NADD_EQ_TRANS; NADD_EQ_SYM]
                                    ALL_TAC]]
          |> THEN 
-         <| TAC (parse_term "inv(y) ** &1") 
+         <| TAC (parse_term @"inv(y) ** &1") 
                 [NADD_MUL_SYM; NADD_MUL_LID; NADD_EQ_TRANS]
          |> THEN 
-         <| TAC (parse_term "inv(y) ** (inv(x) ** x)") 
+         <| TAC (parse_term @"inv(y) ** (inv(x) ** x)") 
                 [NADD_MUL_LINV; NADD_MUL_WELLDEF; NADD_EQ_REFL]
          |> THEN 
-         <| TAC (parse_term "inv(y) ** (inv(x) ** y)") 
+         <| TAC (parse_term @"inv(y) ** (inv(x) ** y)") 
                 [NADD_MUL_WELLDEF; NADD_EQ_REFL; NADD_EQ_SYM]
          |> THEN 
-         <| TAC (parse_term "(inv(y) ** y) ** inv(x)") 
+         <| TAC (parse_term @"(inv(y) ** y) ** inv(x)") 
                 [NADD_MUL_ASSOC; NADD_MUL_SYM; NADD_EQ_TRANS; NADD_MUL_WELLDEF; 
                  NADD_EQ_REFL]
          |> THEN 
@@ -2144,13 +2144,13 @@ let NADD_INV_WELLDEF =
 (* Definition of the new type.                                               *)
 (* ------------------------------------------------------------------------- *)
 let hreal_tybij = 
-    define_quotient_type "hreal" ("mk_hreal", "dest_hreal") (parse_term "(===)")
+    define_quotient_type "hreal" ("mk_hreal", "dest_hreal") (parse_term @"(===)")
 
-do_list overload_interface ["+", (parse_term "hreal_add:hreal->hreal->hreal")
-                            "*", (parse_term "hreal_mul:hreal->hreal->hreal")
-                            "<=", (parse_term "hreal_le:hreal->hreal->bool")]
-do_list override_interface ["&", (parse_term "hreal_of_num:num->hreal")
-                            "inv", (parse_term "hreal_inv:hreal->hreal")]
+do_list overload_interface ["+", (parse_term @"hreal_add:hreal->hreal->hreal")
+                            "*", (parse_term @"hreal_mul:hreal->hreal->hreal")
+                            "<=", (parse_term @"hreal_le:hreal->hreal->bool")]
+do_list override_interface ["&", (parse_term @"hreal_of_num:num->hreal")
+                            "inv", (parse_term @"hreal_inv:hreal->hreal")]
 
 let hreal_of_num, hreal_of_num_th = 
     lift_function (snd hreal_tybij) (NADD_EQ_REFL, NADD_EQ_TRANS) "hreal_of_num" 
@@ -2169,16 +2169,16 @@ let hreal_inv, hreal_inv_th =
         NADD_INV_WELLDEF
 
 let HREAL_COMPLETE = 
-    let th1 = ASSUME(parse_term "(P:nadd->bool) = (\x. Q(mk_hreal((===) x)))")
-    let th2 = BETA_RULE(AP_THM th1 (parse_term "x:nadd"))
+    let th1 = ASSUME(parse_term @"(P:nadd->bool) = (\x. Q(mk_hreal((===) x)))")
+    let th2 = BETA_RULE(AP_THM th1 (parse_term @"x:nadd"))
     let th3 = 
         lift_theorem hreal_tybij (NADD_EQ_REFL, NADD_EQ_SYM, NADD_EQ_TRANS) 
             [hreal_of_num_th; hreal_add_th; hreal_mul_th; hreal_le_th; th2] 
             (SPEC_ALL NADD_COMPLETE)
     let th4 = 
         MATCH_MP (DISCH_ALL th3) 
-            (REFL(parse_term "\x. Q(mk_hreal((===) x)):bool"))
-    CONV_RULE (GEN_ALPHA_CONV(parse_term "P:hreal->bool")) (GEN_ALL th4)
+            (REFL(parse_term @"\x. Q(mk_hreal((===) x)):bool"))
+    CONV_RULE (GEN_ALPHA_CONV(parse_term @"P:hreal->bool")) (GEN_ALL th4)
 
 let [HREAL_OF_NUM_EQ; HREAL_OF_NUM_LE; HREAL_OF_NUM_ADD; HREAL_OF_NUM_MUL; 
      HREAL_LE_REFL; HREAL_LE_TRANS; HREAL_LE_ANTISYM; HREAL_LE_TOTAL; 
@@ -2200,7 +2200,7 @@ let [HREAL_OF_NUM_EQ; HREAL_OF_NUM_LE; HREAL_OF_NUM_ADD; HREAL_OF_NUM_MUL;
 (* ------------------------------------------------------------------------- *)
 let HREAL_LE_EXISTS_DEF = 
     prove
-        ((parse_term "!m n. m <= n <=> ?d. n = m + d"), 
+        ((parse_term @"!m n. m <= n <=> ?d. n = m + d"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| REWRITE_TAC [HREAL_LE_EXISTS]
@@ -2209,7 +2209,7 @@ let HREAL_LE_EXISTS_DEF =
 
 let HREAL_EQ_ADD_LCANCEL = 
     prove
-        ((parse_term "!m n p. (m + n = m + p) <=> (n = p)"), REPEAT GEN_TAC
+        ((parse_term @"!m n p. (m + n = m + p) <=> (n = p)"), REPEAT GEN_TAC
                                                              |> THEN <| EQ_TAC
                                                              |> THEN 
                                                              <| REWRITE_TAC 
@@ -2221,40 +2221,40 @@ let HREAL_EQ_ADD_LCANCEL =
 
 let HREAL_EQ_ADD_RCANCEL = 
     prove
-        ((parse_term "!m n p. (m + p = n + p) <=> (m = n)"), 
+        ((parse_term @"!m n p. (m + p = n + p) <=> (m = n)"), 
          ONCE_REWRITE_TAC [HREAL_ADD_SYM]
          |> THEN <| REWRITE_TAC [HREAL_EQ_ADD_LCANCEL])
 
 let HREAL_LE_ADD_LCANCEL = 
     prove
-        ((parse_term "!m n p. (m + n <= m + p) <=> (n <= p)"), 
+        ((parse_term @"!m n p. (m + n <= m + p) <=> (n <= p)"), 
          REWRITE_TAC [HREAL_LE_EXISTS_DEF
                       GSYM HREAL_ADD_ASSOC
                       HREAL_EQ_ADD_LCANCEL])
 
 let HREAL_LE_ADD_RCANCEL = 
     prove
-        ((parse_term "!m n p. (m + p <= n + p) <=> (m <= n)"), 
+        ((parse_term @"!m n p. (m + p <= n + p) <=> (m <= n)"), 
          ONCE_REWRITE_TAC [HREAL_ADD_SYM]
          |> THEN <| MATCH_ACCEPT_TAC HREAL_LE_ADD_LCANCEL)
 let HREAL_ADD_RID = 
     prove
-        ((parse_term "!n. n + &0 = n"), 
+        ((parse_term @"!n. n + &0 = n"), 
          ONCE_REWRITE_TAC [HREAL_ADD_SYM]
          |> THEN <| MATCH_ACCEPT_TAC HREAL_ADD_LID)
 let HREAL_ADD_RDISTRIB = 
     prove
-        ((parse_term "!m n p. (m + n) * p = m * p + n * p"), 
+        ((parse_term @"!m n p. (m + n) * p = m * p + n * p"), 
          ONCE_REWRITE_TAC [HREAL_MUL_SYM]
          |> THEN <| MATCH_ACCEPT_TAC HREAL_ADD_LDISTRIB)
 
 let HREAL_MUL_LZERO = 
     prove
-        ((parse_term "!m. &0 * m = &0"), 
+        ((parse_term @"!m. &0 * m = &0"), 
          GEN_TAC
-         |> THEN <| MP_TAC(SPECL [(parse_term "&0")
-                                  (parse_term "&1")
-                                  (parse_term "m:hreal")] HREAL_ADD_RDISTRIB)
+         |> THEN <| MP_TAC(SPECL [(parse_term @"&0")
+                                  (parse_term @"&1")
+                                  (parse_term @"m:hreal")] HREAL_ADD_RDISTRIB)
          |> THEN <| REWRITE_TAC [HREAL_ADD_LID]
          |> THEN <| GEN_REWRITE_TAC (funpow 2 LAND_CONV) [GSYM HREAL_ADD_LID]
          |> THEN <| REWRITE_TAC [HREAL_EQ_ADD_RCANCEL]
@@ -2262,12 +2262,12 @@ let HREAL_MUL_LZERO =
 
 let HREAL_MUL_RZERO = 
     prove
-        ((parse_term "!m. m * &0 = &0"), 
+        ((parse_term @"!m. m * &0 = &0"), 
          ONCE_REWRITE_TAC [HREAL_MUL_SYM]
          |> THEN <| MATCH_ACCEPT_TAC HREAL_MUL_LZERO)
 
 let HREAL_ADD_AC = 
-    prove((parse_term "(m + n = n + m) /\
+    prove((parse_term @"(m + n = n + m) /\
    ((m + n) + p = m + (n + p)) /\
    (m + (n + p) = n + (m + p))"), REWRITE_TAC 
                                       [HREAL_ADD_ASSOC
@@ -2278,41 +2278,41 @@ let HREAL_ADD_AC =
 
 let HREAL_LE_ADD2 = 
     prove
-        ((parse_term "!a b c d. a <= b /\ c <= d ==> a + c <= b + d"), 
+        ((parse_term @"!a b c d. a <= b /\ c <= d ==> a + c <= b + d"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [HREAL_LE_EXISTS_DEF]
          |> THEN 
          <| DISCH_THEN
-                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term "d1:hreal")) 
-                     (X_CHOOSE_TAC(parse_term "d2:hreal")))
-         |> THEN <| EXISTS_TAC(parse_term "d1 + d2")
+                (CONJUNCTS_THEN2 (X_CHOOSE_TAC(parse_term @"d1:hreal")) 
+                     (X_CHOOSE_TAC(parse_term @"d2:hreal")))
+         |> THEN <| EXISTS_TAC(parse_term @"d1 + d2")
          |> THEN <| ASM_REWRITE_TAC [HREAL_ADD_AC])
 
 let HREAL_LE_MUL_RCANCEL_IMP = 
     prove
-        ((parse_term "!a b c. a <= b ==> a * c <= b * c"), 
+        ((parse_term @"!a b c. a <= b ==> a * c <= b * c"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [HREAL_LE_EXISTS_DEF]
-         |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term "d:hreal") SUBST1_TAC)
-         |> THEN <| EXISTS_TAC(parse_term "d * c")
+         |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term @"d:hreal") SUBST1_TAC)
+         |> THEN <| EXISTS_TAC(parse_term @"d * c")
          |> THEN <| REWRITE_TAC [HREAL_ADD_RDISTRIB])
 
 (* ------------------------------------------------------------------------- *)
 (* Define operations on representatives of signed reals.                     *)
 (* ------------------------------------------------------------------------- *)
-let treal_of_num = new_definition(parse_term "treal_of_num n = (&n, &0)")
+let treal_of_num = new_definition(parse_term @"treal_of_num n = (&n, &0)")
 
 let treal_neg = 
-    new_definition(parse_term "treal_neg ((x:hreal),(y:hreal)) = (y,x)")
+    new_definition(parse_term @"treal_neg ((x:hreal),(y:hreal)) = (y,x)")
 let treal_add = 
-    new_definition(parse_term "(x1,y1) treal_add (x2,y2) = (x1 + x2, y1 + y2)")
+    new_definition(parse_term @"(x1,y1) treal_add (x2,y2) = (x1 + x2, y1 + y2)")
 let treal_mul = 
     new_definition
         (parse_term 
              "(x1,y1) treal_mul (x2,y2) = ((x1 * x2) + (y1 * y2),(x1 * y2) + (y1 * x2))")
 let treal_le = 
-    new_definition(parse_term "(x1,y1) treal_le (x2,y2) <=> x1 + y2 <= x2 + y1")
-let treal_inv = new_definition(parse_term "treal_inv(x,y) = if x = y then (&0, &0)
+    new_definition(parse_term @"(x1,y1) treal_le (x2,y2) <=> x1 + y2 <= x2 + y1")
+let treal_inv = new_definition(parse_term @"treal_inv(x,y) = if x = y then (&0, &0)
                     else if y <= x then (inv(@d. x = y + d), &0)
                     else (&0, inv(@d. y = x + d))");;
 
@@ -2322,25 +2322,25 @@ let treal_inv = new_definition(parse_term "treal_inv(x,y) = if x = y then (&0, &
 (* ------------------------------------------------------------------------- *)
 let treal_eq = 
     new_definition
-        (parse_term "(x1,y1) treal_eq (x2,y2) <=> (x1 + y2 = x2 + y1)")
+        (parse_term @"(x1,y1) treal_eq (x2,y2) <=> (x1 + y2 = x2 + y1)")
 
 let TREAL_EQ_REFL = 
     prove
-        ((parse_term "!x. x treal_eq x"), 
+        ((parse_term @"!x. x treal_eq x"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_eq])
 let TREAL_EQ_SYM = 
     prove
-        ((parse_term "!x y. x treal_eq y <=> y treal_eq x"), 
+        ((parse_term @"!x y. x treal_eq y <=> y treal_eq x"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_eq; EQ_SYM_EQ])
 
 let TREAL_EQ_TRANS = 
     prove
-        ((parse_term "!x y z. x treal_eq y /\ y treal_eq z ==> x treal_eq z"), 
+        ((parse_term @"!x y z. x treal_eq y /\ y treal_eq z ==> x treal_eq z"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_eq]
          |> THEN <| REPEAT GEN_TAC
          |> THEN 
          <| DISCH_THEN
-                (MP_TAC << MK_COMB << (AP_TERM(parse_term "(+)") ||>> I) 
+                (MP_TAC << MK_COMB << (AP_TERM(parse_term @"(+)") ||>> I) 
                  << CONJ_PAIR)
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << LAND_CONV) [HREAL_ADD_SYM]
          |> THEN <| REWRITE_TAC [GSYM HREAL_ADD_ASSOC
@@ -2354,7 +2354,7 @@ let TREAL_EQ_TRANS =
 (* ------------------------------------------------------------------------- *)
 let TREAL_EQ_AP = 
     prove
-        ((parse_term "!x y. (x = y) ==> x treal_eq y"), SIMP_TAC [TREAL_EQ_REFL])
+        ((parse_term @"!x y. (x = y) ==> x treal_eq y"), SIMP_TAC [TREAL_EQ_REFL])
 
 (* ------------------------------------------------------------------------- *)
 (* Commutativity properties for injector.                                    *)
@@ -2367,18 +2367,18 @@ let TREAL_OF_NUM_EQ =
 
 let TREAL_OF_NUM_LE = 
     prove
-        ((parse_term "!m n. (treal_of_num m treal_le treal_of_num n) <=> m <= n"), 
+        ((parse_term @"!m n. (treal_of_num m treal_le treal_of_num n) <=> m <= n"), 
          REWRITE_TAC [treal_of_num; treal_le; HREAL_OF_NUM_LE; HREAL_ADD_RID])
 let TREAL_OF_NUM_ADD = 
     prove
-        ((parse_term "!m n. (treal_of_num m treal_add treal_of_num n) treal_eq
+        ((parse_term @"!m n. (treal_of_num m treal_add treal_of_num n) treal_eq
          (treal_of_num(m + n))"),
          REWRITE_TAC 
              [treal_of_num; treal_eq; treal_add; HREAL_OF_NUM_ADD; HREAL_ADD_RID; 
               ADD_CLAUSES])
 let TREAL_OF_NUM_MUL = 
     prove
-        ((parse_term "!m n. (treal_of_num m treal_mul treal_of_num n) treal_eq
+        ((parse_term @"!m n. (treal_of_num m treal_mul treal_of_num n) treal_eq
          (treal_of_num(m * n))"),
          REWRITE_TAC 
              [treal_of_num; treal_eq; treal_mul; HREAL_OF_NUM_MUL; 
@@ -2390,12 +2390,12 @@ let TREAL_OF_NUM_MUL =
 (* ------------------------------------------------------------------------- *)
 let TREAL_ADD_SYM_EQ = 
     prove
-        ((parse_term "!x y. x treal_add y = y treal_add x"), 
+        ((parse_term @"!x y. x treal_add y = y treal_add x"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_add; PAIR_EQ; HREAL_ADD_SYM])
 
 let TREAL_MUL_SYM_EQ = 
     prove
-        ((parse_term "!x y. x treal_mul y = y treal_mul x"), 
+        ((parse_term @"!x y. x treal_mul y = y treal_mul x"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_mul; HREAL_MUL_SYM; HREAL_ADD_SYM])
 
 (* ------------------------------------------------------------------------- *)
@@ -2403,33 +2403,33 @@ let TREAL_MUL_SYM_EQ =
 (* ------------------------------------------------------------------------- *)
 let TREAL_ADD_SYM = 
     prove
-        ((parse_term "!x y. (x treal_add y) treal_eq (y treal_add x)"), 
+        ((parse_term @"!x y. (x treal_add y) treal_eq (y treal_add x)"), 
          REPEAT GEN_TAC
          |> THEN <| MATCH_MP_TAC TREAL_EQ_AP
          |> THEN <| MATCH_ACCEPT_TAC TREAL_ADD_SYM_EQ)
 
 let TREAL_ADD_ASSOC = 
-    prove((parse_term "!x y z. (x treal_add (y treal_add z)) treal_eq
+    prove((parse_term @"!x y z. (x treal_add (y treal_add z)) treal_eq
            ((x treal_add y) treal_add z)"),
         SIMP_TAC [FORALL_PAIR_THM; TREAL_EQ_AP; treal_add; HREAL_ADD_ASSOC])
 let TREAL_ADD_LID = 
     prove
-        ((parse_term "!x. ((treal_of_num 0) treal_add x) treal_eq x"), 
+        ((parse_term @"!x. ((treal_of_num 0) treal_add x) treal_eq x"), 
          REWRITE_TAC 
              [FORALL_PAIR_THM; treal_of_num; treal_add; treal_eq; HREAL_ADD_LID])
 let TREAL_ADD_LINV = 
     prove
-        ((parse_term "!x. ((treal_neg x) treal_add x) treal_eq (treal_of_num 0)"), 
+        ((parse_term @"!x. ((treal_neg x) treal_add x) treal_eq (treal_of_num 0)"), 
          REWRITE_TAC 
              [FORALL_PAIR_THM; treal_neg; treal_add; treal_eq; treal_of_num; 
               HREAL_ADD_LID; HREAL_ADD_RID; HREAL_ADD_SYM])
 let TREAL_MUL_SYM = 
     prove
-        ((parse_term "!x y. (x treal_mul y) treal_eq (y treal_mul x)"), 
+        ((parse_term @"!x y. (x treal_mul y) treal_eq (y treal_mul x)"), 
          SIMP_TAC [TREAL_EQ_AP; TREAL_MUL_SYM_EQ])
 
 let TREAL_MUL_ASSOC = 
-    prove((parse_term "!x y z. (x treal_mul (y treal_mul z)) treal_eq
+    prove((parse_term @"!x y z. (x treal_mul (y treal_mul z)) treal_eq
            ((x treal_mul y) treal_mul z)"),
           SIMP_TAC [FORALL_PAIR_THM
                     TREAL_EQ_AP
@@ -2441,30 +2441,30 @@ let TREAL_MUL_ASSOC =
 
 let TREAL_MUL_LID = 
     prove
-        ((parse_term "!x. ((treal_of_num 1) treal_mul x) treal_eq x"), 
+        ((parse_term @"!x. ((treal_of_num 1) treal_mul x) treal_eq x"), 
          SIMP_TAC [FORALL_PAIR_THM; treal_of_num; treal_mul; treal_eq]
          |> THEN 
          <| REWRITE_TAC 
                 [HREAL_MUL_LZERO; HREAL_MUL_LID; HREAL_ADD_LID; HREAL_ADD_RID])
 let TREAL_ADD_LDISTRIB = 
     prove
-        ((parse_term "!x y z. (x treal_mul (y treal_add z)) treal_eq
+        ((parse_term @"!x y z. (x treal_mul (y treal_add z)) treal_eq
            ((x treal_mul y) treal_add (x treal_mul z))"),
          SIMP_TAC 
              [FORALL_PAIR_THM; TREAL_EQ_AP; treal_mul; treal_add; 
               HREAL_ADD_LDISTRIB; PAIR_EQ; HREAL_ADD_AC])
 let TREAL_LE_REFL = 
     prove
-        ((parse_term "!x. x treal_le x"), 
+        ((parse_term @"!x. x treal_le x"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_le; HREAL_LE_REFL])
 let TREAL_LE_ANTISYM = 
     prove
-        ((parse_term "!x y. x treal_le y /\ y treal_le x <=> (x treal_eq y)"), 
+        ((parse_term @"!x y. x treal_le y /\ y treal_le x <=> (x treal_eq y)"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_le; treal_eq; HREAL_LE_ANTISYM])
 
 let TREAL_LE_TRANS = 
     prove
-        ((parse_term "!x y z. x treal_le y /\ y treal_le z ==> x treal_le z"), 
+        ((parse_term @"!x y z. x treal_le y /\ y treal_le z ==> x treal_le z"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_le]
          |> THEN <| REPEAT GEN_TAC
          |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP HREAL_LE_ADD2)
@@ -2477,7 +2477,7 @@ let TREAL_LE_TRANS =
 
 let TREAL_LE_TOTAL = 
     prove
-        ((parse_term "!x y. x treal_le y \/ y treal_le x"), 
+        ((parse_term @"!x y. x treal_le y \/ y treal_le x"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_le; HREAL_LE_TOTAL])
 
 let TREAL_LE_LADD_IMP = 
@@ -2492,7 +2492,7 @@ let TREAL_LE_LADD_IMP =
                                  HREAL_LE_ADD_LCANCEL])
 
 let TREAL_LE_MUL = 
-    prove((parse_term "!x y. (treal_of_num 0) treal_le x /\ (treal_of_num 0) treal_le y
+    prove((parse_term @"!x y. (treal_of_num 0) treal_le x /\ (treal_of_num 0) treal_le y
          ==> (treal_of_num 0) treal_le (x treal_mul y)"),
         REWRITE_TAC [FORALL_PAIR_THM; treal_of_num; treal_le; treal_mul]
         |> THEN <| REPEAT GEN_TAC
@@ -2510,15 +2510,15 @@ let TREAL_LE_MUL =
 
 let TREAL_INV_0 = 
     prove
-        ((parse_term "treal_inv (treal_of_num 0) treal_eq (treal_of_num 0)"), 
+        ((parse_term @"treal_inv (treal_of_num 0) treal_eq (treal_of_num 0)"), 
          REWRITE_TAC [treal_inv; treal_eq; treal_of_num])
 
 let TREAL_MUL_LINV = 
-    prove((parse_term "!x. ~(x treal_eq treal_of_num 0) ==>
+    prove((parse_term @"!x. ~(x treal_eq treal_of_num 0) ==>
         (treal_inv(x) treal_mul x) treal_eq (treal_of_num 1)"),
        REWRITE_TAC [FORALL_PAIR_THM]
-       |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term "x:hreal")
-                                       (parse_term "y:hreal")]
+       |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term @"x:hreal")
+                                       (parse_term @"y:hreal")]
        |> THEN 
        <| PURE_REWRITE_TAC [treal_eq; treal_of_num; treal_mul; treal_inv]
        |> THEN <| PURE_REWRITE_TAC [HREAL_ADD_LID; HREAL_ADD_RID]
@@ -2531,8 +2531,8 @@ let TREAL_MUL_LINV =
               [HREAL_ADD_LID; HREAL_ADD_RID; HREAL_MUL_LZERO; HREAL_MUL_RZERO]
        |> THENL <| [ALL_TAC
                     DISJ_CASES_THEN MP_TAC 
-                        (SPECL [(parse_term "x:hreal")
-                                (parse_term "y:hreal")] HREAL_LE_TOTAL)
+                        (SPECL [(parse_term @"x:hreal")
+                                (parse_term @"y:hreal")] HREAL_LE_TOTAL)
                     |> THEN <| ASM_REWRITE_TAC []
                     |> THEN <| DISCH_TAC]
        |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP HREAL_LE_EXISTS)
@@ -2582,12 +2582,12 @@ let TREAL_ADD_WELLDEFR =
          |> THEN <| REWRITE_TAC [HREAL_EQ_ADD_RCANCEL; HREAL_ADD_ASSOC])
 
 let TREAL_ADD_WELLDEF = 
-    prove((parse_term "!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
+    prove((parse_term @"!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
        (x1 treal_add y1) treal_eq (x2 treal_add y2)"),
       REPEAT GEN_TAC
       |> THEN <| DISCH_TAC
       |> THEN <| MATCH_MP_TAC TREAL_EQ_TRANS
-      |> THEN <| EXISTS_TAC(parse_term "x1 treal_add y2")
+      |> THEN <| EXISTS_TAC(parse_term @"x1 treal_add y2")
       |> THEN <| CONJ_TAC
       |> THENL <| [ONCE_REWRITE_TAC [TREAL_ADD_SYM_EQ]
                    ALL_TAC]
@@ -2603,7 +2603,7 @@ let TREAL_MUL_WELLDEFR =
          |> THEN 
          <| ONCE_REWRITE_TAC 
                 [AC HREAL_ADD_AC 
-                     (parse_term "(a + b) + (c + d) = (a + d) + (b + c)")]
+                     (parse_term @"(a + b) + (c + d) = (a + d) + (b + c)")]
          |> THEN <| REWRITE_TAC [GSYM HREAL_ADD_RDISTRIB]
          |> THEN <| DISCH_TAC
          |> THEN <| ASM_REWRITE_TAC []
@@ -2613,12 +2613,12 @@ let TREAL_MUL_WELLDEFR =
          |> THEN <| REFL_TAC)
 
 let TREAL_MUL_WELLDEF = 
-  prove((parse_term "!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
+  prove((parse_term @"!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
      (x1 treal_mul y1) treal_eq (x2 treal_mul y2)"),
     REPEAT GEN_TAC
     |> THEN <| DISCH_TAC
     |> THEN <| MATCH_MP_TAC TREAL_EQ_TRANS
-    |> THEN <| EXISTS_TAC(parse_term "x1 treal_mul y2")
+    |> THEN <| EXISTS_TAC(parse_term @"x1 treal_mul y2")
     |> THEN <| CONJ_TAC
     |> THENL <| [ONCE_REWRITE_TAC [TREAL_MUL_SYM_EQ]
                  ALL_TAC]
@@ -2627,28 +2627,28 @@ let TREAL_MUL_WELLDEF =
 
 let TREAL_EQ_IMP_LE = 
     prove
-        ((parse_term "!x y. x treal_eq y ==> x treal_le y"), 
+        ((parse_term @"!x y. x treal_eq y ==> x treal_le y"), 
          SIMP_TAC [FORALL_PAIR_THM; treal_eq; treal_le; HREAL_LE_REFL])
 
 let TREAL_LE_WELLDEF = 
-  prove((parse_term "!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
+  prove((parse_term @"!x1 x2 y1 y2. x1 treal_eq x2 /\ y1 treal_eq y2 ==>
      (x1 treal_le y1 <=> x2 treal_le y2)"),
     REPEAT(STRIP_TAC
            |> ORELSE <| EQ_TAC)
     |> THENL <| [MATCH_MP_TAC TREAL_LE_TRANS
-                 |> THEN <| EXISTS_TAC(parse_term "y1:hreal#hreal")
+                 |> THEN <| EXISTS_TAC(parse_term @"y1:hreal#hreal")
                  |> THEN <| CONJ_TAC
                  |> THENL <| [MATCH_MP_TAC TREAL_LE_TRANS
-                              |> THEN <| EXISTS_TAC(parse_term "x1:hreal#hreal")
+                              |> THEN <| EXISTS_TAC(parse_term @"x1:hreal#hreal")
                               |> THEN <| ASM_REWRITE_TAC []
                               |> THEN <| MATCH_MP_TAC TREAL_EQ_IMP_LE
                               |> THEN <| ONCE_REWRITE_TAC [TREAL_EQ_SYM]
                               MATCH_MP_TAC TREAL_EQ_IMP_LE]
                  MATCH_MP_TAC TREAL_LE_TRANS
-                 |> THEN <| EXISTS_TAC(parse_term "y2:hreal#hreal")
+                 |> THEN <| EXISTS_TAC(parse_term @"y2:hreal#hreal")
                  |> THEN <| CONJ_TAC
                  |> THENL <| [MATCH_MP_TAC TREAL_LE_TRANS
-                              |> THEN <| EXISTS_TAC(parse_term "x2:hreal#hreal")
+                              |> THEN <| EXISTS_TAC(parse_term @"x2:hreal#hreal")
                               |> THEN <| ASM_REWRITE_TAC []
                               |> THEN <| MATCH_MP_TAC TREAL_EQ_IMP_LE
                               MATCH_MP_TAC TREAL_EQ_IMP_LE
@@ -2661,7 +2661,7 @@ let TREAL_INV_WELLDEF =
               "!x y. x treal_eq y ==> (treal_inv x) treal_eq (treal_inv y)"), 
          let lemma = 
              prove
-                 ((parse_term "(@d. x = x + d) = &0"), 
+                 ((parse_term @"(@d. x = x + d) = &0"), 
                   MATCH_MP_TAC SELECT_UNIQUE
                   |> THEN <| BETA_TAC
                   |> THEN <| GEN_TAC
@@ -2670,13 +2670,13 @@ let TREAL_INV_WELLDEF =
                   |> THEN <| REWRITE_TAC [HREAL_EQ_ADD_LCANCEL]
                   |> THEN <| MATCH_ACCEPT_TAC EQ_SYM_EQ)
          REWRITE_TAC [FORALL_PAIR_THM]
-         |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term "x1:hreal")
-                                         (parse_term "x2:hreal")
-                                         (parse_term "y1:hreal")
-                                         (parse_term "y2:hreal")]
+         |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term @"x1:hreal")
+                                         (parse_term @"x2:hreal")
+                                         (parse_term @"y1:hreal")
+                                         (parse_term @"y2:hreal")]
          |> THEN <| PURE_REWRITE_TAC [treal_eq; treal_inv]
-         |> THEN <| ASM_CASES_TAC(parse_term "x1 :hreal = x2")
-         |> THEN <| ASM_CASES_TAC(parse_term "y1 :hreal = y2")
+         |> THEN <| ASM_CASES_TAC(parse_term @"x1 :hreal = x2")
+         |> THEN <| ASM_CASES_TAC(parse_term @"y1 :hreal = y2")
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| REWRITE_TAC [TREAL_EQ_REFL]
          |> THEN 
@@ -2685,12 +2685,12 @@ let TREAL_INV_WELLDEF =
          |> THEN <| DISCH_TAC
          |> THEN 
          <| ASM_REWRITE_TAC [HREAL_LE_REFL; lemma; HREAL_INV_0; TREAL_EQ_REFL]
-         |> THEN <| ASM_CASES_TAC(parse_term "x2 <= x1")
+         |> THEN <| ASM_CASES_TAC(parse_term @"x2 <= x1")
          |> THEN <| ASM_REWRITE_TAC []
          |> THENL 
          <| [FIRST_ASSUM
                  (ASSUME_TAC << SYM << SELECT_RULE << MATCH_MP HREAL_LE_EXISTS)
-             |> THEN <| UNDISCH_TAC(parse_term "x1 + y2 = x2 + y1")
+             |> THEN <| UNDISCH_TAC(parse_term @"x1 + y2 = x2 + y1")
              |> THEN <| FIRST_ASSUM(SUBST1_TAC << SYM)
              |> THEN <| REWRITE_TAC [HREAL_EQ_ADD_LCANCEL
                                      GSYM HREAL_ADD_ASSOC]
@@ -2703,15 +2703,15 @@ let TREAL_INV_WELLDEF =
                      << LAND_CONV) [HREAL_ADD_SYM]
              |> THEN <| REWRITE_TAC [HREAL_EQ_ADD_LCANCEL; TREAL_EQ_REFL]
              DISJ_CASES_THEN MP_TAC 
-                 (SPECL [(parse_term "x1:hreal")
-                         (parse_term "x2:hreal")] HREAL_LE_TOTAL)
+                 (SPECL [(parse_term @"x1:hreal")
+                         (parse_term @"x2:hreal")] HREAL_LE_TOTAL)
              |> THEN <| ASM_REWRITE_TAC []
              |> THEN <| DISCH_TAC
              |> THEN 
              <| FIRST_ASSUM
                     (ASSUME_TAC << SYM << SELECT_RULE 
                      << MATCH_MP HREAL_LE_EXISTS)
-             |> THEN <| UNDISCH_TAC(parse_term "x1 + y2 = x2 + y1")
+             |> THEN <| UNDISCH_TAC(parse_term @"x1 + y2 = x2 + y1")
              |> THEN <| FIRST_ASSUM(SUBST1_TAC << SYM)
              |> THEN <| REWRITE_TAC [HREAL_EQ_ADD_LCANCEL
                                      GSYM HREAL_ADD_ASSOC]
@@ -2720,7 +2720,7 @@ let TREAL_INV_WELLDEF =
              <| REWRITE_TAC [ONCE_REWRITE_RULE [HREAL_ADD_SYM] HREAL_LE_ADD]
              |> THEN <| COND_CASES_TAC
              |> THENL 
-             <| [UNDISCH_TAC(parse_term "(@d. x2 = x1 + d) + y1 <= y1:hreal")
+             <| [UNDISCH_TAC(parse_term @"(@d. x2 = x1 + d) + y1 <= y1:hreal")
                  |> THEN 
                  <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) 
                         [GSYM HREAL_ADD_LID]
@@ -2729,13 +2729,13 @@ let TREAL_INV_WELLDEF =
                         [ONCE_REWRITE_RULE [HREAL_ADD_SYM] HREAL_LE_ADD_LCANCEL]
                  |> THEN <| DISCH_TAC
                  |> THEN 
-                 <| SUBGOAL_THEN (parse_term "(@d. x2 = x1 + d) = &0") MP_TAC
+                 <| SUBGOAL_THEN (parse_term @"(@d. x2 = x1 + d) = &0") MP_TAC
                  |> THENL <| [ASM_REWRITE_TAC [GSYM HREAL_LE_ANTISYM]
                               |> THEN 
                               <| GEN_REWRITE_TAC RAND_CONV [GSYM HREAL_ADD_LID]
                               |> THEN <| REWRITE_TAC [HREAL_LE_ADD]
                               DISCH_THEN SUBST_ALL_TAC
-                              |> THEN <| UNDISCH_TAC(parse_term "x1 + & 0 = x2")
+                              |> THEN <| UNDISCH_TAC(parse_term @"x1 + & 0 = x2")
                               |> THEN <| ASM_REWRITE_TAC [HREAL_ADD_RID]]
                  GEN_REWRITE_TAC 
                      (funpow 3 RAND_CONV << BINDER_CONV << LAND_CONV) 
@@ -2747,7 +2747,7 @@ let TREAL_INV_WELLDEF =
 (* ------------------------------------------------------------------------- *)
 let real_tybij = 
     define_quotient_type "real" ("mk_real", "dest_real") 
-        (parse_term "(treal_eq)")
+        (parse_term @"(treal_eq)")
 
 let real_of_num, real_of_num_th = 
     lift_function (snd real_tybij) (TREAL_EQ_REFL, TREAL_EQ_TRANS) "real_of_num" 
@@ -2785,21 +2785,21 @@ let [REAL_ADD_SYM; REAL_ADD_ASSOC; REAL_ADD_LID; REAL_ADD_LINV; REAL_MUL_SYM;
 parse_as_prefix "--"
 parse_as_infix("/", (22, "left"))
 parse_as_infix("pow", (24, "left"))
-do_list overload_interface ["+", (parse_term "real_add:real->real->real")
-                            "-", (parse_term "real_sub:real->real->real")
-                            "*", (parse_term "real_mul:real->real->real")
-                            "/", (parse_term "real_div:real->real->real")
-                            "<", (parse_term "real_lt:real->real->bool")
-                            "<=", (parse_term "real_le:real->real->bool")
-                            ">", (parse_term "real_gt:real->real->bool")
-                            ">=", (parse_term "real_ge:real->real->bool")
-                            "--", (parse_term "real_neg:real->real")
-                            "pow", (parse_term "real_pow:real->num->real")
-                            "inv", (parse_term "real_inv:real->real")
-                            "abs", (parse_term "real_abs:real->real")
-                            "max", (parse_term "real_max:real->real->real")
-                            "min", (parse_term "real_min:real->real->real")
-                            "&", (parse_term "real_of_num:num->real")]
+do_list overload_interface ["+", (parse_term @"real_add:real->real->real")
+                            "-", (parse_term @"real_sub:real->real->real")
+                            "*", (parse_term @"real_mul:real->real->real")
+                            "/", (parse_term @"real_div:real->real->real")
+                            "<", (parse_term @"real_lt:real->real->bool")
+                            "<=", (parse_term @"real_le:real->real->bool")
+                            ">", (parse_term @"real_gt:real->real->bool")
+                            ">=", (parse_term @"real_ge:real->real->bool")
+                            "--", (parse_term @"real_neg:real->real")
+                            "pow", (parse_term @"real_pow:real->num->real")
+                            "inv", (parse_term @"real_inv:real->real")
+                            "abs", (parse_term @"real_abs:real->real")
+                            "max", (parse_term @"real_max:real->real->real")
+                            "min", (parse_term @"real_min:real->real->real")
+                            "&", (parse_term @"real_of_num:num->real")]
 
 (* ------------------------------------------------------------------------- *)
 (* Set up a friendly interface.                                              *)
@@ -2809,64 +2809,64 @@ let prioritize_real() = prioritize_overload(mk_type("real", []))
 (* ------------------------------------------------------------------------- *)
 (* Additional definitions.                                                   *)
 (* ------------------------------------------------------------------------- *)
-let real_sub = new_definition(parse_term "x - y = x + --y")
+let real_sub = new_definition(parse_term @"x - y = x + --y")
 
-let real_lt = new_definition(parse_term "x < y <=> ~(y <= x)")
-let real_ge = new_definition(parse_term "x >= y <=> y <= x")
-let real_gt = new_definition(parse_term "x > y <=> y < x")
-let real_abs = new_definition(parse_term "abs(x) = if &0 <= x then x else --x")
-let real_pow = new_recursive_definition num_RECURSION (parse_term "(x pow 0 = &1) /\
+let real_lt = new_definition(parse_term @"x < y <=> ~(y <= x)")
+let real_ge = new_definition(parse_term @"x >= y <=> y <= x")
+let real_gt = new_definition(parse_term @"x > y <=> y < x")
+let real_abs = new_definition(parse_term @"abs(x) = if &0 <= x then x else --x")
+let real_pow = new_recursive_definition num_RECURSION (parse_term @"(x pow 0 = &1) /\
    (!n. x pow (SUC n) = x * (x pow n))")
-let real_div = new_definition(parse_term "x / y = x * inv(y)")
+let real_div = new_definition(parse_term @"x / y = x * inv(y)")
 let real_max = 
-    new_definition(parse_term "real_max m n = if m <= n then n else m")
+    new_definition(parse_term @"real_max m n = if m <= n then n else m")
 let real_min = 
-    new_definition(parse_term "real_min m n = if m <= n then m else n")
+    new_definition(parse_term @"real_min m n = if m <= n then m else n")
 
 (*----------------------------------------------------------------------------*)
 (* Derive the supremum property for an arbitrary bounded nonempty set         *)
 (*----------------------------------------------------------------------------*)
 let REAL_HREAL_LEMMA1 = 
     prove
-        ((parse_term "?r:hreal->real.
+        ((parse_term @"?r:hreal->real.
        (!x. &0 <= x <=> ?y. x = r y) /\
        (!y z. y <= z <=> r y <= r z)"), 
-         EXISTS_TAC(parse_term "\y. mk_real((treal_eq)(y,hreal_of_num 0))")
+         EXISTS_TAC(parse_term @"\y. mk_real((treal_eq)(y,hreal_of_num 0))")
          |> THEN <| REWRITE_TAC [GSYM real_le_th]
          |> THEN <| REWRITE_TAC [treal_le; HREAL_ADD_LID; HREAL_ADD_RID]
          |> THEN <| GEN_TAC
          |> THEN <| EQ_TAC
          |> THENL <| [MP_TAC
                           (INST 
-                               [(parse_term "dest_real x"), 
-                                (parse_term "r:hreal#hreal->bool")] 
+                               [(parse_term @"dest_real x"), 
+                                (parse_term @"r:hreal#hreal->bool")] 
                                (snd real_tybij))
                       |> THEN <| REWRITE_TAC [fst real_tybij]
                       |> THEN 
                       <| DISCH_THEN
-                             (X_CHOOSE_THEN (parse_term "p:hreal#hreal") MP_TAC)
+                             (X_CHOOSE_THEN (parse_term @"p:hreal#hreal") MP_TAC)
                       |> THEN 
-                      <| DISCH_THEN(MP_TAC << AP_TERM(parse_term "mk_real"))
+                      <| DISCH_THEN(MP_TAC << AP_TERM(parse_term @"mk_real"))
                       |> THEN <| REWRITE_TAC [fst real_tybij]
                       |> THEN <| DISCH_THEN SUBST1_TAC
                       |> THEN <| REWRITE_TAC [GSYM real_of_num_th
                                               GSYM real_le_th]
                       |> THEN 
                       <| SUBST1_TAC
-                             (GSYM(ISPEC (parse_term "p:hreal#hreal") PAIR))
+                             (GSYM(ISPEC (parse_term @"p:hreal#hreal") PAIR))
                       |> THEN <| PURE_REWRITE_TAC [treal_of_num; treal_le]
                       |> THEN <| PURE_REWRITE_TAC [HREAL_ADD_LID; HREAL_ADD_RID]
                       |> THEN 
                       <| DISCH_THEN
-                             (X_CHOOSE_THEN (parse_term "d:hreal") SUBST1_TAC 
+                             (X_CHOOSE_THEN (parse_term @"d:hreal") SUBST1_TAC 
                               << MATCH_MP HREAL_LE_EXISTS)
-                      |> THEN <| EXISTS_TAC(parse_term "d:hreal")
+                      |> THEN <| EXISTS_TAC(parse_term @"d:hreal")
                       |> THEN <| AP_TERM_TAC
                       |> THEN <| ONCE_REWRITE_TAC [FUN_EQ_THM]
-                      |> THEN <| X_GEN_TAC(parse_term "q:hreal#hreal")
+                      |> THEN <| X_GEN_TAC(parse_term @"q:hreal#hreal")
                       |> THEN 
                       <| SUBST1_TAC
-                             (GSYM(ISPEC (parse_term "q:hreal#hreal") PAIR))
+                             (GSYM(ISPEC (parse_term @"q:hreal#hreal") PAIR))
                       |> THEN <| PURE_REWRITE_TAC [treal_eq]
                       |> THEN 
                       <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) 
@@ -2884,17 +2884,17 @@ let REAL_HREAL_LEMMA1 =
 
 let REAL_HREAL_LEMMA2 = 
     prove
-        ((parse_term "?h r. (!x:hreal. h(r x) = x) /\
+        ((parse_term @"?h r. (!x:hreal. h(r x) = x) /\
          (!x. &0 <= x ==> (r(h x) = x)) /\
          (!x:hreal. &0 <= r x) /\
          (!x y. x <= y <=> r x <= r y)"), 
          STRIP_ASSUME_TAC REAL_HREAL_LEMMA1
-         |> THEN <| EXISTS_TAC(parse_term "\x:real. @y:hreal. x = r y")
-         |> THEN <| EXISTS_TAC(parse_term "r:hreal->real")
+         |> THEN <| EXISTS_TAC(parse_term @"\x:real. @y:hreal. x = r y")
+         |> THEN <| EXISTS_TAC(parse_term @"r:hreal->real")
          |> THEN <| ASM_REWRITE_TAC [BETA_THM]
          |> THEN 
          <| SUBGOAL_THEN 
-                (parse_term "!y z. ((r:hreal->real) y = r z) <=> (y = z)") 
+                (parse_term @"!y z. ((r:hreal->real) y = r z) <=> (y = z)") 
                 ASSUME_TAC
          |> THENL <| [ASM_REWRITE_TAC [GSYM REAL_LE_ANTISYM
                                        GSYM HREAL_LE_ANTISYM]
@@ -2907,7 +2907,7 @@ let REAL_HREAL_LEMMA2 =
 
 let REAL_COMPLETE_SOMEPOS = 
     prove
-        ((parse_term "!P. (?x. P x /\ &0 <= x) /\
+        ((parse_term @"!P. (?x. P x /\ &0 <= x) /\
        (?M. !x. P x ==> x <= M)
        ==> ?M. (!x. P x ==> x <= M) /\
                !M'. (!x. P x ==> x <= M') ==> M <= M'"), 
@@ -2915,56 +2915,56 @@ let REAL_COMPLETE_SOMEPOS =
          |> THEN <| STRIP_ASSUME_TAC REAL_HREAL_LEMMA2
          |> THEN 
          <| MP_TAC
-                (SPEC (parse_term "\y:hreal. (P:real->bool)(r y)") 
+                (SPEC (parse_term @"\y:hreal. (P:real->bool)(r y)") 
                      HREAL_COMPLETE)
          |> THEN <| BETA_TAC
          |> THEN 
          <| W(C SUBGOAL_THEN MP_TAC << funpow 2 (fst << dest_imp) << snd)
          |> THENL 
          <| [CONJ_TAC
-             |> THENL <| [EXISTS_TAC(parse_term "(h:real->hreal) x")
-                          |> THEN <| UNDISCH_TAC(parse_term "(P:real->bool) x")
+             |> THENL <| [EXISTS_TAC(parse_term @"(h:real->hreal) x")
+                          |> THEN <| UNDISCH_TAC(parse_term @"(P:real->bool) x")
                           |> THEN 
                           <| MATCH_MP_TAC
-                                 (TAUT(parse_term "(b <=> a) ==> a ==> b"))
+                                 (TAUT(parse_term @"(b <=> a) ==> a ==> b"))
                           |> THEN <| AP_TERM_TAC
                           |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                           |> THEN <| ASM_REWRITE_TAC []
-                          EXISTS_TAC(parse_term "(h:real->hreal) M")
-                          |> THEN <| X_GEN_TAC(parse_term "y:hreal")
+                          EXISTS_TAC(parse_term @"(h:real->hreal) M")
+                          |> THEN <| X_GEN_TAC(parse_term @"y:hreal")
                           |> THEN <| DISCH_THEN(ANTE_RES_THEN MP_TAC)
                           |> THEN <| ASM_REWRITE_TAC []
                           |> THEN 
                           <| MATCH_MP_TAC
-                                 (TAUT(parse_term "(b <=> a) ==> a ==> b"))
+                                 (TAUT(parse_term @"(b <=> a) ==> a ==> b"))
                           |> THEN <| AP_TERM_TAC
                           |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                           |> THEN <| MATCH_MP_TAC REAL_LE_TRANS
-                          |> THEN <| EXISTS_TAC(parse_term "x:real")
+                          |> THEN <| EXISTS_TAC(parse_term @"x:real")
                           |> THEN <| ASM_REWRITE_TAC []
                           |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                           |> THEN <| ASM_REWRITE_TAC []]
              MATCH_MP_TAC
-                 (TAUT(parse_term "(b ==> c) ==> a ==> (a ==> b) ==> c"))
+                 (TAUT(parse_term @"(b ==> c) ==> a ==> (a ==> b) ==> c"))
              |> THEN 
              <| DISCH_THEN
-                    (X_CHOOSE_THEN (parse_term "B:hreal") STRIP_ASSUME_TAC)]
-         |> THEN <| EXISTS_TAC(parse_term "(r:hreal->real) B")
+                    (X_CHOOSE_THEN (parse_term @"B:hreal") STRIP_ASSUME_TAC)]
+         |> THEN <| EXISTS_TAC(parse_term @"(r:hreal->real) B")
          |> THEN <| CONJ_TAC
-         |> THENL <| [X_GEN_TAC(parse_term "z:real")
+         |> THENL <| [X_GEN_TAC(parse_term @"z:real")
                       |> THEN <| DISCH_TAC
                       |> THEN 
                       <| DISJ_CASES_TAC
-                             (SPECL [(parse_term "&0")
-                                     (parse_term "z:real")] REAL_LE_TOTAL)
+                             (SPECL [(parse_term @"&0")
+                                     (parse_term @"z:real")] REAL_LE_TOTAL)
                       |> THENL <| [ANTE_RES_THEN (SUBST1_TAC << SYM) 
-                                       (ASSUME(parse_term "&0 <= z"))
+                                       (ASSUME(parse_term @"&0 <= z"))
                                    |> THEN 
                                    <| FIRST_ASSUM
                                           (fun th -> GEN_REWRITE_TAC I [GSYM th])
                                    |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                                    |> THEN 
-                                   <| UNDISCH_TAC(parse_term "(P:real->bool) z")
+                                   <| UNDISCH_TAC(parse_term @"(P:real->bool) z")
                                    |> THEN 
                                    <| MATCH_MP_TAC
                                           (TAUT
@@ -2974,61 +2974,61 @@ let REAL_COMPLETE_SOMEPOS =
                                    |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                                    |> THEN <| ASM_REWRITE_TAC []
                                    MATCH_MP_TAC REAL_LE_TRANS
-                                   |> THEN <| EXISTS_TAC(parse_term "&0")
+                                   |> THEN <| EXISTS_TAC(parse_term @"&0")
                                    |> THEN <| ASM_REWRITE_TAC []]
-                      X_GEN_TAC(parse_term "C:real")
+                      X_GEN_TAC(parse_term @"C:real")
                       |> THEN <| DISCH_TAC
                       |> THEN 
-                      <| SUBGOAL_THEN (parse_term "B:hreal <= (h(C:real))") 
+                      <| SUBGOAL_THEN (parse_term @"B:hreal <= (h(C:real))") 
                              MP_TAC
                       |> THENL <| [FIRST_ASSUM MATCH_MP_TAC
                                    |> THEN <| ASM_REWRITE_TAC []
                                    |> THEN 
                                    <| SUBGOAL_THEN 
-                                          (parse_term "(r:hreal->real)(h C) = C") 
+                                          (parse_term @"(r:hreal->real)(h C) = C") 
                                           (fun th -> ASM_REWRITE_TAC [th])
                                    ASM_REWRITE_TAC []
                                    |> THEN <| MATCH_MP_TAC EQ_IMP
                                    |> THEN <| AP_TERM_TAC]
                       |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                       |> THEN <| MATCH_MP_TAC REAL_LE_TRANS
-                      |> THEN <| EXISTS_TAC(parse_term "x:real")
+                      |> THEN <| EXISTS_TAC(parse_term @"x:real")
                       |> THEN <| ASM_REWRITE_TAC []
                       |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                       |> THEN <| ASM_REWRITE_TAC []])
 
 let REAL_COMPLETE = 
     prove
-        ((parse_term "!P. (?x. P x) /\
+        ((parse_term @"!P. (?x. P x) /\
        (?M. !x. P x ==> x <= M)
        ==> ?M. (!x. P x ==> x <= M) /\
                !M'. (!x. P x ==> x <= M') ==> M <= M'"), 
          let lemma = 
              prove
-                 ((parse_term "y = (y - x) + x"), 
+                 ((parse_term @"y = (y - x) + x"), 
                   REWRITE_TAC [real_sub
                                GSYM REAL_ADD_ASSOC
                                REAL_ADD_LINV]
                   |> THEN <| ONCE_REWRITE_TAC [REAL_ADD_SYM]
                   |> THEN <| REWRITE_TAC [REAL_ADD_LID])
          REPEAT STRIP_TAC
-         |> THEN <| DISJ_CASES_TAC(SPECL [(parse_term "&0")
-                                          (parse_term "x:real")] REAL_LE_TOTAL)
+         |> THEN <| DISJ_CASES_TAC(SPECL [(parse_term @"&0")
+                                          (parse_term @"x:real")] REAL_LE_TOTAL)
          |> THENL 
          <| [MATCH_MP_TAC REAL_COMPLETE_SOMEPOS
              |> THEN <| CONJ_TAC
-             |> THENL <| [EXISTS_TAC(parse_term "x:real")
-                          EXISTS_TAC(parse_term "M:real")]
+             |> THENL <| [EXISTS_TAC(parse_term @"x:real")
+                          EXISTS_TAC(parse_term @"M:real")]
              |> THEN <| ASM_REWRITE_TAC []
              FIRST_ASSUM(MP_TAC << MATCH_MP REAL_LE_LADD_IMP)
-             |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term "--x"))
+             |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term @"--x"))
              |> THEN <| REWRITE_TAC [REAL_ADD_LINV]
              |> THEN <| ONCE_REWRITE_TAC [REAL_ADD_SYM]
              |> THEN <| REWRITE_TAC [REAL_ADD_LID]
              |> THEN <| DISCH_TAC
              |> THEN 
              <| MP_TAC
-                    (SPEC (parse_term "\y. P(y + x) :bool") 
+                    (SPEC (parse_term @"\y. P(y + x) :bool") 
                          REAL_COMPLETE_SOMEPOS)
              |> THEN <| BETA_TAC
              |> THEN 
@@ -3036,14 +3036,14 @@ let REAL_COMPLETE =
              |> THENL 
              <| [CONJ_TAC
                  |> THENL 
-                 <| [EXISTS_TAC(parse_term "&0")
+                 <| [EXISTS_TAC(parse_term @"&0")
                      |> THEN <| ASM_REWRITE_TAC [REAL_LE_REFL; REAL_ADD_LID]
-                     EXISTS_TAC(parse_term "M + --x")
+                     EXISTS_TAC(parse_term @"M + --x")
                      |> THEN <| GEN_TAC
                      |> THEN <| DISCH_THEN(ANTE_RES_THEN MP_TAC)
                      |> THEN 
                      <| DISCH_THEN
-                            (MP_TAC << SPEC(parse_term "--x") 
+                            (MP_TAC << SPEC(parse_term @"--x") 
                              << MATCH_MP REAL_LE_LADD_IMP)
                      |> THEN 
                      <| DISCH_THEN(MP_TAC << ONCE_REWRITE_RULE [REAL_ADD_SYM])
@@ -3055,11 +3055,11 @@ let REAL_COMPLETE =
                      <| REWRITE_TAC 
                             [ONCE_REWRITE_RULE [REAL_ADD_SYM] REAL_ADD_LID]]
                  MATCH_MP_TAC
-                     (TAUT(parse_term "(b ==> c) ==> a ==> (a ==> b) ==> c"))
+                     (TAUT(parse_term @"(b ==> c) ==> a ==> (a ==> b) ==> c"))
                  |> THEN 
                  <| DISCH_THEN
-                        (X_CHOOSE_THEN (parse_term "B:real") STRIP_ASSUME_TAC)]
-             |> THEN <| EXISTS_TAC(parse_term "B + x")
+                        (X_CHOOSE_THEN (parse_term @"B:real") STRIP_ASSUME_TAC)]
+             |> THEN <| EXISTS_TAC(parse_term @"B + x")
              |> THEN <| CONJ_TAC
              |> THENL 
              <| [GEN_TAC
@@ -3067,7 +3067,7 @@ let REAL_COMPLETE =
                  |> THEN 
                  <| DISCH_THEN
                         (ANTE_RES_THEN
-                             (MP_TAC << SPEC(parse_term "x:real") 
+                             (MP_TAC << SPEC(parse_term @"x:real") 
                               << MATCH_MP REAL_LE_LADD_IMP))
                  |> THEN <| ONCE_REWRITE_TAC [REAL_ADD_SYM]
                  |> THEN <| REWRITE_TAC [real_sub
@@ -3079,17 +3079,17 @@ let REAL_COMPLETE =
                  |> THEN <| ONCE_REWRITE_TAC [REAL_ADD_SYM]
                  |> THEN <| ASM_REWRITE_TAC []
                  REPEAT STRIP_TAC
-                 |> THEN <| SUBGOAL_THEN (parse_term "B <= M' - x") MP_TAC
+                 |> THEN <| SUBGOAL_THEN (parse_term @"B <= M' - x") MP_TAC
                  |> THENL 
                  <| [FIRST_ASSUM MATCH_MP_TAC
-                     |> THEN <| X_GEN_TAC(parse_term "z:real")
+                     |> THEN <| X_GEN_TAC(parse_term @"z:real")
                      |> THEN <| DISCH_TAC
-                     |> THEN <| SUBGOAL_THEN (parse_term "z + x <= M'") MP_TAC
+                     |> THEN <| SUBGOAL_THEN (parse_term @"z + x <= M'") MP_TAC
                      |> THENL 
                      <| [FIRST_ASSUM MATCH_MP_TAC
                          |> THEN <| ASM_REWRITE_TAC []
                          DISCH_THEN
-                             (MP_TAC << SPEC(parse_term "--x") 
+                             (MP_TAC << SPEC(parse_term @"--x") 
                               << MATCH_MP REAL_LE_LADD_IMP)
                          |> THEN <| ONCE_REWRITE_TAC [REAL_ADD_SYM]
                          |> THEN <| REWRITE_TAC [real_sub]
@@ -3104,7 +3104,7 @@ let REAL_COMPLETE =
                          <| REWRITE_TAC 
                                 [ONCE_REWRITE_RULE [REAL_ADD_SYM] REAL_ADD_LID]]
                      DISCH_THEN
-                         (MP_TAC << SPEC(parse_term "x:real") 
+                         (MP_TAC << SPEC(parse_term @"x:real") 
                           << MATCH_MP REAL_LE_LADD_IMP)
                      |> THEN <| MATCH_MP_TAC EQ_IMP
                      |> THEN <| BINOP_TAC
@@ -3118,10 +3118,10 @@ let REAL_COMPLETE =
                          <| REWRITE_TAC 
                                 [ONCE_REWRITE_RULE [REAL_ADD_SYM] REAL_ADD_LID]]]]])
 
-do_list reduce_interface ["+", (parse_term "hreal_add:hreal->hreal->hreal")
-                          "*", (parse_term "hreal_mul:hreal->hreal->hreal")
-                          "<=", (parse_term "hreal_le:hreal->hreal->bool")
-                          "inv", (parse_term "hreal_inv:hreal->hreal")]
+do_list reduce_interface ["+", (parse_term @"hreal_add:hreal->hreal->hreal")
+                          "*", (parse_term @"hreal_mul:hreal->hreal->hreal")
+                          "<=", (parse_term @"hreal_le:hreal->hreal->bool")
+                          "inv", (parse_term @"hreal_inv:hreal->hreal")]
 do_list remove_interface ["**"
                           "++"
                           "<<="

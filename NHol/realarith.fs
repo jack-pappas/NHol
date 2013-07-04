@@ -60,66 +60,66 @@ open calc_int
 (* Some lemmas needed now just to drive the decision procedure.              *)
 (* ------------------------------------------------------------------------- *)
 let REAL_LTE_TOTAL = 
-    prove((parse_term "!x y. x < y \/ y <= x"), REWRITE_TAC [real_lt]
+    prove((parse_term @"!x y. x < y \/ y <= x"), REWRITE_TAC [real_lt]
                                                 |> THEN <| CONV_TAC TAUT)
 
 let REAL_LET_TOTAL = 
-    prove((parse_term "!x y. x <= y \/ y < x"), REWRITE_TAC [real_lt]
+    prove((parse_term @"!x y. x <= y \/ y < x"), REWRITE_TAC [real_lt]
                                                 |> THEN <| CONV_TAC TAUT)
 let REAL_LT_IMP_LE = 
     prove
-        ((parse_term "!x y. x < y ==> x <= y"), 
+        ((parse_term @"!x y. x < y ==> x <= y"), 
          MESON_TAC [real_lt; REAL_LE_TOTAL])
 let REAL_LTE_TRANS = 
     prove
-        ((parse_term "!x y z. x < y /\ y <= z ==> x < z"), 
+        ((parse_term @"!x y z. x < y /\ y <= z ==> x < z"), 
          MESON_TAC [real_lt; REAL_LE_TRANS])
 let REAL_LET_TRANS = 
     prove
-        ((parse_term "!x y z. x <= y /\ y < z ==> x < z"), 
+        ((parse_term @"!x y z. x <= y /\ y < z ==> x < z"), 
          MESON_TAC [real_lt; REAL_LE_TRANS])
 let REAL_LT_TRANS = 
     prove
-        ((parse_term "!x y z. x < y /\ y < z ==> x < z"), 
+        ((parse_term @"!x y z. x < y /\ y < z ==> x < z"), 
          MESON_TAC [REAL_LTE_TRANS; REAL_LT_IMP_LE])
 let REAL_LE_ADD = 
     prove
-        ((parse_term "!x y. &0 <= x /\ &0 <= y ==> &0 <= x + y"), 
+        ((parse_term @"!x y. &0 <= x /\ &0 <= y ==> &0 <= x + y"), 
          MESON_TAC [REAL_LE_LADD_IMP; REAL_ADD_RID; REAL_LE_TRANS])
 let REAL_LTE_ANTISYM = 
-    prove((parse_term "!x y. ~(x < y /\ y <= x)"), MESON_TAC [real_lt])
+    prove((parse_term @"!x y. ~(x < y /\ y <= x)"), MESON_TAC [real_lt])
 
 let REAL_SUB_LE = 
     prove
-        ((parse_term "!x y. &0 <= (x - y) <=> y <= x"), 
+        ((parse_term @"!x y. &0 <= (x - y) <=> y <= x"), 
          REWRITE_TAC [real_sub
                       GSYM REAL_LE_LNEG
                       REAL_LE_NEG2])
 
 let REAL_NEG_SUB = 
     prove
-        ((parse_term "!x y. --(x - y) = y - x"), 
+        ((parse_term @"!x y. --(x - y) = y - x"), 
          REWRITE_TAC [real_sub; REAL_NEG_ADD; REAL_NEG_NEG]
          |> THEN <| REWRITE_TAC [REAL_ADD_AC])
 let REAL_LE_LT = 
     prove
-        ((parse_term "!x y. x <= y <=> x < y \/ (x = y)"), 
+        ((parse_term @"!x y. x <= y <=> x < y \/ (x = y)"), 
          REWRITE_TAC [real_lt]
          |> THEN <| MESON_TAC [REAL_LE_ANTISYM; REAL_LE_TOTAL])
 
 let REAL_SUB_LT = 
     prove
-        ((parse_term "!x y. &0 < (x - y) <=> y < x"), 
+        ((parse_term @"!x y. &0 < (x - y) <=> y < x"), 
          REWRITE_TAC [real_lt]
          |> THEN <| ONCE_REWRITE_TAC [GSYM REAL_NEG_SUB]
          |> THEN <| REWRITE_TAC [REAL_LE_LNEG; REAL_ADD_RID; REAL_SUB_LE])
 
 let REAL_NOT_LT = 
-    prove((parse_term "!x y. ~(x < y) <=> y <= x"), REWRITE_TAC [real_lt])
+    prove((parse_term @"!x y. ~(x < y) <=> y <= x"), REWRITE_TAC [real_lt])
 
 let REAL_SUB_0 = 
     prove
-        ((parse_term "!x y. (x - y = &0) <=> (x = y)"), 
+        ((parse_term @"!x y. (x - y = &0) <=> (x = y)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [GSYM REAL_LE_ANTISYM]
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << LAND_CONV) [GSYM REAL_NOT_LT]
@@ -128,33 +128,33 @@ let REAL_SUB_0 =
 
 let REAL_LT_LE = 
     prove
-        ((parse_term "!x y. x < y <=> x <= y /\ ~(x = y)"), 
+        ((parse_term @"!x y. x < y <=> x <= y /\ ~(x = y)"), 
          MESON_TAC [real_lt; REAL_LE_TOTAL; REAL_LE_ANTISYM])
 let REAL_LT_REFL = 
-    prove((parse_term "!x. ~(x < x)"), REWRITE_TAC [real_lt; REAL_LE_REFL])
+    prove((parse_term @"!x. ~(x < x)"), REWRITE_TAC [real_lt; REAL_LE_REFL])
 let REAL_LTE_ADD = 
     prove
-        ((parse_term "!x y. &0 < x /\ &0 <= y ==> &0 < x + y"), 
+        ((parse_term @"!x y. &0 < x /\ &0 <= y ==> &0 < x + y"), 
          MESON_TAC [REAL_LE_LADD_IMP; REAL_ADD_RID; REAL_LTE_TRANS])
 let REAL_LET_ADD = 
     prove
-        ((parse_term "!x y. &0 <= x /\ &0 < y ==> &0 < x + y"), 
+        ((parse_term @"!x y. &0 <= x /\ &0 < y ==> &0 < x + y"), 
          MESON_TAC [REAL_LTE_ADD; REAL_ADD_SYM])
 let REAL_LT_ADD = 
     prove
-        ((parse_term "!x y. &0 < x /\ &0 < y ==> &0 < x + y"), 
+        ((parse_term @"!x y. &0 < x /\ &0 < y ==> &0 < x + y"), 
          MESON_TAC [REAL_LT_IMP_LE; REAL_LTE_ADD])
 
 let REAL_ENTIRE = 
     prove
-        ((parse_term "!x y. (x * y = &0) <=> (x = &0) \/ (y = &0)"), 
+        ((parse_term @"!x y. (x * y = &0) <=> (x = &0) \/ (y = &0)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| STRIP_TAC
          |> THEN <| ASM_REWRITE_TAC [REAL_MUL_LZERO; REAL_MUL_RZERO]
-         |> THEN <| ASM_CASES_TAC(parse_term "x = &0")
+         |> THEN <| ASM_CASES_TAC(parse_term @"x = &0")
          |> THEN <| ASM_REWRITE_TAC []
-         |> THEN <| FIRST_ASSUM(MP_TAC << AP_TERM(parse_term "(*) (inv x)"))
+         |> THEN <| FIRST_ASSUM(MP_TAC << AP_TERM(parse_term @"(*) (inv x)"))
          |> THEN <| REWRITE_TAC [REAL_MUL_ASSOC]
          |> THEN 
          <| FIRST_ASSUM(fun th -> REWRITE_TAC [MATCH_MP REAL_MUL_LINV th])
@@ -162,30 +162,30 @@ let REAL_ENTIRE =
 
 let REAL_LE_NEGTOTAL = 
     prove
-        ((parse_term "!x. &0 <= x \/ &0 <= --x"), 
+        ((parse_term @"!x. &0 <= x \/ &0 <= --x"), 
          REWRITE_TAC [REAL_LE_RNEG; REAL_ADD_LID; REAL_LE_TOTAL])
 
 let REAL_LE_SQUARE = 
     prove
-        ((parse_term "!x. &0 <= x * x"), 
+        ((parse_term @"!x. &0 <= x * x"), 
          GEN_TAC
-         |> THEN <| DISJ_CASES_TAC(SPEC (parse_term "x:real") REAL_LE_NEGTOTAL)
+         |> THEN <| DISJ_CASES_TAC(SPEC (parse_term @"x:real") REAL_LE_NEGTOTAL)
          |> THEN 
          <| POP_ASSUM(fun th -> MP_TAC(MATCH_MP REAL_LE_MUL (CONJ th th)))
          |> THEN <| REWRITE_TAC [REAL_MUL_LNEG; REAL_MUL_RNEG; REAL_NEG_NEG])
 
 let REAL_MUL_RID = 
-    prove((parse_term "!x. x * &1 = x"), MESON_TAC [REAL_MUL_LID; REAL_MUL_SYM])
+    prove((parse_term @"!x. x * &1 = x"), MESON_TAC [REAL_MUL_LID; REAL_MUL_SYM])
 
 let REAL_POW_2 = 
     prove
-        ((parse_term "!x. x pow 2 = x * x"), 
-         REWRITE_TAC [num_CONV(parse_term "2")
-                      num_CONV(parse_term "1")]
+        ((parse_term @"!x. x pow 2 = x * x"), 
+         REWRITE_TAC [num_CONV(parse_term @"2")
+                      num_CONV(parse_term @"1")]
          |> THEN <| REWRITE_TAC [real_pow; REAL_MUL_RID])
 
 let REAL_POLY_CLAUSES = 
-    prove((parse_term "(!x y z. x + (y + z) = (x + y) + z) /\
+    prove((parse_term @"(!x y z. x + (y + z) = (x + y) + z) /\
    (!x y. x + y = y + x) /\
    (!x. &0 + x = x) /\
    (!x y z. x * (y * z) = (x * y) * z) /\
@@ -206,11 +206,11 @@ let REAL_POLY_CLAUSES =
 
 let REAL_POLY_NEG_CLAUSES = 
     prove
-        ((parse_term "(!x. --x = --(&1) * x) /\
+        ((parse_term @"(!x. --x = --(&1) * x) /\
    (!x y. x - y = x + --(&1) * y)"), 
          REWRITE_TAC [REAL_MUL_LNEG; real_sub; REAL_MUL_LID])
 let REAL_POS = 
-    prove((parse_term "!n. &0 <= &n"), REWRITE_TAC [REAL_OF_NUM_LE; LE_0])
+    prove((parse_term @"!n. &0 <= &n"), REWRITE_TAC [REAL_OF_NUM_LE; LE_0])
 
 (* ------------------------------------------------------------------------- *)
 (* Data structure for Positivstellensatz refutations.                        *)
@@ -236,7 +236,7 @@ type positivstellensatz =
 let GEN_REAL_ARITH_001 = 
     let pth = 
         prove
-            ((parse_term "(x < y <=> y - x > &0) /\
+            ((parse_term @"(x < y <=> y - x > &0) /\
      (x <= y <=> y - x >= &0) /\
      (x > y <=> x - y > &0) /\
      (x >= y <=> x - y >= &0) /\
@@ -250,10 +250,10 @@ let GEN_REAL_ARITH_001 =
                  [real_gt; real_ge; REAL_SUB_LT; REAL_SUB_LE; REAL_NEG_SUB]
              |> THEN <| REWRITE_TAC [REAL_SUB_0; real_lt]
              |> THEN <| MESON_TAC [REAL_LE_ANTISYM])
-    let pth_final = TAUT(parse_term "(~p ==> F) ==> p")
+    let pth_final = TAUT(parse_term @"(~p ==> F) ==> p")
     let pth_add = 
         prove
-            ((parse_term "((x = &0) /\ (y = &0) ==> (x + y = &0)) /\
+            ((parse_term @"((x = &0) /\ (y = &0) ==> (x + y = &0)) /\
      ((x = &0) /\ y >= &0 ==> x + y >= &0) /\
      ((x = &0) /\ y > &0 ==> x + y > &0) /\
      (x >= &0 /\ (y = &0) ==> x + y >= &0) /\
@@ -266,7 +266,7 @@ let GEN_REAL_ARITH_001 =
              |> THEN <| REWRITE_TAC [REAL_LE_LT]
              |> THEN <| MESON_TAC [REAL_ADD_LID; REAL_ADD_RID; REAL_LT_ADD])
     let pth_mul = 
-        prove((parse_term "((x = &0) /\ (y = &0) ==> (x * y = &0)) /\
+        prove((parse_term @"((x = &0) /\ (y = &0) ==> (x * y = &0)) /\
      ((x = &0) /\ y >= &0 ==> (x * y = &0)) /\
      ((x = &0) /\ y > &0 ==> (x * y = &0)) /\
      (x >= &0 /\ (y = &0) ==> (x * y = &0)) /\
@@ -282,11 +282,11 @@ let GEN_REAL_ARITH_001 =
                                           |> THEN <| MESON_TAC [REAL_ENTIRE])
     let pth_emul = 
         prove
-            ((parse_term "(y = &0) ==> !x. x * y = &0"), 
+            ((parse_term @"(y = &0) ==> !x. x * y = &0"), 
              SIMP_TAC [REAL_MUL_RZERO])
     let pth_square = 
         prove
-            ((parse_term "!x. x * x >= &0"), 
+            ((parse_term @"!x. x * x >= &0"), 
              REWRITE_TAC [real_ge; REAL_POW_2; REAL_LE_SQUARE])
     let MATCH_MP_RULE th = 
         let net = 
@@ -294,26 +294,26 @@ let GEN_REAL_ARITH_001 =
                 (fun th -> net_of_conv (lhand(concl th)) (PART_MATCH lhand th)) 
                 (CONJUNCTS th) empty_net
         fun th -> MP (REWRITES_CONV net (concl th)) th
-    let x_tm = (parse_term "x:real")
-    let y_tm = (parse_term "y:real")
-    let neg_tm = (parse_term "(--):real->real")
-    let gt_tm = (parse_term "(>):real->real->bool")
-    let ge_tm = (parse_term "(>=):real->real->bool")
-    let eq_tm = (parse_term "(=):real->real->bool")
-    let p_tm = (parse_term "p:bool")
-    let or_tm = (parse_term "(\/)")
-    let false_tm = (parse_term "F")
-    let z_tm = (parse_term "&0 :real")
-    let xy_lt = (parse_term "(x:real) < y")
-    let xy_nlt = (parse_term "~((x:real) < y)")
-    let xy_le = (parse_term "(x:real) <= y")
-    let xy_nle = (parse_term "~((x:real) <= y)")
-    let xy_gt = (parse_term "(x:real) > y")
-    let xy_ngt = (parse_term "~((x:real) > y)")
-    let xy_ge = (parse_term "(x:real) >= y")
-    let xy_nge = (parse_term "~((x:real) >= y)")
-    let xy_eq = (parse_term "x:real = y")
-    let xy_ne = (parse_term "~(x:real = y)")
+    let x_tm = (parse_term @"x:real")
+    let y_tm = (parse_term @"y:real")
+    let neg_tm = (parse_term @"(--):real->real")
+    let gt_tm = (parse_term @"(>):real->real->bool")
+    let ge_tm = (parse_term @"(>=):real->real->bool")
+    let eq_tm = (parse_term @"(=):real->real->bool")
+    let p_tm = (parse_term @"p:bool")
+    let or_tm = (parse_term @"(\/)")
+    let false_tm = (parse_term @"F")
+    let z_tm = (parse_term @"&0 :real")
+    let xy_lt = (parse_term @"(x:real) < y")
+    let xy_nlt = (parse_term @"~((x:real) < y)")
+    let xy_le = (parse_term @"(x:real) <= y")
+    let xy_nle = (parse_term @"~((x:real) <= y)")
+    let xy_gt = (parse_term @"(x:real) > y")
+    let xy_ngt = (parse_term @"~((x:real) > y)")
+    let xy_ge = (parse_term @"(x:real) >= y")
+    let xy_nge = (parse_term @"~((x:real) >= y)")
+    let xy_eq = (parse_term @"x:real = y")
+    let xy_ne = (parse_term @"~(x:real = y)")
     let is_ge = is_binop ge_tm
     let is_gt = is_binop gt_tm
     let is_req = is_binop eq_tm
@@ -579,7 +579,7 @@ let GEN_REAL_ARITH_001 =
 let REAL_LINEAR_PROVER = 
     let linear_add = combine (+/) (fun z -> z =/ num_0)
     let linear_cmul c = mapf(fun x -> c */ x)
-    let one_tm = (parse_term "&1")
+    let one_tm = (parse_term @"&1")
     let contradictory p (e, _) = 
         (is_undefined e && not(p num_0)) 
         || (dom e = [one_tm] && not(p(apply e one_tm)))
@@ -676,10 +676,10 @@ let REAL_LINEAR_PROVER =
             let lts = map2 (fun p n -> p, Axiom_lt n) lt (0 -- (length lt - 1))
             linear_eqs(eqs, les, lts)
     let lin_of_hol = 
-        let one_tm = (parse_term "&1")
-        let zero_tm = (parse_term "&0")
-        let add_tm = (parse_term "(+):real->real->real")
-        let mul_tm = (parse_term "(*):real->real->real")
+        let one_tm = (parse_term @"&1")
+        let zero_tm = (parse_term @"&0")
+        let add_tm = (parse_term @"(+):real->real->real")
+        let mul_tm = (parse_term @"(*):real->real->real")
         let rec lin_of_hol tm = 
             if tm = zero_tm
             then undefined
@@ -703,7 +703,7 @@ let REAL_LINEAR_PROVER =
         match tm with
         | Comb(Const("real_of_num", _), n) when not(is_numeral n) -> true
         | _ -> false
-    let n_tm = (parse_term "n:num")
+    let n_tm = (parse_term @"n:num")
     let pth = REWRITE_RULE [GSYM real_ge] (SPEC n_tm REAL_POS)
     fun translator (eq, le, lt) -> 
         let eq_pols = map (lin_of_hol << lhand << concl) eq
@@ -742,7 +742,7 @@ let REAL_ARITH_001 =
 (* ------------------------------------------------------------------------- *)
 let GEN_REAL_ARITH = 
     let ABSMAXMIN_ELIM_CONV1 = 
-     GEN_REWRITE_CONV I [time REAL_ARITH_001 (parse_term "(--(&1) * abs(x) >= r <=>
+     GEN_REWRITE_CONV I [time REAL_ARITH_001 (parse_term @"(--(&1) * abs(x) >= r <=>
        --(&1) * x >= r /\ &1 * x >= r) /\
       (--(&1) * abs(x) + a >= r <=>
        a + --(&1) * x >= r /\ a + &1 * x >= r) /\
@@ -836,22 +836,22 @@ let GEN_REAL_ARITH =
                  |> THEN <| ASM_REWRITE_TAC [real_lt])
         let pth_max = 
             prove
-                ((parse_term "P(max x y) <=> (y >= x /\ P y) \/ (x > y /\ P x)"), 
+                ((parse_term @"P(max x y) <=> (y >= x /\ P y) \/ (x > y /\ P x)"), 
                  REWRITE_TAC [real_max; real_gt; real_ge]
                  |> THEN <| COND_CASES_TAC
                  |> THEN <| ASM_REWRITE_TAC [real_lt])
         let pth_min = 
             prove
-                ((parse_term "P(min x y) <=> (y >= x /\ P x) \/ (x > y /\ P y)"), 
+                ((parse_term @"P(min x y) <=> (y >= x /\ P x) \/ (x > y /\ P y)"), 
                  REWRITE_TAC [real_min; real_gt; real_ge]
                  |> THEN <| COND_CASES_TAC
                  |> THEN <| ASM_REWRITE_TAC [real_lt])
-        let abs_tm = (parse_term "real_abs")
-        let p_tm = (parse_term "P:real->bool")
-        let x_tm = (parse_term "x:real")
-        let y_tm = (parse_term "y:real")
-        let is_max = is_binop(parse_term "real_max")
-        let is_min = is_binop(parse_term "real_min")
+        let abs_tm = (parse_term @"real_abs")
+        let p_tm = (parse_term @"P:real->bool")
+        let x_tm = (parse_term @"x:real")
+        let y_tm = (parse_term @"y:real")
+        let is_max = is_binop(parse_term @"real_max")
+        let is_min = is_binop(parse_term @"real_min")
         let is_abs t = is_comb t && rator t = abs_tm
         let eliminate_construct p c tm = 
             let t = find_term (fun t -> p t && free_in t tm) tm

@@ -51,7 +51,7 @@ parse_as_infix("/\\", (8, "right"))
 (* ------------------------------------------------------------------------- *)
 
 parse_as_infix("<=>", (2, "right"))
-override_interface("<=>", parse_term "(=):bool->bool->bool")
+override_interface("<=>", parse_term @"(=):bool->bool->bool")
 parse_as_infix("=", (12, "right"))
 
 (* ------------------------------------------------------------------------- *)
@@ -69,7 +69,7 @@ let dest_iff tm =
     | _ -> failwith "dest_iff"
 
 let mk_iff = 
-    let eq_tm = parse_term "(<=>)"
+    let eq_tm = parse_term @"(<=>)"
     fun (l, r) -> mk_comb(mk_comb(eq_tm, l), r)
 
 (* ------------------------------------------------------------------------- *)
@@ -107,7 +107,7 @@ let EQT_ELIM th =
     | Failure _ -> failwith "EQT_ELIM"
 
 let EQT_INTRO = 
-    let t = parse_term "t:bool"
+    let t = parse_term @"t:bool"
     let pth = 
         let th1 = DEDUCT_ANTISYM_RULE (ASSUME t) TRUTH
         let th2 = EQT_ELIM(ASSUME(concl th1))
@@ -123,9 +123,9 @@ let mk_conj = mk_binary "/\\"
 let list_mk_conj = end_itlist(curry mk_conj)
 
 let CONJ = 
-    let f = parse_term "f:bool->bool->bool"
-    let p = parse_term "p:bool"
-    let q = parse_term "q:bool"
+    let f = parse_term @"f:bool->bool->bool"
+    let p = parse_term @"p:bool"
+    let q = parse_term @"q:bool"
     let pth() = 
         let pth = ASSUME p
         let qth = ASSUME q
@@ -140,11 +140,11 @@ let CONJ =
         PROVE_HYP th2 (PROVE_HYP th1 th)
 
 let CONJUNCT1 = 
-    let P = parse_term "P:bool"
-    let Q = parse_term "Q:bool"
+    let P = parse_term @"P:bool"
+    let Q = parse_term @"Q:bool"
     let pth = 
-        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM AND_DEF <| parse_term "P:bool")
-        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term "Q:bool")
+        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM AND_DEF <| parse_term @"P:bool")
+        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
         let th3 = EQ_MP th2 (ASSUME <| parse_term @"P /\ Q")
         EQT_ELIM(BETA_RULE(AP_THM th3 <| parse_term @"\(p:bool) (q:bool). p"))
     fun th -> 
@@ -156,11 +156,11 @@ let CONJUNCT1 =
         | Failure _ -> failwith "CONJUNCT1"
 
 let CONJUNCT2 = 
-    let P = parse_term "P:bool"
-    let Q = parse_term "Q:bool"
+    let P = parse_term @"P:bool"
+    let Q = parse_term @"Q:bool"
     let pth = 
-        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM AND_DEF <| parse_term "P:bool")
-        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term "Q:bool")
+        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM AND_DEF <| parse_term @"P:bool")
+        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
         let th3 = EQ_MP th2 (ASSUME <| parse_term @"P /\ Q")
         EQT_ELIM(BETA_RULE(AP_THM th3 <| parse_term @"\(p:bool) (q:bool). q"))
     fun th -> 
@@ -187,12 +187,12 @@ let IMP_DEF = new_basic_definition <| parse_term @"(==>) = \p q. p /\ q <=> p"
 let mk_imp = mk_binary "==>"
 
 let MP = 
-    let p = parse_term "p:bool"
-    let q = parse_term "q:bool"
+    let p = parse_term @"p:bool"
+    let q = parse_term @"q:bool"
     let pth() = 
         let th1 = BETA_RULE(AP_THM (AP_THM IMP_DEF p) q)
-        let th2 = EQ_MP th1 (ASSUME <| parse_term "p ==> q")
-        CONJUNCT2(EQ_MP (SYM th2) (ASSUME <| parse_term "p:bool"))
+        let th2 = EQ_MP th1 (ASSUME <| parse_term @"p ==> q")
+        CONJUNCT2(EQ_MP (SYM th2) (ASSUME <| parse_term @"p:bool"))
     fun ith th -> 
         let ant, con = dest_imp(concl ith)
         if aconv ant (concl th) then 
@@ -201,8 +201,8 @@ let MP =
         else failwith "MP: theorems do not agree"
 
 let DISCH = 
-    let p = parse_term "p:bool"
-    let q = parse_term "q:bool"
+    let p = parse_term @"p:bool"
+    let q = parse_term @"q:bool"
     let pth() = SYM(BETA_RULE(AP_THM (AP_THM IMP_DEF p) q))
     fun a th -> 
         let th1 = CONJ (ASSUME a) th
@@ -233,7 +233,7 @@ let IMP_ANTISYM_RULE th1 th2 = DEDUCT_ANTISYM_RULE (UNDISCH th2) (UNDISCH th1)
 let ADD_ASSUM tm th = MP (DISCH tm th) (ASSUME tm)
 
 let EQ_IMP_RULE = 
-    let peq = parse_term "p <=> q"
+    let peq = parse_term @"p <=> q"
     let p, q = dest_iff peq
     let pth1() = DISCH peq (DISCH p (EQ_MP (ASSUME peq) (ASSUME p)))
     let pth2() = DISCH peq (DISCH q (EQ_MP (SYM(ASSUME peq)) (ASSUME q)))
@@ -244,8 +244,8 @@ let EQ_IMP_RULE =
                                             r, q] <| pth2()) th
 
 let IMP_TRANS = 
-    let pq = parse_term "p ==> q"
-    let qr = parse_term "q ==> r"
+    let pq = parse_term @"p ==> q"
+    let qr = parse_term @"q ==> r"
     let p, q = dest_imp pq
     let r = rand qr
     let pth() = itlist DISCH [pq; qr; p] (MP (ASSUME qr) (MP (ASSUME pq) (ASSUME p)))
@@ -267,11 +267,11 @@ let mk_forall = mk_binder "!"
 let list_mk_forall(vs, bod) = itlist (curry mk_forall) vs bod
 
 let SPEC = 
-    let P = parse_term "P:A->bool"
-    let x = parse_term "x:A"
+    let P = parse_term @"P:A->bool"
+    let x = parse_term @"x:A"
     let pth() = 
-        let th1 = EQ_MP (AP_THM FORALL_DEF <| parse_term "P:A->bool") (ASSUME <| parse_term "(!)(P:A->bool)")
-        let th2 = AP_THM(CONV_RULE BETA_CONV th1) <| parse_term "x:A"
+        let th1 = EQ_MP (AP_THM FORALL_DEF <| parse_term @"P:A->bool") (ASSUME <| parse_term @"(!)(P:A->bool)")
+        let th2 = AP_THM(CONV_RULE BETA_CONV th1) <| parse_term @"x:A"
         let th3 = CONV_RULE (RAND_CONV BETA_CONV) th2
         DISCH_ALL(EQT_ELIM th3)
     fun tm th -> 
@@ -323,7 +323,7 @@ let ISPECL tms th =
     | Failure _ -> failwith "ISPECL"
 
 let GEN = 
-    let pth() = SYM(CONV_RULE (RAND_CONV BETA_CONV) (AP_THM FORALL_DEF <| parse_term "P:A->bool"))
+    let pth() = SYM(CONV_RULE (RAND_CONV BETA_CONV) (AP_THM FORALL_DEF <| parse_term @"P:A->bool"))
     fun x -> 
         let qth = INST_TYPE [snd(dest_var x), aty] <| pth()
         let ptm = rand(rand(concl qth))
@@ -349,13 +349,13 @@ let mk_exists = mk_binder "?"
 let list_mk_exists(vs, bod) = itlist (curry mk_exists) vs bod
 
 let EXISTS = 
-    let P = parse_term "P:A->bool"
-    let x = parse_term "x:A"
+    let P = parse_term @"P:A->bool"
+    let x = parse_term @"x:A"
     let pth() = 
         let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM EXISTS_DEF P)
-        let th2 = SPEC (parse_term "x:A") (ASSUME <| parse_term "!x:A. P x ==> Q")
-        let th3 = DISCH (parse_term "!x:A. P x ==> Q") (MP th2 (ASSUME <| parse_term "(P:A->bool) x"))
-        EQ_MP (SYM th1) (GEN (parse_term "Q:bool") th3)
+        let th2 = SPEC (parse_term @"x:A") (ASSUME <| parse_term @"!x:A. P x ==> Q")
+        let th3 = DISCH (parse_term @"!x:A. P x ==> Q") (MP th2 (ASSUME <| parse_term @"(P:A->bool) x"))
+        EQ_MP (SYM th1) (GEN (parse_term @"Q:bool") th3)
     fun (etm, stm) th -> 
         try 
             let qf, abs = dest_comb etm
@@ -370,12 +370,12 @@ let EXISTS =
 let SIMPLE_EXISTS v th = EXISTS (mk_exists(v, concl th), v) th
 
 let CHOOSE = 
-    let P = parse_term "P:A->bool"
-    let Q = parse_term "Q:bool"
+    let P = parse_term @"P:A->bool"
+    let Q = parse_term @"Q:bool"
     let pth() = 
         let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM EXISTS_DEF P)
-        let th2 = SPEC (parse_term "Q:bool") (UNDISCH(fst(EQ_IMP_RULE th1)))
-        DISCH_ALL(DISCH (parse_term "(?) (P:A->bool)") (UNDISCH th2))
+        let th2 = SPEC (parse_term @"Q:bool") (UNDISCH(fst(EQ_IMP_RULE th1)))
+        DISCH_ALL(DISCH (parse_term @"(?) (P:A->bool)") (UNDISCH th2))
     fun (v, th1) th2 -> 
         try 
             let abs = rand(concl th1)
@@ -402,13 +402,13 @@ let mk_disj = mk_binary "\\/"
 let list_mk_disj = end_itlist(curry mk_disj)
 
 let DISJ1 = 
-    let P = parse_term "P:bool"
-    let Q = parse_term "Q:bool"
+    let P = parse_term @"P:bool"
+    let Q = parse_term @"Q:bool"
     let pth() = 
-        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term "P:bool")
-        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term "Q:bool")
-        let th3 = MP (ASSUME <| parse_term "P ==> t") (ASSUME <| parse_term "P:bool")
-        let th4 = GEN (parse_term "t:bool") (DISCH (parse_term "P ==> t") (DISCH (parse_term "Q ==> t") th3))
+        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term @"P:bool")
+        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
+        let th3 = MP (ASSUME <| parse_term @"P ==> t") (ASSUME <| parse_term @"P:bool")
+        let th4 = GEN (parse_term @"t:bool") (DISCH (parse_term @"P ==> t") (DISCH (parse_term @"Q ==> t") th3))
         EQ_MP (SYM th2) th4
     fun th tm -> 
         try 
@@ -418,13 +418,13 @@ let DISJ1 =
         | Failure _ -> failwith "DISJ1"
 
 let DISJ2 = 
-    let P = parse_term "P:bool"
-    let Q = parse_term "Q:bool"
+    let P = parse_term @"P:bool"
+    let Q = parse_term @"Q:bool"
     let pth() = 
-        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term "P:bool")
-        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term "Q:bool")
-        let th3 = MP (ASSUME <| parse_term "Q ==> t") (ASSUME <| parse_term "Q:bool")
-        let th4 = GEN (parse_term "t:bool") (DISCH (parse_term "P ==> t") (DISCH (parse_term "Q ==> t") th3))
+        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term @"P:bool")
+        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
+        let th3 = MP (ASSUME <| parse_term @"Q ==> t") (ASSUME <| parse_term @"Q:bool")
+        let th4 = GEN (parse_term @"t:bool") (DISCH (parse_term @"P ==> t") (DISCH (parse_term @"Q ==> t") th3))
         EQ_MP (SYM th2) th4
     fun tm th -> 
         try 
@@ -434,13 +434,13 @@ let DISJ2 =
         | Failure _ -> failwith "DISJ2"
 
 let DISJ_CASES = 
-    let P = parse_term "P:bool"
-    let Q = parse_term "Q:bool"
-    let R = parse_term "R:bool"
+    let P = parse_term @"P:bool"
+    let Q = parse_term @"Q:bool"
+    let R = parse_term @"R:bool"
     let pth() = 
-        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term "P:bool")
-        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term "Q:bool")
-        let th3 = SPEC (parse_term "R:bool") (EQ_MP th2 (ASSUME <| parse_term @"P \/ Q"))
+        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term @"P:bool")
+        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
+        let th3 = SPEC (parse_term @"R:bool") (EQ_MP th2 (ASSUME <| parse_term @"P \/ Q"))
         UNDISCH(UNDISCH th3)
     fun th0 th1 th2 -> 
         try 
@@ -463,11 +463,11 @@ let SIMPLE_DISJ_CASES th1 th2 = DISJ_CASES (ASSUME(mk_disj(hd(hyp th1), hd(hyp t
 (* Rules for negation and falsity.                                           *)
 (* ------------------------------------------------------------------------- *)
 
-let F_DEF = new_basic_definition <| parse_term "F = !p:bool. p"
+let F_DEF = new_basic_definition <| parse_term @"F = !p:bool. p"
 let NOT_DEF = new_basic_definition <| parse_term @"(~) = \p. p ==> F"
 
 let mk_neg = 
-    let neg_tm = parse_term "(~)"
+    let neg_tm = parse_term @"(~)"
     fun tm -> 
         try 
             mk_comb(neg_tm, tm)
@@ -475,7 +475,7 @@ let mk_neg =
         | Failure _ -> failwith "mk_neg"
 
 let NOT_ELIM = 
-    let P = parse_term "P:bool"
+    let P = parse_term @"P:bool"
     let pth() = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM NOT_DEF P)
     fun th -> 
         try 
@@ -484,7 +484,7 @@ let NOT_ELIM =
         | Failure _ -> failwith "NOT_ELIM"
 
 let NOT_INTRO = 
-    let P = parse_term "P:bool"
+    let P = parse_term @"P:bool"
     let pth() = SYM(CONV_RULE (RAND_CONV BETA_CONV) (AP_THM NOT_DEF P))
     fun th -> 
         try 
@@ -493,10 +493,10 @@ let NOT_INTRO =
         | Failure _ -> failwith "NOT_INTRO"
 
 let EQF_INTRO = 
-    let P = parse_term "P:bool"
+    let P = parse_term @"P:bool"
     let pth() = 
-        let th1 = NOT_ELIM(ASSUME <| parse_term "~ P")
-        let th2 = DISCH (parse_term "F") (SPEC P (EQ_MP F_DEF (ASSUME <| parse_term "F")))
+        let th1 = NOT_ELIM(ASSUME <| parse_term @"~ P")
+        let th2 = DISCH (parse_term @"F") (SPEC P (EQ_MP F_DEF (ASSUME <| parse_term @"F")))
         DISCH_ALL(IMP_ANTISYM_RULE th1 th2)
     fun th -> 
         try 
@@ -505,10 +505,10 @@ let EQF_INTRO =
         | Failure _ -> failwith "EQF_INTRO"
 
 let EQF_ELIM = 
-    let P = parse_term "P:bool"
+    let P = parse_term @"P:bool"
     let pth() = 
-        let th1 = EQ_MP (ASSUME <| parse_term "P = F") (ASSUME <| parse_term "P:bool")
-        let th2 = DISCH P (SPEC (parse_term "F") (EQ_MP F_DEF th1))
+        let th1 = EQ_MP (ASSUME <| parse_term @"P = F") (ASSUME <| parse_term @"P:bool")
+        let th2 = DISCH P (SPEC (parse_term @"F") (EQ_MP F_DEF th1))
         DISCH_ALL(NOT_INTRO th2)
     fun th -> 
         try 
@@ -517,9 +517,9 @@ let EQF_ELIM =
         | Failure _ -> failwith "EQF_ELIM"
 
 let CONTR = 
-    let P = parse_term "P:bool"
-    let f_tm = parse_term "F"
-    let pth() = SPEC P (EQ_MP F_DEF (ASSUME <| parse_term "F"))
+    let P = parse_term @"P:bool"
+    let f_tm = parse_term @"F"
+    let pth() = SPEC P (EQ_MP F_DEF (ASSUME <| parse_term @"F"))
     fun tm th -> 
         if concl th <> f_tm then failwith "CONTR"
         else PROVE_HYP th (INST [tm, P] <| pth())
@@ -532,7 +532,7 @@ let EXISTS_UNIQUE_DEF = new_basic_definition <| parse_term @"(?!) = \P:A->bool. 
 let mk_uexists = mk_binder "?!"
 
 let EXISTENCE = 
-    let P = parse_term "P:A->bool"
+    let P = parse_term @"P:A->bool"
     let pth() = 
         let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM EXISTS_UNIQUE_DEF P)
         let th2 = UNDISCH(fst(EQ_IMP_RULE th1))

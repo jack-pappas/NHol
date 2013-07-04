@@ -165,7 +165,7 @@ let GEN_MESON_TAC =
                 gv
         reset_vars, fol_of_var, hol_of_bumped_var
     let reset_consts, fol_of_const, hol_of_const = 
-        let false_tm = (parse_term "F")
+        let false_tm = (parse_term @"F")
         let cstore = ref([] : (term * int) list)
         let ccounter = ref 2
         let reset_consts() = 
@@ -631,16 +631,16 @@ let GEN_MESON_TAC =
     (* ----------------------------------------------------------------------- *)
     let clear_contrapos_cache, make_hol_contrapos = 
         let DISJ_AC = AC DISJ_ACI
-        let imp_CONV = REWR_CONV(TAUT(parse_term "a \/ b <=> ~b ==> a"))
+        let imp_CONV = REWR_CONV(TAUT(parse_term @"a \/ b <=> ~b ==> a"))
         let push_CONV = 
             GEN_REWRITE_CONV TOP_SWEEP_CONV [TAUT
                                                  (parse_term 
                                                       "~(a \/ b) <=> ~a /\ ~b")
-                                             TAUT(parse_term "~(~a) <=> a")]
+                                             TAUT(parse_term @"~(~a) <=> a")]
         let pull_CONV = 
             GEN_REWRITE_CONV DEPTH_CONV 
-                [TAUT(parse_term "~a \/ ~b <=> ~(a /\ b)")]
-        let imf_CONV = REWR_CONV(TAUT(parse_term "~p <=> p ==> F"))
+                [TAUT(parse_term @"~a \/ ~b <=> ~(a /\ b)")]
+        let imf_CONV = REWR_CONV(TAUT(parse_term @"~p <=> p ==> F"))
         let memory = ref []
         let clear_contrapos_cache() = memory := []
         let make_hol_contrapos(n, th) = 
@@ -681,8 +681,8 @@ let GEN_MESON_TAC =
             | Failure _ -> mk_neg tm
         let merge_inst (t, x) current = (fol_subst current t, x) :: current
         let finish_RULE = 
-            GEN_REWRITE_RULE I [TAUT(parse_term "(~p ==> p) <=> p")
-                                TAUT(parse_term "(p ==> ~p) <=> ~p")]
+            GEN_REWRITE_RULE I [TAUT(parse_term @"(~p ==> p) <=> p")
+                                TAUT(parse_term @"(p ==> ~p) <=> ~p")]
         let rec meson_to_hol insts (Subgoal(g, gs, (n, th), offset, locin)) = 
             let newins = itlist merge_inst locin insts
             let g' = fol_inst newins g
@@ -706,15 +706,15 @@ let GEN_MESON_TAC =
     (* ----------------------------------------------------------------------- *)
     let create_equality_axioms = 
         let eq_thms = 
-            (CONJUNCTS << prove)((parse_term "(x:A = x) /\
+            (CONJUNCTS << prove)((parse_term @"(x:A = x) /\
         (~(x:A = y) \/ ~(x = z) \/ (y = z))"), REWRITE_TAC []
                                                |> THEN 
                                                <| ASM_CASES_TAC
-                                                      (parse_term "x:A = y")
+                                                      (parse_term @"x:A = y")
                                                |> THEN <| ASM_REWRITE_TAC []
                                                |> THEN <| CONV_TAC TAUT)
-        let imp_elim_CONV = REWR_CONV(TAUT(parse_term "(a ==> b) <=> ~a \/ b"))
-        let eq_elim_RULE = MATCH_MP(TAUT(parse_term "(a <=> b) ==> b \/ ~a"))
+        let imp_elim_CONV = REWR_CONV(TAUT(parse_term @"(a ==> b) <=> ~a \/ b"))
+        let eq_elim_RULE = MATCH_MP(TAUT(parse_term @"(a <=> b) ==> b \/ ~a"))
         let veq_tm = rator(rator(concl(hd eq_thms)))
         let create_equivalence_axioms(eq, _) = 
             let tyins = type_match (type_of veq_tm) (type_of eq) []
@@ -826,7 +826,7 @@ let GEN_MESON_TAC =
                 let fn, args = strip_comb tm
                 itlist (subterms_refl lconsts) args (insert tm acc)
         let CLAUSIFY = 
-            CONV_RULE(REWR_CONV(TAUT(parse_term "a ==> b <=> ~a \/ b")))
+            CONV_RULE(REWR_CONV(TAUT(parse_term @"a ==> b <=> ~a \/ b")))
         let rec BRAND tms th = 
             if tms = []
             then th
