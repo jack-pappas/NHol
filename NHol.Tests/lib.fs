@@ -205,6 +205,95 @@ let ``uniq doesn't contain adjacent equal elements``() =
     assertProp "uniq" <| fun (xs : int list) ->
         not <| hasAdjacentEqual (uniq xs)
 
+//  OCaml          F#
+//  ('a, 'b) func  Map<'a, 'b>
+//  undefined      Map.empty
+//  is_undefined   Map.isEmpty
+//  mapf           Map.map
+//  foldl          Map.fold
+//  foldr          Map.foldBack
+//  graph          Map.toList
+//  dom            new function based on Map.fold
+//  ran            new function based on Map.fold
+//  applyd         new function based on Map.tryFind
+//  apply          new function based on Map.tryFind
+//  tryapplyd      new function based on Map.tryFind
+//  tryapplyl      based on tryapplyd
+//  defined        Map.containsKey
+//  undefine       Map.remove
+//  |->            Map.add
+//  |=>            Map.add initialized wtih Map.Empty
+//  fpf            new function based on List.zip and Map.ofList
+
+open FsCheck.Commands
+
+// We use Map<'a, 'b> as the model to test func<'a, 'b>
+type FuncActual = func<int, int>
+type FuncModel = Map<int, int>
+
+// Create a specification for testing
+let spec =
+    let check (c, m) =
+        is_undefined c = Map.isEmpty m
+        && graph c = Map.toList m
+        && dom c = Set.toList (Map.keys m)
+        && ran c = Set.toList (Map.values m)
+
+    let add = 
+        gen { let! k = Arb.generate<int>
+              let! v = Arb.generate<int>
+              return
+                { new ICommand<FuncActual, FuncModel>() with
+                    member x.RunActual c = (|->) k v c
+                    member x.RunModel m = Map.add k v m
+                    member x.Post (c, m) = check (c, m)
+                    override x.ToString() = sprintf "add %i %i" k v }
+            }
+
+    let remove = 
+        gen { let! k = Arb.generate<int>
+              return
+                { new ICommand<FuncActual, FuncModel>() with
+                    member x.RunActual c = undefine k c
+                    member x.RunModel m = Map.remove k m
+                    member x.Post (c, m) = check (c, m)
+                    override x.ToString() = sprintf "remove %i" k }
+            }
+
+    let map = 
+        Gen.constant <| 
+            { new ICommand<FuncActual, FuncModel>() with
+                member x.RunActual c = mapf (fun v -> 2 * v) c
+                member x.RunModel m = Map.map (fun k v -> 2 * v) m 
+                member x.Post (c, m) = check (c, m)
+                override x.ToString() = "map" }
+
+    let foldl = 
+        Gen.constant <| 
+            { new ICommand<FuncActual, FuncModel>() with
+                member x.RunActual c = foldl (fun acc k v -> (|->) k (v-1) acc) undefined c
+                member x.RunModel m = Map.fold (fun acc k v -> Map.add k (v-1) acc) Map.empty m 
+                member x.Post (c, m) = check (c, m)
+                override x.ToString() = "foldl" }
+
+    let foldr = 
+        Gen.constant <| 
+            { new ICommand<FuncActual, FuncModel>() with
+                member x.RunActual c = foldr (fun k v acc -> (|->) k (v+1) acc) undefined c
+                member x.RunModel m = Map.foldBack (fun k v acc -> Map.add k (v+1) acc) Map.empty m 
+                member x.Post (c, m) = check (c, m)
+                override x.ToString() = "foldr" }
+
+    { new ISpecification<FuncActual, FuncModel> with
+        member x.Initial() = (undefined, Map.empty)
+        member x.GenCommand _ = Gen.oneof [add; remove; map; foldl; foldr] }
+
+[<Test>]
+let ``check func<'a, 'b> against Map<'a, 'b> model in F# core``() =
+    Check.QuickThrowOnFailure (asProperty spec)
+
+// Now we test case by case using FsUnit
+
 [<Test>]
 let ``{can f x} evaluates to {false} if the application of {f} to {x} causes exception of type Failure _``() = 
     can hd [] |> should equal false
