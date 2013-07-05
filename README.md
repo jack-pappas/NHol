@@ -16,3 +16,7 @@ The project aims at developing a high-order theorem prover in F#. The goal is to
 ## License
 This project is available under Apache 2.0 license. 
 For more information see the [License file](LICENSE.txt).
+
+## Personal Notes
+
+ - [Eric's Notes] (https://github.com/jack-pappas/NHol/wiki/Eric's-Notes)
