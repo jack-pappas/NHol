@@ -204,3 +204,7 @@ let ``uniq doesn't contain adjacent equal elements``() =
 
     assertProp "uniq" <| fun (xs : int list) ->
         not <| hasAdjacentEqual (uniq xs)
+
+[<Test>]
+let ``{can f x} evaluates to {false} if the application of {f} to {x} causes exception of type Failure _``() = 
+    can hd [] |> should equal false
