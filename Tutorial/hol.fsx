@@ -66,7 +66,7 @@ limitations under the License.
 (* ------------------------------------------------------------------------- *)  
 (* Mathematical theories and additional proof tools.                         *)  
 (* ------------------------------------------------------------------------- *)  
-#load "pair.fs"         (* Theory of pairs                                   *)  
+//#load "pair.fs"         (* Theory of pairs                                   *)  
 //#load "nums.fs"         (* Axiom of Infinity, definition of natural numbers  *)  
 //#load "recursion.fs"    (* Tools for primitive recursion on inductive types  *)  
 //#load "arith.fs"        (* Natural number arithmetic                         *)  
