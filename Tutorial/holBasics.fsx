@@ -21,5 +21,18 @@ open NHol.canon
 open NHol.meson
 open NHol.quot
 
+constants();;
+//val it : (string * hol_type) list =
+//  [("=",
+//    Tyapp ("fun",[Tyvar "A"; Tyapp ("fun",[Tyvar "A"; Tyapp ("bool",[])])]))]
+
 mk_iff;; //bool
+
+constants();;
+//val it : (string * hol_type) list =
+//  [("?!", (A->bool)->bool); ("~", bool->bool); ("F", bool);
+//   ("\/", bool->bool->bool); ("?", (A->bool)->bool); ("!", (A->bool)->bool);
+//   ("==>", bool->bool->bool); ("/\", bool->bool->bool); ("T", bool);
+//   ("=", A->A->bool)]
+
 parse_term @"~(p /\ q) <=> ~p \/ ~q";;
