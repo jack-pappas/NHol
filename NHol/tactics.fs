@@ -24,10 +24,12 @@ limitations under the License.
 module NHol.tactics
 
 open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
 
 open NHol
 open lib
 open fusion
+open fusion.Hol_kernel
 open basics
 open nets
 open printer

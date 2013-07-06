@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 *)
+
 /// Universal linear real decision procedure.
 module NHol.realarith
 
@@ -26,6 +27,7 @@ open FSharp.Compatibility.OCaml.Num
 open NHol
 open lib
 open fusion
+open fusion.Hol_kernel
 open basics
 open nets
 open printer
@@ -51,6 +53,7 @@ open arith
 open wf
 open calc_num
 open normalizer
+open grobner
 open ind_types
 open lists
 open realax
@@ -385,8 +388,7 @@ let GEN_REAL_ARITH_001 =
                                              (fun t -> REAL_NOT_GE_CONV(rand t))
                                              xy_eq, REAL_EQ_CONV
                                              xy_ne, 
-                                             (fun t -> REAL_NOT_EQ_CONV(rand t))]
-                                        empty_net
+                                             (fun t -> REAL_NOT_EQ_CONV(rand t))] empty_net
                                     let net_double = 
                                         itlist (uncurry net_of_conv) 
                                             [xy_lt, 
@@ -408,8 +410,7 @@ let GEN_REAL_ARITH_001 =
                                              xy_eq, 
                                              (fun t -> 
                                                  REAL_EQ_CONV t, 
-                                                 REAL_NOT_EQ_CONV t)]
-                                        empty_net
+                                                 REAL_NOT_EQ_CONV t)] empty_net
                                     let REAL_INEQ_NORM_CONV = 
                                         REWRITES_CONV net_single
                                     let REAL_INEQ_NORM_DCONV = 

@@ -26,6 +26,7 @@ open FSharp.Compatibility.OCaml
 open NHol
 open lib
 open fusion
+open fusion.Hol_kernel
 open basics
 open nets
 open printer

@@ -21,6 +21,9 @@ limitations under the License.
 /// Complete HOL kernel of types, terms and theorems.
 module NHol.fusion
 
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+
 open NHol
 open lib
 

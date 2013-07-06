@@ -21,6 +21,9 @@ limitations under the License.
 /// Term nets: reasonably fast lookup based on term matchability.
 module NHol.nets
 
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+
 open NHol
 open lib
 open fusion

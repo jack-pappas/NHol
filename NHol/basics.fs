@@ -17,8 +17,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 *)
+
 /// More syntax constructors, and prelogical utilities like matching.
 module NHol.basics
+
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
 
 open NHol
 open lib

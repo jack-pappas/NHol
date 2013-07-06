@@ -17,14 +17,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 *)
+
 /// Definition of integers.
 module NHol.int
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
 open NHol
 open lib
 open fusion
+open fusion.Hol_kernel
 open basics
 open nets
 open printer

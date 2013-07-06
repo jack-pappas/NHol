@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 *)
+
 /// Definition of real numbers.
 module NHol.realax
 
@@ -26,6 +27,7 @@ open FSharp.Compatibility.OCaml.Num
 open NHol
 open lib
 open fusion
+open fusion.Hol_kernel
 open basics
 open nets
 open printer
@@ -51,6 +53,7 @@ open arith
 open wf
 open calc_num
 open normalizer
+open grobner
 open ind_types
 open lists
 

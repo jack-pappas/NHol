@@ -17,14 +17,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 *)
+
 /// More sophisticated derived rules including definitions and rewriting.
+
 module NHol.drule
 
 open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
 
 open NHol
 open lib
 open fusion
+open fusion.Hol_kernel
 open basics
 open nets
 open printer
