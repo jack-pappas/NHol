@@ -27,6 +27,11 @@ limitations under the License.
 // Disable ML compatibility warnings
 #nowarn "62"
 
+// Disable "Incomplete pattern matches on this expression." warnings.
+// Some of these are true warnings, but should be fixed in the code.
+// No sense in seeing these warnings when using F# interactive.
+#nowarn "25"
+
 (* ------------------------------------------------------------------------- *)  
 (* Various tweaks to OCaml and general library functions.                    *)  
 (* ------------------------------------------------------------------------- *)   
@@ -66,12 +71,12 @@ limitations under the License.
 (* ------------------------------------------------------------------------- *)  
 (* Mathematical theories and additional proof tools.                         *)  
 (* ------------------------------------------------------------------------- *)  
-#load "pair.fs"         (* Theory of pairs                                   *)  
-#load "nums.fs"         (* Axiom of Infinity, definition of natural numbers  *)  
-#load "recursion.fs"    (* Tools for primitive recursion on inductive types  *)  
-#load "arith.fs"        (* Natural number arithmetic                         *)  
-#load "wf.fs"           (* Theory of wellfounded relations                   *)  
-#load "calc_num.fs"     (* Calculation with natural numbers                  *)  
+//#load "pair.fs"         (* Theory of pairs                                   *)  
+//#load "nums.fs"         (* Axiom of Infinity, definition of natural numbers  *)  
+//#load "recursion.fs"    (* Tools for primitive recursion on inductive types  *)  
+//#load "arith.fs"        (* Natural number arithmetic                         *)  
+//#load "wf.fs"           (* Theory of wellfounded relations                   *)  
+//#load "calc_num.fs"     (* Calculation with natural numbers                  *)  
 //#load "normalizer.fs"   (* Polynomial normalizer for rings and semirings     *)  
 //#load "grobner.fs"      (* Groebner basis procedure for most semirings.      *)  
 //#load "ind_types.fs"    (* Tools for defining inductive types                *)  
