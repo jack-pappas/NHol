@@ -20,6 +20,12 @@ open NHol.trivia
 open NHol.canon
 open NHol.meson
 open NHol.quot
+open NHol.pair
+open NHol.nums
+open NHol.recursion
+open NHol.arith   
+open NHol.wf
+open NHol.calc_num
 
 //* Initial databases status *//
 
@@ -155,72 +161,68 @@ definitions();;                                                                 
 
 //* Canon Module *//
 CONJ_ACI_RULE;; // forces canon module evaluation
-// No Changes in internal databases status
+// No Changes in internal databases status: but maybe other changes
 
 //* Meson Module *//
 ASM_MESON_TAC;; // forces meson module evaluation
-// No Changes in internal databases status
+// No Changes in internal databases status: but maybe other changes
 
 //* Quot Module *//
 lift_function;; // forces quot module evaluation
-// No Changes in internal databases status
+// No Changes in internal databases status: but maybe other changes
+
+//* Pair Module *//
+
+LET_DEF;; // forces pair module evaluation: TO BE CHECKED because there is an unsolved goal TAC_PROOF
+
+types();;                                                                           // new type prod
+//  [("prod", 2); ("1", 0); ("bool", 0); ("fun", 2)]
+constants();;                                                                       // lots of new constants
+//  [("PASSOC", ((A#B)#C->D)->A#B#C->D); ("UNCURRY", (A->B->C)->A#B->C);
+//   ("CURRY", (A#B->C)->A->B->C); ("SND", A#B->B); ("FST", A#B->A);
+//   (",", A->B->A#B); ("REP_prod", A#B->A->B->bool);
+//   ("ABS_prod", (A->B->bool)->A#B); ("mk_pair", A->B->A->B->bool);
+//   ("_FUNCTION", (?28823->?28826->bool)->?28823->?28826);
+//   ("_MATCH", ?28801->(?28801->?28804->bool)->?28804);
+//   ("_GUARDED_PATTERN", bool->bool->bool->bool);
+//   ("_UNGUARDED_PATTERN", bool->bool->bool);
+//   ("_SEQPATTERN",
+//    (?28759->?28756->bool)->(?28759->?28756->bool)->?28759->?28756->bool);
+//   ("GEQ", A->A->bool); ("GABS", (A->bool)->A); ("LET_END", A->A);
+//   ("LET", (A->B)->A->B); ("one", 1); ("one_REP", 1->bool);
+//   ("one_ABS", bool->1); ("I", A->A); ("o", (B->C)->(A->B)->A->C);
+//   ("COND", bool->A->A->A); ("@", (A->bool)->A); ("_FALSITY_", bool);
+//   ("?!", (A->bool)->bool); ("~", bool->bool); ("F", bool);
+//   ("\/", bool->bool->bool); ("?", (A->bool)->bool); ("!", (A->bool)->bool);
+//   ("==>", bool->bool->bool); ("/\", bool->bool->bool); ("T", bool);
+//   ("=", A->A->bool)]
+axioms();;                                                                          // no new axioms
+//  [|- !P x. P x ==> P ((@) P); |- !t. (\x. t x) = t]
+definitions();;                                                                     // lots of new definitions
+//  [|- PASSOC =
+//   (\_1099 _1100. _1099 ((FST _1100,FST (SND _1100)),SND (SND _1100)));
+//   |- UNCURRY = (\_1082 _1083. _1082 (FST _1083) (SND _1083));
+//   |- CURRY = (\_1061 _1062 _1063. _1061 (_1062,_1063));
+//   |- SND = (\p. @y. ?x. p = x,y); |- FST = (\p. @x. ?y. p = x,y);
+//   |- (,) = (\x y. ABS_prod (mk_pair x y));
+//   |- mk_pair = (\x y a b. a = x /\ b = y);
+//   |- _FUNCTION = (\r x. if (?!) (r x) then (@) (r x) else @z. F);
+//   |- _MATCH = (\e r. if (?!) (r e) then (@) (r e) else @z. F);
+//   |- _GUARDED_PATTERN = (\p g r. p /\ g /\ r);
+//   |- _UNGUARDED_PATTERN = (\p r. p /\ r);
+//   |- _SEQPATTERN = (\r s x. if ?y. r x y then r x else s x);
+//   |- GEQ = (\a b. a = b); |- GABS = (\P. (@) P); |- LET_END = (\t. t);
+//   |- LET = (\f x. f x); |- one = (@x. T); |- I = (\x. x);
+//   |- (o) = (\f g x. f (g x));
+//   |- COND = (\t t1 t2. @x. ((t <=> T) ==> x = t1) /\ ((t <=> F) ==> x = t2));
+//   |- _FALSITY_ <=> F; |- (?!) = (\P. (?) P /\ (!x y. P x /\ P y ==> x = y));
+//   |- (~) = (\p. p ==> F); |- F <=> (!p. p);
+//   |- (\/) = (\p q. !r. (p ==> r) ==> (q ==> r) ==> r);
+//   |- (?) = (\P. !q. (!x. P x ==> q) ==> q); |- (!) = (\P. P = (\x. T));
+//   |- (==>) = (\p q. p /\ q <=> p);
+//   |- (/\) = (\p q. (\f. f p q) = (\f. f T T)); |- T <=> (\p. p) = (\p. p)]
 
 
+//* Num Module *//
 
-
-// -- Tying Examples -- //
-
-mk_iff;;            // forces bool module evaluation
-MK_CONJ;;           // forces drule module evaluation
-_FALSITY_;;         // forces tactics module evaluation
-ITAUT_TAC;;         // forces itab module evaluation: maybe not needd
-mk_rewrites;;       // forces simp module evaluation
-EQ_REFL;;           // forces theorems module evaluation
-EXISTS_EQUATION;;   // forces ind_defs module evaluation
-ETA_AX;;            // forces class module evaluation
-o_DEF;;             // forces trivia module evaluation
-
-parse_term @"~(p /\ q) <=> ~p \/ ~q";;
-parse_term @"~(p \/ q) <=> ~p /\ ~q";;
-parse_term @"~gate ==> (source <=> drain)";;
-
-TAUT <| parse_term
-     @"(~input_a ==> (internal <=> T)) /\
-      (~input_b ==> (output <=> internal)) /\
-      (input_a ==> (output <=> F)) /\
-      (input_b ==> (output <=> F))
-      ==> (output <=> ~(input_a \/ input_b))";;
-
-TAUT <| parse_term
-    @"(i1 /\ i2 <=> a) /\
-    (i1 /\ i3 <=> b) /\
-    (i2 /\ i3 <=> c) /\
-    (i1 /\ c <=> d) /\
-    (m /\ r <=> e) /\
-    (m /\ w <=> f) /\
-    (n /\ w <=> g) /\
-    (p /\ w <=> h) /\
-    (q /\ w <=> i) /\
-    (s /\ x <=> j) /\
-    (t /\ x <=> k) /\
-    (v /\ x <=> l) /\
-    (i1 \/ i2 <=> m) /\
-    (i1 \/ i3 <=> n) /\
-    (i1 \/ q <=> p) /\
-    (i2 \/ i3 <=> q) /\
-    (i3 \/ a <=> r) /\
-    (a \/ w <=> s) /\
-    (b \/ w <=> t) /\
-    (d \/ h <=> u) /\
-    (c \/ w <=> v) /\
-    (~e <=> w) /\
-    (~u <=> x) /\
-    (i \/ l <=> o1) /\
-    (g \/ k <=> o2) /\
-    (f \/ j <=> o3)
-    ==> (o1 <=> ~i1) /\ (o2 <=> ~i2) /\ (o3 <=> ~i3)";;
-
-(* 4. Propositional logic *)
-
-parse_term @"p \/ ~p";;
-ASSUME <| parse_term @"p /\ q";;
+ONE_ONE;; // forces num module evaluation
