@@ -21,61 +21,76 @@ open NHol.canon
 open NHol.meson
 open NHol.quot
 
+// Modules Evaluation
+BETA_RULE;;         // forces equal module evaluation: maybe not needed
+mk_iff;;            // forces bool module evaluation
+MK_CONJ;;           // forces drule module evaluation
+_FALSITY_;;         // forces tactics module evaluation
+ITAUT_TAC;;         // forces itab module evaluation: maybe not needd
+mk_rewrites;;       // forces simp module evaluation
+EQ_REFL;;           // forces theorems module evaluation
+EXISTS_EQUATION;;   // forces ind_defs module evaluation
+ETA_AX;;            // forces class module evaluation
+o_DEF;;             // forces trivia module evaluation
+CONJ_ACI_RULE;;     // forces canon module evaluation
+ASM_MESON_TAC;;     // forces meson module evaluation
+lift_function;;     // forces quot module evaluation
+
 // Exception
-parse_term @"˜(p /\ q) <=> ˜p \/ ˜q";;
-parse_term @"˜(p \/ q) <=> ˜p /\ ˜q";;
-parse_term @"˜gate ==> (source <=> drain)";;
+parse_term @"~(p /\ q) <=> ~p \/ ~q";;
+parse_term @"~(p \/ q) <=> ~p /\ ~q";;
+parse_term @"~gate ==> (source <=> drain)";;
 
-TAUT <| parse_term
- "(˜input_a ==> (internal <=> T)) /\
-  (˜input_b ==> (output <=> internal)) /\
-  (input_a ==> (output <=> F)) /\
-  (input_b ==> (output <=> F))
-  ==> (output <=> ˜(input_a \/ input_b))";;
+TAUT <| parse_term @"(~input_a ==> (internal <=> T)) /\
+      (~input_b ==> (output <=> internal)) /\
+      (input_a ==> (output <=> F)) /\
+      (input_b ==> (output <=> F))
+      ==> (output <=> ~(input_a \/ input_b))";;
 
-TAUT <| parse_term
- "(i1 /\ i2 <=> a) /\
-(i1 /\ i3 <=> b) /\
-(i2 /\ i3 <=> c) /\
-(i1 /\ c <=> d) /\
-(m /\ r <=> e) /\
-(m /\ w <=> f) /\
-(n /\ w <=> g) /\
-(p /\ w <=> h) /\
-(q /\ w <=> i) /\
-(s /\ x <=> j) /\
-(t /\ x <=> k) /\
-(v /\ x <=> l) /\
-(i1 \/ i2 <=> m) /\
-(i1 \/ i3 <=> n) /\
-(i1 \/ q <=> p) /\
-(i2 \/ i3 <=> q) /\
-(i3 \/ a <=> r) /\
-(a \/ w <=> s) /\
-(b \/ w <=> t) /\
-(d \/ h <=> u) /\
-(c \/ w <=> v) /\
-(˜e <=> w) /\
-(˜u <=> x) /\
-(i \/ l <=> o1) /\
-(g \/ k <=> o2) /\
-(f \/ j <=> o3)
-==> (o1 <=> ˜i1) /\ (o2 <=> ˜i2) /\ (o3 <=> ˜i3)";;
+TAUT <| parse_term @"(i1 /\ i2 <=> a) /\
+    (i1 /\ i3 <=> b) /\
+    (i2 /\ i3 <=> c) /\
+    (i1 /\ c <=> d) /\
+    (m /\ r <=> e) /\
+    (m /\ w <=> f) /\
+    (n /\ w <=> g) /\
+    (p /\ w <=> h) /\
+    (q /\ w <=> i) /\
+    (s /\ x <=> j) /\
+    (t /\ x <=> k) /\
+    (v /\ x <=> l) /\
+    (i1 \/ i2 <=> m) /\
+    (i1 \/ i3 <=> n) /\
+    (i1 \/ q <=> p) /\
+    (i2 \/ i3 <=> q) /\
+    (i3 \/ a <=> r) /\
+    (a \/ w <=> s) /\
+    (b \/ w <=> t) /\
+    (d \/ h <=> u) /\
+    (c \/ w <=> v) /\
+    (~e <=> w) /\
+    (~u <=> x) /\
+    (i \/ l <=> o1) /\
+    (g \/ k <=> o2) /\
+    (f \/ j <=> o3)
+    ==> (o1 <=> ~i1) /\ (o2 <=> ~i2) /\ (o3 <=> ~i3)";;
 
 (* 4. Propositional logic *)
 
 parse_term @"p \/ ~p";;
 ASSUME <| parse_term @"p /\ q";;
 
-parse_term @"x < 1 ==> p";;
-//ARITH_RULE <| parse_term "x < y \/ y <= x";;
+// from this point we have to check
 
-get_infix_status "==>";;
-get_infix_status "-";;
-
-parse_as_infix("<>",(12,"right"));;
-parse_as_infix("+",(1,"left"));;
-
-parse_term "x < x + 1";;
-
-parse_as_infix("+",(16,"right"));;
+//parse_term @"x < 1 ==> p";;
+////ARITH_RULE <| parse_term "x < y \/ y <= x";;
+//
+//get_infix_status "==>";;
+//get_infix_status "-";;
+//
+//parse_as_infix("<>",(12,"right"));;
+//parse_as_infix("+",(1,"left"));;
+//
+//parse_term "x < x + 1";;
+//
+//parse_as_infix("+",(16,"right"));;
