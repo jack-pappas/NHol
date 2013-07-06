@@ -151,6 +151,7 @@ let net_of_thm rep th =
         elif rep && matchable l r && matchable r l
         then enter lconsts (l, (3, ORDERED_IMP_REWR_CONV term_order th))
         else enter lconsts (l, (3, IMP_REWR_CONV th))
+    | _ -> failwith "net_of_thm: Unhandled case."
 
 (* ------------------------------------------------------------------------- *)
 (* Create a gconv net for a conversion with a term index.                    *)

@@ -786,8 +786,9 @@ let instantiate_casewise_recursion,
       let rule = GEN_REWRITE_RULE RAND_CONV [GSYM FORALL_PAIR_THM]
       let rec depair l t =
         match l with
-          [v] -> REFL t
+        | [v] -> REFL t
         | v::vs -> rule(BINDER_CONV (depair vs) t)
+        | [] -> failwith "depair: Unhandled case."
       fun parm parms ->
         let p = mk_var("P",mk_fun_ty (type_of parm) bool_ty)
         let tm = list_mk_forall(parms,mk_comb(p,parm))

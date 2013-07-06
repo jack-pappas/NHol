@@ -599,6 +599,7 @@ let pp_print_term =
                  pp_print_break fmt 1 0
                  pp_print_string fmt "| "
                  print_clauses cs)
+            | _ -> failwith "print_clauses: Unhandled case."
         and print_clause cl = 
             match cl with
             | [p; g; r] -> 
@@ -611,6 +612,7 @@ let pp_print_term =
                 (print_term 1 p
                  pp_print_string fmt " -> "
                  print_term 1 r)
+            | _ -> failwith "print_clause: Unhandled case."
         print_term 0
 
 (* ------------------------------------------------------------------------- *)

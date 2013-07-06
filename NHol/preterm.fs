@@ -414,6 +414,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 tryfind (fun (_, (_, ty')) -> 
                         let ty' = pretype_instance ty'
                         cont(unify (Some ptm) env ty' ty)) maps
+        | _ -> failwith "resolve_interface: Unhandled case."
     (* ----------------------------------------------------------------------- *)
     (* Hence apply throughout a preterm.                                       *)
     (* ----------------------------------------------------------------------- *)
@@ -432,6 +433,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 pmk_cv(c', tys)
             with
             | Failure _ -> Constp(s, tys)
+        | _ -> failwith "solve_preterm: Unhandled case."
 
     (* ----------------------------------------------------------------------- *)
     (* Flag to indicate that Stvs were translated to real type variables.      *)
