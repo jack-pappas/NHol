@@ -18,9 +18,9 @@ limitations under the License.
 
 #I "./../packages"
 
-#r "FSharp.Compatibility.OCaml.0.1.9/lib/net40/FSharp.Compatibility.OCaml.dll"
-#r "FSharp.Compatibility.OCaml.Format.0.1.9/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
-#r "FSharp.Compatibility.OCaml.System.0.1.9/lib/net40/FSharp.Compatibility.OCaml.System.dll"
+#r "FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
+#r "FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
+#r "FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
 
 #I "./../NHol"
 
