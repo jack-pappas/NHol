@@ -31,12 +31,6 @@ open fusion.Hol_kernel
 open basics
 open nets
 
-/// Create this to avoid System.NotImplementedException
-/// The approach assumes that c is an ASCII character
-/// This method should be moved to FSharp.Compatability.OCaml
-module Char =
-    let code (c : char) =
-        System.Convert.ToInt32(c)
 
 (* ------------------------------------------------------------------------- *)
 (* Character discrimination.                                                 *)

@@ -96,15 +96,15 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.Compatibility.OCaml">
-      <HintPath>..\packages\FSharp.Compatibility.OCaml.0.1.9\lib\net40\FSharp.Compatibility.OCaml.dll</HintPath>
+      <HintPath>..\packages\FSharp.Compatibility.OCaml.0.1.10\lib\net40\FSharp.Compatibility.OCaml.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.Compatibility.OCaml.Format">
-      <HintPath>..\packages\FSharp.Compatibility.OCaml.Format.0.1.9\lib\net40\FSharp.Compatibility.OCaml.Format.dll</HintPath>
+      <HintPath>..\packages\FSharp.Compatibility.OCaml.Format.0.1.10\lib\net40\FSharp.Compatibility.OCaml.Format.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FSharp.Compatibility.OCaml.System">
-      <HintPath>..\packages\FSharp.Compatibility.OCaml.System.0.1.9\lib\net40\FSharp.Compatibility.OCaml.System.dll</HintPath>
+      <HintPath>..\packages\FSharp.Compatibility.OCaml.System.0.1.10\lib\net40\FSharp.Compatibility.OCaml.System.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
