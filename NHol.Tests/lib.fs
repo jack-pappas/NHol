@@ -51,9 +51,9 @@ let ``itlist is equivalent to List.fold``() =
         itlist (fun x acc -> acc - x) xs 0 = List.fold (fun acc x -> acc - x) 0 xs
 
 [<Test>]
-let ``rev_itlist is equivalent to List.foldBack``() =
+let ``rev_itlist is equivalent to List.fold``() =
     assertProp "rev_itlist" <| fun xs ->
-        rev_itlist (fun x acc -> x - acc) xs 0 = List.foldBack (fun x acc -> x - acc) xs 0
+        rev_itlist (fun x acc -> x - acc) xs 0 = List.fold (fun acc x -> x - acc) 0 xs
 
 [<Test>]
 let ``end_itlist is equivalent to List.reduceBack on non-empty lists``() =
@@ -61,16 +61,16 @@ let ``end_itlist is equivalent to List.reduceBack on non-empty lists``() =
         xs <> [] ==> lazy (end_itlist (fun x y -> x - y) xs = List.reduceBack (fun x y -> x - y) xs)
 
 [<Test>]
-let ``itlist2 is equivalent to List.fold2 on two same-length lists``() =
+let ``itlist2 is equivalent to List.foldBack2 on two same-length lists``() =
     assertProp "itlist2" <| fun zs ->
-        let (xs, ys) = List.unzip zs
-        itlist2 (fun x y acc -> acc - x + y) xs ys 0 = List.fold2 (fun acc x y -> acc - x + y) 0 xs ys
+        let (xs : int64 list), (ys : int16 list) = List.unzip zs
+        itlist2 (fun x y acc -> acc + ((int x) + (int y)).ToString()) xs ys "" = List.foldBack2 (fun x y acc -> acc + ((int x) + (int y)).ToString()) xs ys ""
 
 [<Test>]
-let ``rev_itlist2 is equivalent to List.foldBack2 on two same-length lists``() =
+let ``rev_itlist2 is equivalent to List.fold2 on two same-length lists``() =
     assertProp "rev_itlist2" <| fun zs ->
-        let (xs, ys) = List.unzip zs
-        rev_itlist2 (fun x y acc -> x + y - acc) xs ys 0 = List.foldBack2 (fun x y acc -> x + y - acc) xs ys 0
+        let (xs : int64 list), (ys : int16 list) = List.unzip zs
+        rev_itlist2 (fun x y acc -> acc + ((int x) + (int y)).ToString()) xs ys "" = List.fold2 (fun acc x y -> acc + ((int x) + (int y)).ToString()) "" xs ys
 
 [<Test>]
 let ``replicate is equivalent to List.replicate``() =
