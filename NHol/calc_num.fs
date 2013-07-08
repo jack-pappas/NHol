@@ -284,122 +284,131 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
       let bit1_tm,zero_tm = dest_comb bz_tm in
       let n_tm = (parse_term @"n:num") 
       let m_tm = (parse_term @"m:num") in
-      let [sth_z; sth_0; sth_1] = 
-       (CONJUNCTS << prove)
-        ((parse_term @"(SUC _0 = BIT1 _0) /\
-          (SUC(BIT0 n) = BIT1 n) /\
-          (SUC(BIT1 n) = BIT0(SUC n))"),
-         SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
-         REWRITE_TAC[BIT0; BIT1] |>THEN<|
-         REWRITE_TAC[ADD_CLAUSES])
-      let [ath_0x; ath_x0; ath_00; ath_01; ath_10; ath_11] = 
-       (CONJUNCTS << prove)
-        ((parse_term @"(_0 + n = n) /\
-          (n + _0 = n) /\
-          (BIT0 m + BIT0 n = BIT0 (m + n)) /\
-          (BIT0 m + BIT1 n = BIT1 (m + n)) /\
-          (BIT1 m + BIT0 n = BIT1 (m + n)) /\
-          (BIT1 m + BIT1 n = BIT0 (SUC (m + n)))"),
-         SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
-         REWRITE_TAC[BIT0; BIT1] |>THEN<|
-         REWRITE_TAC[ADD_CLAUSES] |>THEN<| REWRITE_TAC[ADD_AC])
-      let [cth_0x; cth_x0; cth_00; cth_01; cth_10; cth_11] = 
-       (CONJUNCTS << prove)
-        ((parse_term @"(SUC(_0 + n) = SUC n) /\
-          (SUC(n + _0) = SUC n) /\
-          (SUC(BIT0 m + BIT0 n) = BIT1(m + n)) /\
-          (SUC(BIT0 m + BIT1 n) = BIT0(SUC(m + n))) /\
-          (SUC(BIT1 m + BIT0 n) = BIT0(SUC(m + n))) /\
-          (SUC(BIT1 m + BIT1 n) = BIT1(SUC (m + n)))"),
-         SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
-         REWRITE_TAC[BIT0; BIT1] |>THEN<|
-         REWRITE_TAC[ADD_CLAUSES] |>THEN<| REWRITE_TAC[ADD_AC])
-      let pth_suc =
-       prove
-        ((parse_term @"SUC(NUMERAL n) = NUMERAL(SUC n)"),
-         REWRITE_TAC[NUMERAL])
-      let pth_add =
-       prove
-        ((parse_term @"NUMERAL m + NUMERAL n = NUMERAL(m + n)"),
-         REWRITE_TAC[NUMERAL]) in
-      let rec raw_suc_conv tm =
-        let otm = rand tm in
-        if otm = zero_tm then sth_z else
-        let btm,ntm = dest_comb otm in
-        if btm = bit0_tm then INST [ntm,n_tm] sth_0 else
-        let th = INST [ntm,n_tm] sth_1 in
-        let ltm,rtm = dest_comb(rand(concl th)) in
-        TRANS th (AP_TERM ltm (raw_suc_conv rtm)) in
-      let rec raw_add_conv tm =
-        let atm,rtm = dest_comb tm in
-        let ltm = rand atm in
-        if ltm = zero_tm then INST [rtm,n_tm] ath_0x
-        else if rtm = zero_tm then INST [ltm,n_tm] ath_x0 else
-        let lbit,larg = dest_comb ltm
-        let rbit,rarg = dest_comb rtm in
-        if lbit = bit0_tm then
-           if rbit = bit0_tm then
-              let th = INST [larg,m_tm; rarg,n_tm] ath_00 in
-              let ltm,rtm = dest_comb(rand(concl th)) in
-              TRANS th (AP_TERM ltm (raw_add_conv rtm))
-           else
-              let th = INST [larg,m_tm; rarg,n_tm] ath_01 in
-              let ltm,rtm = dest_comb(rand(concl th)) in
-              TRANS th (AP_TERM ltm (raw_add_conv rtm))
-        else
-           if rbit = bit0_tm then
-              let th = INST [larg,m_tm; rarg,n_tm] ath_10 in
-              let ltm,rtm = dest_comb(rand(concl th)) in
-              TRANS th (AP_TERM ltm (raw_add_conv rtm))
-           else
-              let th = INST [larg,m_tm; rarg,n_tm] ath_11 in
-              let ltm,rtm = dest_comb(rand(concl th)) in
-              TRANS th (AP_TERM ltm (raw_adc_conv rtm))
-      and raw_adc_conv tm =
-        let atm,rtm = dest_comb(rand tm) in
-        let ltm = rand atm in
-        if ltm = zero_tm then
-           let th = INST [rtm,n_tm] cth_0x in
-           TRANS th (raw_suc_conv (rand(concl th)))
-        else if rtm = zero_tm then
-           let th = INST [ltm,n_tm] cth_x0 in
-           TRANS th (raw_suc_conv (rand(concl th)))
-        else
-           let lbit,larg = dest_comb ltm
-           let rbit,rarg = dest_comb rtm in
-           if lbit = bit0_tm then
-              if rbit = bit0_tm then
-                 let th = INST [larg,m_tm; rarg,n_tm] cth_00 in
-                 let ltm,rtm = dest_comb(rand(concl th)) in
-                 TRANS th (AP_TERM ltm (raw_add_conv rtm))
-              else
-                 let th = INST [larg,m_tm; rarg,n_tm] cth_01 in
-                 let ltm,rtm = dest_comb(rand(concl th)) in
-                 TRANS th (AP_TERM ltm (raw_adc_conv rtm))
-           else
-              if rbit = bit0_tm then
-                 let th = INST [larg,m_tm; rarg,n_tm] cth_10 in
-                 let ltm,rtm = dest_comb(rand(concl th)) in
-                 TRANS th (AP_TERM ltm (raw_adc_conv rtm))
-              else
-                 let th = INST [larg,m_tm; rarg,n_tm] cth_11 in
-                 let ltm,rtm = dest_comb(rand(concl th)) in
-                 TRANS th (AP_TERM ltm (raw_adc_conv rtm)) in
-      let NUM_SUC_CONV tm =
-        let th = INST [rand(rand tm),n_tm] pth_suc in
-        let ctm = concl th in
-        if lhand ctm <> tm then failwith "NUM_SUC_CONV" else
-        let ltm,rtm = dest_comb(rand ctm) in
-        TRANS th (AP_TERM ltm (raw_suc_conv rtm))
-      let NUM_ADD_CONV tm =
-        let atm,rtm = dest_comb tm in
-        let ltm = rand atm in
-        let th = INST [rand ltm,m_tm; rand rtm,n_tm] pth_add in
-        let ctm = concl th in
-        if lhand ctm <> tm then failwith "NUM_ADD_CONV" else
-        let ltm,rtm = dest_comb(rand(concl th)) in
-        TRANS th (AP_TERM ltm (raw_add_conv rtm)) in
-      NUM_SUC_CONV,raw_add_conv,NUM_ADD_CONV in
+      let sths = 
+          (CONJUNCTS << prove)
+            ((parse_term @"(SUC _0 = BIT1 _0) /\
+              (SUC(BIT0 n) = BIT1 n) /\
+              (SUC(BIT1 n) = BIT0(SUC n))"),
+              SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
+              REWRITE_TAC[BIT0; BIT1] |>THEN<|
+              REWRITE_TAC[ADD_CLAUSES])
+      match sths with
+      | [sth_z; sth_0; sth_1] ->
+          let aths =
+           (CONJUNCTS << prove)
+            ((parse_term @"(_0 + n = n) /\
+              (n + _0 = n) /\
+              (BIT0 m + BIT0 n = BIT0 (m + n)) /\
+              (BIT0 m + BIT1 n = BIT1 (m + n)) /\
+              (BIT1 m + BIT0 n = BIT1 (m + n)) /\
+              (BIT1 m + BIT1 n = BIT0 (SUC (m + n)))"),
+             SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
+             REWRITE_TAC[BIT0; BIT1] |>THEN<|
+             REWRITE_TAC[ADD_CLAUSES] |>THEN<| REWRITE_TAC[ADD_AC])
+          match aths with
+          | [ath_0x; ath_x0; ath_00; ath_01; ath_10; ath_11] ->
+              let cths =
+                  (CONJUNCTS << prove)
+                    ((parse_term @"(SUC(_0 + n) = SUC n) /\
+                      (SUC(n + _0) = SUC n) /\
+                      (SUC(BIT0 m + BIT0 n) = BIT1(m + n)) /\
+                      (SUC(BIT0 m + BIT1 n) = BIT0(SUC(m + n))) /\
+                      (SUC(BIT1 m + BIT0 n) = BIT0(SUC(m + n))) /\
+                      (SUC(BIT1 m + BIT1 n) = BIT1(SUC (m + n)))"),
+                     SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
+                     REWRITE_TAC[BIT0; BIT1] |>THEN<|
+                     REWRITE_TAC[ADD_CLAUSES] |>THEN<| REWRITE_TAC[ADD_AC])
+              match cths with
+              | [cth_0x; cth_x0; cth_00; cth_01; cth_10; cth_11] ->
+                  let pth_suc =
+                   prove
+                    ((parse_term @"SUC(NUMERAL n) = NUMERAL(SUC n)"),
+                     REWRITE_TAC[NUMERAL])
+                  let pth_add =
+                   prove
+                    ((parse_term @"NUMERAL m + NUMERAL n = NUMERAL(m + n)"),
+                     REWRITE_TAC[NUMERAL]) in
+                  let rec raw_suc_conv tm =
+                    let otm = rand tm in
+                    if otm = zero_tm then sth_z else
+                    let btm,ntm = dest_comb otm in
+                    if btm = bit0_tm then INST [ntm,n_tm] sth_0 else
+                    let th = INST [ntm,n_tm] sth_1 in
+                    let ltm,rtm = dest_comb(rand(concl th)) in
+                    TRANS th (AP_TERM ltm (raw_suc_conv rtm)) in
+                  let rec raw_add_conv tm =
+                    let atm,rtm = dest_comb tm in
+                    let ltm = rand atm in
+                    if ltm = zero_tm then INST [rtm,n_tm] ath_0x
+                    else if rtm = zero_tm then INST [ltm,n_tm] ath_x0 else
+                    let lbit,larg = dest_comb ltm
+                    let rbit,rarg = dest_comb rtm in
+                    if lbit = bit0_tm then
+                       if rbit = bit0_tm then
+                          let th = INST [larg,m_tm; rarg,n_tm] ath_00 in
+                          let ltm,rtm = dest_comb(rand(concl th)) in
+                          TRANS th (AP_TERM ltm (raw_add_conv rtm))
+                       else
+                          let th = INST [larg,m_tm; rarg,n_tm] ath_01 in
+                          let ltm,rtm = dest_comb(rand(concl th)) in
+                          TRANS th (AP_TERM ltm (raw_add_conv rtm))
+                    else
+                       if rbit = bit0_tm then
+                          let th = INST [larg,m_tm; rarg,n_tm] ath_10 in
+                          let ltm,rtm = dest_comb(rand(concl th)) in
+                          TRANS th (AP_TERM ltm (raw_add_conv rtm))
+                       else
+                          let th = INST [larg,m_tm; rarg,n_tm] ath_11 in
+                          let ltm,rtm = dest_comb(rand(concl th)) in
+                          TRANS th (AP_TERM ltm (raw_adc_conv rtm))
+                  and raw_adc_conv tm =
+                    let atm,rtm = dest_comb(rand tm) in
+                    let ltm = rand atm in
+                    if ltm = zero_tm then
+                       let th = INST [rtm,n_tm] cth_0x in
+                       TRANS th (raw_suc_conv (rand(concl th)))
+                    else if rtm = zero_tm then
+                       let th = INST [ltm,n_tm] cth_x0 in
+                       TRANS th (raw_suc_conv (rand(concl th)))
+                    else
+                       let lbit,larg = dest_comb ltm
+                       let rbit,rarg = dest_comb rtm in
+                       if lbit = bit0_tm then
+                          if rbit = bit0_tm then
+                             let th = INST [larg,m_tm; rarg,n_tm] cth_00 in
+                             let ltm,rtm = dest_comb(rand(concl th)) in
+                             TRANS th (AP_TERM ltm (raw_add_conv rtm))
+                          else
+                             let th = INST [larg,m_tm; rarg,n_tm] cth_01 in
+                             let ltm,rtm = dest_comb(rand(concl th)) in
+                             TRANS th (AP_TERM ltm (raw_adc_conv rtm))
+                       else
+                          if rbit = bit0_tm then
+                             let th = INST [larg,m_tm; rarg,n_tm] cth_10 in
+                             let ltm,rtm = dest_comb(rand(concl th)) in
+                             TRANS th (AP_TERM ltm (raw_adc_conv rtm))
+                          else
+                             let th = INST [larg,m_tm; rarg,n_tm] cth_11 in
+                             let ltm,rtm = dest_comb(rand(concl th)) in
+                             TRANS th (AP_TERM ltm (raw_adc_conv rtm)) in
+                  let NUM_SUC_CONV tm =
+                    let th = INST [rand(rand tm),n_tm] pth_suc in
+                    let ctm = concl th in
+                    if lhand ctm <> tm then failwith "NUM_SUC_CONV" else
+                    let ltm,rtm = dest_comb(rand ctm) in
+                    TRANS th (AP_TERM ltm (raw_suc_conv rtm))
+                  let NUM_ADD_CONV tm =
+                    let atm,rtm = dest_comb tm in
+                    let ltm = rand atm in
+                    let th = INST [rand ltm,m_tm; rand rtm,n_tm] pth_add in
+                    let ctm = concl th in
+                    if lhand ctm <> tm then failwith "NUM_ADD_CONV" else
+                    let ltm,rtm = dest_comb(rand(concl th)) in
+                    TRANS th (AP_TERM ltm (raw_add_conv rtm)) in
+                  NUM_SUC_CONV,raw_add_conv,NUM_ADD_CONV
+              | _ -> failwith "cths: Unhandled case."
+          | _ -> failwith "aths: Unhandled case."
+      | _ -> failwith "sths: Unhandled case."
 
     let NUM_MULT_CONV' =
       let p_tm  = (parse_term @"p:num")

@@ -342,13 +342,15 @@ let GEN_REAL_ARITH_001 =
                                                   r, y_tm] pth
                                         TRANS th 
                                             (LAND_CONV POLY_CONV 
-                                                 (rand(concl th)))
-                                    let [REAL_LT_CONV; REAL_LE_CONV; 
-                                         REAL_GT_CONV; REAL_GE_CONV; 
-                                         REAL_EQ_CONV; REAL_NOT_LT_CONV; 
-                                         REAL_NOT_LE_CONV; REAL_NOT_GT_CONV; 
-                                         REAL_NOT_GE_CONV; _] = 
-                                        map REAL_INEQ_CONV (CONJUNCTS pth)
+                                                 (rand(concl th))) 
+
+                                    let REAL_LT_CONV, REAL_LE_CONV, REAL_GT_CONV, REAL_GE_CONV, REAL_EQ_CONV, REAL_NOT_LT_CONV, REAL_NOT_LE_CONV, REAL_NOT_GT_CONV, REAL_NOT_GE_CONV =
+                                        let realEqFuncs = map REAL_INEQ_CONV (CONJUNCTS pth)
+                                        match realEqFuncs with
+                                        | [real_lt_conv; real_le_conv; real_gt_conv; real_ge_conv; real_eq_conv; real_not_lt_conv; real_not_le_conv; real_not_gt_conv; real_not_ge_conv; _] ->
+                                            real_lt_conv, real_le_conv, real_gt_conv, real_ge_conv, real_eq_conv, real_not_lt_conv, real_not_le_conv, real_not_gt_conv, real_not_ge_conv
+                                        | _ -> failwith "realEqFuncs: Unhandled case."
+
                                     let REAL_NOT_EQ_CONV = 
                                         let pth = last(CONJUNCTS pth)
                                         fun tm -> 

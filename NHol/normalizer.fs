@@ -161,14 +161,12 @@ let SEMIRING_NORMALIZERS_CONV =
             | SEMIRING_MUL_CONV -> 
                 match SEMIRING_POW_CONV with
                 | SEMIRING_POW_CONV -> 
-                    let [pthm_01; pthm_02; pthm_03; pthm_04; pthm_05; pthm_06; 
-                         pthm_07; pthm_08; pthm_09; pthm_10; pthm_11; pthm_12; 
-                         pthm_13; pthm_14; pthm_15; pthm_16; pthm_17; pthm_18; 
-                         pthm_19; pthm_20; pthm_21; pthm_22; pthm_23; pthm_24; 
-                         pthm_25; pthm_26; pthm_27; pthm_28; pthm_29; pthm_30; 
-                         pthm_31; pthm_32; pthm_33; pthm_34; pthm_35; pthm_36; 
-                         pthm_37; pthm_38] = 
-                        CONJUNCTS(MATCH_MP SEMIRING_PTHS sth)
+                    let pthm_01, pthm_02, pthm_03, pthm_04, pthm_05, pthm_06, pthm_07, pthm_08, pthm_09, pthm_10, pthm_11, pthm_12, pthm_13, pthm_14, pthm_15, pthm_16, pthm_17, pthm_18, pthm_19, pthm_20, pthm_21, pthm_22, pthm_23, pthm_24, pthm_25, pthm_26, pthm_27, pthm_28, pthm_29, pthm_30, pthm_31, pthm_32, pthm_33, pthm_34, pthm_35, pthm_36, pthm_37, pthm_38 =
+                      let pthFuncs = CONJUNCTS(MATCH_MP SEMIRING_PTHS sth)
+                      match pthFuncs with
+                      | [pthm_01; pthm_02; pthm_03; pthm_04; pthm_05; pthm_06; pthm_07; pthm_08; pthm_09; pthm_10; pthm_11; pthm_12; pthm_13; pthm_14; pthm_15; pthm_16; pthm_17; pthm_18; pthm_19; pthm_20; pthm_21; pthm_22; pthm_23; pthm_24; pthm_25; pthm_26; pthm_27; pthm_28; pthm_29; pthm_30; pthm_31; pthm_32; pthm_33; pthm_34; pthm_35; pthm_36; pthm_37; pthm_38] ->
+                         pthm_01, pthm_02, pthm_03, pthm_04, pthm_05, pthm_06, pthm_07, pthm_08, pthm_09, pthm_10, pthm_11, pthm_12, pthm_13, pthm_14, pthm_15, pthm_16, pthm_17, pthm_18, pthm_19, pthm_20, pthm_21, pthm_22, pthm_23, pthm_24, pthm_25, pthm_26, pthm_27, pthm_28, pthm_29, pthm_30, pthm_31, pthm_32, pthm_33, pthm_34, pthm_35, pthm_36, pthm_37, pthm_38
+                      | _ -> failwith "pthFuncs: Unhandled case."
                     let add_tm = rator(rator(lhand(concl pthm_07)))
                     let mul_tm = rator(rator(lhand(concl pthm_13)))
                     let pow_tm = rator(rator(rand(concl pthm_32)))

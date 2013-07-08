@@ -162,19 +162,21 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
     let pth_not_eq = TAUT(parse_term @"~(p <=> q) <=> p /\ ~q \/ ~p /\ q")
     let pth_eq' = TAUT(parse_term @"(p <=> q) <=> (p \/ ~q) /\ (~p \/ q)")
     let pth_not_eq' = TAUT(parse_term @"~(p <=> q) <=> (p \/ q) /\ (~p \/ ~q)")
-    let [pth_not_forall; pth_not_exists; pth_not_exu] = 
-        (CONJUNCTS << prove)
-            ((parse_term @"(~((!) P) <=> ?x:A. ~(P x)) /\
-     (~((?) P) <=> !x:A. ~(P x)) /\
-     (~((?!) P) <=> (!x:A. ~(P x)) \/ ?x y. P x /\ P y /\ ~(y = x))"), 
-             REPEAT CONJ_TAC
-             |> THEN 
-             <| GEN_REWRITE_TAC (LAND_CONV << funpow 2 RAND_CONV) [GSYM ETA_AX]
-             |> THEN 
-             <| REWRITE_TAC 
-                    [NOT_EXISTS_THM; NOT_FORALL_THM; EXISTS_UNIQUE_DEF; 
-                     DE_MORGAN_THM; NOT_IMP]
-             |> THEN <| REWRITE_TAC [CONJ_ASSOC; EQ_SYM_EQ])
+
+    let pth_not_forall, pth_not_exists, pth_not_exu = 
+        let pth_notFuncs =
+            (CONJUNCTS << prove)
+              ((parse_term @"(~((!) P) <=> ?x:A. ~(P x)) /\
+                (~((?) P) <=> !x:A. ~(P x)) /\
+                (~((?!) P) <=> (!x:A. ~(P x)) \/ ?x y. P x /\ P y /\ ~(y = x))"), 
+                  REPEAT CONJ_TAC
+                  |> THEN <| GEN_REWRITE_TAC (LAND_CONV << funpow 2 RAND_CONV) [GSYM ETA_AX]
+                  |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; NOT_FORALL_THM; EXISTS_UNIQUE_DEF; DE_MORGAN_THM; NOT_IMP]
+                  |> THEN <| REWRITE_TAC [CONJ_ASSOC; EQ_SYM_EQ])
+        match pth_notFuncs with
+        | [pth_not_forall; pth_not_exists; pth_not_exu] -> pth_not_forall, pth_not_exists, pth_not_exu
+        | _ -> failwith "pth_notFuncs: Unhandled case."
+
     let pth_exu = 
         prove
             ((parse_term 

@@ -1037,17 +1037,19 @@ let rec define_type_raw_002 =
                 if is_vartype ty
                 then [mk_var("x", ty)]
                 else 
-                    let _, [ty1; ty2] = dest_type ty
-                    let inls1 = mk_inls ty1
-                    let inls2 = mk_inls ty2
-                    let inl = 
-                        mk_const("INL", [ty1, aty
-                                         ty2, bty])
-                    let inr = 
-                        mk_const("INR", [ty1, aty
-                                         ty2, bty])
-                    map (curry mk_comb inl) inls1 
-                    @ map (curry mk_comb inr) inls2
+                    match dest_type ty with
+                    | _, [ty1; ty2] -> 
+                        let inls1 = mk_inls ty1
+                        let inls2 = mk_inls ty2
+                        let inl = 
+                            mk_const("INL", [ty1, aty
+                                             ty2, bty])
+                        let inr = 
+                            mk_const("INR", [ty1, aty
+                                             ty2, bty])
+                        map (curry mk_comb inl) inls1 
+                        @ map (curry mk_comb inr) inls2
+                    | _ -> failwith "mk_inls: Unhnadled case."
             fun ty -> 
                 let bods = mk_inls ty
                 map (fun t -> mk_abs(find_term is_var t, t)) bods
@@ -1056,15 +1058,17 @@ let rec define_type_raw_002 =
                 if is_vartype ty
                 then [sof]
                 else 
-                    let _, [ty1; ty2] = dest_type ty
-                    let outl = 
-                        mk_const("OUTL", [ty1, aty
-                                          ty2, bty])
-                    let outr = 
-                        mk_const("OUTR", [ty1, aty
-                                          ty2, bty])
-                    mk_inls (mk_comb(outl, sof)) ty1 
-                    @ mk_inls (mk_comb(outr, sof)) ty2
+                    match dest_type ty with
+                    | _, [ty1; ty2] ->
+                        let outl = 
+                            mk_const("OUTL", [ty1, aty
+                                              ty2, bty])
+                        let outr = 
+                            mk_const("OUTR", [ty1, aty
+                                              ty2, bty])
+                        mk_inls (mk_comb(outl, sof)) ty1 
+                        @ mk_inls (mk_comb(outr, sof)) ty2
+                    | _ -> failwith "mk_outls: Unhandled case."
             fun ty -> 
                 let x = mk_var("x", ty)
                 map (curry mk_abs x) (mk_inls x ty)

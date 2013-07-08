@@ -578,11 +578,13 @@ let RING_AND_IDEAL_CONV =
           vars,l,cert,NOT_EQ_01
         else
           let nth = end_itlist (fun th1 th2 -> IDOM_RULE(CONJ th1 th2)) nths in
-          let vars,pol::pols = grobify_equations(list_mk_conj(rand(concl nth)::map concl eths)) in
-          let deg,l,cert = grobner_strong vars pols pol in
-          let th1 = CONV_RULE(RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) nth in
-          let th2 = funpow deg (IDOM_RULE << CONJ th1) NOT_EQ_01 in
-          vars,l,cert,th2
+          match grobify_equations(list_mk_conj(rand(concl nth)::map concl eths)) with
+          | vars,pol::pols -> 
+              let deg,l,cert = grobner_strong vars pols pol in
+              let th1 = CONV_RULE(RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) nth in
+              let th2 = funpow deg (IDOM_RULE << CONJ th1) NOT_EQ_01 in
+              vars,l,cert,th2
+          | _ -> failwith "REFUTE: Unhandled case."
   
       Format.print_string("Translating certificate to HOL inferences");
       Format.print_newline();

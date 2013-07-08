@@ -555,10 +555,16 @@ let instantiate_casewise_recursion,
        ARITH_RULE (parse_term @"(m + n = 1) <=> (m = 1) /\ (n = 0) \/ (m = 0) /\ (n = 1)");
        ARITH_RULE (parse_term @"(1 = m + n) <=> (m = 1) /\ (n = 0) \/ (m = 0) /\ (n = 1)");
        evensimps; ARITH_EQ] []
-    let [simp1; simp2; simp3] = 
-     map MATCH_MP (CONJUNCTS (TAUT (parse_term @"((a <=> F) /\ (b <=> b) ==> ((a ==> b) <=> T)) /\
-        ((a <=> a') /\ (a' ==> (b <=> T)) ==> ((a ==> b) <=> T)) /\
-        ((a <=> a') /\ (a' ==> (b <=> b')) ==> ((a ==> b) <=> (a' ==> b')))")))
+       
+    let simp1, simp2, simp3 = 
+        let simpFuncs =
+            map MATCH_MP (CONJUNCTS (TAUT (parse_term @"((a <=> F) /\ (b <=> b) ==> ((a ==> b) <=> T)) /\
+            ((a <=> a') /\ (a' ==> (b <=> T)) ==> ((a ==> b) <=> T)) /\
+            ((a <=> a') /\ (a' ==> (b <=> b')) ==> ((a ==> b) <=> (a' ==> b')))")))
+        match simpFuncs with
+        | [simp1; simp2; simp3] -> simp1, simp2, simp3
+        | _ -> failwith "simpFuncs: Unhandled case."
+
     let false_tm = (parse_term @"F") in 
     let and_tm = (parse_term @"(/\)")
     let eq_refl = EQT_INTRO(SPEC_ALL EQ_REFL)

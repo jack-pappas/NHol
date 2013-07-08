@@ -216,11 +216,14 @@ let DIST_LE_CASES, DIST_ADDBOUND, DIST_TRIANGLE, DIST_ADD2, DIST_ADD2_REV =
              |> THEN <| DIST_ELIM_TAC
              |> THENL <| [ONCE_REWRITE_TAC [ADD_SYM]
                           ALL_TAC]
-             |> THEN <| REWRITE_TAC [ADD_ASSOC; LE_ADDR])
-    let [DIST_TRIANGLE; DIST_ADD2; DIST_ADD2_REV] = (CONJUNCTS << prove)((parse_term @"(!m n p. dist(m,p) <= dist(m,n) + dist(n,p)) /\
-     (!m n p q. dist(m + n,p + q) <= dist(m,p) + dist(n,q)) /\
-     (!m n p q. dist(m,p) <= dist(m + n,p + q) + dist(n,q))"), DIST_ELIM_TAC')
-    DIST_LE_CASES, DIST_ADDBOUND, DIST_TRIANGLE, DIST_ADD2, DIST_ADD2_REV
+             |> THEN <| REWRITE_TAC [ADD_ASSOC; LE_ADDR])    
+    let distFuncs = (CONJUNCTS << prove)((parse_term @"(!m n p. dist(m,p) <= dist(m,n) + dist(n,p)) /\
+         (!m n p q. dist(m + n,p + q) <= dist(m,p) + dist(n,q)) /\
+         (!m n p q. dist(m,p) <= dist(m + n,p + q) + dist(n,q))"), DIST_ELIM_TAC')
+    match distFuncs with
+    | [dist_triangle; dist_add2; dist_add2_rev] -> 
+        DIST_LE_CASES, DIST_ADDBOUND, dist_triangle, dist_add2, dist_add2_rev
+    | _ -> failwith "distFuncs: Unhnadled case."
 
 let DIST_TRIANGLE_LE = 
     prove
@@ -2183,20 +2186,27 @@ let HREAL_COMPLETE =
             (REFL(parse_term @"\x. Q(mk_hreal((===) x)):bool"))
     CONV_RULE (GEN_ALPHA_CONV(parse_term @"P:hreal->bool")) (GEN_ALL th4)
 
-let [HREAL_OF_NUM_EQ; HREAL_OF_NUM_LE; HREAL_OF_NUM_ADD; HREAL_OF_NUM_MUL; 
-     HREAL_LE_REFL; HREAL_LE_TRANS; HREAL_LE_ANTISYM; HREAL_LE_TOTAL; 
-     HREAL_LE_ADD; HREAL_LE_EXISTS; HREAL_ARCH; HREAL_ADD_SYM; HREAL_ADD_ASSOC; 
-     HREAL_ADD_LID; HREAL_ADD_LCANCEL; HREAL_MUL_SYM; HREAL_MUL_ASSOC; 
-     HREAL_MUL_LID; HREAL_ADD_LDISTRIB; HREAL_MUL_LINV; HREAL_INV_0] = 
-    map
-        (lift_theorem hreal_tybij (NADD_EQ_REFL, NADD_EQ_SYM, NADD_EQ_TRANS) 
-             [hreal_of_num_th; hreal_add_th; hreal_mul_th; hreal_le_th; 
-              hreal_inv_th])
-    [NADD_OF_NUM_EQ; NADD_OF_NUM_LE; NADD_OF_NUM_ADD; NADD_OF_NUM_MUL; 
-     NADD_LE_REFL; NADD_LE_TRANS; NADD_LE_ANTISYM; NADD_LE_TOTAL; NADD_LE_ADD; 
-     NADD_LE_EXISTS; NADD_ARCH; NADD_ADD_SYM; NADD_ADD_ASSOC; NADD_ADD_LID; 
-     NADD_ADD_LCANCEL; NADD_MUL_SYM; NADD_MUL_ASSOC; NADD_MUL_LID; NADD_LDISTRIB; 
-     NADD_MUL_LINV; NADD_INV_0]
+let HREAL_OF_NUM_EQ, HREAL_OF_NUM_LE, HREAL_OF_NUM_ADD, HREAL_OF_NUM_MUL, HREAL_LE_REFL, HREAL_LE_TRANS, HREAL_LE_ANTISYM, HREAL_LE_TOTAL, HREAL_LE_ADD, HREAL_LE_EXISTS, HREAL_ARCH, HREAL_ADD_SYM, HREAL_ADD_ASSOC, HREAL_ADD_LID, HREAL_ADD_LCANCEL, HREAL_MUL_SYM, HREAL_MUL_ASSOC, HREAL_MUL_LID, HREAL_ADD_LDISTRIB, HREAL_MUL_LINV, HREAL_INV_0 = 
+    let naddFuncs =
+        map (lift_theorem hreal_tybij (NADD_EQ_REFL, NADD_EQ_SYM, NADD_EQ_TRANS) 
+         [hreal_of_num_th; hreal_add_th; hreal_mul_th; hreal_le_th; hreal_inv_th])
+         [NADD_OF_NUM_EQ; NADD_OF_NUM_LE; NADD_OF_NUM_ADD; NADD_OF_NUM_MUL; 
+          NADD_LE_REFL; NADD_LE_TRANS; NADD_LE_ANTISYM; NADD_LE_TOTAL; NADD_LE_ADD; 
+          NADD_LE_EXISTS; NADD_ARCH; NADD_ADD_SYM; NADD_ADD_ASSOC; NADD_ADD_LID; 
+          NADD_ADD_LCANCEL; NADD_MUL_SYM; NADD_MUL_ASSOC; NADD_MUL_LID; NADD_LDISTRIB; 
+          NADD_MUL_LINV; NADD_INV_0]
+    match naddFuncs with
+    | [hreal_of_num_eq; hreal_of_num_le; hreal_of_num_add; hreal_of_num_mul; 
+       hreal_le_refl; hreal_le_trans; hreal_le_antisym; hreal_le_total; 
+       hreal_le_add; hreal_le_exists; hreal_arch; hreal_add_sym; hreal_add_assoc; 
+       hreal_add_lid; hreal_add_lcancel; hreal_mul_sym; hreal_mul_assoc; 
+       hreal_mul_lid; hreal_add_ldistrib; hreal_mul_linv; hreal_inv_0] -> 
+          hreal_of_num_eq, hreal_of_num_le, hreal_of_num_add, hreal_of_num_mul, 
+          hreal_le_refl, hreal_le_trans, hreal_le_antisym, hreal_le_total, 
+          hreal_le_add, hreal_le_exists, hreal_arch, hreal_add_sym, hreal_add_assoc, 
+          hreal_add_lid, hreal_add_lcancel, hreal_mul_sym, hreal_mul_assoc, 
+          hreal_mul_lid, hreal_add_ldistrib, hreal_mul_linv, hreal_inv_0
+    | _ -> failwith "naddFuncs: Unhandled case."
 
 (* ------------------------------------------------------------------------- *)
 (* Consequential theorems needed later.                                      *)
@@ -2770,20 +2780,29 @@ let real_le, real_le_th =
 let real_inv, real_inv_th = 
     lift_function (snd real_tybij) (TREAL_EQ_REFL, TREAL_EQ_TRANS) "real_inv" 
         TREAL_INV_WELLDEF
-let [REAL_ADD_SYM; REAL_ADD_ASSOC; REAL_ADD_LID; REAL_ADD_LINV; REAL_MUL_SYM; 
-     REAL_MUL_ASSOC; REAL_MUL_LID; REAL_ADD_LDISTRIB; REAL_LE_REFL; 
-     REAL_LE_ANTISYM; REAL_LE_TRANS; REAL_LE_TOTAL; REAL_LE_LADD_IMP; 
-     REAL_LE_MUL; REAL_INV_0; REAL_MUL_LINV; REAL_OF_NUM_EQ; REAL_OF_NUM_LE; 
-     REAL_OF_NUM_ADD; REAL_OF_NUM_MUL] = 
-    map 
-        (lift_theorem real_tybij (TREAL_EQ_REFL, TREAL_EQ_SYM, TREAL_EQ_TRANS) 
-             [real_of_num_th; real_neg_th; real_add_th; real_mul_th; real_le_th; 
-              real_inv_th]) 
-        [TREAL_ADD_SYM; TREAL_ADD_ASSOC; TREAL_ADD_LID; TREAL_ADD_LINV; 
-         TREAL_MUL_SYM; TREAL_MUL_ASSOC; TREAL_MUL_LID; TREAL_ADD_LDISTRIB; 
-         TREAL_LE_REFL; TREAL_LE_ANTISYM; TREAL_LE_TRANS; TREAL_LE_TOTAL; 
-         TREAL_LE_LADD_IMP; TREAL_LE_MUL; TREAL_INV_0; TREAL_MUL_LINV; 
-         TREAL_OF_NUM_EQ; TREAL_OF_NUM_LE; TREAL_OF_NUM_ADD; TREAL_OF_NUM_MUL]
+
+let REAL_ADD_SYM, REAL_ADD_ASSOC, REAL_ADD_LID, REAL_ADD_LINV, REAL_MUL_SYM, REAL_MUL_ASSOC, REAL_MUL_LID, REAL_ADD_LDISTRIB, REAL_LE_REFL, REAL_LE_ANTISYM, REAL_LE_TRANS, REAL_LE_TOTAL, REAL_LE_LADD_IMP, REAL_LE_MUL, REAL_INV_0, REAL_MUL_LINV, REAL_OF_NUM_EQ, REAL_OF_NUM_LE, REAL_OF_NUM_ADD, REAL_OF_NUM_MUL =
+    let realFuncs =
+        map (lift_theorem real_tybij (TREAL_EQ_REFL, TREAL_EQ_SYM, TREAL_EQ_TRANS) 
+                    [real_of_num_th; real_neg_th; real_add_th; real_mul_th; real_le_th; 
+                    real_inv_th]) 
+            [TREAL_ADD_SYM; TREAL_ADD_ASSOC; TREAL_ADD_LID; TREAL_ADD_LINV; 
+                TREAL_MUL_SYM; TREAL_MUL_ASSOC; TREAL_MUL_LID; TREAL_ADD_LDISTRIB; 
+                TREAL_LE_REFL; TREAL_LE_ANTISYM; TREAL_LE_TRANS; TREAL_LE_TOTAL; 
+                TREAL_LE_LADD_IMP; TREAL_LE_MUL; TREAL_INV_0; TREAL_MUL_LINV; 
+                TREAL_OF_NUM_EQ; TREAL_OF_NUM_LE; TREAL_OF_NUM_ADD; TREAL_OF_NUM_MUL]
+    match realFuncs with
+    | [real_add_sym; real_add_assoc; real_add_lid; real_add_linv; real_mul_sym; 
+            real_mul_assoc; real_mul_lid; real_add_ldistrib; real_le_refl; 
+            real_le_antisym; real_le_trans; real_le_total; real_le_ladd_imp; 
+            real_le_mul; real_inv_0; real_mul_linv; real_of_num_eq; real_of_num_le; 
+            real_of_num_add; real_of_num_mul] -> 
+            real_add_sym, real_add_assoc, real_add_lid, real_add_linv, real_mul_sym, 
+            real_mul_assoc, real_mul_lid, real_add_ldistrib, real_le_refl, 
+            real_le_antisym, real_le_trans, real_le_total, real_le_ladd_imp, 
+            real_le_mul, real_inv_0, real_mul_linv, real_of_num_eq, real_of_num_le, 
+            real_of_num_add, real_of_num_mul
+    | _ -> failwith "realFuncs: Unhandled case."
 
 parse_as_prefix "--"
 parse_as_infix("/", (22, "left"))

@@ -222,10 +222,14 @@ let num_Axiom_001 =
 
 let NUMERAL = new_definition(parse_term @"NUMERAL (n:num) = n")
 
-let [NOT_SUC; num_INDUCTION; num_Axiom] = 
-    let th = prove((parse_term @"_0 = 0"), REWRITE_TAC [NUMERAL])
-    map (GEN_REWRITE_RULE DEPTH_CONV [th]) 
-        [NOT_SUC_001; num_INDUCTION_001; num_Axiom_001]
+let NOT_SUC, num_INDUCTION, num_Axiom = 
+    let xFuncs =
+        let th = prove((parse_term @"_0 = 0"), REWRITE_TAC [NUMERAL])
+        map (GEN_REWRITE_RULE DEPTH_CONV [th]) 
+            [NOT_SUC_001; num_INDUCTION_001; num_Axiom_001]
+    match xFuncs with
+    | [not_suc; num_induction; num_axiom] -> not_suc, num_induction, num_axiom
+    | _ -> failwith "xFuncs: Unhandled case."
 
 let (INDUCT_TAC : tactic) = 
     MATCH_MP_TAC num_INDUCTION

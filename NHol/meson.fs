@@ -539,14 +539,16 @@ let GEN_MESON_TAC =
                                                                   (lg' @ rg', 
                                                                    ztup)))))
                 else 
-                    let g :: gs = gl
-                    expand_goal depth (g, tup) 
-                        (cacheconts
-                             (fun (g', stup) -> 
-                                 expand_goals depth (gs, stup) 
-                                     (cacheconts
-                                          (fun (gs', ftup) -> 
-                                              cont(g' :: gs', ftup)))))
+                    match gl with
+                    | g :: gs ->
+                        expand_goal depth (g, tup) 
+                            (cacheconts
+                                 (fun (g', stup) -> 
+                                     expand_goals depth (gs, stup) 
+                                         (cacheconts
+                                              (fun (gs', ftup) -> 
+                                                  cont(g' :: gs', ftup)))))
+                    |  _ -> failwith "expand_goal: Unhandled case."
         fun g maxdep maxinf cont -> 
             expand_goal maxdep (g, ([], 2 * offinc, maxinf)) cont
     (* ----------------------------------------------------------------------- *)

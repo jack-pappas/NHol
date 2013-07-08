@@ -215,9 +215,11 @@ let mk_mconst(c, ty) =
 (* ------------------------------------------------------------------------- *)
 
 let mk_icomb(tm1, tm2) = 
-    let "fun", [ty; _] = dest_type(type_of tm1)
-    let tyins = type_match ty (type_of tm2) []
-    mk_comb(inst tyins tm1, tm2)
+    match dest_type(type_of tm1) with
+    | "fun", [ty; _] ->
+        let tyins = type_match ty (type_of tm2) []
+        mk_comb(inst tyins tm1, tm2)
+    | _ -> failwith "mk_icomb: Unhandled case."
 
 (* ------------------------------------------------------------------------- *)
 (* Instantiates types for constant c and iteratively makes combination.      *)

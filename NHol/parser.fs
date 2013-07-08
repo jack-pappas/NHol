@@ -330,7 +330,10 @@ let parse_preterm =
     | Combp(p1,p2) -> pfrees p1 (pfrees p2 acc)
     | Absp(p1,p2) -> subtract (pfrees p2 acc) (pfrees p1 [])
     | Typing(p,_) -> pfrees p acc
-  let pdest_eq (Combp(Combp(Varp(("="|"<=>"),_),l),r)) = l,r
+  let pdest_eq =
+      function
+      | (Combp(Combp(Varp(("="|"<=>"),_),l),r)) -> (l,r)
+      | _ -> failwith "pdest_eq: Unhandled case."
   let pmk_let (letbindings,body) =
     let vars,tms = unzip (map pdest_eq letbindings)
     let _ = warn(not (pairwise (fun s t -> intersect(pfrees s []) (pfrees t []) = []) vars)) "duplicate names on left of let-binding: latest is used"
@@ -376,11 +379,15 @@ let parse_preterm =
   let rec mk_precedence infxs prs inp =
     match infxs with
       (s,(p,at))::_ ->
+          let fun1 lc x y =
+              match lc with
+              | (Ident op) -> Combp(Combp(Varp(op,dpty),x),y) 
+              | _ -> failwith "mk_precedence.fun1: Unhandled case."
           let topins,rest = partition (fun (s',pat') -> pat' = (p,at)) infxs
           (if at = "right" then rightbin else leftbin)
            (mk_precedence rest prs)
-            (end_itlist (<|>) (map (fun (s,_) -> a (Ident s)) topins))
-             (fun (Ident op) x y -> Combp(Combp(Varp(op,dpty),x),y)) "term after binary operator" inp
+            (end_itlist (<|>) (map (fun (s,_) -> a (Ident s)) topins)) 
+             fun1 "term after binary operator" inp
     | _ -> prs inp
   let pmk_geq s t = Combp(Combp(Varp("GEQ",dpty),s),t)
   let pmk_pattern ((pat,guards),res) =
@@ -516,14 +523,14 @@ let parse_preterm =
 (* ------------------------------------------------------------------------- *)
 
 let parse_type (s : string) =
-    printfn "parsing type %s" s 
+//    printfn "parsing type %s" s 
     let pty, l = (parse_pretype << lex << explode) s
     //printfn "pty, l <-- %A, %A" pty l
     if l = [] then type_of_pretype pty
     else failwith "Unparsed input following type"
 
 let parse_term s = 
-    printfn "parsing term %s" s
+//    printfn "parsing term %s" s
     let ptm, l = (parse_preterm << lex << explode) s
     //printfn "l <-- %A" l
     if l = [] then (term_of_preterm << (retypecheck [])) ptm

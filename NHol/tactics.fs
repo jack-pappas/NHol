@@ -162,8 +162,14 @@ let (VALID : tactic -> tactic) =
 (* ------------------------------------------------------------------------- *)
 
 let (THEN), (THENL) = 
-    let propagate_empty i [] = []
-    let propagate_thm th i [] = INSTANTIATE_ALL i th
+    let propagate_empty i x =
+        match x with
+        | [] -> []
+        | _ -> failwith "propagate_empty: Unhandled case."
+    let propagate_thm th i l =
+        match l with
+        | [] -> INSTANTIATE_ALL i th
+        | _ -> failwith "propagate_thm: Unhandled case."
     let compose_justs n just1 just2 i ths = 
         let ths1, ths2 = chop_list n ths
         (just1 i ths1) :: (just2 i ths2)
@@ -209,7 +215,12 @@ let ((ORELSE) : tactic -> tactic -> tactic) =
 let (FAIL_TAC : string -> tactic) = fun tok g -> failwith tok
 let (NO_TAC : tactic) = FAIL_TAC "NO_TAC"
 
-let (ALL_TAC : tactic) = fun g -> null_meta, [g], fun _ [th] -> th
+let (ALL_TAC : tactic) = 
+  let fun1 x y =
+      match (x,y) with
+      | (_, [th]) -> th
+      | _ -> failwith "ALL_TAC.fun1: Unhandled case."
+  fun g -> null_meta, [g], fun1
 
 let TRY tac = ORELSE tac ALL_TAC
 
@@ -272,9 +283,14 @@ let FIRST_TCL ttcll = end_itlist (fun t1 t2 -> ORELSE_TCL t1 t2) ttcll
 (* any assumption "p", these add a PROVE_HYP in the justification function,  *)
 (* just in case.                                                             *)
 (* ------------------------------------------------------------------------- *)
-
+    
 let (LABEL_TAC : string -> thm_tactic) = 
-    fun s thm (asl, w) -> null_meta, [(s, thm) :: asl, w], fun i [th] -> PROVE_HYP (INSTANTIATE_ALL i thm) th
+    let fun1 l =
+        match l with
+        | [a] -> a
+        | _ -> failwith "LABEL_TAC.fun1: Unhandled case."
+    fun s thm  ((asl : (string * thm) list), (w : term)) ->
+      null_meta, [(s, thm) :: asl, w], fun i thml -> PROVE_HYP (INSTANTIATE_ALL i thm) (fun1 thml)  
 
 let ASSUME_TAC = LABEL_TAC ""
 
@@ -359,7 +375,10 @@ let HYP =
 (* ------------------------------------------------------------------------- *)
 
 let (ACCEPT_TAC : thm_tactic) = 
-    let propagate_thm th i [] = INSTANTIATE_ALL i th
+    let propagate_thm th i x =
+        match x with
+        | [] -> INSTANTIATE_ALL i th
+        | _ -> failwith "propagate_thm: Unhandled case."
     fun th (asl, w) -> 
         if aconv (concl th) w
         then null_meta, [], propagate_thm th
@@ -382,8 +401,12 @@ let (CONV_TAC : conv -> tactic) =
             if not(aconv l w) then failwith "CONV_TAC: bad equation"
             elif r = t_tm then ACCEPT_TAC (EQT_ELIM th) g
             else 
+                let fun1 l =
+                    match l with
+                    | [a] -> a
+                    | _ -> failwith "CONV_TAC.fun1: Unhandled case."
                 let th' = SYM th
-                null_meta, [asl, r], fun i [th] -> EQ_MP (INSTANTIATE_ALL i th') th
+                null_meta, [asl, r], fun i thml -> EQ_MP (INSTANTIATE_ALL i th') (fun1 thml)
 
 (* ------------------------------------------------------------------------- *)
 (* Tactics for equality reasoning.                                           *)
@@ -405,23 +428,31 @@ let (ABS_TAC : tactic) =
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
             let v = mk_primed_var avoids lv
             null_meta, [asl, mk_eq(vsubst [v, lv] lb, vsubst [v, rv] rb)], 
-            fun i [th] -> 
-                let ath = ABS v th
+            fun i tl -> 
+                let fun1 l =
+                    match l with
+                    | [a] -> a
+                    | _ -> failwith "ABS_TAC.fun1: Unhandled case."
+                let ath = ABS v (fun1 tl)
                 EQ_MP (ALPHA (concl ath) (instantiate i w)) ath
         with
-        | Failure _ -> failwith "ABS_TAC"
+        | Failure _ -> failwith "ABS_TAC: Failure."
 
 let (MK_COMB_TAC : tactic) = 
     fun (asl, gl) -> 
         try 
+            let fun1 l =
+                match l with
+                | [a1; a2] -> (a1, a2)
+                | _ -> failwith "MK_COMB_TAC.fun1: Unhandled case."
             let l, r = dest_eq gl
             let f, x = dest_comb l
             let g, y = dest_comb r
             null_meta, 
             [asl, mk_eq(f, g);
-             asl, mk_eq(x, y)], fun _ [th1; th2] -> MK_COMB(th1, th2)
+             asl, mk_eq(x, y)], fun _ tl -> MK_COMB (fun1 tl)
         with
-        | Failure _ -> failwith "MK_COMB_TAC"
+        | Failure _ -> failwith "MK_COMB_TAC: Failure."
 
 let (AP_TERM_TAC : tactic) = 
     let tac = THENL MK_COMB_TAC [REFL_TAC; ALL_TAC]
@@ -481,44 +512,68 @@ let (DISCH_TAC : tactic) =
         try 
             let ant, c = dest_imp w
             let th1 = ASSUME ant
-            null_meta, [("", th1) :: asl, c], fun i [th] -> DISCH (instantiate i ant) th
+            let fun1 l =
+                match l with
+                | [a] -> a
+                | _ -> failwith "DISCH_TAC.fun1: Unhandled case."
+            null_meta, [("", th1) :: asl, c], fun i thl -> DISCH (instantiate i ant) (fun1 thl)
         with
         | Failure _ -> 
             try 
+                let fun2 l =
+                    match l with
+                    | [a] -> a
+                    | _ -> failwith "DISCH_TAC.fun2: Unhandled case."
                 let ant = dest_neg w
                 let th1 = ASSUME ant
-                null_meta, [("", th1) :: asl, f_tm], fun i [th] -> NOT_INTRO(DISCH (instantiate i ant) th)
+                null_meta, [("", th1) :: asl, f_tm], fun i thl -> NOT_INTRO(DISCH (instantiate i ant) (fun2 thl))
             with
             | Failure _ -> failwith "DISCH_TAC"
 
 let (MP_TAC : thm_tactic) = 
-    fun thm (asl, w) -> null_meta, [asl, mk_imp(concl thm, w)], fun i [th] -> MP th (INSTANTIATE_ALL i thm)
+    let fun1 l =
+        match l with
+        | [a] -> a
+        | _ -> failwith "MP_TAC.fun1: Unhandled case."
+    fun thm (asl, w) -> null_meta, [asl, mk_imp(concl thm, w)], fun i thl -> MP (fun1 thl) (INSTANTIATE_ALL i thm)
 
 let (EQ_TAC : tactic) = 
     fun (asl, w) -> 
         try 
+            let fun1 l =
+                match l with
+                | [th1; th2] -> IMP_ANTISYM_RULE th1 th2
+                | _ -> failwith "EQ_TAC.fun1: Unhandled case."
             let l, r = dest_eq w
             null_meta, 
             [asl, mk_imp(l, r);
-             asl, mk_imp(r, l)], fun _ [th1; th2] -> IMP_ANTISYM_RULE th1 th2
+             asl, mk_imp(r, l)], fun _ tml -> fun1 tml
         with
-        | Failure _ -> failwith "EQ_TAC"
+        | Failure _ -> failwith "EQ_TAC: Failure."
 
 let (UNDISCH_TAC : term -> tactic) = 
     fun tm (asl, w) -> 
         try 
+            let fun1 l =
+                match l with
+                | [a] -> a
+                | _ -> failwith "UNDISCH_TAC.fun1: Unhandled case."
             let sthm, asl' = remove (fun (_, asm) -> aconv (concl asm) tm) asl
             let thm = snd sthm
-            null_meta, [asl', mk_imp(tm, w)], fun i [th] -> MP th (INSTANTIATE_ALL i thm)
+            null_meta, [asl', mk_imp(tm, w)], fun i tl -> MP (fun1 tl) (INSTANTIATE_ALL i thm)
         with
-        | Failure _ -> failwith "UNDISCH_TAC"
+        | Failure _ -> failwith "UNDISCH_TAC: Failure."
 
 let (SPEC_TAC : term * term -> tactic) = 
     fun (t, x) (asl, w) -> 
         try 
-            null_meta, [asl, mk_forall(x, subst [x, t] w)], fun i [th] -> SPEC (instantiate i t) th
+            let fun1 l =
+                match l with
+                | [a] -> a
+                | _ -> failwith "LABEL_TAC.fun1: Unhandled case."
+            null_meta, [asl, mk_forall(x, subst [x, t] w)], fun i tl -> SPEC (instantiate i t) (fun1 tl)
         with
-        | Failure _ -> failwith "SPEC_TAC"
+        | Failure _ -> failwith "SPEC_TAC: Failure."
 
 let private tactic_type_compatibility_check pfx e g = 
     let et = type_of e
@@ -547,7 +602,11 @@ let X_GEN_TAC x' =
             then failwith "X_GEN_TAC: invalid variable"
             else 
                 let afn = CONV_RULE(GEN_ALPHA_CONV x)
-                null_meta, [asl, vsubst [x', x] bod], fun i [th] -> afn(GEN x' th)
+                let fun1 l =
+                    match l with
+                    | [a] -> a
+                    | _ -> failwith "X_GEN_TAC.fun1: Unhandled case."
+                null_meta, [asl, vsubst [x', x] bod], fun i tl -> afn(GEN x' (fun1 tl))
 
 let X_CHOOSE_TAC x' xth = 
     let xtm = concl xth
@@ -566,7 +625,11 @@ let X_CHOOSE_TAC x' xth =
         if mem x' avoids
         then failwith "X_CHOOSE_TAC: invalid variable"
         else 
-            null_meta, [("", xth') :: asl, w], fun i [th] -> CHOOSE (x', INSTANTIATE_ALL i xth) th
+            let fun1 l =
+                match l with
+                | [a] -> a
+                | _ -> failwith "X_CHOOSE_TAC.fun1: Unhandled case."
+            null_meta, [("", xth') :: asl, w], fun i tl -> CHOOSE (x', INSTANTIATE_ALL i xth) (fun1 tl)
 
 let EXISTS_TAC t (asl, w) = 
     let v, bod = 
@@ -575,7 +638,11 @@ let EXISTS_TAC t (asl, w) =
         with
         | Failure _ -> failwith "EXISTS_TAC: Goal not existentially quantified"
     let _ = tactic_type_compatibility_check "EXISTS_TAC" v t
-    null_meta, [asl, vsubst [t, v] bod], fun i [th] -> EXISTS (instantiate i w, instantiate i t) th
+    let fun1 l =
+        match l with
+        | [a] -> a
+        | _ -> failwith "EXISTS_TAC.fun1: Unhandled case."
+    null_meta, [asl, vsubst [t, v] bod], fun i tl -> EXISTS (instantiate i w, instantiate i t) (fun1 tl)
 
 let (GEN_TAC : tactic) = 
     fun (asl, w) -> 
@@ -603,58 +670,80 @@ let (CHOOSE_TAC : thm_tactic) =
 let (CONJ_TAC : tactic) = 
     fun (asl, w) -> 
         try 
+            let fun1 l =
+                match l with
+                | [th1; th2] -> CONJ th1 th2
+                | _ -> failwith "CONJ_TAC.fun1: Unhandled case."
             let l, r = dest_conj w
             null_meta, [asl, l
-                        asl, r], fun _ [th1; th2] -> CONJ th1 th2
+                        asl, r], fun _ tl -> fun1 tl
         with
-        | Failure _ -> failwith "CONJ_TAC"
+        | Failure _ -> failwith "CONJ_TAC: Failure."
 
 let (DISJ1_TAC : tactic) = 
     fun (asl, w) -> 
         try 
+            let fun1 l =
+                match l with
+                | [a] -> a
+                | _ -> failwith "DISJ1_TAC.fun1: Unhandled case."
             let l, r = dest_disj w
-            null_meta, [asl, l], fun i [th] -> DISJ1 th (instantiate i r)
+            null_meta, [asl, l], fun i tl -> DISJ1 (fun1 tl) (instantiate i r)
         with
-        | Failure _ -> failwith "DISJ1_TAC"
+        | Failure _ -> failwith "DISJ1_TAC: Failure."
 
 let (DISJ2_TAC : tactic) = 
     fun (asl, w) -> 
         try 
+            let fun1 l =
+                match l with
+                | [a] -> a
+                | _ -> failwith "DISJ2_TAC.fun1: Unhandled case."
             let l, r = dest_disj w
-            null_meta, [asl, r], fun i [th] -> DISJ2 (instantiate i l) th
+            null_meta, [asl, r], fun i tl -> DISJ2 (instantiate i l) (fun1 tl)
         with
-        | Failure _ -> failwith "DISJ2_TAC"
+        | Failure _ -> failwith "DISJ2_TAC: Failure."
 
 let (DISJ_CASES_TAC : thm_tactic) = 
     fun dth -> 
         try 
+            let fun1 l i =
+                match l with
+                | [th1; th2] -> DISJ_CASES (INSTANTIATE_ALL i dth) th1 th2
+                | _ -> failwith "DISJ_CASES_TAC.fun1: Unhandled case."
             let dtm = concl dth
             let l, r = dest_disj dtm
             let thl = ASSUME l
             let thr = ASSUME r
             fun (asl, w) -> 
                 null_meta, [("", thl) :: asl, w
-                            ("", thr) :: asl, w], fun i [th1; th2] -> DISJ_CASES (INSTANTIATE_ALL i dth) th1 th2
+                            ("", thr) :: asl, w], fun i tl -> fun1 tl i
         with
-        | Failure _ -> failwith "DISJ_CASES_TAC"
+        | Failure _ -> failwith "DISJ_CASES_TAC: Failure."
 
 let (CONTR_TAC : thm_tactic) = 
-    let propagate_thm th i [] = INSTANTIATE_ALL i th
+    let propagate_thm th i l =
+        match l with
+        | [] -> INSTANTIATE_ALL i th
+        | _ -> failwith "CONTR_TAC.propagate_thm: Unhandled case."
     fun cth (asl, w) -> 
         try 
             let th = CONTR w cth
             null_meta, [], propagate_thm th
         with
-        | Failure _ -> failwith "CONTR_TAC"
+        | Failure _ -> failwith "CONTR_TAC: Failure."
 
 let (MATCH_ACCEPT_TAC : thm_tactic) = 
-    let propagate_thm th i [] = INSTANTIATE_ALL i th
+    let propagate_thm th i l =
+        match l with
+        | [] -> INSTANTIATE_ALL i th
+        | _ -> failwith "CONTR_TAC.propagate_thm: Unhandled case."
     let rawtac th (asl, w) = 
         try 
             let ith = PART_MATCH I th w
             null_meta, [], propagate_thm ith
         with
-        | Failure _ -> failwith "ACCEPT_TAC"
+        | Failure _ -> failwith "ACCEPT_TAC: Failure."
     fun th -> THEN (REPEAT GEN_TAC) (rawtac th)
 
 let (MATCH_MP_TAC : thm_tactic) = 
@@ -676,9 +765,13 @@ let (MATCH_MP_TAC : thm_tactic) =
         let match_fun = PART_MATCH (snd << dest_imp) sth
         fun (asl, w) -> 
             try 
+                let fun1 l =
+                    match l with
+                    | [a] -> a
+                    | _ -> failwith "MATCH_MP_TAC.fun1: Unhandled case."
                 let xth = match_fun w
                 let lant = fst(dest_imp(concl xth))
-                null_meta, [asl, lant], fun i [th] -> MP (INSTANTIATE_ALL i xth) th
+                null_meta, [asl, lant], fun i tl -> MP (INSTANTIATE_ALL i xth) (fun1 tl)
             with
             | Failure _ -> failwith "MATCH_MP_TAC: No match"
 
@@ -801,10 +894,14 @@ let (X_META_EXISTS_TAC : term -> tactic) =
             if not(is_var t)
             then fail()
             else 
+                let fun1 l =
+                    match l with
+                    | [a] -> a
+                    | _ -> failwith "X_META_EXISTS_TAC.fun1: Unhandled case."
                 let v, bod = dest_exists w
-                ([t], null_inst), [asl, vsubst [t, v] bod], fun i [th] -> EXISTS (instantiate i w, instantiate i t) th
+                ([t], null_inst), [asl, vsubst [t, v] bod], fun i tl -> EXISTS (instantiate i w, instantiate i t) (fun1 tl)
         with
-        | Failure _ -> failwith "X_META_EXISTS_TAC"
+        | Failure _ -> failwith "X_META_EXISTS_TAC: Failure."
 
 let META_EXISTS_TAC((asl, w) as gl) = 
     let v = fst(dest_exists w)
@@ -814,8 +911,12 @@ let META_EXISTS_TAC((asl, w) as gl) =
 
 let (META_SPEC_TAC : term -> thm -> tactic) = 
     fun t thm (asl, w) -> 
+        let fun1 l =
+            match l with
+            | [a] -> a
+            | _ -> failwith "MATCH_MP_TAC.fun1: Unhandled case."
         let sth = SPEC t thm
-        ([t], null_inst), [(("", sth) :: asl), w], fun i [th] -> PROVE_HYP (SPEC (instantiate i t) thm) th
+        ([t], null_inst), [(("", sth) :: asl), w], fun i tl -> PROVE_HYP (SPEC (instantiate i t) thm) (fun1 tl)
 
 (* ------------------------------------------------------------------------- *)
 (* If all else fails!                                                        *)
@@ -965,7 +1066,11 @@ let (mk_goalstate : goal -> goalstate) =
     fun (asl, w) -> 
         if type_of w = bool_ty
         then 
-            null_meta, [asl, w], (fun inst [th] -> INSTANTIATE_ALL inst th)
+            let fun1 l =
+                match l with
+                | [a] -> a
+                | _ -> failwith "mk_goalstate.fun1: Unhandled case."
+            null_meta, [asl, w], (fun inst tl -> INSTANTIATE_ALL inst (fun1 tl))
         else failwith "mk_goalstate: Non-boolean goal"
 
 let (TAC_PROOF : goal * tactic -> thm) = 
@@ -1035,13 +1140,15 @@ let b() =
 let p() = !current_goalstack
 
 let top_realgoal() = 
-    let (_, ((asl, w) :: _), _) :: _ = !current_goalstack
-    asl, w
+    match !current_goalstack with
+    | (_, ((asl, w) :: _), _) :: _ -> asl, w
+    | _ -> failwith "top_realgoal: Unhandled case."
 
 let top_goal() = 
     let asl, w = top_realgoal()
     map (concl << snd) asl, w
 
 let top_thm() = 
-    let (_, [], f) :: _ = !current_goalstack
-    f null_inst []
+    match !current_goalstack with
+    | (_, [], f) :: _ -> f null_inst []
+    | _ -> failwith "top_thm: Unhandled case."
