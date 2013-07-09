@@ -24,13 +24,16 @@ limitations under the License.
 
 #I "./../NHol"
 
-// Disable ML compatibility warnings
-#nowarn "62"
-
 // Disable "Incomplete pattern matches on this expression." warnings.
 // Some of these are true warnings, but should be fixed in the code.
 // No sense in seeing these warnings when using F# interactive.
 #nowarn "25"
+
+// Disable "Uppercase variable identifiers should not generally be used in patterns, and may indicate a misspelt pattern name."
+#nowarn "49"
+
+// Disable ML compatibility warnings
+#nowarn "62"
 
 (* ------------------------------------------------------------------------- *)  
 (* Various tweaks to OCaml and general library functions.                    *)  

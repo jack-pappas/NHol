@@ -216,6 +216,9 @@ extend_basic_rewrites [FST; SND; PAIR]
 (* ------------------------------------------------------------------------- *)
 (* Extend basic rewrites; extend new_definition to allow paired varstructs.  *)
 (* ------------------------------------------------------------------------- *)
+
+extend_basic_rewrites [FST; SND; PAIR];;
+
 (* ------------------------------------------------------------------------- *)
 (* Extend definitions to paired varstructs with benignity checking.          *)
 (* ------------------------------------------------------------------------- *)
@@ -383,14 +386,15 @@ let GEN_BETA_CONV =
             INSTANTIATE instn (DEGEQ_RULE(SPEC_ALL th6))
     GEN_BETA_CONV
 
-extend_basic_convs
-    ("GEN_BETA_CONV", ((parse_term @"GABS (\a. b) c"), GEN_BETA_CONV))
-inductive_type_store 
-:= ("prod", (1, pair_INDUCT, pair_RECURSION)) :: (!inductive_type_store)
 
 (* ------------------------------------------------------------------------- *)
 (* Add this to the basic "rewrites" and pairs to the inductive type store.   *)
 (* ------------------------------------------------------------------------- *)
+
+extend_basic_convs ("GEN_BETA_CONV", ((parse_term @"GABS (\a. b) c"), GEN_BETA_CONV))
+
+inductive_type_store := ("prod", (1, pair_INDUCT, pair_RECURSION)) :: (!inductive_type_store)
+
 (* ------------------------------------------------------------------------- *)
 (* Convenient rules to eliminate binders over pairs.                         *)
 (* ------------------------------------------------------------------------- *)
