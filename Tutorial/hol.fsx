@@ -40,6 +40,9 @@ limitations under the License.
 // Disable ML compatibility warnings
 #nowarn "62"
 
+open FSharp.Compatibility.OCaml;;
+open FSharp.Compatibility.OCaml.Num;;
+
 (* ------------------------------------------------------------------------- *)  
 (* Various tweaks to OCaml and general library functions.                    *)  
 (* ------------------------------------------------------------------------- *)   
