@@ -29,6 +29,11 @@ limitations under the License.
 // No sense in seeing these warnings when using F# interactive.
 #nowarn "25"
 
+// Disable "This and other recursive references to the object(s) being defined will be checked
+// for initialization-soundness at runtime through the use of a delayed reference. 
+// This is because you are defining one or more recursive objects, rather than recursive functions."
+#nowarn "40"
+
 // Disable "Uppercase variable identifiers should not generally be used in patterns, and may indicate a misspelt pattern name."
 #nowarn "49"
 
