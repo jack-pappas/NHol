@@ -34,20 +34,20 @@ module Ratio =
     let numerator_ratio(r : Ratio.ratio) = r.Numerator
     let denominator_ratio(r : Ratio.ratio) = r.Denominator
 
-// TODO : Replace uses of (==) with (===) from ExtCore.
 let (==) (x : 'T) (y : 'T) = obj.ReferenceEquals(x, y)
-let fail() = raise <| exn()
 
 // The exception fired by failwith is used as a control flow.
 // KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
 // Using exception as a control flow should be eliminated in the future.
-
 let (|Failure|_|)(exn : exn) = 
     match exn with
     | :? System.Collections.Generic.KeyNotFoundException -> Some exn.Message
     | :? System.ArgumentException -> Some exn.Message
     | Microsoft.FSharp.Core.Operators.Failure s -> Some s
     | _ -> None
+
+/// Fail with empty string.
+let fail () = failwith ""
 
 (* ------------------------------------------------------------------------- *)
 (* Combinators.                                                              *)
@@ -65,18 +65,21 @@ let (||>>) = fun f g (x, y) -> (f x, g y)
 (* List basics.                                                              *)
 (* ------------------------------------------------------------------------- *)
 
+/// Computes the first element (the head) of a list.
 // OPTIMIZE : Make this an alias for List.head.
 let hd l = 
     match l with
     | h :: t -> h
     | _ -> failwith "hd"
 
+/// Computes the tail of a list (the original list less the first element).
 // OPTIMIZE : Make this an alias for List.tail.
 let tl l = 
     match l with
     | h :: t -> t
     | _ -> failwith "tl"
 
+/// Applies a function to every element of a list.
 // OPTIMIZE : Make this an alias for List.map.
 let map f = 
     let rec mapf l = 
@@ -87,6 +90,7 @@ let map f =
             y :: (mapf t)
     mapf
 
+/// Computes the last element of a list.
 // OPTIMIZE : Make this an alias for List.last.
 let rec last l = 
     match l with
@@ -94,6 +98,7 @@ let rec last l =
     | (h :: t) -> last t
     | [] -> failwith "last"
 
+/// Computes the sub-list of a list consisting of all but the last element.
 // OPTIMIZE : Make this an alias for List.dropLast.
 let rec butlast l = 
     match l with
@@ -101,11 +106,13 @@ let rec butlast l =
     | (h :: t) -> h :: (butlast t)
     | [] -> failwith "butlast"
 
+/// Extracts a specified element from a list.
 // OPTIMIZE : Make this an alias for List.nth.
 let rec el n l = 
     if n = 0 then hd l
     else el (n - 1) (tl l)
 
+/// Reverses a list.
 // OPTIMIZE : Make this an alias for List.rev.
 let rev = 
     let rec rev_append acc l = 
@@ -114,6 +121,7 @@ let rev =
         | h :: t -> rev_append (h :: acc) t
     fun l -> rev_append [] l
 
+/// Maps a binary function over two lists to create one new list.
 // OPTIMIZE : Make this an alias for List.map2.
 let rec map2 f l1 l2 = 
     match (l1, l2) with
@@ -127,6 +135,7 @@ let rec map2 f l1 l2 =
 (* Attempting function or predicate applications.                            *)
 (* ------------------------------------------------------------------------- *)
 
+/// Tests for failure.
 let can f x = 
     try 
         (f x |> ignore
@@ -134,6 +143,7 @@ let can f x =
     with
     | Failure _ -> false
 
+/// Checks that a value satisfies a predicate.
 let check p x = 
     if p x then x
     else failwith "check"
@@ -142,10 +152,12 @@ let check p x =
 (* Repetition of a function.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
+/// Iterates a function a fixed number of times.
 let rec funpow n f x = 
     if n < 1 then x
     else funpow (n - 1) f (f x)
 
+/// Repeatedly apply a function until it fails.
 let rec repeat f x = 
     try 
         let y = f x
@@ -164,18 +176,21 @@ exception Unchanged
 (* Various versions of list iteration.                                       *)
 (* ------------------------------------------------------------------------- *)
 
+/// List iteration function. Applies a binary function between adjacent elements of a list.
 // OPTIMIZE : Make this an alias for List.fold.
 let rec itlist f l b = 
     match l with
     | [] -> b
     | (h :: t) -> f h (itlist f t b)
 
+/// Applies a binary function between adjacent elements of the reverse of a list.
 // OPTIMIZE : Make this an alias for List.foldBack.
 let rec rev_itlist f l b = 
     match l with
     | [] -> b
     | (h :: t) -> rev_itlist f t (f h b)
 
+/// List iteration function. Applies a binary function between adjacent elements of a list.
 // OPTIMIZE : Make this an alias for List.reduceBack.
 let rec end_itlist f l = 
     match l with
@@ -183,6 +198,7 @@ let rec end_itlist f l =
     | [x] -> x
     | (h :: t) -> f h (end_itlist f t)
 
+/// Applies a paired function between adjacent elements of 2 lists.
 // OPTIMIZE : Make this an alias for List.fold2.
 let rec itlist2 f l1 l2 b = 
     match (l1, l2) with
@@ -190,6 +206,7 @@ let rec itlist2 f l1 l2 b =
     | (h1 :: t1, h2 :: t2) -> f h1 h2 (itlist2 f t1 t2 b)
     | _ -> failwith "itlist2"
 
+/// Applies a paired function between adjacent elements of 2 lists.
 // OPTIMIZE : Make this an alias for List.foldBack2.
 let rec rev_itlist2 f l1 l2 b = 
     match (l1, l2) with
@@ -201,6 +218,7 @@ let rec rev_itlist2 f l1 l2 b =
 (* Iterative splitting (list) and stripping (tree) via destructor.           *)
 (* ------------------------------------------------------------------------- *)
 
+/// Applies a binary destructor repeatedly in left-associative mode.
 let rec splitlist dest x = 
     try 
         let l, r = dest x
@@ -209,6 +227,7 @@ let rec splitlist dest x =
     with
     | Failure _ -> ([], x)
 
+/// Applies a binary destructor repeatedly in right-associative mode.
 let rev_splitlist dest = 
     let rec rsplist ls x = 
         try 
@@ -218,6 +237,7 @@ let rev_splitlist dest =
         | Failure _ -> (x, ls)
     fun x -> rsplist [] x
 
+/// Applies a binary destructor repeatedly, flattening the construction tree into a list.
 let striplist dest = 
     let rec strip x acc = 
         try 
@@ -231,6 +251,7 @@ let striplist dest =
 (* Apply a destructor as many times as elements in list.                     *)
 (* ------------------------------------------------------------------------- *)
 
+/// Applies a destructor in right-associative mode a specied number of times.
 let rec nsplit dest clist x = 
     if clist = [] then [], x
     else 
@@ -242,6 +263,7 @@ let rec nsplit dest clist x =
 (* Replication and sequences.                                                *)
 (* ------------------------------------------------------------------------- *)
 
+/// Makes a list consisting of a value replicated a specied number of times.
 // OPTIMIZE : Make this an alias for List.replicate.
 let rec replicate x n = 
     if n < 1 then []
@@ -308,6 +330,7 @@ let rec partition p l =
             (if no == t then [], l
              else yes, h :: no)
 
+/// Applies a function to every element of a list, returning a list of results for those elements for which application succeeds.
 // OPTIMIZE : Make this an alias for List.choose.
 let rec mapfilter f l = 
     match l with
@@ -401,6 +424,7 @@ let rec assoc a l =
         else assoc a t
     | [] -> failwith "find"
 
+/// Searches a list of pairs for a pair whose second component equals a specified value.
 let rec rev_assoc a l = 
     match l with
     | (x, y) :: t -> 
@@ -600,6 +624,7 @@ let rec assocd a l d =
         if compare x a = 0 then y
         else assocd a t d
 
+/// Looks up item in association list taking default in case of failure.
 let rec rev_assocd a l d = 
     match l with
     | [] -> d
@@ -686,6 +711,7 @@ let is_undefined f =
 (* Operation analagous to "map" for lists.                                   *)
 (* ------------------------------------------------------------------------- *)
 
+/// Maps a function over the range of a finite partial function.
 let mapf = 
     let rec map_list f l = 
         match l with
@@ -816,6 +842,7 @@ let undefine =
 (* ------------------------------------------------------------------------- *)
 
 // (|->): Modify a finite partial function at one point.
+// combine: Combine together two finite partial functions using pointwise operation.
 let (|->), combine = 
     let newbranch p1 t1 p2 t2 = 
         let zp = p1 ^^^ p2

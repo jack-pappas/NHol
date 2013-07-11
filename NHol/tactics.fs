@@ -108,14 +108,16 @@ type thm_tactical = thm_tactic -> thm_tactic
 (* Apply instantiation to a goal.                                            *)
 (* ------------------------------------------------------------------------- *)
 
-let (inst_goal : instantiation -> goal -> goal) = 
+/// Apply higher-order instantiation to a goal.
+let inst_goal : instantiation -> goal -> goal = 
     fun p (thms, w) -> map (I ||>> INSTANTIATE_ALL p) thms, instantiate p w
 
 (* ------------------------------------------------------------------------- *)
 (* Perform a sequential composition (left first) of instantiations.          *)
 (* ------------------------------------------------------------------------- *)
 
-let (compose_insts : instantiation -> instantiation -> instantiation) = 
+/// Compose two instantiations.
+let compose_insts : instantiation -> instantiation -> instantiation = 
     fun (pats1, tmin1, tyin1) ((pats2, tmin2, tyin2) as i2) -> 
         let tmin = map (instantiate i2 ||>> inst tyin2) tmin1
         let tyin = map (type_subst tyin2 ||>> I) tyin1
