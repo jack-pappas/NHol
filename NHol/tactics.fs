@@ -1079,9 +1079,18 @@ let (TAC_PROOF : goal * tactic -> thm) =
     fun (g, tac) -> 
         let gstate = mk_goalstate g
         let _, sgs, just = by tac gstate
-        if sgs = []
-        then just null_inst []
-        else failwith "TAC_PROOF: Unsolved goals"
+        match sgs with
+        | [] ->
+            just null_inst []
+        | _ ->
+            let ex =
+                let msg =
+                    let goalOrGoals = if List.length sgs = 1 then "goal" else "goals"
+                    sprintf "TAC_PROOF: %i unsolved %s" (List.length sgs) goalOrGoals
+                exn msg
+            if not <| isNull ex.Data then
+                ex.Data.["UnsolvedGoals"] <- sgs
+            raise ex
 
 let prove(t, tac) = 
     let th = TAC_PROOF(([], t), tac)
