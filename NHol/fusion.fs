@@ -58,18 +58,21 @@ module Hol_kernel =
     (* Return all the defined types.                                             *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Lists all the types presently declared.
     let types() = !the_type_constants
 
     (* ------------------------------------------------------------------------- *)
     (* Lookup function for type constants. Returns arity if it succeeds.         *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Returns the arity of a type constructor.
     let get_type_arity s = assoc s (!the_type_constants)
     
     (* ------------------------------------------------------------------------- *)
     (* Declare a new type.                                                       *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Declares a new type or type constructor.
     let new_type(name, arity) = 
         if can get_type_arity name then failwith("new_type: type " + name + " has already been declared")
         else the_type_constants := (name, arity) :: (!the_type_constants)
@@ -78,6 +81,7 @@ module Hol_kernel =
     (* Basic type constructors.                                                  *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Constructs a type (other than a variable type).
     let mk_type(tyop, args) = 
         let arity = 
             try 
@@ -87,19 +91,20 @@ module Hol_kernel =
         if arity = length args then Tyapp(tyop, args)
         else failwith("mk_type: wrong number of arguments to " + tyop)
     
+    /// Constructs a type variable of the given name.
     let mk_vartype v = Tyvar(v)
     
     (* ------------------------------------------------------------------------- *)
     (* Basic type destructors.                                                   *)
     (* ------------------------------------------------------------------------- *)
 
-    let dest_type = 
-        function 
+    /// Breaks apart a type (other than a variable type).
+    let dest_type = function 
         | (Tyapp(s, ty)) -> s, ty
         | (Tyvar _) -> failwith "dest_type: type variable not a constructor"
     
-    let dest_vartype = 
-        function 
+    /// Breaks a type variable down to its name.
+    let dest_vartype = function 
         | (Tyapp(_, _)) -> failwith "dest_vartype: type constructor not a variable"
         | (Tyvar s) -> s
     
@@ -107,15 +112,17 @@ module Hol_kernel =
     (* Basic type discriminators.                                                *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Tests whether a type is an instance of a type constructor.
     let is_type = can dest_type
+    /// Tests a type to see if it is a type variable.
     let is_vartype = can dest_vartype
     
     (* ------------------------------------------------------------------------- *)
     (* Return the type variables in a type and in a list of types.               *)
     (* ------------------------------------------------------------------------- *)
 
-    let rec tyvars = 
-        function 
+    /// Returns a list of the type variables in a type.
+    let rec tyvars = function 
         | (Tyapp(_, args)) -> itlist (union << tyvars) args []
         | (Tyvar v as tv) -> [tv]
     
@@ -126,6 +133,7 @@ module Hol_kernel =
     (* repeated many times), as are repetitions (first possibility is taken).    *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Substitute chosen types for type variables in a type.
     let rec type_subst i ty = 
         match ty with
         | Tyapp(tycon, args) -> 
@@ -134,7 +142,9 @@ module Hol_kernel =
             else Tyapp(tycon, args')
         | _ -> rev_assocd ty i ty
     
+    /// The type ':bool'.
     let bool_ty = Tyapp("bool", [])
+    /// The type variable ':A'.
     let aty = Tyvar "A"
     
     (* ------------------------------------------------------------------------- *)
@@ -152,17 +162,21 @@ module Hol_kernel =
     (* Return all the defined constants with generic types.                      *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Returns a list of the constants currently dened.
     let constants() = !the_term_constants
+
     (* ------------------------------------------------------------------------- *)
     (* Gets type of constant if it succeeds.                                     *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Gets the generic type of a constant from the name of the constant.
     let get_const_type s = assoc s (!the_term_constants)
     
     (* ------------------------------------------------------------------------- *)
     (* Declare a new constant.                                                   *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Declares a new constant.
     let new_constant(name, ty) = 
         if can get_const_type name then failwith("new_constant: constant " + name + " has already been declared")
         else the_term_constants := (name, ty) :: (!the_term_constants)
@@ -171,6 +185,7 @@ module Hol_kernel =
     (* Finds the type of a term (assumes it is well-typed).                      *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Returns the type of a term.
     let rec type_of tm = 
         match tm with
         | Var(_, ty) -> ty
@@ -185,21 +200,25 @@ module Hol_kernel =
     (* Primitive discriminators.                                                 *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Tests a term to see if it is a variable.
     let is_var = 
         function 
         | (Var(_, _)) -> true
         | _ -> false
     
+    /// Tests a term to see if it is a constant.
     let is_const = 
         function 
         | (Const(_, _)) -> true
         | _ -> false
     
+    /// Tests a term to see if it is an abstraction.
     let is_abs = 
         function 
         | (Abs(_, _)) -> true
         | _ -> false
     
+    /// Tests a term to see if it is a combination (function application).
     let is_comb = 
         function 
         | (Comb(_, _)) -> true
@@ -209,8 +228,10 @@ module Hol_kernel =
     (* Primitive constructors.                                                   *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Constructs a variable of given name and type.
     let mk_var(v, ty) = Var(v, ty)
     
+    /// Produce constant term by applying an instantiation to its generic type.
     let mk_const(name, theta) = 
         let uty = 
             try 
@@ -219,11 +240,13 @@ module Hol_kernel =
             | Failure _ -> failwith "mk_const: not a constant name"
         Const(name, type_subst theta uty)
     
+    /// Constructs an abstraction.
     let mk_abs(bvar, bod) = 
         match bvar with
         | Var(_, _) -> Abs(bvar, bod)
         | _ -> failwith "mk_abs: not a variable"
     
+    /// Constructs a combination.
     let mk_comb(f, a) = 
         match type_of f with
         | Tyapp("fun", [ty; _]) when compare ty (type_of a) = 0 -> Comb(f, a)
@@ -233,21 +256,25 @@ module Hol_kernel =
     (* Primitive destructors.                                                    *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Breaks apart a variable into name and type.
     let dest_var = 
         function 
         | (Var(s, ty)) -> s, ty
         | _ -> failwith "dest_var: not a variable"
     
+    /// Breaks apart a constant into name and type.
     let dest_const = 
         function 
         | (Const(s, ty)) -> s, ty
         | _ -> failwith "dest_const: not a constant"
     
+    /// Breaks apart a combination (function application) into rator and rand.
     let dest_comb = 
         function 
         | (Comb(f, x)) -> f, x
         | _ -> failwith "dest_comb: not a combination"
     
+    /// Breaks apart an abstraction into abstracted variable and body.
     let dest_abs = 
         function 
         | (Abs(v, b)) -> v, b
@@ -257,6 +284,7 @@ module Hol_kernel =
     (* Finds the variables free in a term (list of terms).                       *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Returns a list of the variables free in a term.
     let rec frees tm = 
         match tm with
         | Var(_, _) -> [tm]
@@ -264,11 +292,13 @@ module Hol_kernel =
         | Abs(bv, bod) -> subtract (frees bod) [bv]
         | Comb(s, t) -> union (frees s) (frees t)
     
+    /// Returns a list of the free variables in a list of terms.
     let freesl tml = itlist (union << frees) tml []
     
     (* ------------------------------------------------------------------------- *)
     (* Whether all free variables in a term appear in a list.                    *)
     (* ------------------------------------------------------------------------- *)
+    /// Tests if all free variables of a term appear in a list.
     let rec freesin acc tm = 
         match tm with
         | Var(_, _) -> mem tm acc
@@ -280,6 +310,7 @@ module Hol_kernel =
     (* Whether a variable (or constant in fact) is free in a term.               *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Tests whether a variable (or constant) occurs free in a term.
     let rec vfree_in v tm = 
         match tm with
         | Abs(bv, bod) -> v <> bv && vfree_in v bod
@@ -290,6 +321,7 @@ module Hol_kernel =
     (* Finds the type variables (free) in a term.                                *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Returns the set of type variables used in a term.
     let rec type_vars_in_term tm = 
         match tm with
         | Var(_, ty) -> tyvars ty
@@ -302,6 +334,7 @@ module Hol_kernel =
     (* For name-carrying syntax, we need this early.                             *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Modifies a variable name to avoid clashes.
     let rec variant avoid v = 
         if not(exists (vfree_in v) avoid) then v
         else 
@@ -313,6 +346,7 @@ module Hol_kernel =
     (* Substitution primitive (substitution for variables only!)                 *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Substitute terms for variables inside a term.
     let vsubst = 
         let rec vsubst ilist tm = 
             match tm with
@@ -344,6 +378,7 @@ module Hol_kernel =
 
     exception Clash of term
     
+    /// Instantiate type variables in a term.
     let inst = 
         let rec inst env tyin tm = 
             match tm with
@@ -386,11 +421,13 @@ module Hol_kernel =
     (* A few bits of general derived syntax.                                     *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Returns the operator from a combination (function application).
     let rator tm = 
         match tm with
         | Comb(l, r) -> l
         | _ -> failwith "rator: Not a combination"
     
+    /// Returns the operand from a combination (function application).
     let rand tm = 
         match tm with
         | Comb(l, r) -> r
@@ -405,6 +442,7 @@ module Hol_kernel =
         Comb(Comb(Const("=", Tyapp("fun", [ty;
                                            Tyapp("fun", [ty; bool_ty])])), l), r)
     
+    /// Term destructor for equality.
     let dest_eq tm = 
         match tm with
         | Comb(Comb(Const("=", _), l), r) -> l, r
@@ -446,8 +484,10 @@ module Hol_kernel =
             | _, Comb(_, _) -> 1
             | _ -> failwith "orda: unexpacted pattern"
     
+    /// Total ordering on terms respecting alpha-equivalence.
     let alphaorder = orda []
     
+    /// Union of two sets of terms up to alpha-equivalence.
     let rec term_union l1 l2 = 
         match (l1, l2) with
         | ([], l2) -> l2
@@ -483,15 +523,20 @@ module Hol_kernel =
     (* Basic theorem destructors.                                                *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Breaks a theorem into assumption list and conclusion.
     let dest_thm(Sequent(asl, c)) = (asl, c)
+    /// Returns the hypotheses of a theorem.
     let hyp(Sequent(asl, c)) = asl
+    /// Returns the conclusion of a theorem.
     let concl(Sequent(asl, c)) = c
     (* ------------------------------------------------------------------------- *)
     (* Basic equality properties; TRANS is derivable but included for efficiency *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Returns theorem expressing reflexivity of equality.
     let REFL tm = Sequent([], safe_mk_eq tm tm)
     
+    /// Uses transitivity of equality on two equational theorems.
     let TRANS (Sequent(asl1, c1)) (Sequent(asl2, c2)) = 
         match (c1, c2) with
         | Comb((Comb(Const("=", _), _) as eql), m1), Comb(Comb(Const("=", _), m2), r) when alphaorder m1 m2 = 0 -> 
@@ -502,6 +547,7 @@ module Hol_kernel =
     (* Congruence properties of equality.                                        *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Proves equality of combinations constructed from equal functions and operands.
     let MK_COMB(Sequent(asl1, c1), Sequent(asl2, c2)) = 
         match (c1, c2) with
         | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) -> 
@@ -511,6 +557,7 @@ module Hol_kernel =
              | _ -> failwith "MK_COMB: types do not agree")
         | _ -> failwith "MK_COMB: not both equations"
     
+    /// Abstracts both sides of an equation.
     let ABS v (Sequent(asl, c)) = 
         match (v, c) with
         | Var(_, _), Comb(Comb(Const("=", _), l), r) when not(exists (vfree_in v) asl) -> 
@@ -521,6 +568,7 @@ module Hol_kernel =
     (* Trivial case of lambda calculus beta-conversion.                          *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Special primitive case of beta-reduction.
     let BETA tm = 
         match tm with
         | Comb(Abs(v, bod), arg) when compare arg v = 0 -> Sequent([], safe_mk_eq tm bod)
@@ -530,15 +578,18 @@ module Hol_kernel =
     (* Rules connected with deduction.                                           *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Introduces an assumption.
     let ASSUME tm = 
         if compare (type_of tm) bool_ty = 0 then Sequent([tm], tm)
         else failwith "ASSUME: not a proposition"
     
+    /// Equality version of the Modus Ponens rule.
     let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) = 
         match eq with
         | Comb(Comb(Const("=", _), l), r) when alphaorder l c = 0 -> Sequent(term_union asl1 asl2, r)
         | _ -> failwith "EQ_MP"
     
+    /// Deduces logical equivalence from deduction in both directions.
     let DEDUCT_ANTISYM_RULE (Sequent(asl1, c1)) (Sequent(asl2, c2)) = 
         let asl1' = term_remove c2 asl1
         let asl2' = term_remove c1 asl2
@@ -548,10 +599,12 @@ module Hol_kernel =
     (* Type and term instantiation.                                              *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Instantiates types in a theorem.
     let INST_TYPE theta (Sequent(asl, c)) = 
         let inst_fn = inst theta
         Sequent(term_image inst_fn asl, inst_fn c)
     
+    /// Instantiates free variables in a theorem.
     let INST theta (Sequent(asl, c)) = 
         let inst_fun = vsubst theta
         Sequent(term_image inst_fun asl, inst_fun c)
@@ -561,8 +614,10 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     let the_axioms = ref([] : thm list)
+    /// Returns the current set of axioms.
     let axioms() = !the_axioms
     
+    /// Sets up a new axiom.
     let new_axiom tm = 
         if compare (type_of tm) bool_ty = 0 then 
             let th = Sequent([], tm)
@@ -574,9 +629,12 @@ module Hol_kernel =
     (* Handling of (term) definitions.                                           *)
     (* ------------------------------------------------------------------------- *)
 
+    /// List of all definitions introduced so far.
     let the_definitions = ref([] : thm list)
+    /// Returns the current set of primitive definitions.
     let definitions() = !the_definitions
     
+    /// Makes a simple new definition of the form 'c = t'.
     let new_basic_definition tm = 
         match tm with
         | Comb(Comb(Const("=", _), Var(cname, ty)), r) -> 
@@ -605,6 +663,7 @@ module Hol_kernel =
     (* Where "abs" and "rep" are new constants with the nominated names.         *)
     (* ------------------------------------------------------------------------- *)
 
+    /// Introduces a new type in bijection with a nonempty subset of an existing type.
     let new_basic_type_definition tyname (absname, repname) (Sequent(asl, c)) = 
         if exists (can get_const_type) [absname; repname] then 
             failwith "new_basic_type_definition: Constant(s) already in use"
@@ -642,14 +701,18 @@ module Hol_kernel =
 (* Stuff that didn't seem worth putting in.                                  *)
 (* ------------------------------------------------------------------------- *)
 
+/// Construct a function type.
 let mk_fun_ty ty1 ty2 = mk_type("fun", [ty1; ty2])
+/// The type variable ':B'.
 let bty = mk_vartype "B"
 
+/// Tests a term to see if it is an equation.
 let is_eq tm = 
     match tm with
     | Comb(Comb(Const("=", _), _), _) -> true
     | _ -> false
 
+/// Constructs an equation.
 let mk_eq = 
     let eq = mk_const("=", [])
     fun (l, r) -> 
@@ -664,10 +727,15 @@ let mk_eq =
 (* Tests for alpha-convertibility (equality ignoring names in abstractions). *)
 (* ------------------------------------------------------------------------- *)
 
-let aconv s t = alphaorder s t = 0
+/// Tests for alpha-convertibility of terms.
+let aconv s t =
+    alphaorder s t = 0
+
 (* ------------------------------------------------------------------------- *)
 (* Comparison function on theorems. Currently the same as equality, but      *)
 (* it's useful to separate because in the proof-recording version it isn't.  *)
 (* ------------------------------------------------------------------------- *)
 
-let equals_thm th th' = dest_thm th = dest_thm th'
+/// Equality test on theorems.
+let equals_thm th th' =
+    dest_thm th = dest_thm th'
