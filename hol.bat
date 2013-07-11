@@ -1,7 +1,7 @@
 fsi^
   --optimize+^
-  --use:init.fsx^
-  --use:system.fs^
+  --lib:NHol^
+  --use:system.fsx^
   --use:lib.fs^
   --use:fusion.fs^
   --use:basics.fs^

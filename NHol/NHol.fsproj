@@ -25,6 +25,10 @@
     <DocumentationFile>bin\Debug\NHol.XML</DocumentationFile>
     <OtherFlags>--mlcompatibility</OtherFlags>
     <NoWarn>49</NoWarn>
+    <StartAction>Program</StartAction>
+    <StartProgram>C:\Program Files (x86)\Microsoft SDKs\F#\3.0\Framework\v4.0\Fsi.exe</StartProgram>
+    <StartArguments>--use:system.fsx --use:lib.fs --use:fusion.fs --use:basics.fs --use:nets.fs --use:printer.fs --use:preterm.fs --use:parser.fs --use:equal.fs --use:bool.fs --use:drule.fs --use:tactics.fs --use:itab.fs --use:simp.fs --use:theorems.fs --use:ind_defs.fs --use:class.fs --use:trivia.fs --use:canon.fs --use:meson.fs --use:quot.fs --use:pair.fs --use:nums.fs --use:recursion.fs --use:arith.fs --use:wf.fs --use:calc_num.fs --use:normalizer.fs --use:grober.fs --use:ind_types.fs --use:lists.fs --use:realax.fs --use:calc_int.fs --use:realarith.fs --use:real.fs --use:calc_rat.fs --use:int.fs --use:sets.fs --use:iterate.fs --use:cart.fs --use:define.fs --use:help.fs --use:database.fs</StartArguments>
+    <StartWorkingDirectory>C:\Users\Jack\Documents\Code Libraries\NHol\NHol\</StartWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -46,7 +50,7 @@
       <Link>CommonAssemblyInfo.fs</Link>
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="system.fs" />
+    <None Include="system.fsx" />
     <Compile Include="lib.fs" />
     <Compile Include="fusion.fs" />
     <Compile Include="basics.fs" />
