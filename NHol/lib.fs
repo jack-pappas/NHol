@@ -247,6 +247,7 @@ let rec replicate x n =
     if n < 1 then []
     else x :: (replicate x (n - 1))
 
+/// Gives a finite list of integers between the given bounds.
 // OPTIMIZE : Make this an alias for [m..n]
 let rec (--) = 
     fun m n -> 
@@ -814,6 +815,7 @@ let undefine =
 (* Redefinition and combination.                                             *)
 (* ------------------------------------------------------------------------- *)
 
+// (|->): Modify a finite partial function at one point.
 let (|->), combine = 
     let newbranch p1 t1 p2 t2 = 
         let zp = p1 ^^^ p2
@@ -920,6 +922,7 @@ let (|->), combine =
 (* Special case of point function.                                           *)
 (* ------------------------------------------------------------------------- *)
 
+/// Gives a one-point finite partial function.
 let (|=>) = fun x y -> (x |-> y) undefined
 
 (* ------------------------------------------------------------------------- *)

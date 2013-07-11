@@ -307,8 +307,10 @@ let (POP_ASSUM : thm_tactic -> tactic) =
         | (((_, th) :: asl), w) -> ttac th (asl, w)
         | _ -> failwith "POP_ASSUM: No assumption to pop"
 
-let (ASSUM_LIST : (thm list -> tactic) -> tactic) = 
+/// Applies a tactic generated from the goal's assumption list.
+let ASSUM_LIST : (thm list -> tactic) -> tactic = 
     fun aslfun (asl, w) -> aslfun (map snd asl) (asl, w)
+/// 
 let (POP_ASSUM_LIST : (thm list -> tactic) -> tactic) = 
     fun asltac (asl, w) -> asltac (map snd asl) ([], w)
 let (EVERY_ASSUM : thm_tactic -> tactic) = 
