@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Some very basic theories, e.g. type ":1".
 module NHol.trivia
 
@@ -42,6 +44,7 @@ open simp
 open theorems
 open ind_defs
 open ``class``
+#endif
 
 parse_as_infix("o", (26, "right"))
 

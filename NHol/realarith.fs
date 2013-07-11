@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Universal linear real decision procedure.
 module NHol.realarith
 
@@ -58,6 +60,7 @@ open ind_types
 open lists
 open realax
 open calc_int
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Some lemmas needed now just to drive the decision procedure.              *)

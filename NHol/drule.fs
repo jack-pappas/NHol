@@ -18,8 +18,9 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// More sophisticated derived rules including definitions and rewriting.
-
 module NHol.drule
 
 open FSharp.Compatibility.OCaml
@@ -36,6 +37,7 @@ open preterm
 open parser
 open equal
 open bool
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Type of instantiations, with terms, types and higher-order data.          *)

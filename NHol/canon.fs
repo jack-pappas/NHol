@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Tools for putting terms in canonical forms.
 module NHol.canon
 
@@ -43,6 +45,7 @@ open theorems
 open ind_defs
 open ``class``
 open trivia
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Pre-simplification.                                                       *)

@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Theory of wellfounded relations.
 module NHol.wf
 
@@ -50,6 +52,7 @@ open pair
 open nums
 open recursion
 open arith
+#endif
 
 parse_as_infix("<<", (12, "right"))
 

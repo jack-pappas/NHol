@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Complete HOL kernel of types, terms and theorems.
 module NHol.fusion
 
@@ -26,6 +28,7 @@ open FSharp.Compatibility.OCaml.Num
 
 open NHol
 open lib
+#endif
 
 [<AutoOpen>]
 module Hol_kernel = 

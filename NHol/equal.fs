@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Basic equality reasoning including conversionals.
 module NHol.equal
 
@@ -32,6 +34,7 @@ open nets
 open printer
 open preterm
 open parser
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Type abbreviation for conversions.                                        *)

@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// First order automation: MESON (model elimination).
 module NHol.meson
 
@@ -44,6 +46,7 @@ open ind_defs
 open ``class``
 open trivia
 open canon
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Some parameters controlling MESON behaviour.                              *)

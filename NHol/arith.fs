@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Natural number arithmetic.
 module NHol.arith
 
@@ -49,6 +51,7 @@ open quot
 open pair
 open nums
 open recursion
+#endif
 
 parse_as_infix("<", (12, "right"))
 parse_as_infix("<=", (12, "right"))

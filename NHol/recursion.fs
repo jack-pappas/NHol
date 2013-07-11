@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Tools for primitive recursion on inductive types.
 module NHol.recursion
 
@@ -48,6 +50,7 @@ open meson
 open quot
 open pair
 open nums
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Prove existence of recursive function. The inner "raw" version requires   *)

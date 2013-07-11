@@ -19,8 +19,9 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// System of tactics (slightly different from any traditional LCF method).
-
 module NHol.tactics
 
 open FSharp.Compatibility.OCaml
@@ -38,6 +39,7 @@ open parser
 open equal
 open bool
 open drule
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* The common case of trivial instantiations.                                *)

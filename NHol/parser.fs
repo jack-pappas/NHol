@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Lexical analyzer, type and preterm parsers.
 module NHol.parser
 
@@ -32,6 +34,7 @@ open basics
 open nets
 open printer
 open preterm
+#endif
 
 (* TODO :   Re-name operators and functions for parser-combinators (below) to the
             equivalents from fparsec:

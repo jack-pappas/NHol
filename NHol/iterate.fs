@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Iterated operations.
 module NHol.iterate
 
@@ -63,6 +65,7 @@ open real
 open calc_rat
 open int
 open sets
+#endif
 
 prioritize_num();;
 

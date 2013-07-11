@@ -18,25 +18,29 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Various useful general library functions.
 module NHol.lib
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* A few missing functions to convert OCaml code to F#.                      *)
 (* ------------------------------------------------------------------------- *)
 
+// TODO : Move this into FSharp.Compatibility.OCaml
 module Ratio = 
     // NOTE : not sure what kind of normalization should be done here
     let normalize_ratio x = x
     let numerator_ratio(r : Ratio.ratio) = r.Numerator
     let denominator_ratio(r : Ratio.ratio) = r.Denominator
 
-// TODO : Replace uses of (==) with (===) from ExtCore.
-let (==) (x : 'T) (y : 'T) = obj.ReferenceEquals(x, y)
-let fail() = raise <| exn()
+let inline (==) (x : 'T) (y : 'T) =
+    System.Object.ReferenceEquals(x, y)
+let inline fail() = raise <| exn()
 
 // The exception fired by failwith is used as a control flow.
 // KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.

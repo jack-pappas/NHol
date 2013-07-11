@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Boolean theory including (intuitionistic) defs of logical connectives.
 module NHol.bool
 
@@ -33,6 +35,7 @@ open printer
 open preterm
 open parser
 open equal
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Set up parse status of basic and derived logical constants.               *)

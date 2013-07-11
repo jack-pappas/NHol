@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 // Support for general recursive definitions.
 module NHol.define
 
@@ -65,6 +67,7 @@ open int
 open sets
 open iterate
 open cart
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Constant supporting casewise definitions.                                 *)

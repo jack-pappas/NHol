@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Groebner basis procedure for most semirings.
 module NHol.grobner
 
@@ -53,6 +55,7 @@ open arith
 open wf
 open calc_num
 open normalizer
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Type for recording history, i.e. how a polynomial was obtained.           *)

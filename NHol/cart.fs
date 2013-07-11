@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Finite Cartesian products.
 module NHol.cart
 
@@ -64,6 +66,7 @@ open calc_rat
 open int
 open sets
 open iterate
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Association of a number with an indexing type.                            *)

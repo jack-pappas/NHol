@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Basic rewriting and simplification tools.
 module NHol.simp
 
@@ -38,6 +40,7 @@ open bool
 open drule
 open tactics
 open itab
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Generalized conversion (conversion plus a priority).                      *)

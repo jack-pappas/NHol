@@ -17,8 +17,10 @@ limitations under the License.
 
 *)
 
-/// Set up proper parsing and load bignums.
-module NHol.system
+#if INTERACTIVE
+
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
 
 (*
 
@@ -67,3 +69,10 @@ let print_num n =
 fsi.AddPrinter print_num
 
 *)
+
+#else
+(* This is only necessary to keep the F# compiler from emitting an error when the project
+   is compiled. It isn't used when running in interactive mode. *)
+module NHol.system
+
+#endif

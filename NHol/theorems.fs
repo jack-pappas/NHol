@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Additional theorems (mainly for quantifiers) etc.
 module NHol.theorems
 
@@ -39,6 +41,7 @@ open drule
 open tactics
 open itab
 open simp
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* More stuff about equality.                                                *)

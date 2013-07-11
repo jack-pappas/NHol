@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Polynomial normalizer for rings and semirings.
 module NHol.normalizer
 
@@ -52,6 +54,7 @@ open recursion
 open arith
 open wf
 open calc_num
+#endif
 
 let SEMIRING_NORMALIZERS_CONV = 
     let SEMIRING_PTHS = 

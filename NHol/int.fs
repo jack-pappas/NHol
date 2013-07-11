@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Definition of integers.
 module NHol.int
 
@@ -61,6 +63,7 @@ open calc_int
 open realarith
 open real
 open calc_rat
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Representing predicate. The "is_int" variant is useful for backwards      *)

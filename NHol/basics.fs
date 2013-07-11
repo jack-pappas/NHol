@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// More syntax constructors, and prelogical utilities like matching.
 module NHol.basics
 
@@ -28,6 +30,7 @@ open NHol
 open lib
 open fusion
 open fusion.Hol_kernel
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Create probably-fresh variable                                            *)
