@@ -38,12 +38,14 @@ open NHol.trivia
 open NHol.canon
 open NHol.meson
 open NHol.quot
-open NHol.pair
+//open NHol.pair
 open NHol.nums
 open NHol.recursion
 open NHol.arith   
-open NHol.wf
+//open NHol.wf
 open NHol.calc_num
+open NHol.normalizer
+open NHol.grobner
 
 //* Initial databases status *//
 
@@ -61,6 +63,15 @@ axioms();;                                                                      
 definitions();;                                                                     // internal database the_definitions
 //val it : thm list = []
 
+!the_implicit_types;;                                                               // internal database the_implicit_types
+//val it : (string * hol_type) list = []
+
+type_abbrevs();;                                                                    // internal database the_type_abbreviations
+//val it : (string * hol_type) list = []
+
+//monotonicity_theorems;;       only in ind_defs
+//the_inductive_definitions;;   only in ind_defs
+//inductive_type_store;;        only after class
 
 //* Bool Module *//
 
@@ -74,6 +85,8 @@ constants();;                                                                   
 //   ("=", A->A->bool)]
 axioms();;                                                                          // the_axioms database doesn't change
 definitions();;                                                                     // the_definitions doesn't change
+!the_implicit_types;;                                                               // no change
+type_abbrevs();;                                                                    // no change
 
 // after population of constants this parses
 parse_term @"~(p /\ q) <=> ~p \/ ~q";;
@@ -93,6 +106,8 @@ definitions();;                                                                 
 //   |- (?) = (\P. !q. (!x. P x ==> q) ==> q); |- (!) = (\P. P = (\x. T));
 //   |- (==>) = (\p q. p /\ q <=> p);
 //   |- (/\) = (\p q. (\f. f p q) = (\f. f T T)); |- T <=> (\p. p) = (\p. p)]
+!the_implicit_types;;                                                               // no change
+type_abbrevs();;                                                                    // no change
 
 
 //* Tactitcs Module *//
@@ -113,6 +128,8 @@ definitions();;                                                                 
 //   |- (?) = (\P. !q. (!x. P x ==> q) ==> q); |- (!) = (\P. P = (\x. T));
 //   |- (==>) = (\p q. p /\ q <=> p);
 //   |- (/\) = (\p q. (\f. f p q) = (\f. f T T)); |- T <=> (\p. p) = (\p. p)]
+!the_implicit_types;;                                                               // no change
+type_abbrevs();;                                                                    // no change
 
 //* Itab Module *//
 ITAUT_TAC;; // forces itab module evaluation
@@ -128,6 +145,8 @@ EQ_REFL;; // forces theorems module evaluation
 
 //* ind_defs Module *//
 EXISTS_EQUATION;; // forces ind_defs module evaluation
+!the_implicit_types;;                                                               // no change
+type_abbrevs();;                                                                    // no change
 // No Changes in internal databases status: to be checked better
 
 // Class Module *//
@@ -165,7 +184,25 @@ constants();;                                                                   
 //   ("F", bool); ("\/", bool->bool->bool); ("?", (A->bool)->bool);
 //   ("!", (A->bool)->bool); ("==>", bool->bool->bool); ("/\", bool->bool->bool);
 //   ("T", bool); ("=", A->A->bool)]
+
+//ocaml
+
+//[("one", `:1`); ("one_REP", `:1->bool`); ("one_ABS", `:bool->1`);
+//   ("I", `:A->A`); ("o", `:(B->C)->(A->B)->A->C`);
+//   ("COND", `:bool->A->A->A`); ("@", `:(A->bool)->A`);
+//   ("_FALSITY_", `:bool`); ("?!", `:(A->bool)->bool`); ("~", `:bool->bool`);
+//   ("F", `:bool`); ("\\/", `:bool->bool->bool`); ("?", `:(A->bool)->bool`);
+//   ("!", `:(A->bool)->bool`); ("==>", `:bool->bool->bool`);
+//   ("/\\", `:bool->bool->bool`); ("T", `:bool`); ("=", `:A->A->bool`)]
+
+
 axioms();;                                                                          // the_axioms database doesn't change
+//  [|- !P x. P x ==> P ((@) P); |- !t. (\x. t x) = t]
+
+//ocaml
+
+//[|- !P x. P x ==> P ((@) P); |- !t. (\x. t x) = t]
+
 definitions();;                                                                     // new definitions one, I, (o)
 //  [|- one = (@x. T); |- I = (\x. x); |- (o) = (\f g x. f (g x));
 //   |- COND = (\t t1 t2. @x. ((t <=> T) ==> x = t1) /\ ((t <=> F) ==> x = t2));
@@ -176,6 +213,62 @@ definitions();;                                                                 
 //   |- (==>) = (\p q. p /\ q <=> p);
 //   |- (/\) = (\p q. (\f. f p q) = (\f. f T T)); |- T <=> (\p. p) = (\p. p)]
 
+//ocaml
+
+//[|- one = (@x. T); |- I = (\x. x); |- (o) = (\f g x. f (g x));
+//   |- COND = (\t t1 t2. @x. ((t <=> T) ==> x = t1) /\ ((t <=> F) ==> x = t2));
+//   |- _FALSITY_ <=> F; |- (?!) = (\P. (?) P /\ (!x y. P x /\ P y ==> x = y));
+//   |- (~) = (\p. p ==> F); |- F <=> (!p. p);
+//   |- (\/) = (\p q. !r. (p ==> r) ==> (q ==> r) ==> r);
+//   |- (?) = (\P. !q. (!x. P x ==> q) ==> q); |- (!) = (\P. P = (\x. T));
+//   |- (==>) = (\p q. p /\ q <=> p);
+//   |- (/\) = (\p q. (\f. f p q) = (\f. f T T)); |- T <=> (\p. p) = (\p. p)]
+
+!the_implicit_types;;                                                               // internal database the_implicit_types
+//val it : (string * hol_type) list = []
+
+type_abbrevs();;                                                                    // internal database the_type_abbreviations
+//val it : (string * hol_type) list = []
+
+//monotonicity_theorems;;       only in ind_defs
+//{contents =
+//    [|- (A ==> B) /\ (C ==> D) ==> (if b then A else C) ==> (if b then B else D);
+//     |- (A ==> B) /\ (C ==> D) ==> A /\ C ==> B /\ D;
+//     |- (A ==> B) /\ (C ==> D) ==> A \/ C ==> B \/ D;
+//     |- (B ==> A) /\ (C ==> D) ==> (A ==> C) ==> B ==> D;
+//     |- (B ==> A) ==> ~A ==> ~B;
+//     |- (!x. P x ==> Q x) ==> (?x. P x) ==> (?x. Q x);
+//     |- (!x. P x ==> Q x) ==> (!x. P x) ==> (!x. Q x)];}
+
+// ocaml
+
+//{contents =
+//    [|- (A ==> B) /\ (C ==> D)
+//        ==> (if b then A else C)
+//        ==> (if b then B else D);
+//     |- (A ==> B) /\ (C ==> D) ==> A /\ C ==> B /\ D;
+//     |- (A ==> B) /\ (C ==> D) ==> A \/ C ==> B \/ D;
+//     |- (B ==> A) /\ (C ==> D) ==> (A ==> C) ==> B ==> D;
+//     |- (B ==> A) ==> ~A ==> ~B;
+//     |- (!x. P x ==> Q x) ==> (?x. P x) ==> (?x. Q x);
+//     |- (!x. P x ==> Q x) ==> (!x. P x) ==> (!x. Q x)]}
+
+
+//the_inductive_definitions;;   only in ind_defs
+
+//inductive_type_store;;        only after class
+//{contents =
+//    [("1", (1, |- !P. P one ==> (!x. P x), |- !e. ?fn. fn one = e));
+//     ("bool",
+//      (2, |- !P. P F /\ P T ==> (!x. P x), |- !a b. ?f. f F = a /\ f T = b))];}
+
+// ocaml 
+
+//val it : (string * (int * thm * thm)) list ref =
+//  {contents =
+//    [("1", (1, |- !P. P one ==> (!x. P x), |- !e. ?fn. fn one = e));
+//     ("bool",
+//      (2, |- !P. P F /\ P T ==> (!x. P x), |- !a b. ?f. f F = a /\ f T = b))]}
 
 //* Canon Module *//
 CONJ_ACI_RULE;; // forces canon module evaluation
@@ -191,7 +284,7 @@ lift_function;; // forces quot module evaluation
 
 //* Pair Module *//
 
-LET_DEF;; // forces pair module evaluation: TO BE CHECKED because there is an unsolved goal TAC_PROOF
+//LET_DEF;; // forces pair module evaluation: TO BE CHECKED because there is an unsolved goal TAC_PROOF
 
 types();;                                                                           // new type prod
 //  [("prod", 2); ("1", 0); ("bool", 0); ("fun", 2)]
@@ -214,8 +307,35 @@ constants();;                                                                   
 //   ("\/", bool->bool->bool); ("?", (A->bool)->bool); ("!", (A->bool)->bool);
 //   ("==>", bool->bool->bool); ("/\", bool->bool->bool); ("T", bool);
 //   ("=", A->A->bool)]
+
+// ocaml
+
+//[("PASSOC", `:((A#B)#C->D)->A#B#C->D`); ("UNCURRY", `:(A->B->C)->A#B->C`);
+//   ("CURRY", `:(A#B->C)->A->B->C`); ("SND", `:A#B->B`); ("FST", `:A#B->A`);
+//   (",", `:A->B->A#B`); ("REP_prod", `:A#B->A->B->bool`);
+//   ("ABS_prod", `:(A->B->bool)->A#B`); ("mk_pair", `:A->B->A->B->bool`);
+//   ("_FUNCTION", `:(?4069->?4073->bool)->?4069->?4073`);
+//   ("_MATCH", `:?4047->(?4047->?4051->bool)->?4051`);
+//   ("_GUARDED_PATTERN", `:bool->bool->bool->bool`);
+//   ("_UNGUARDED_PATTERN", `:bool->bool->bool`);
+//   ("_SEQPATTERN",
+//    `:(?4005->?4002->bool)->(?4005->?4002->bool)->?4005->?4002->bool`);
+//   ("GEQ", `:A->A->bool`); ("GABS", `:(A->bool)->A`); ("LET_END", `:A->A`);
+//   ("LET", `:(A->B)->A->B`); ("one", `:1`); ("one_REP", `:1->bool`);
+//   ("one_ABS", `:bool->1`); ("I", `:A->A`); ("o", `:(B->C)->(A->B)->A->C`);
+//   ("COND", `:bool->A->A->A`); ("@", `:(A->bool)->A`);
+//   ("_FALSITY_", `:bool`); ("?!", `:(A->bool)->bool`); ("~", `:bool->bool`);
+//   ("F", `:bool`); ("\\/", `:bool->bool->bool`); ("?", `:(A->bool)->bool`);
+//   ("!", `:(A->bool)->bool`); ("==>", `:bool->bool->bool`);
+//   ("/\\", `:bool->bool->bool`); ("T", `:bool`); ("=", `:A->A->bool`)]
+
 axioms();;                                                                          // no new axioms
 //  [|- !P x. P x ==> P ((@) P); |- !t. (\x. t x) = t]
+
+// ocaml
+
+//[|- !P x. P x ==> P ((@) P); |- !t. (\x. t x) = t]
+
 definitions();;                                                                     // lots of new definitions
 //  [|- PASSOC =
 //   (\_1099 _1100. _1099 ((FST _1100,FST (SND _1100)),SND (SND _1100)));
@@ -240,7 +360,43 @@ definitions();;                                                                 
 //   |- (==>) = (\p q. p /\ q <=> p);
 //   |- (/\) = (\p q. (\f. f p q) = (\f. f T T)); |- T <=> (\p. p) = (\p. p)]
 
+// ocaml
+
+//[|- PASSOC =
+//      (\_1099 _1100. _1099 ((FST _1100,FST (SND _1100)),SND (SND _1100)));
+//   |- UNCURRY = (\_1082 _1083. _1082 (FST _1083) (SND _1083));
+//   |- CURRY = (\_1061 _1062 _1063. _1061 (_1062,_1063));
+//   |- SND = (\p. @y. ?x. p = x,y); |- FST = (\p. @x. ?y. p = x,y);
+//   |- (,) = (\x y. ABS_prod (mk_pair x y));
+//   |- mk_pair = (\x y a b. a = x /\ b = y);
+//   |- _FUNCTION = (\r x. if (?!) (r x) then (@) (r x) else @z. F);
+//   |- _MATCH = (\e r. if (?!) (r e) then (@) (r e) else @z. F);
+//   |- _GUARDED_PATTERN = (\p g r. p /\ g /\ r);
+//   |- _UNGUARDED_PATTERN = (\p r. p /\ r);
+//   |- _SEQPATTERN = (\r s x. if ?y. r x y then r x else s x);
+//   |- GEQ = (\a b. a = b); |- GABS = (\P. (@) P); |- LET_END = (\t. t);
+//   |- LET = (\f x. f x); |- one = (@x. T); |- I = (\x. x);
+//   |- (o) = (\f g x. f (g x));
+//   |- COND = (\t t1 t2. @x. ((t <=> T) ==> x = t1) /\ ((t <=> F) ==> x = t2));
+//   |- _FALSITY_ <=> F; |- (?!) = (\P. (?) P /\ (!x y. P x /\ P y ==> x = y));
+//   |- (~) = (\p. p ==> F); |- F <=> (!p. p);
+//   |- (\/) = (\p q. !r. (p ==> r) ==> (q ==> r) ==> r);
+//   |- (?) = (\P. !q. (!x. P x ==> q) ==> q); |- (!) = (\P. P = (\x. T));
+//   |- (==>) = (\p q. p /\ q <=> p);
+//   |- (/\) = (\p q. (\f. f p q) = (\f. f T T)); |- T <=> (\p. p) = (\p. p)]
 
 //* Num Module *//
 
 ONE_ONE;; // forces num module evaluation
+
+parse_term(@"x + 1");;
+
+PRE;; //arith: error on EXP_ZERO
+
+ARITH_ZERO;; //calc_num
+
+SEMIRING_NORMALIZERS_CONV;; //normalizer
+
+RING_AND_IDEAL_CONV;; //grobner
+
+
