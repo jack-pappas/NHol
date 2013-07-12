@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Classical reasoning: Choice and Extensionality.
 module NHol.``class``
 
@@ -41,6 +43,7 @@ open itab
 open simp
 open theorems
 open ind_defs
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Eta-axiom, corresponding conversion, and extensionality.                  *)

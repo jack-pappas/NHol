@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Derived rules for inductive definitions.
 module NHol.ind_defs
 
@@ -40,6 +42,7 @@ open tactics
 open itab
 open simp
 open theorems
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Strip off exactly n arguments from combination.                           *)

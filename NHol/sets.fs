@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Basic set theory.
 module NHol.sets
 
@@ -62,6 +64,7 @@ open realarith
 open real
 open calc_rat
 open int
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Infix symbols for set operations.                                         *)

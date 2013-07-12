@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Derived rules for defining quotient types.
 module NHol.quot
 
@@ -45,6 +47,7 @@ open ``class``
 open trivia
 open canon
 open meson
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Given a type name "ty" and a curried binary relation R, this defines      *)

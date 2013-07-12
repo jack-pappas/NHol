@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Calculation with rational-valued reals.
 module NHol.calc_rat
 
@@ -60,6 +62,7 @@ open realax
 open calc_int
 open realarith
 open real
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Constant for decimal fractions written #xxx.yyy                           *)

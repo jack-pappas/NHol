@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Definition of real numbers.
 module NHol.realax
 
@@ -56,6 +58,7 @@ open normalizer
 open grobner
 open ind_types
 open lists
+#endif
 
 parse_as_infix("++", (16, "right"))
 parse_as_infix("**", (20, "right"))

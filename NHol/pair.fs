@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Theory of pairs.
 module NHol.pair
 
@@ -46,6 +48,7 @@ open trivia
 open canon
 open meson
 open quot
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Constants implementing (or at least tagging) syntactic sugar.             *)

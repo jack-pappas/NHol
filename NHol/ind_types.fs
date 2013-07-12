@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 //// Tools for defining inductive types.
 module NHol.ind_types
 
@@ -53,6 +55,7 @@ open arith
 open wf
 open calc_num
 open normalizer
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Abstract left inverses for binary injections (we could construct them...) *)

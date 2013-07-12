@@ -20,6 +20,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Preterms and pretypes; typechecking; translation to types and terms.
 module NHol.preterm
 
@@ -33,6 +35,7 @@ open fusion.Hol_kernel
 open basics
 open nets
 open printer
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Flag to say whether to treat varstruct "\const. bod" as variable.         *)

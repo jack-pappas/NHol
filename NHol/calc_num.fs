@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Calculation with natural numbers.
 module NHol.calc_num
 
@@ -51,6 +53,7 @@ open nums
 open recursion
 open arith
 //open wf
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Simple rule to get rid of NUMERAL constant.                               *)

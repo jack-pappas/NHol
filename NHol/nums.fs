@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Axiom of Infinity, definition of natural numbers.
 module NHol.nums
 
@@ -47,6 +49,8 @@ open canon
 open meson
 open quot
 //open pair
+#endif
+
 
 new_type("ind", 0)
 

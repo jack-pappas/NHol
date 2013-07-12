@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Calculation with integer-valued reals.
 module NHol.calc_int
 
@@ -57,6 +59,7 @@ open grobner
 open ind_types
 open lists
 open realax
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax operations on integer constants of type ":real".                   *)

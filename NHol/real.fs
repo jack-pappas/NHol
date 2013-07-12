@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Derived properties of reals.
 module NHol.real
 
@@ -59,6 +61,7 @@ open lists
 open realax
 open calc_int
 open realarith
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Additional commutativity properties of the inclusion map.                 *)

@@ -18,34 +18,34 @@ limitations under the License.
 
 #load "hol.fsx"
 
-open NHol.lib
-open NHol.fusion
-open NHol.basics
-open NHol.nets
-open NHol.printer
-open NHol.preterm
-open NHol.parser
-open NHol.equal
-open NHol.bool
-open NHol.drule
-open NHol.tactics
-open NHol.itab
-open NHol.simp
-open NHol.theorems
-open NHol.ind_defs
-open NHol.``class``
-open NHol.trivia
-open NHol.canon
-open NHol.meson
-open NHol.quot
+//open NHol.lib
+//open NHol.fusion
+//open NHol.basics
+//open NHol.nets
+//open NHol.printer
+//open NHol.preterm
+//open NHol.parser
+//open NHol.equal
+//open NHol.bool
+//open NHol.drule
+//open NHol.tactics
+//open NHol.itab
+//open NHol.simp
+//open NHol.theorems
+//open NHol.ind_defs
+//open NHol.``class``
+//open NHol.trivia
+//open NHol.canon
+//open NHol.meson
+//open NHol.quot
 //open NHol.pair
-open NHol.nums
-open NHol.recursion
-open NHol.arith   
+//open NHol.nums
+//open NHol.recursion
+//open NHol.arith   
 //open NHol.wf
-open NHol.calc_num
-open NHol.normalizer
-open NHol.grobner
+//open NHol.calc_num
+//open NHol.normalizer
+//open NHol.grobner
 
 //* Initial databases status *//
 

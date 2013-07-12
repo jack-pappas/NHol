@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Term nets: reasonably fast lookup based on term matchability.
 module NHol.nets
 
@@ -29,6 +31,7 @@ open lib
 open fusion
 open fusion.Hol_kernel
 open basics
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Term nets are a finitely branching tree structure; at each level we       *)

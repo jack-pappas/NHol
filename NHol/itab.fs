@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Intuitionistic theorem prover (complete for propositional fragment).
 module NHol.itab
 
@@ -37,6 +39,7 @@ open equal
 open bool
 open drule
 open tactics
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Accept a theorem modulo unification.                                      *)

@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Simplistic HOL Light prettyprinter, using the OCaml "Format" library.
 module NHol.printer
 
@@ -30,7 +32,7 @@ open fusion
 open fusion.Hol_kernel
 open basics
 open nets
-
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Character discrimination.                                                 *)

@@ -18,6 +18,8 @@ limitations under the License.
 
 *)
 
+#if INTERACTIVE
+#else
 /// Theory of lists.
 module NHol.lists
 
@@ -55,6 +57,7 @@ open calc_num
 open normalizer
 open grobner
 open ind_types
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Standard tactic for list induction using MATCH_MP_TAC list_INDUCT         *)
