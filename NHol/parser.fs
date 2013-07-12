@@ -291,6 +291,10 @@ let parse_pretype =
 (* Hook to allow installation of user parsers.                               *)
 (* ------------------------------------------------------------------------- *)
 
+// install_parser: Install a user parser.
+// delete_parser: Uninstall a user parser.
+// installed_parsers: List the user parsers currently installed.
+// try_user_parser: Try all user parsing functions.
 let install_parser, delete_parser, installed_parsers, try_user_parser = 
     let rec try_parsers ps i = 
         match ps with
