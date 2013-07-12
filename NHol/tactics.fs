@@ -217,26 +217,32 @@ let ((ORELSE) : tactic -> tactic -> tactic) =
         | Failure _ -> tac2 g
 
 let (FAIL_TAC : string -> tactic) = fun tok g -> failwith tok
+
 let (NO_TAC : tactic) = FAIL_TAC "NO_TAC"
 
 let (ALL_TAC : tactic) = 
-  let fun1 x y =
-      match (x,y) with
-      | (_, [th]) -> th
-      | _ -> failwith "ALL_TAC.fun1: Unhandled case."
-  fun g -> null_meta, [g], fun1
+    let fun1 x y =
+        match (x,y) with
+        | (_, [th]) -> th
+        | _ -> failwith "ALL_TAC.fun1: Unhandled case."
+    fun g -> null_meta, [g], fun1
 
-let TRY tac = ORELSE tac ALL_TAC
+let TRY tac =
+    tac |> ORELSE <| ALL_TAC;;
 
 // CAUTION: Change this to delay StackOverflowException
-let rec REPEAT(tac : tactic) : tactic =
-    fun g -> (ORELSE (THEN tac (REPEAT tac)) ALL_TAC) g
+let rec REPEAT tac g =
+    ((tac |> THEN <| REPEAT tac) |> ORELSE <| ALL_TAC) g;;
 
-let EVERY tacl = itlist (fun t1 t2 -> THEN t1 t2) tacl ALL_TAC
-let (FIRST : tactic list -> tactic) = 
-    fun tacl g -> end_itlist (fun t1 t2 -> ORELSE t1 t2) tacl g
+let EVERY tacl =
+    itlist (fun t1 t2 -> t1 |> THEN <| t2) tacl ALL_TAC
+
+let (FIRST : tactic list -> tactic) =
+    fun tacl g -> end_itlist (fun t1 t2 -> t1 |> ORELSE <| t2) tacl g;;
+
 let MAP_EVERY (tacf : 'a -> tactic) (lst : 'a list) : tactic = 
     EVERY(map tacf lst)
+
 let MAP_FIRST tacf lst = FIRST(map tacf lst)
 
 let (CHANGED_TAC : tactic -> tactic) = 
@@ -246,10 +252,12 @@ let (CHANGED_TAC : tactic -> tactic) =
         then failwith "CHANGED_TAC"
         else gstate
 
-let rec REPLICATE_TAC n tac = 
+let rec REPLICATE_TAC n tac =
     if n <= 0
     then ALL_TAC
-    else THEN tac (REPLICATE_TAC (n - 1) tac)
+    else
+        tac |> THEN <|
+        (REPLICATE_TAC (n - 1) tac)
 
 (* ------------------------------------------------------------------------- *)
 (* Combinators for theorem continuations / "theorem tacticals".              *)
@@ -266,8 +274,8 @@ let ((ORELSE_TCL) : thm_tactical -> thm_tactical -> thm_tactical) =
         | Failure _ -> ttcl2 ttac th
 
 // CAUTION: Change REPEAT_TCL to delay StackOverflowException
-let rec REPEAT_TCL ttcl = 
-    fun ttac -> (ORELSE_TCL (THEN_TCL ttcl (REPEAT_TCL ttcl)) I) ttac
+let rec REPEAT_TCL ttcl ttac th =
+    ((ttcl |> THEN_TCL <| (REPEAT_TCL ttcl)) |> ORELSE_TCL <| I) ttac th;;
 
 let (REPEAT_GTCL : thm_tactical -> thm_tactical) = 
     let rec REPEAT_GTCL ttcl ttac th g = 
@@ -278,9 +286,14 @@ let (REPEAT_GTCL : thm_tactical -> thm_tactical) =
     REPEAT_GTCL
 
 let (ALL_THEN : thm_tactical) = I
+
 let (NO_THEN : thm_tactical) = fun ttac th -> failwith "NO_THEN"
-let EVERY_TCL ttcll = itlist (fun t1 t2 -> THEN_TCL t1 t2) ttcll ALL_THEN
-let FIRST_TCL ttcll = end_itlist (fun t1 t2 -> ORELSE_TCL t1 t2) ttcll
+
+let EVERY_TCL ttcll =
+    itlist (fun t1 t2 -> t1 |> THEN_TCL <| t2) ttcll ALL_THEN;;
+
+let FIRST_TCL ttcll =
+    end_itlist (fun t1 t2 -> t1 |> ORELSE_TCL <| t2) ttcll;;
 
 (* ------------------------------------------------------------------------- *)
 (* Tactics to augment assumption list. Note that to allow "ASSUME p" for     *)
@@ -314,9 +327,10 @@ let (POP_ASSUM : thm_tactic -> tactic) =
 /// Applies a tactic generated from the goal's assumption list.
 let ASSUM_LIST : (thm list -> tactic) -> tactic = 
     fun aslfun (asl, w) -> aslfun (map snd asl) (asl, w)
-/// 
+
 let (POP_ASSUM_LIST : (thm list -> tactic) -> tactic) = 
     fun asltac (asl, w) -> asltac (map snd asl) ([], w)
+
 let (EVERY_ASSUM : thm_tactic -> tactic) = 
     fun ttac -> ASSUM_LIST(MAP_EVERY ttac)
 
@@ -324,10 +338,9 @@ let (FIRST_ASSUM : thm_tactic -> tactic) =
     fun ttac (asl, w as g) -> tryfind (fun (_, th) -> ttac th g) asl
 
 let (RULE_ASSUM_TAC : (thm -> thm) -> tactic) = 
-    fun rule (asl, w) -> 
-        (THEN (POP_ASSUM_LIST(K ALL_TAC)) 
-             (MAP_EVERY (fun (s, th) -> LABEL_TAC s (rule th)) (rev asl)))
-            (asl, w)
+    fun rule (asl,w) ->
+        (POP_ASSUM_LIST(K ALL_TAC) |> THEN <|
+         MAP_EVERY (fun (s,th) -> LABEL_TAC s (rule th)) (rev asl)) (asl,w)
 
 (* ------------------------------------------------------------------------- *)
 (* Operate on assumption identified by a label.                              *)
@@ -460,32 +473,32 @@ let (MK_COMB_TAC : tactic) =
         with
         | Failure _ -> failwith "MK_COMB_TAC: Failure."
 
-let (AP_TERM_TAC : tactic) = 
-    let tac = THENL MK_COMB_TAC [REFL_TAC; ALL_TAC]
-    fun gl -> 
-        try 
-            tac gl
-        with
-        | Failure _ -> failwith "AP_TERM_TAC"
+let (AP_TERM_TAC : tactic) =
+     let tac = MK_COMB_TAC |> THENL <| [REFL_TAC; ALL_TAC]
+     fun gl ->
+         try
+             tac gl
+         with Failure _ -> failwith "AP_TERM_TAC"
 
-let (AP_THM_TAC : tactic) = 
-    let tac = THENL MK_COMB_TAC [ALL_TAC; REFL_TAC]
+let (AP_THM_TAC : tactic) =
+    let tac = MK_COMB_TAC |> THENL <| [ALL_TAC; REFL_TAC]
     fun gl -> 
         try 
             tac gl
-        with
-        | Failure _ -> failwith "AP_THM_TAC"
+        with Failure _ -> failwith "AP_THM_TAC"
 
-let (BINOP_TAC : tactic) = 
-    let tac = THENL MK_COMB_TAC [AP_TERM_TAC; ALL_TAC]
+let (BINOP_TAC : tactic) =
+    let tac = MK_COMB_TAC |> THENL <| [AP_TERM_TAC; ALL_TAC] in
     fun gl -> 
         try 
             tac gl
-        with
-        | Failure _ -> failwith "AP_THM_TAC"
+        with Failure _ -> failwith "AP_THM_TAC";;
 
 let (SUBST1_TAC : thm_tactic) = fun th -> CONV_TAC(SUBS_CONV [th])
-let SUBST_ALL_TAC rth = THEN (SUBST1_TAC rth) (RULE_ASSUM_TAC(SUBS [rth]))
+
+let SUBST_ALL_TAC rth =
+    SUBST1_TAC rth |> THEN <| RULE_ASSUM_TAC (SUBS [rth])
+
 let BETA_TAC = CONV_TAC(REDEPTH_CONV BETA_CONV)
 
 (* ------------------------------------------------------------------------- *)
@@ -739,18 +752,16 @@ let (CONTR_TAC : thm_tactic) =
         with
         | Failure _ -> failwith "CONTR_TAC: Failure."
 
-let (MATCH_ACCEPT_TAC : thm_tactic) = 
+let (MATCH_ACCEPT_TAC:thm_tactic) =
     let propagate_thm th i l =
         match l with
         | [] -> INSTANTIATE_ALL i th
-        | _ -> failwith "CONTR_TAC.propagate_thm: Unhandled case."
-    let rawtac th (asl, w) = 
-        try 
-            let ith = PART_MATCH I th w
-            null_meta, [], propagate_thm ith
-        with
-        | Failure _ -> failwith "ACCEPT_TAC: Failure."
-    fun th -> THEN (REPEAT GEN_TAC) (rawtac th)
+        | _ -> failwith "MATCH_ACCEPT_TAC.propagate_thm: Unhandled case."
+    let rawtac th (asl,w) =
+        try let ith = PART_MATCH I th w
+            null_meta,[],propagate_thm ith
+        with Failure _ -> failwith "ACCEPT_TAC"
+    fun th -> REPEAT GEN_TAC |> THEN <| rawtac th
 
 let (MATCH_MP_TAC : thm_tactic) = 
     fun th -> 
@@ -785,30 +796,31 @@ let (MATCH_MP_TAC : thm_tactic) =
 (* Theorem continuations.                                                    *)
 (* ------------------------------------------------------------------------- *)
 
-let (CONJUNCTS_THEN2 : thm_tactic -> thm_tactic -> thm_tactic) = 
-    fun ttac1 ttac2 cth -> 
-        let c1, c2 = dest_conj(concl cth)
-        fun gl -> 
-            let ti, gls, jfn = (THEN (ttac1(ASSUME c1)) (ttac2(ASSUME c2))) gl
-            let jfn' i ths = 
-                let th1, th2 = CONJ_PAIR(INSTANTIATE_ALL i cth)
-                PROVE_HYP th1 (PROVE_HYP th2 (jfn i ths))
-            ti, gls, jfn'
+let (CONJUNCTS_THEN2 : thm_tactic -> thm_tactic -> thm_tactic) =
+    fun ttac1 ttac2 cth ->
+        let c1,c2 = dest_conj(concl cth)
+        fun gl -> let ti,gls,jfn = (ttac1(ASSUME c1) |> THEN <| ttac2(ASSUME c2)) gl
+                  let jfn' i ths =
+                    let th1,th2 = CONJ_PAIR(INSTANTIATE_ALL i cth)
+                    PROVE_HYP th1 (PROVE_HYP th2 (jfn i ths))
+                  ti,gls,jfn'
 
 let (CONJUNCTS_THEN : thm_tactical) = W CONJUNCTS_THEN2
 
-let (DISJ_CASES_THEN2 : thm_tactic -> thm_tactic -> thm_tactic) = 
-    fun ttac1 ttac2 cth -> 
-        THENL (DISJ_CASES_TAC cth) [POP_ASSUM ttac1
-                                    POP_ASSUM ttac2]
+let (DISJ_CASES_THEN2 : thm_tactic -> thm_tactic -> thm_tactic) =
+    fun ttac1 ttac2 cth ->
+        DISJ_CASES_TAC cth |> THENL <| [POP_ASSUM ttac1; POP_ASSUM ttac2]
 
 let (DISJ_CASES_THEN : thm_tactical) = W DISJ_CASES_THEN2
-let (DISCH_THEN : thm_tactic -> tactic) = 
-    fun ttac -> THEN DISCH_TAC (POP_ASSUM ttac)
-let (X_CHOOSE_THEN : term -> thm_tactical) = 
-    fun x ttac th -> THEN (X_CHOOSE_TAC x th) (POP_ASSUM ttac)
-let (CHOOSE_THEN : thm_tactical) = 
-    fun ttac th -> THEN (CHOOSE_TAC th) (POP_ASSUM ttac)
+
+let (DISCH_THEN : thm_tactic -> tactic) =
+    fun ttac -> DISCH_TAC |> THEN <| POP_ASSUM ttac
+
+let (X_CHOOSE_THEN : term -> thm_tactical) =
+    fun x ttac th -> X_CHOOSE_TAC x th |> THEN <| POP_ASSUM ttac
+
+let (CHOOSE_THEN : thm_tactical) =
+    fun ttac th -> CHOOSE_TAC th |> THEN <| POP_ASSUM ttac
 
 (* ------------------------------------------------------------------------- *)
 (* Various derived tactics and theorem continuations.                        *)
@@ -847,8 +859,9 @@ let STRIP_ASSUME_TAC =
                ASSUME_TAC gth])
 
 let STRUCT_CASES_THEN ttac = REPEAT_TCL STRIP_THM_THEN ttac
+
 let STRUCT_CASES_TAC = 
-    STRUCT_CASES_THEN(fun th -> ORELSE (SUBST1_TAC th) (ASSUME_TAC th))
+    STRUCT_CASES_THEN (fun th -> SUBST1_TAC th |> ORELSE <| ASSUME_TAC th);;
 
 let STRIP_GOAL_THEN ttac = 
     FIRST [GEN_TAC
@@ -878,12 +891,12 @@ let (SUBGOAL_THEN : term -> thm_tactic -> tactic) =
         let meta, gl, just = ttac (ASSUME wa) (asl, w)
         meta, (asl, wa) :: gl, fun i l -> PROVE_HYP (hd l) (just i (tl l))
 
-let SUBGOAL_TAC s tm prfs = 
+let SUBGOAL_TAC s tm prfs =
     match prfs with
-    | p :: ps -> 
-        warn (ps.Length > 0) "SUBGOAL_TAC: additional subproofs ignored"
-        THENL (SUBGOAL_THEN tm (LABEL_TAC s)) [p; ALL_TAC]
-    | [] -> failwith "SUBGOAL_TAC: no subproof given"
+    | p::ps ->
+        warn (ps.Length <> 0) "SUBGOAL_TAC: additional subproofs ignored"
+        SUBGOAL_THEN tm (LABEL_TAC s) |> THENL <| [p; ALL_TAC]
+    |  [] -> failwith "SUBGOAL_TAC: no subproof given"
 
 let (FREEZE_THEN : thm_tactical) = 
     fun ttac th (asl, w) -> 
@@ -940,12 +953,12 @@ let RECALL_ACCEPT_TAC r a g = ACCEPT_TAC (time r a) g
 (* Split off antecedent of antecedent as a subgoal.                          *)
 (* ------------------------------------------------------------------------- *)
 
-let ANTS_TAC = 
-    let tm1 = parse_term @"p /\ (q ==> r)"
-    let tm2 = parse_term @"p ==> q"
-    let th1, th2 = CONJ_PAIR(ASSUME tm1)
-    let th = itlist DISCH [tm1; tm2] (MP th2 (MP (ASSUME tm2) th1))
-    THEN (MATCH_MP_TAC th) CONJ_TAC
+let ANTS_TAC =
+    let tm1 = (parse_term "p /\ (q ==> r)")
+    let tm2 = (parse_term "p ==> q")
+    let th1,th2 = CONJ_PAIR(ASSUME tm1)
+    let th = itlist DISCH [tm1;tm2] (MP th2 (MP(ASSUME tm2) th1))
+    MATCH_MP_TAC th |> THEN <| CONJ_TAC
 
 (* ------------------------------------------------------------------------- *)
 (* A printer for goals etc.                                                  *)
@@ -1129,6 +1142,7 @@ let flush_goalstack() =
     current_goalstack := [hd l]
 
 let e tac = refine(by(VALID tac))
+
 let r n = refine(rotate n)
 
 let set_goal(asl, w) = 
