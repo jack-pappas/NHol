@@ -38,21 +38,37 @@ open NHol.trivia
 open NHol.canon
 open NHol.meson
 open NHol.quot
+//open NHol.pair: pair module has to be checked
+open NHol.nums
+open NHol.recursion
+open NHol.arith   
+//open NHol.wf: depends on pair module
+open NHol.calc_num
+open NHol.normalizer
+open NHol.grobner
 
 // Modules Evaluation
-BETA_RULE;;         // forces equal module evaluation: maybe not needed
-mk_iff;;            // forces bool module evaluation
-MK_CONJ;;           // forces drule module evaluation
-_FALSITY_;;         // forces tactics module evaluation
-ITAUT_TAC;;         // forces itab module evaluation: maybe not needd
-mk_rewrites;;       // forces simp module evaluation
-EQ_REFL;;           // forces theorems module evaluation
-EXISTS_EQUATION;;   // forces ind_defs module evaluation
-ETA_AX;;            // forces class module evaluation
-o_DEF;;             // forces trivia module evaluation
-CONJ_ACI_RULE;;     // forces canon module evaluation
-ASM_MESON_TAC;;     // forces meson module evaluation
-lift_function;;     // forces quot module evaluation
+BETA_RULE;;                 // forces equal module evaluation: maybe not needed
+mk_iff;;                    // forces bool module evaluation
+MK_CONJ;;                   // forces drule module evaluation
+_FALSITY_;;                 // forces tactics module evaluation
+ITAUT_TAC;;                 // forces itab module evaluation: maybe not needd
+mk_rewrites;;               // forces simp module evaluation
+EQ_REFL;;                   // forces theorems module evaluation
+EXISTS_EQUATION;;           // forces ind_defs module evaluation
+ETA_AX;;                    // forces class module evaluation
+o_DEF;;                     // forces trivia module evaluation
+CONJ_ACI_RULE;;             // forces canon module evaluation
+ASM_MESON_TAC;;             // forces meson module evaluation
+lift_function;;             // forces quot module evaluation
+//LET_DEF;;                 // forces pair module evaluation: pair module has to be checked
+ONE_ONE;;                   // forces num module evaluation
+PRE;;                       // forces arith module evaluation
+ARITH_ZERO;;                // forces calc_num module evaluation
+SEMIRING_NORMALIZERS_CONV;; // forces normalizer module evaluation
+RING_AND_IDEAL_CONV;;       // forces grobner module evaluation
+
+parse_term(@"x + 1");;
 
 // Exception
 parse_term @"~(p /\ q) <=> ~p \/ ~q";;
@@ -98,9 +114,12 @@ TAUT <| parse_term @"(i1 /\ i2 <=> a) /\
 parse_term @"p \/ ~p";;
 ASSUME <| parse_term @"p /\ q";;
 
+parse_term @"x < 1 ==> p";;
+
+parse_term "x < x + 1";;
+
 // from this point we have to check
 
-//parse_term @"x < 1 ==> p";;
 ////ARITH_RULE <| parse_term "x < y \/ y <= x";;
 //
 //get_infix_status "==>";;
@@ -108,8 +127,5 @@ ASSUME <| parse_term @"p /\ q";;
 //
 //parse_as_infix("<>",(12,"right"));;
 //parse_as_infix("+",(1,"left"));;
-//
-//parse_term "x < x + 1";;
-//
 
 //parse_as_infix("+",(16,"right"));;
