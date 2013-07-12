@@ -2,7 +2,7 @@
 
 Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
-Copyright 2013 Jack Pappas, Eric Taucher
+Copyright 2013 Jack Pappas, Eric Taucher, Domenico Masini
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ open trivia
 open canon
 open meson
 open quot
-open pair
+//open pair
 open nums
 open recursion
 
@@ -295,7 +295,7 @@ let EXP_EQ_1 =
 
 let EXP_ZERO = 
     prove
-        ((parse_term @"!n. 0 EXP n = if n = 0 |>THEN<| 1 else 0"), 
+        ((parse_term @"!n. 0 EXP n = if n = 0 then 1 else 0"), //((parse_term @"!n. 0 EXP n = if n = 0 |>THEN<| 1 else 0"), 
          GEN_TAC
          |> THEN <| COND_CASES_TAC
          |> THEN <| ASM_REWRITE_TAC [EXP_EQ_0; EXP_EQ_1])
@@ -355,10 +355,10 @@ let GT = new_definition(parse_term @"m > n <=> n < m")
 (* Maximum and minimum of natural numbers.                                   *)
 (* ------------------------------------------------------------------------- *)
 let MAX = 
-    new_definition(parse_term @"!m n. MAX m n = if m <= n |>THEN<| n else m")
+    new_definition(parse_term @"!m n. MAX m n = if m <= n then n else m")
 
 let MIN = 
-    new_definition(parse_term @"!m n. MIN m n = if m <= n |>THEN<| m else n")
+    new_definition(parse_term @"!m n. MIN m n = if m <= n then m else n")
 
 (* ------------------------------------------------------------------------- *)
 (* Step cases.                                                               *)
@@ -1347,7 +1347,7 @@ let LT_EXP =
 
 let LE_EXP = 
     prove((parse_term @"!x m n. x EXP m <= x EXP n <=>
-            if x = 0 |>THEN<| (m = 0) ==> (n = 0)
+            if x = 0 then (m = 0) ==> (n = 0)
             else (x = 1) \/ m <= n"),
      REPEAT GEN_TAC
            |> THEN <| REWRITE_TAC [GSYM NOT_LT
@@ -1358,7 +1358,7 @@ let LE_EXP =
 
 let EQ_EXP = 
     prove((parse_term @"!x m n. x EXP m = x EXP n <=>
-            if x = 0 |>THEN<| (m = 0 <=> n = 0)
+            if x = 0 then (m = 0 <=> n = 0)
             else (x = 1) \/ m = n"),
      REPEAT GEN_TAC
            |> THEN <| GEN_REWRITE_TAC LAND_CONV [GSYM LE_ANTISYM
@@ -1454,7 +1454,7 @@ let DIVMOD_EXIST =
 
 let DIVMOD_EXIST_0 = 
     prove
-        ((parse_term @"!m n. ?q r. if n = 0 |>THEN<| q = 0 /\ r = m
+        ((parse_term @"!m n. ?q r. if n = 0 then q = 0 /\ r = m
                 else m = q * n + r /\ r < n"),
          REPEAT GEN_TAC
          |> THEN <| ASM_CASES_TAC(parse_term @"n = 0")
@@ -1710,7 +1710,7 @@ let MOD_MULT2 =
 let MOD_EXISTS = 
     prove
         ((parse_term 
-              "!m n. (?q. m = n * q) <=> if n = 0 |>THEN<| (m = 0) else (m MOD n = 0)"), 
+              "!m n. (?q. m = n * q) <=> if n = 0 then (m = 0) else (m MOD n = 0)"), 
          REPEAT GEN_TAC
          |> THEN <| COND_CASES_TAC
          |> THEN <| ASM_REWRITE_TAC [MULT_CLAUSES]
@@ -2106,7 +2106,7 @@ let MOD_MOD_EXP_MIN =
 let PRE_ELIM_THM = 
     prove
         ((parse_term 
-              "P(PRE n) <=> !m. n = SUC m \/ m = 0 /\ n = 0 ==> P m(parse_term @"), 
+              @"P(PRE n) <=> !m. n = SUC m \/ m = 0 /\ n = 0 ==> P m"), 
          SPEC_TAC((parse_term @"n:num"), (parse_term @"n:num"))
          |> THEN <| INDUCT_TAC
          |> THEN <| REWRITE_TAC [NOT_SUC; SUC_INJ; PRE]
