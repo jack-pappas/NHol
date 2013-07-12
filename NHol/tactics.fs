@@ -1090,7 +1090,7 @@ let (TAC_PROOF : goal * tactic -> thm) =
             let ex =
                 let msg =
                     let goalOrGoals = if List.length sgs = 1 then "goal" else "goals"
-                    sprintf "TAC_PROOF: %i unsolved %s" (List.length sgs) goalOrGoals
+                    Microsoft.FSharp.Core.Printf.sprintf "TAC_PROOF: %i unsolved %s" (List.length sgs) goalOrGoals
                 exn msg
             if not <| isNull ex.Data then
                 ex.Data.["UnsolvedGoals"] <- sgs
