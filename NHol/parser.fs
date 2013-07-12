@@ -51,19 +51,25 @@ parse_as_infix(",", (14, "right"))
 (* Basic parser combinators.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
+//
 exception Noparse
 
+/// Produce alternative composition of two parsers.
+// NOTE : This is called (||) in the original hol-light code.
 let (<|>) parser1 parser2 input = 
     try 
         parser1 input
     with
     | Noparse -> parser2 input
 
+/// Sequentially compose two parsers.
+// NOTE : This is called (++) in the original hol-light code.
 let (.>>.) parser1 parser2 input = 
     let result1, rest1 = parser1 input
     let result2, rest2 = parser2 rest1
     (result1, result2), rest2
 
+/// Parses zero or more successive items using given parser.
 let rec many prs input = 
     try 
         let result, next = prs input
@@ -72,26 +78,37 @@ let rec many prs input =
     with
     | Noparse -> [], input
 
+/// Apply function to parser result.
+// NOTE : This is called (>>) in the original hol-light code.
 let (|>>) prs treatment input = 
     let result, rest = prs input
     treatment result, rest
 
+/// Applies parser and fails if it raises Noparse.
 let fix err prs input = 
     try 
         prs input
     with
     | Noparse -> failwith(err + " expected")
 
-let rec listof prs sep err = prs .>>. many(sep .>>. (fix err prs) |>> snd) |>> (fun (h, t) -> h :: t)
+/// Parses a separated list of items.
+let rec listof prs sep err =
+    prs .>>. many(sep .>>. (fix err prs) |>> snd) |>> (fun (h, t) -> h :: t)
 
+/// Trivial parser that parses nothing.
 let nothing input = [], input
-let elistof prs sep err = listof prs sep err <|> nothing
 
+/// Parses a possibly empty separated list of items.
+let elistof prs sep err =
+    listof prs sep err <|> nothing
+
+/// Parses iterated left-associated binary operator.
 let leftbin prs sep cons err = 
     prs .>>. many(sep .>>. fix err prs) |>> (fun (x, opxs) -> 
         let ops, xs = unzip opxs
         itlist2 (fun op y x -> cons op x y) (rev ops) (rev xs) x)
 
+/// Parses iterated right-associated binary operator.
 let rightbin prs sep cons err = 
     prs .>>. many(sep .>>. fix err prs) |>> (fun (x, opxs) -> 
         if opxs = [] then x
@@ -99,6 +116,7 @@ let rightbin prs sep cons err =
             let ops, xs = unzip opxs
             itlist2 cons ops (x :: butlast xs) (last xs))
 
+/// Attempts to parse, returning empty list of items in case of failure.
 let possibly prs input = 
     try 
         let x, rest = prs input
@@ -106,6 +124,7 @@ let possibly prs input =
     with
     | Noparse -> [], input
 
+/// Parses any single item satisfying a predicate.
 let some p = 
     function 
     | [] -> raise Noparse
@@ -113,12 +132,15 @@ let some p =
         if p h then h, t
         else raise Noparse
 
+/// Parser that requires a specific item.
 let a tok = some(fun item -> item = tok)
 
+/// Parses at least a given number of successive items using given parser.
 let rec atleast n prs i = 
     (if n <= 0 then many prs
      else (prs .>>. atleast (n - 1) prs) |>> (fun (h, t) -> h :: t)) i
 
+/// Parser that checks emptiness of the input.
 let finished input = 
     if input = [] then 0, input
     else failwith "Unparsed input"
@@ -139,8 +161,10 @@ type lexcode =
 
 reserve_words ["//"]
 
+/// HOL Light comment token.
 let comment_token = ref(Resword "//")
 
+/// Lexically analyze an input string.
 let lex = 
     let collect(h, t) = end_itlist (+) (h :: t)
     let reserve = 
@@ -219,6 +243,7 @@ let lex =
 (*  o Antiquotation is not supported.                                        *)
 (* ------------------------------------------------------------------------- *)
 
+/// Parses a pretype.
 let parse_pretype = 
     let btyop n n' x y = Ptycon(n, [x; y])
     let mk_apptype = 
@@ -266,6 +291,10 @@ let parse_pretype =
 (* Hook to allow installation of user parsers.                               *)
 (* ------------------------------------------------------------------------- *)
 
+// install_parser: Install a user parser.
+// delete_parser: Uninstall a user parser.
+// installed_parsers: List the user parsers currently installed.
+// try_user_parser: Try all user parsing functions.
 let install_parser, delete_parser, installed_parsers, try_user_parser = 
     let rec try_parsers ps i = 
         match ps with
@@ -315,6 +344,7 @@ let install_parser, delete_parser, installed_parsers, try_user_parser =
 (* more general forms of matching and considerably regularizes the syntax.   *)
 (* ------------------------------------------------------------------------- *)
 
+/// Parses a preterm.
 let parse_preterm =
   let rec pairwise r l =
     match l with
@@ -522,6 +552,7 @@ let parse_preterm =
 (* Type and term parsers.                                                    *)
 (* ------------------------------------------------------------------------- *)
 
+/// Parses a string into a HOL type.
 let parse_type (s : string) =
 //    printfn "parsing type %s" s 
     let pty, l = (parse_pretype << lex << explode) s
@@ -529,6 +560,7 @@ let parse_type (s : string) =
     if l = [] then type_of_pretype pty
     else failwith "Unparsed input following type"
 
+/// Parses a string into a HOL term.
 let parse_term s = 
 //    printfn "parsing term %s" s
     let ptm, l = (parse_preterm << lex << explode) s

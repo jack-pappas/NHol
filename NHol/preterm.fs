@@ -38,6 +38,7 @@ open printer
 (* Flag to say whether to treat varstruct "\const. bod" as variable.         *)
 (* ------------------------------------------------------------------------- *)
 
+/// Interpret a simple varstruct as a variable, even if there is a constant of that name.
 let ignore_constant_varstruct = ref true
 
 (* ------------------------------------------------------------------------- *)
@@ -45,29 +46,35 @@ let ignore_constant_varstruct = ref true
 (* It can be treated as an error, result in a warning, ||  neither of those.  *)
 (* ------------------------------------------------------------------------- *)
 
+/// Determined if user is warned about invented type variables.
 let type_invention_warning = ref true
+/// Determines if invented type variables are treated as an error.
 let type_invention_error = ref false
 
 (* ------------------------------------------------------------------------- *)
 (* Implicit types ||  type schemes for non-constants.                         *)
 (* ------------------------------------------------------------------------- *)
 
+/// Restrict variables to a particular type or type scheme.
 let the_implicit_types = ref([] : (string * hol_type) list)
 
 (* ------------------------------------------------------------------------- *)
 (* Overloading and interface mapping.                                        *)
 (* ------------------------------------------------------------------------- *)
 
+/// Makes a symbol overloadable within the specified type skeleton.
 let make_overloadable s gty = 
     if can (assoc s) (!the_overload_skeletons) then 
         if assoc s (!the_overload_skeletons) = gty then ()
         else failwith "make_overloadable: differs from existing skeleton"
     else the_overload_skeletons := (s, gty) :: (!the_overload_skeletons)
 
+/// Remove all overload/interface mappings for an identifier.
 let remove_interface sym = 
     let ``interface`` = filter ((<>) sym << fst) (!the_interface)
     the_interface := ``interface``
 
+/// Remove a specific overload/interface mapping for an identifier.
 let reduce_interface(sym, tm) = 
     let namty = 
         try 
@@ -76,6 +83,7 @@ let reduce_interface(sym, tm) =
         | Failure _ -> dest_var tm
     the_interface := filter ((<>)(sym, namty)) (!the_interface)
 
+/// Map identifier to specific underlying constant.
 let override_interface(sym, tm) = 
     let namty = 
         try 
@@ -85,6 +93,7 @@ let override_interface(sym, tm) =
     let ``interface`` = filter ((<>) sym << fst) (!the_interface)
     the_interface := (sym, namty) :: ``interface``
 
+/// Overload a symbol so it may denote a particular underlying constant.
 let overload_interface(sym, tm) = 
     let gty = 
         try 
@@ -101,6 +110,7 @@ let overload_interface(sym, tm) =
         let ``interface`` = filter ((<>)(sym, namty)) (!the_interface)
         the_interface := (sym, namty) :: ``interface``
 
+/// Give overloaded constants involving a given type priority in operator overloading.
 let prioritize_overload ty = 
     do_list (fun (s, gty) -> 
             try 
@@ -114,6 +124,9 @@ let prioritize_overload ty =
 (* Type abbreviations.                                                       *)
 (* ------------------------------------------------------------------------- *)
 
+// new_type_abbrev: Sets up a new type abbreviation.
+// remove_type_abbrev: Removes use of name as a type abbreviation.
+// type_abbrevs: Lists all current type abbreviations.
 let new_type_abbrev, remove_type_abbrev, type_abbrevs = 
     let the_type_abbreviations = ref([] : (string * hol_type) list)
     let remove_type_abbrev s = the_type_abbreviations := filter (fun (s', _) -> s' <> s) (!the_type_abbreviations)
@@ -127,6 +140,9 @@ let new_type_abbrev, remove_type_abbrev, type_abbrevs =
 (* Handle constant hiding.                                                   *)
 (* ------------------------------------------------------------------------- *)
 
+// hide_constant: Restores recognition of a constant by the quotation parser.
+// unhide_constant: Disables recognition of a constant by the quotation parser.
+// is_hidden: Determines whether a constant is hidden.
 let hide_constant, unhide_constant, is_hidden = 
     let hcs = ref([] : string list)
     let hide_constant c = hcs := union [c] (!hcs)
@@ -147,12 +163,14 @@ type pretype =
 (* Dummy pretype for the parser to stick in before a proper typing pass.     *)
 (* ------------------------------------------------------------------------- *)
 
+/// Dummy pretype.
 let dpty = Ptycon("", [])
 
 (* ------------------------------------------------------------------------- *)
 (* Convert type to pretype.                                                  *)
 (* ------------------------------------------------------------------------- *)
 
+/// Converts a type into a pretype.
 let rec pretype_of_type ty = 
     try 
         let con, args = dest_type ty
@@ -175,6 +193,7 @@ type preterm =
 (* Convert term to preterm.                                                  *)
 (* ------------------------------------------------------------------------- *)
 
+/// Converts a term into a preterm.
 let rec preterm_of_term tm = 
     try 
         let n, ty = dest_var tm
@@ -198,6 +217,9 @@ let rec preterm_of_term tm =
 (* Main pretype->type, preterm->term and retypechecking functions.           *)
 (* ------------------------------------------------------------------------- *)
 
+// type_of_pretype: Converts a pretype to a type.
+// term_of_preterm: Converts a preterm into a term.
+// retypecheck: Typecheck a term, iterating over possible overload resolutions.
 let type_of_pretype, term_of_preterm, retypecheck = 
     let tyv_num = ref 0
     let new_type_var() = 

@@ -108,14 +108,16 @@ type thm_tactical = thm_tactic -> thm_tactic
 (* Apply instantiation to a goal.                                            *)
 (* ------------------------------------------------------------------------- *)
 
-let (inst_goal : instantiation -> goal -> goal) = 
+/// Apply higher-order instantiation to a goal.
+let inst_goal : instantiation -> goal -> goal = 
     fun p (thms, w) -> map (I ||>> INSTANTIATE_ALL p) thms, instantiate p w
 
 (* ------------------------------------------------------------------------- *)
 (* Perform a sequential composition (left first) of instantiations.          *)
 (* ------------------------------------------------------------------------- *)
 
-let (compose_insts : instantiation -> instantiation -> instantiation) = 
+/// Compose two instantiations.
+let compose_insts : instantiation -> instantiation -> instantiation = 
     fun (pats1, tmin1, tyin1) ((pats2, tmin2, tyin2) as i2) -> 
         let tmin = map (instantiate i2 ||>> inst tyin2) tmin1
         let tyin = map (type_subst tyin2 ||>> I) tyin1
@@ -307,8 +309,10 @@ let (POP_ASSUM : thm_tactic -> tactic) =
         | (((_, th) :: asl), w) -> ttac th (asl, w)
         | _ -> failwith "POP_ASSUM: No assumption to pop"
 
-let (ASSUM_LIST : (thm list -> tactic) -> tactic) = 
+/// Applies a tactic generated from the goal's assumption list.
+let ASSUM_LIST : (thm list -> tactic) -> tactic = 
     fun aslfun (asl, w) -> aslfun (map snd asl) (asl, w)
+/// 
 let (POP_ASSUM_LIST : (thm list -> tactic) -> tactic) = 
     fun asltac (asl, w) -> asltac (map snd asl) ([], w)
 let (EVERY_ASSUM : thm_tactic -> tactic) = 
