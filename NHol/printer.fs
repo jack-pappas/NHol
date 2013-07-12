@@ -36,6 +36,13 @@ open nets
 (* Character discrimination.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
+// isspace: Tests if a one-character string is some kind of space.
+// issep: Tests if a one-character string is a separator.
+// isbra: Tests if a one-character string is some kind of bracket.
+// issymb: Tests if a one-character string is a symbol other than bracket or separator.
+// isalpha: Tests if a one-character string is alphabetic.
+// isnum: Tests if a one-character string is a decimal digit.
+// isalnum: Tests if a one-character string is alphanumeric.
 let isspace, issep, isbra, issymb, isalpha, isnum, isalnum = 
     let charcode s = Char.code(String.get s 0)
     let spaces = " \t\n\r"
@@ -66,6 +73,10 @@ let isspace, issep, isbra, issymb, isalpha, isnum, isalnum =
 (* Reserved words.                                                           *)
 (* ------------------------------------------------------------------------- *)
 
+// reserve_words: Add given strings to the set of reserved words.
+// unreserve_words: Remove given strings from the set of reserved words.
+// is_reserved_word: Tests if a string is one of the reserved words.
+// reserved_words: Returns the list of reserved words.
 let reserve_words, unreserve_words, is_reserved_word, reserved_words = 
     let reswords = 
         ref ["(";
@@ -105,16 +116,30 @@ let reserve_words, unreserve_words, is_reserved_word, reserved_words =
 (* whether an identifier is symbolic.                                        *)
 (* ------------------------------------------------------------------------- *)
 
+// unparse_as_binder: Stops the quotation parser from treating a name as a binder.
+// parse_as_binder: Makes the quotation parser treat a name as a binder.
+// parses_as_binder: Tests if a string has binder status in the parser.
+// binders: Lists the binders.
 let unparse_as_binder, parse_as_binder, parses_as_binder, binders = 
     let binder_list = ref([] : string list)
     (fun n -> binder_list := subtract (!binder_list) [n]), (fun n -> binder_list := union (!binder_list) [n]), 
     (fun n -> mem n (!binder_list)), (fun () -> !binder_list)
 
+// unparse_as_prefix: Removes prefix status for an identifier.
+// parse_as_prefix: Gives an identifier prefix status.
+// is_prefix: Tests if an identifier has prefix status.
+// prefixes: Certain identifiers 'c' have prefix status, meaning that combinations of the form 'c f x' will
+//           be parsed as 'c (f x)' rather than the usual '(c f) x'. The call 'prefixes()' returns the list
+//           of all such identifiers.
 let unparse_as_prefix, parse_as_prefix, is_prefix, prefixes = 
     let prefix_list = ref([] : string list)
     (fun n -> prefix_list := subtract (!prefix_list) [n]), (fun n -> prefix_list := union (!prefix_list) [n]), 
     (fun n -> mem n (!prefix_list)), (fun () -> !prefix_list)
 
+// unparse_as_infix: Removes string from the list of infix operators.
+// parse_as_infix: Adds identifier to list of infixes, with given precedence and associativity.
+// get_infix_status: Get the precedence and associativity of an infix operator.
+// infixes: Lists the infixes currently recognized by the parser.
 let unparse_as_infix, parse_as_infix, get_infix_status, infixes = 
     let cmp (s, (x, a)) (t, (y, b)) = x < y || x = y && a > b || x = y && a = b && s < t
     let infix_list = ref([] : (string * (int * string)) list)
@@ -126,7 +151,9 @@ let unparse_as_infix, parse_as_infix, get_infix_status, infixes =
 (* Interface mapping.                                                        *)
 (* ------------------------------------------------------------------------- *)
 
+/// List of active interface mappings.
 let the_interface = ref([] : (string * (string * hol_type)) list)
+/// List of overload skeletons for all overloadable identifiers.
 let the_overload_skeletons = ref([] : (string * hol_type) list)
 
 open FSharp.Compatibility.OCaml.Format
@@ -137,12 +164,14 @@ set_max_boxes 100
 (* Flag determining whether interface/overloading is reversed on printing.   *)
 (* ------------------------------------------------------------------------- *)
 
+/// Determines whether interface map is printed on output (default 'true').
 let reverse_interface_mapping = ref true
 
 (* ------------------------------------------------------------------------- *)
 (* Determine binary operators that print without surrounding spaces.         *)
 (* ------------------------------------------------------------------------- *)
 
+/// Determines which binary operators are printed with surrounding spaces.
 let unspaced_binops = 
     ref [",";
          "..";
@@ -152,29 +181,35 @@ let unspaced_binops =
 (* Binary operators to print at start of line when breaking.                 *)
 (* ------------------------------------------------------------------------- *)
 
+/// Determines which binary operators are line-broken to the left.
 let prebroken_binops = ref ["==>"]
 
 (* ------------------------------------------------------------------------- *)
 (* Force explicit indications of bound variables in set abstractions.        *)
 (* ------------------------------------------------------------------------- *)
 
+/// Determines whether bound variables in set abstractions are made explicit.
 let print_unambiguous_comprehensions = ref false
 
 (* ------------------------------------------------------------------------- *)
 (* Print the universal set UNIV:A->bool as "(:A)".                           *)
 (* ------------------------------------------------------------------------- *)
 
+/// Determines whether the universe set on a type is printed just as the type.
 let typify_universal_set = ref true
+
 (* ------------------------------------------------------------------------- *)
 (* Flag controlling whether hypotheses print.                                *)
 (* ------------------------------------------------------------------------- *)
 
+/// Flag determining whether the assumptions of theorems are printed explicitly.
 let print_all_thm = ref true
 
 (* ------------------------------------------------------------------------- *)
 (* Get the name of a constant or variable.                                   *)
 (* ------------------------------------------------------------------------- *)
 
+/// Gets the name of a constant or variable.
 let name_of tm = 
     match tm with
     | Var(x, ty) | Const(x, ty) -> x
@@ -184,6 +219,8 @@ let name_of tm =
 (* Printer for types.                                                        *)
 (* ------------------------------------------------------------------------- *)
 
+// pp_print_type: Prints a type (without colon or quotes) to formatter.
+// pp_print_qtype: Prints a type with initial colon and surrounding quotes to formatter.
 let pp_print_type, pp_print_qtype = 
     let soc sep flag ss = 
         if ss = [] then ""
@@ -217,6 +254,9 @@ let pp_print_type, pp_print_qtype =
 (* Allow the installation of user printers. Must fail quickly if N/A.        *)
 (* ------------------------------------------------------------------------- *)
 
+// install_user_printer: Install a user-defined printing function into the HOL Light term printer.
+// delete_user_printer: Remove user-defined printer from the HOL Light term printing.
+// try_user_printer: Try user-defined printers on a term.
 let install_user_printer, delete_user_printer, try_user_printer = 
     let user_printers = ref([] : (string * (term -> unit)) list)
     (fun pr -> user_printers := pr :: (!user_printers)), 
@@ -227,6 +267,7 @@ let install_user_printer, delete_user_printer, try_user_printer =
 (* Printer for terms.                                                        *)
 (* ------------------------------------------------------------------------- *)
 
+/// Prints a term (without quotes) to formatter.
 let pp_print_term = 
     let reverse_interface(s0, ty0) = 
         if not(!reverse_interface_mapping) then s0
@@ -613,6 +654,7 @@ let pp_print_term =
 (* Print term with quotes.                                                   *)
 (* ------------------------------------------------------------------------- *)
 
+/// Prints a term with surrounding quotes to formatter.
 let pp_print_qterm fmt tm = 
     pp_print_string fmt "`"
     pp_print_term fmt tm
@@ -622,6 +664,7 @@ let pp_print_qterm fmt tm =
 (* Printer for theorems.                                                     *)
 (* ------------------------------------------------------------------------- *)
 
+/// Prints a theorem to formatter.
 let pp_print_thm fmt th = 
     let asl, tm = dest_thm th
     (if not(asl = []) then 
@@ -643,16 +686,22 @@ let pp_print_thm fmt th =
 (* Print on standard output.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
+/// Prints a type (without colon or quotes) to standard output.
 let print_type = pp_print_type std_formatter
+/// Prints a type with colon and surrounding quotes to standard output.
 let print_qtype = pp_print_qtype std_formatter
+/// Prints a HOL term (without quotes) to the standard output.
 let print_term = pp_print_term std_formatter
+/// Prints a HOL term with surrounding quotes to standard output.
 let print_qterm = pp_print_qterm std_formatter
+/// Prints a HOL theorem to the standard output.
 let print_thm = pp_print_thm std_formatter
 
 (* ------------------------------------------------------------------------- *)
 (* Conversions to string.                                                    *)
 (* ------------------------------------------------------------------------- *)
 
+/// Modifies a formatting printing function to return its output as a string.
 let print_to_string printer = 
     let sbuff = ref ""
     let rec output s m n = sbuff := (!sbuff) + (String.sub s m n)
@@ -666,8 +715,11 @@ let print_to_string printer =
         sbuff := ""
         s
 
+/// Converts a HOL type to a string representation.
 let string_of_type = print_to_string pp_print_type
+/// Converts a HOL term to a string representation.
 let string_of_term = print_to_string pp_print_term
+/// Converts a HOL theorem to a string representation.
 let string_of_thm = print_to_string pp_print_thm
 
 (* ------------------------------------------------------------------------- *)
