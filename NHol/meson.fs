@@ -1021,8 +1021,7 @@ let GEN_MESON_TAC =
         |> THEN <| POLY_ASSUME_TAC(map GEN_ALL ths)
         |> THEN <| W(MAP_EVERY(UNDISCH_TAC << concl << snd) << fst)
         |> THEN <| SELECT_ELIM_TAC
-        |> THEN 
-        <| W(fun (asl, w) -> MAP_EVERY (fun v -> SPEC_TAC(v, v)) (frees w))
+        |> THEN <| W(fun (asl, w) -> MAP_EVERY (fun v -> SPEC_TAC(v, v)) (frees w))
         |> THEN <| CONV_TAC(PRESIMP_CONV
                             |> THENC <| TOP_DEPTH_CONV BETA_CONV
                             |> THENC <| LAMBDA_ELIM_CONV

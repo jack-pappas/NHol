@@ -29,9 +29,9 @@ open FSharp.Compatibility.OCaml.Num
 open NHol
 open lib
 open fusion
-open fusion.Hol_kernel
+//open fusion.Hol_kernel
 open basics
-open nets
+//open nets
 open printer
 open preterm
 open parser
@@ -39,15 +39,15 @@ open equal
 open bool
 open drule
 open tactics
-open itab
+//open itab
 open simp
-open theorems
-open ind_defs
+//open theorems
+//open ind_defs
 open ``class``
 open trivia
-open canon
+//open canon
 open meson
-open quot
+//open quot
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -100,52 +100,32 @@ let PAIR_EQ =
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THENL <| [REWRITE_TAC [COMMA_DEF]
-                      |> THEN 
-                      <| DISCH_THEN
-                             (MP_TAC 
-                              << AP_TERM(parse_term @"REP_prod:A#B->A->B->bool"))
+                      |> THEN <| DISCH_THEN (MP_TAC << AP_TERM(parse_term @"REP_prod:A#B->A->B->bool"))
                       |> THEN <| REWRITE_TAC [REP_ABS_PAIR]
                       |> THEN <| REWRITE_TAC [mk_pair_def; FUN_EQ_THM]
                       ALL_TAC]
          |> THEN <| MESON_TAC [])
 
 let PAIR_SURJECTIVE = 
-    prove((parse_term @"!p:A#B. ?x y. p = x,y"), GEN_TAC
-                                                |> THEN 
-                                                <| REWRITE_TAC [COMMA_DEF]
-                                                |> THEN 
-                                                <| MP_TAC
-                                                       (SPEC 
-                                                            (parse_term 
-                                                                 "REP_prod p :A->B->bool") 
-                                                            (CONJUNCT2 
-                                                                 prod_tybij))
-                                                |> THEN 
-                                                <| REWRITE_TAC 
-                                                       [CONJUNCT1 prod_tybij]
-                                                |> THEN 
-                                                <| DISCH_THEN
-                                                       (X_CHOOSE_THEN 
-                                                            (parse_term @"a:A") 
-                                                            (X_CHOOSE_THEN 
-                                                                 (parse_term 
-                                                                      "b:B") 
-                                                                 MP_TAC))
-                                                |> THEN 
-                                                <| DISCH_THEN
-                                                       (MP_TAC 
-                                                        << AP_TERM
-                                                               (parse_term 
-                                                                    "ABS_prod:(A->B->bool)->A#B"))
-                                                |> THEN 
-                                                <| REWRITE_TAC 
-                                                       [CONJUNCT1 prod_tybij]
-                                                |> THEN <| DISCH_THEN SUBST1_TAC
-                                                |> THEN 
-                                                <| MAP_EVERY EXISTS_TAC 
-                                                       [(parse_term @"a:A")
-                                                        (parse_term @"b:B")]
-                                                |> THEN <| REFL_TAC)
+    prove(
+        (parse_term @"!p:A#B. ?x y. p = x,y"),
+        GEN_TAC
+        |> THEN <| REWRITE_TAC [COMMA_DEF]
+        |> THEN <| MP_TAC (SPEC (parse_term "REP_prod p :A->B->bool") (CONJUNCT2 prod_tybij))
+        |> THEN <| REWRITE_TAC [CONJUNCT1 prod_tybij]
+        |> THEN <| DISCH_THEN
+                (X_CHOOSE_THEN
+                    (parse_term @"a:A") 
+                    (X_CHOOSE_THEN (parse_term "b:B") MP_TAC))
+        |> THEN <| DISCH_THEN
+                (MP_TAC << AP_TERM (parse_term "ABS_prod:(A->B->bool)->A#B"))
+        |> THEN <| REWRITE_TAC 
+                [CONJUNCT1 prod_tybij]
+        |> THEN <| DISCH_THEN SUBST1_TAC
+        |> THEN <| MAP_EVERY EXISTS_TAC 
+                [(parse_term @"a:A")
+                 (parse_term @"b:B")]
+        |> THEN <| REFL_TAC)
 
 let FST = 
     prove
@@ -181,8 +161,7 @@ let PAIR =
     prove
         ((parse_term @"!x:A#B. FST x,SND x = x"), 
          GEN_TAC
-         |> THEN 
-         <| (X_CHOOSE_THEN (parse_term @"a:A") 
+         |> THEN <| (X_CHOOSE_THEN (parse_term @"a:A") 
                  (X_CHOOSE_THEN (parse_term @"b:B") SUBST1_TAC) 
                  (SPEC (parse_term @"x:A#B") PAIR_SURJECTIVE))
          |> THEN <| REWRITE_TAC [FST; SND])
@@ -426,8 +405,7 @@ let FORALL_UNCURRY =
          |> THEN <| SIMP_TAC []
          |> THEN <| DISCH_TAC
          |> THEN <| X_GEN_TAC(parse_term @"f:A->B->C")
-         |> THEN 
-         <| FIRST_ASSUM(MP_TAC << SPEC(parse_term @"\(a,b). (f:A->B->C) a b"))
+         |> THEN <| FIRST_ASSUM(MP_TAC << SPEC(parse_term @"\(a,b). (f:A->B->C) a b"))
          |> THEN <| SIMP_TAC [ETA_AX])
 
 let EXISTS_UNCURRY = 
