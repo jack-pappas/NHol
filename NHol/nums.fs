@@ -2,7 +2,7 @@
 
 Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
-Copyright 2013 Jack Pappas, Eric Taucher
+Copyright 2013 Jack Pappas, Eric Taucher, Domenico Masini
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ open trivia
 open canon
 open meson
 open quot
-open pair
+//open pair
 
 new_type("ind", 0)
 
