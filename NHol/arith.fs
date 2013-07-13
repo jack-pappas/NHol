@@ -298,7 +298,7 @@ let EXP_EQ_1 =
 
 let EXP_ZERO = 
     prove
-        ((parse_term @"!n. 0 EXP n = if n = 0 then 1 else 0"), //((parse_term @"!n. 0 EXP n = if n = 0 |>THEN<| 1 else 0"), 
+        ((parse_term @"!n. 0 EXP n = if n = 0 then 1 else 0"), 
          GEN_TAC
          |> THEN <| COND_CASES_TAC
          |> THEN <| ASM_REWRITE_TAC [EXP_EQ_0; EXP_EQ_1])
