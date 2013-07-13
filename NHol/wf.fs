@@ -61,16 +61,14 @@ parse_as_infix("<<", (12, "right"))
 (* ------------------------------------------------------------------------- *)
 let WF = 
     new_definition
-        (parse_term 
-             @"WF(<<) <=> !P:A->bool. (?x. P(x)) ==> (?x. P(x) /\ !y. y << x ==> ~P(y))")
+        (parse_term @"WF(<<) <=> !P:A->bool. (?x. P(x)) ==> (?x. P(x) /\ !y. y << x ==> ~P(y))")
 
 (* ------------------------------------------------------------------------- *)
 (* Strengthen it to equality.                                                *)
 (* ------------------------------------------------------------------------- *)
 let WF_EQ = 
     prove
-        ((parse_term 
-              @"WF(<<) <=> !P:A->bool. (?x. P(x)) <=> (?x. P(x) /\ !y. y << x ==> ~P(y))"), 
+        ((parse_term @"WF(<<) <=> !P:A->bool. (?x. P(x)) <=> (?x. P(x) /\ !y. y << x ==> ~P(y))"), 
          REWRITE_TAC [WF]
          |> THEN <| MESON_TAC [])
 
@@ -79,8 +77,7 @@ let WF_EQ =
 (* ------------------------------------------------------------------------- *)
 let WF_IND = 
     prove
-        ((parse_term 
-              @"WF(<<) <=> !P:A->bool. (!x. (!y. y << x ==> P(y)) ==> P(x)) ==> !x. P(x)"), 
+        ((parse_term @"WF(<<) <=> !P:A->bool. (!x. (!y. y << x ==> P(y)) ==> P(x)) ==> !x. P(x)"), 
          REWRITE_TAC [WF]
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
@@ -118,8 +115,7 @@ let WF_DCHAIN =
                       |> THEN 
                       <| CHOOSE_TAC
                              (prove_recursive_functions_exist num_RECURSION 
-                                  (parse_term 
-                                       "(s(0) = a:A) /\ (!n. s(SUC n) = f(s n))"))
+                                  (parse_term @"(s(0) = a:A) /\ (!n. s(SUC n) = f(s n))"))
                       |> THEN <| EXISTS_TAC(parse_term @"s:num->A")
                       |> THEN <| ASM_REWRITE_TAC []
                       |> THEN 
@@ -180,8 +176,7 @@ let WF_REC_INVARIANT =
               ==> ?f:A->B. !x. (f x = H f x)"),
              let lemma = 
                  prove_inductive_relations_exist
-                     (parse_term 
-                          "!f:A->B x. (!z. z << x ==> R z (f z)) ==> R x (H f x)")
+                     (parse_term @"!f:A->B x. (!z. z << x ==> R z (f z)) ==> R x (H f x)")
              REWRITE_TAC [WF_IND]
              |> THEN <| REPEAT STRIP_TAC
              |> THEN 
@@ -345,8 +340,7 @@ let WF_POINTWISE = Sequent([],parse_term @"WF((<<) :A->A->bool) /\ WF((<<<) :B->
 //   |> THEN <| MATCH_MP_TAC(GEN_ALL WF_SUBSET)
 //   |> THEN 
 //   <| EXISTS_TAC
-//          (parse_term 
-//               @"\(x1,y1) (x2,y2). x1 << x2 \/ (x1:A = x2) /\ (y1:B) <<< (y2:B)")
+//          (parse_term @"\(x1,y1) (x2,y2). x1 << x2 \/ (x1:A = x2) /\ (y1:B) <<< (y2:B)")
 //   |> THEN <| CONJ_TAC
 //   |> THENL <| [REWRITE_TAC [FORALL_PAIR_THM]
 //                |> THEN <| CONV_TAC TAUT
@@ -390,8 +384,7 @@ let WF_REFL =
                                                      <| DISCH_THEN
                                                             (MP_TAC 
                                                              << SPEC
-                                                                    (parse_term 
-                                                                         "\y:A. y = x"))
+                                                                    (parse_term @"\y:A. y = x"))
                                                      |> THEN <| REWRITE_TAC []
                                                      |> THEN <| MESON_TAC [])
 
@@ -412,8 +405,7 @@ let WF_REC_TAIL =
                   MESON_TAC [num_CASES; NOT_SUC])
          let lemma2 = 
              prove
-                 ((parse_term 
-                       @"(P 0) ==> ((!m. m < n ==> P(SUC m)) <=> (!m. m < SUC n ==> P(m)))"), 
+                 ((parse_term @"(P 0) ==> ((!m. m < n ==> P(SUC m)) <=> (!m. m < SUC n ==> P(m)))"), 
                   REPEAT(DISCH_TAC
                          |> ORELSE <| EQ_TAC)
                   |> THEN <| INDUCT_TAC

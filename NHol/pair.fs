@@ -93,8 +93,7 @@ let prod_tybij =
 
 let REP_ABS_PAIR = 
     prove
-        ((parse_term 
-              "!(x:A) (y:B). REP_prod (ABS_prod (mk_pair x y)) = mk_pair x y"), 
+        ((parse_term @"!(x:A) (y:B). REP_prod (ABS_prod (mk_pair x y)) = mk_pair x y"), 
          MESON_TAC [prod_tybij])
 
 parse_as_infix(",", (14, "right"))
@@ -127,8 +126,7 @@ let PAIR_SURJECTIVE =
                                                 |> THEN 
                                                 <| MP_TAC
                                                        (SPEC 
-                                                            (parse_term 
-                                                                 "REP_prod p :A->B->bool") 
+                                                            (parse_term @"REP_prod p :A->B->bool") 
                                                             (CONJUNCT2 
                                                                  prod_tybij))
                                                 |> THEN 
@@ -139,15 +137,13 @@ let PAIR_SURJECTIVE =
                                                        (X_CHOOSE_THEN 
                                                             (parse_term @"a:A") 
                                                             (X_CHOOSE_THEN 
-                                                                 (parse_term 
-                                                                      "b:B") 
+                                                                 (parse_term @"b:B") 
                                                                  MP_TAC))
                                                 |> THEN 
                                                 <| DISCH_THEN
                                                        (MP_TAC 
                                                         << AP_TERM
-                                                               (parse_term 
-                                                                    "ABS_prod:(A->B->bool)->A#B"))
+                                                               (parse_term @"ABS_prod:(A->B->bool)->A#B"))
                                                 |> THEN 
                                                 <| REWRITE_TAC 
                                                        [CONJUNCT1 prod_tybij]

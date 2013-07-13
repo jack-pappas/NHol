@@ -363,8 +363,7 @@ let PSUBSET_UNIV =
         ((parse_term @"!s:A->bool. s PSUBSET UNIV <=> ?x. ~(x IN s)"), SET_TAC [])
 let PSUBSET_ALT = 
     prove
-        ((parse_term 
-              "!s t:A->bool. s PSUBSET t <=> s SUBSET t /\ (?a. a IN t /\ ~(a IN s))"), 
+        ((parse_term @"!s t:A->bool. s PSUBSET t <=> s SUBSET t /\ (?a. a IN t /\ ~(a IN s))"), 
          REWRITE_TAC [PSUBSET]
          |> THEN <| SET_TAC [])
 
@@ -590,8 +589,7 @@ let DELETE_DELETE =
         ((parse_term @"!x:A. !s. (s DELETE x) DELETE x = s DELETE x"), SET_TAC [])
 let DELETE_COMM = 
     prove
-        ((parse_term 
-              "!x:A. !y. !s. (s DELETE x) DELETE y = (s DELETE y) DELETE x"), 
+        ((parse_term @"!x:A. !y. !s. (s DELETE x) DELETE y = (s DELETE y) DELETE x"), 
          SET_TAC [])
 let DELETE_SUBSET = 
     prove((parse_term @"!x:A. !s. (s DELETE x) SUBSET s"), SET_TAC [])
@@ -1044,15 +1042,13 @@ let FUNCTION_FACTORS_LEFT_GEN =
            (?h. !x. P x ==> f(x) = h(g x))"),
           ONCE_REWRITE_TAC 
               [MESON [] 
-                   (parse_term 
-                        "(!x. P x ==> f(x) = g(k x)) <=> (!y x. P x /\ y = k x ==> f x = g y)")]
+                   (parse_term @"(!x. P x ==> f(x) = g(k x)) <=> (!y x. P x /\ y = k x ==> f x = g y)")]
           |> THEN <| REWRITE_TAC [GSYM SKOLEM_THM]
           |> THEN <| MESON_TAC [])
 
 let FUNCTION_FACTORS_LEFT = 
     prove
-        ((parse_term 
-              "!f g. (!x y. (g x = g y) ==> (f x = f y)) <=> ?h. f = h << g"), 
+        ((parse_term @"!f g. (!x y. (g x = g y) ==> (f x = f y)) <=> ?h. f = h << g"), 
          REWRITE_TAC 
              [FUN_EQ_THM;
               o_THM;
@@ -2570,8 +2566,7 @@ let FINITE_PRODUCT_DEPENDENT =
        |> THEN <| CONJ_TAC
        |> THENL <| [MATCH_MP_TAC FINITE_IMAGE
                     MESON_TAC []]
-       |> THEN <| MAP_EVERY UNDISCH_TAC [(parse_term 
-                                              "!x:A. x IN s ==> FINITE(t x :B->bool)")
+       |> THEN <| MAP_EVERY UNDISCH_TAC [(parse_term @"!x:A. x IN s ==> FINITE(t x :B->bool)")
                                          (parse_term @"FINITE(s:A->bool)")]
        |> THEN <| MAP_EVERY (fun t -> SPEC_TAC(t, t)) [(parse_term 
                                                             "t:A->B->bool")
@@ -2597,8 +2592,7 @@ let FINITE_PRODUCT_DEPENDENT =
 
 let FINITE_PRODUCT = 
     prove
-        ((parse_term 
-              "!s t. FINITE s /\ FINITE t ==> FINITE {(x:A,y:B) | x IN s /\ y IN t}"), 
+        ((parse_term @"!s t. FINITE s /\ FINITE t ==> FINITE {(x:A,y:B) | x IN s /\ y IN t}"), 
          SIMP_TAC [FINITE_PRODUCT_DEPENDENT])
 
 let CARD_PRODUCT = 
@@ -2746,8 +2740,7 @@ let HAS_SIZE_FUNSPACE_UNIV =
 
 let CARD_FUNSPACE_UNIV = 
     prove
-        ((parse_term 
-              "FINITE(:A) /\ FINITE(:B) ==> CARD(:A->B) = CARD(:B) EXP CARD(:A)"), 
+        ((parse_term @"FINITE(:A) /\ FINITE(:B) ==> CARD(:A->B) = CARD(:B) EXP CARD(:A)"), 
          MESON_TAC [HAS_SIZE_FUNSPACE_UNIV; HAS_SIZE])
 let FINITE_FUNSPACE_UNIV = 
     prove
@@ -3033,12 +3026,10 @@ let FINITE_REAL_INTERVAL =
                       |> THEN <| REAL_ARITH_TAC
                       REWRITE_TAC 
                           [REAL_ARITH
-                               (parse_term 
-                                    "a:real <= x /\ x < b <=> (a < x /\ x < b) \/ ~(b <= a) /\ x = a")]
+                               (parse_term @"a:real <= x /\ x < b <=> (a < x /\ x < b) \/ ~(b <= a) /\ x = a")]
                       REWRITE_TAC 
                           [REAL_ARITH
-                               (parse_term 
-                                    "a:real < x /\ x <= b <=> (a < x /\ x < b) \/ ~(b <= a) /\ x = b")]
+                               (parse_term @"a:real < x /\ x <= b <=> (a < x /\ x < b) \/ ~(b <= a) /\ x = b")]
                       ASM_CASES_TAC(parse_term @"b:real = a")
                       |> THEN 
                       <| ASM_SIMP_TAC 
@@ -3299,8 +3290,7 @@ let SURJECTIVE_IFF_INJECTIVE_GEN =
                       |> THEN <| ASM_REWRITE_TAC []
                       |> THEN 
                       <| SUBGOAL_THEN 
-                             (parse_term 
-                                  "CARD s <= CARD (IMAGE (f:A->B) (s DELETE y))") 
+                             (parse_term @"CARD s <= CARD (IMAGE (f:A->B) (s DELETE y))") 
                              MP_TAC
                       |> THENL 
                       <| [ASM_REWRITE_TAC []

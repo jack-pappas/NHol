@@ -176,16 +176,14 @@ extend_basic_rewrites [REFL_CLAUSE;
                                              IMP_CLAUSES]) in IMP_EQ_CLAUSE);]
 extend_basic_congs 
     [ITAUT
-         (parse_term 
-              @"(p <=> p') ==> (p' ==> (q <=> q')) ==> (p ==> q <=> p' ==> q')")]
+         (parse_term @"(p <=> p') ==> (p' ==> (q <=> q')) ==> (p ==> q <=> p' ==> q')")]
 
 (* ------------------------------------------------------------------------- *)
 (* Rewrite rule for unique existence.                                        *)
 (* ------------------------------------------------------------------------- *)
 let EXISTS_UNIQUE_THM = 
     prove
-        ((parse_term 
-              @"!P. (?!x:A. P x) <=> (?x. P x) /\ (!x x'. P x /\ P x' ==> (x = x'))"), 
+        ((parse_term @"!P. (?!x:A. P x) <=> (?x. P x) /\ (!x x'. P x /\ P x' ==> (x = x'))"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_DEF])
 
@@ -384,8 +382,7 @@ let EXISTS_UNIQUE_ALT =
 
 let EXISTS_UNIQUE = 
     prove
-        ((parse_term 
-              @"!P:A->bool. (?!x. P x) <=> (?x. P x /\ !y. P y ==> (y = x))"), 
+        ((parse_term @"!P:A->bool. (?!x. P x) <=> (?x. P x /\ !y. P y ==> (y = x))"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_ALT]
          |> THEN <| AP_TERM_TAC

@@ -73,10 +73,10 @@ open iterate
 (* ------------------------------------------------------------------------- *)
 let dimindex = 
     new_definition
-        (parse_term "dimindex(s:A->bool) = if FINITE(:A) then CARD(:A) else 1")
+        (parse_term @"dimindex(s:A->bool) = if FINITE(:A) then CARD(:A) else 1")
 
 let DIMINDEX_NONZERO = 
-    prove((parse_term "!s:A->bool. ~(dimindex(s) = 0)"), GEN_TAC
+    prove((parse_term @"!s:A->bool. ~(dimindex(s) = 0)"), GEN_TAC
                                                          |> THEN 
                                                          <| REWRITE_TAC 
                                                                 [dimindex]
@@ -90,17 +90,17 @@ let DIMINDEX_NONZERO =
 
 let DIMINDEX_GE_1 = 
     prove
-        ((parse_term "!s:A->bool. 1 <= dimindex(s)"), 
-         REWRITE_TAC [ARITH_RULE(parse_term "1 <= x <=> ~(x = 0)")
+        ((parse_term @"!s:A->bool. 1 <= dimindex(s)"), 
+         REWRITE_TAC [ARITH_RULE(parse_term @"1 <= x <=> ~(x = 0)")
                       DIMINDEX_NONZERO])
 
 let DIMINDEX_UNIV = 
     prove
-        ((parse_term "!s. dimindex(s:A->bool) = dimindex(:A)"), 
+        ((parse_term @"!s. dimindex(s:A->bool) = dimindex(:A)"), 
          REWRITE_TAC [dimindex])
 let DIMINDEX_UNIQUE = 
     prove
-        ((parse_term "(:A) HAS_SIZE n ==> dimindex(:A) = n"), 
+        ((parse_term @"(:A) HAS_SIZE n ==> dimindex(:A) = n"), 
          MESON_TAC [dimindex; HAS_SIZE])
 
 (* ------------------------------------------------------------------------- *)
@@ -109,8 +109,8 @@ let DIMINDEX_UNIQUE =
 let finite_image_tybij = 
     new_type_definition "finite_image" ("finite_index", "dest_finite_image") 
         (prove
-             ((parse_term "?x. x IN 1..dimindex(:A)"), 
-              EXISTS_TAC(parse_term "1")
+             ((parse_term @"?x. x IN 1..dimindex(:A)"), 
+              EXISTS_TAC(parse_term @"1")
               |> THEN <| REWRITE_TAC [IN_NUMSEG; LE_REFL; DIMINDEX_GE_1]))
 
 let FINITE_IMAGE_IMAGE = 
@@ -141,7 +141,7 @@ let CARD_FINITE_IMAGE =
          MESON_TAC [HAS_SIZE_FINITE_IMAGE; HAS_SIZE])
 let FINITE_FINITE_IMAGE = 
     prove
-        ((parse_term "FINITE(UNIV:(A)finite_image->bool)"), 
+        ((parse_term @"FINITE(UNIV:(A)finite_image->bool)"), 
          MESON_TAC [HAS_SIZE_FINITE_IMAGE; HAS_SIZE])
 
 let DIMINDEX_FINITE_IMAGE = 
@@ -150,23 +150,23 @@ let DIMINDEX_FINITE_IMAGE =
               "!s t. dimindex(s:(A)finite_image->bool) = dimindex(t:A->bool)"), 
          REPEAT GEN_TAC
          |> THEN <| GEN_REWRITE_TAC LAND_CONV [dimindex]
-         |> THEN <| MP_TAC(ISPEC (parse_term "t:A->bool") HAS_SIZE_FINITE_IMAGE)
+         |> THEN <| MP_TAC(ISPEC (parse_term @"t:A->bool") HAS_SIZE_FINITE_IMAGE)
          |> THEN <| SIMP_TAC [FINITE_FINITE_IMAGE; HAS_SIZE])
 
 let FINITE_INDEX_WORKS = 
-    prove((parse_term "!i:(A)finite_image.
+    prove((parse_term @"!i:(A)finite_image.
         ?!n. 1 <= n /\ n <= dimindex(:A) /\ (finite_index n = i)"),
         REWRITE_TAC [CONJ_ASSOC
                      GSYM IN_NUMSEG]
         |> THEN <| MESON_TAC [finite_image_tybij])
 
-let FINITE_INDEX_INJ = prove((parse_term "!i j. 1 <= i /\ i <= dimindex(:A) /\
+let FINITE_INDEX_INJ = prove((parse_term @"!i j. 1 <= i /\ i <= dimindex(:A) /\
          1 <= j /\ j <= dimindex(:A)
          ==> ((finite_index i :A finite_image = finite_index j) <=>
               (i = j))"), MESON_TAC [FINITE_INDEX_WORKS])
 
 let FORALL_FINITE_INDEX = 
-   prove((parse_term "(!k:(N)finite_image. P k) =
+   prove((parse_term @"(!k:(N)finite_image. P k) =
    (!i. 1 <= i /\ i <= dimindex(:N) ==> P(finite_index i))"), MESON_TAC [FINITE_INDEX_WORKS])
 
 (* ------------------------------------------------------------------------- *)
@@ -174,15 +174,15 @@ let FORALL_FINITE_INDEX =
 (* ------------------------------------------------------------------------- *)
 let cart_tybij = 
     new_type_definition "cart" ("mk_cart", "dest_cart") 
-        (prove((parse_term "?f:(B)finite_image->A. T"), REWRITE_TAC []))
+        (prove((parse_term @"?f:(B)finite_image->A. T"), REWRITE_TAC []))
 
 parse_as_infix("$", (25, "left"))
 
 let finite_index = 
-    new_definition(parse_term "x$i = dest_cart x (finite_index i)")
+    new_definition(parse_term @"x$i = dest_cart x (finite_index i)")
 
 let CART_EQ = 
-    prove((parse_term "!x:A^B y.
+    prove((parse_term @"!x:A^B y.
     (x = y) <=> !i. 1 <= i /\ i <= dimindex(:B) ==> (x$i = y$i)"), REPEAT GEN_TAC
     |> THEN <| REWRITE_TAC [finite_index
                             GSYM FORALL_FINITE_INDEX]
@@ -192,15 +192,15 @@ let CART_EQ =
 
 parse_as_binder "lambda"
 
-let lambda = new_definition(parse_term "(lambda) g =
+let lambda = new_definition(parse_term @"(lambda) g =
      @f:A^B. !i. 1 <= i /\ i <= dimindex(:B) ==> (f$i = g i)");;
 
 let LAMBDA_BETA = 
-    prove((parse_term "!i. 1 <= i /\ i <= dimindex(:B)
+    prove((parse_term @"!i. 1 <= i /\ i <= dimindex(:B)
        ==> (((lambda) g:A^B) $i = g i)"),
        REWRITE_TAC [lambda]
        |> THEN <| CONV_TAC SELECT_CONV
-       |> THEN <| EXISTS_TAC(parse_term "mk_cart(\k. g(@i. 1 <= i /\  i <= dimindex(:B) /\
+       |> THEN <| EXISTS_TAC(parse_term @"mk_cart(\k. g(@i. 1 <= i /\  i <= dimindex(:B) /\
                                 (finite_index i = k))):A^B")
        |> THEN <| REWRITE_TAC [finite_index
                                REWRITE_RULE [] cart_tybij]
@@ -211,13 +211,13 @@ let LAMBDA_BETA =
        |> THEN <| REWRITE_TAC []
        |> THEN <| ASM_MESON_TAC [FINITE_INDEX_INJ; DIMINDEX_FINITE_IMAGE])
 
-let LAMBDA_UNIQUE = prove((parse_term "!f:A^B g.
+let LAMBDA_UNIQUE = prove((parse_term @"!f:A^B g.
         (!i. 1 <= i /\ i <= dimindex(:B) ==> (f$i = g i)) <=>
         ((lambda) g = f)"), SIMP_TAC [CART_EQ; LAMBDA_BETA]
         |> THEN <| MESON_TAC [])
 let LAMBDA_ETA = 
     prove
-        ((parse_term "!g. (lambda i. g$i) = g"), 
+        ((parse_term @"!g. (lambda i. g$i) = g"), 
          REWRITE_TAC [CART_EQ; LAMBDA_BETA])
 
 (* ------------------------------------------------------------------------- *)
@@ -225,20 +225,20 @@ let LAMBDA_ETA =
 (* ------------------------------------------------------------------------- *)
 let FINITE_INDEX_INRANGE = 
     prove
-        ((parse_term "!i. ?k. 1 <= k /\ k <= dimindex(:N) /\ !x:A^N. x$i = x$k"), 
+        ((parse_term @"!i. ?k. 1 <= k /\ k <= dimindex(:N) /\ !x:A^N. x$i = x$k"), 
          REWRITE_TAC [finite_index]
          |> THEN <| MESON_TAC [FINITE_INDEX_WORKS])
 
 let FINITE_INDEX_INRANGE_2 = 
     prove
-        ((parse_term "!i. ?k. 1 <= k /\ k <= dimindex(:N) /\
+        ((parse_term @"!i. ?k. 1 <= k /\ k <= dimindex(:N) /\
            (!x:A^N. x$i = x$k) /\ (!y:B^N. y$i = y$k)"), 
          REWRITE_TAC [finite_index]
          |> THEN <| MESON_TAC [FINITE_INDEX_WORKS])
 
 let CART_EQ_FULL = 
     prove
-        ((parse_term "!x y:A^N. x = y <=> !i. x$i = y$i"), 
+        ((parse_term @"!x y:A^N. x = y <=> !i. x$i = y$i"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| SIMP_TAC []
@@ -250,27 +250,27 @@ let CART_EQ_FULL =
 let finite_sum_tybij = 
     let th = 
         prove
-            ((parse_term "?x. x IN 1..(dimindex(:A) + dimindex(:B))"), 
-             EXISTS_TAC(parse_term "1")
+            ((parse_term @"?x. x IN 1..(dimindex(:A) + dimindex(:B))"), 
+             EXISTS_TAC(parse_term @"1")
              |> THEN 
              <| SIMP_TAC [IN_NUMSEG
                           LE_REFL
                           DIMINDEX_GE_1
-                          ARITH_RULE(parse_term "1 <= a ==> 1 <= a + b")])
+                          ARITH_RULE(parse_term @"1 <= a ==> 1 <= a + b")])
     new_type_definition "finite_sum" ("mk_finite_sum", "dest_finite_sum") th
 
-let pastecart = new_definition(parse_term "(pastecart:A^M->A^N->A^(M,N)finite_sum) f g =
+let pastecart = new_definition(parse_term @"(pastecart:A^M->A^N->A^(M,N)finite_sum) f g =
         lambda i. if i <= dimindex(:M) then f$i
                   else g$(i - dimindex(:M))");;
 
 let fstcart = 
     new_definition
-        (parse_term "(fstcart:A^(M,N)finite_sum->A^M) f = lambda i. f$i")
-let sndcart = new_definition(parse_term "(sndcart:A^(M,N)finite_sum->A^N) f =
+        (parse_term @"(fstcart:A^(M,N)finite_sum->A^M) f = lambda i. f$i")
+let sndcart = new_definition(parse_term @"(sndcart:A^(M,N)finite_sum->A^N) f =
         lambda i. f$(i + dimindex(:M))");;
 
 let FINITE_SUM_IMAGE = 
-    prove((parse_term "UNIV:(A,B)finite_sum->bool =
+    prove((parse_term @"UNIV:(A,B)finite_sum->bool =
        IMAGE mk_finite_sum (1..(dimindex(:A)+dimindex(:B)))"), REWRITE_TAC [EXTENSION; IN_UNIV; IN_IMAGE]
        |> THEN <| MESON_TAC [finite_sum_tybij])
 
@@ -286,24 +286,24 @@ let DIMINDEX_HAS_SIZE_FINITE_SUM =
 
 let DIMINDEX_FINITE_SUM = 
     prove
-        ((parse_term "dimindex(:(M,N)finite_sum) = dimindex(:M) + dimindex(:N)"), 
+        ((parse_term @"dimindex(:(M,N)finite_sum) = dimindex(:M) + dimindex(:N)"), 
          GEN_REWRITE_TAC LAND_CONV [dimindex]
          |> THEN 
          <| REWRITE_TAC [REWRITE_RULE [HAS_SIZE] DIMINDEX_HAS_SIZE_FINITE_SUM])
 
 let FSTCART_PASTECART = 
     prove
-        ((parse_term "!x y. fstcart(pastecart (x:A^M) (y:A^N)) = x"), 
+        ((parse_term @"!x y. fstcart(pastecart (x:A^M) (y:A^N)) = x"), 
          SIMP_TAC [pastecart
                    fstcart
                    CART_EQ
                    LAMBDA_BETA
                    DIMINDEX_FINITE_SUM
-                   ARITH_RULE(parse_term "a <= b ==> a <= b + c")])
+                   ARITH_RULE(parse_term @"a <= b ==> a <= b + c")])
 
 let SNDCART_PASTECART = 
     prove
-        ((parse_term "!x y. sndcart(pastecart (x:A^M) (y:A^N)) = y"), 
+        ((parse_term @"!x y. sndcart(pastecart (x:A^M) (y:A^N)) = y"), 
          SIMP_TAC [pastecart; sndcart; CART_EQ; LAMBDA_BETA]
          |> THEN <| REPEAT STRIP_TAC
          |> THEN 
@@ -323,11 +323,11 @@ let SNDCART_PASTECART =
              |> THEN <| REWRITE_TAC []
              |> THEN 
              <| ASM_SIMP_TAC [ADD_SUB
-                              ARITH_RULE(parse_term "1 <= i ==> ~(i + a <= a)")]])
+                              ARITH_RULE(parse_term @"1 <= i ==> ~(i + a <= a)")]])
 
 let PASTECART_FST_SND = 
     prove
-        ((parse_term "!z. pastecart (fstcart z) (sndcart z) = z"), 
+        ((parse_term @"!z. pastecart (fstcart z) (sndcart z) = z"), 
          SIMP_TAC [pastecart; fstcart; sndcart; CART_EQ; LAMBDA_BETA]
          |> THEN <| REPEAT GEN_TAC
          |> THEN <| COND_CASES_TAC
@@ -336,9 +336,9 @@ let PASTECART_FST_SND =
          <| ASM_SIMP_TAC 
                 [DIMINDEX_FINITE_SUM
                  LAMBDA_BETA
-                 ARITH_RULE(parse_term "i <= a + b ==> i - a <= b")
-                 ARITH_RULE(parse_term "~(i <= a) ==> 1 <= i - a")
-                 ARITH_RULE(parse_term "~(i <= a) ==> ((i - a) + a = i)")])
+                 ARITH_RULE(parse_term @"i <= a + b ==> i - a <= b")
+                 ARITH_RULE(parse_term @"~(i <= a) ==> 1 <= i - a")
+                 ARITH_RULE(parse_term @"~(i <= a) ==> ((i - a) + a = i)")])
 
 let PASTECART_EQ = 
     prove
@@ -347,11 +347,11 @@ let PASTECART_EQ =
          MESON_TAC [PASTECART_FST_SND])
 let FORALL_PASTECART = 
     prove
-        ((parse_term "(!p. P p) <=> !x y. P (pastecart x y)"), 
+        ((parse_term @"(!p. P p) <=> !x y. P (pastecart x y)"), 
          MESON_TAC [PASTECART_FST_SND; FSTCART_PASTECART; SNDCART_PASTECART])
 let EXISTS_PASTECART = 
     prove
-        ((parse_term "(?p. P p) <=> ?x y. P (pastecart x y)"), 
+        ((parse_term @"(?p. P p) <=> ?x y. P (pastecart x y)"), 
          MESON_TAC [PASTECART_FST_SND; FSTCART_PASTECART; SNDCART_PASTECART])
 let PASTECART_INJ = 
     prove
@@ -364,10 +364,10 @@ let PASTECART_INJ =
 (* ------------------------------------------------------------------------- *)
 let define_finite_type = 
     let lemma_pre = 
-        prove((parse_term "~(n = 0) ==> ?x. x IN 1..n"), DISCH_TAC
+        prove((parse_term @"~(n = 0) ==> ?x. x IN 1..n"), DISCH_TAC
                                                          |> THEN 
                                                          <| EXISTS_TAC
-                                                                (parse_term "1")
+                                                                (parse_term @"1")
                                                          |> THEN 
                                                          <| REWRITE_TAC 
                                                                 [IN_NUMSEG]
@@ -375,14 +375,14 @@ let define_finite_type =
                                                          <| POP_ASSUM MP_TAC
                                                          |> THEN <| ARITH_TAC)
     let lemma_post = 
-        prove((parse_term "(!a:A. mk(dest a) = a) /\ (!r. r IN 1..n <=> dest(mk r) = r)
+        prove((parse_term @"(!a:A. mk(dest a) = a) /\ (!r. r IN 1..n <=> dest(mk r) = r)
      ==> (:A) HAS_SIZE n"), REPEAT STRIP_TAC
-     |> THEN <| SUBGOAL_THEN (parse_term "(:A) = IMAGE mk (1..n)") SUBST1_TAC
+     |> THEN <| SUBGOAL_THEN (parse_term @"(:A) = IMAGE mk (1..n)") SUBST1_TAC
      |> THENL <| [REWRITE_TAC [EXTENSION; IN_IMAGE; IN_UNIV]
                   MATCH_MP_TAC HAS_SIZE_IMAGE_INJ]
      |> THEN <| ASM_MESON_TAC [HAS_SIZE_NUMSEG_1])
     let POST_RULE = MATCH_MP lemma_post
-    let n_tm = (parse_term "n:num")
+    let n_tm = (parse_term @"n:num")
     fun n -> 
         let ns = string n
         let ns' = "auto_define_finite_type_" + ns
@@ -395,8 +395,8 @@ let define_finite_type =
 (* ------------------------------------------------------------------------- *)
 let HAS_SIZE_1 = 
     prove
-        ((parse_term "(:1) HAS_SIZE 1"), 
-         SUBGOAL_THEN (parse_term "(:1) = {one}") SUBST1_TAC
+        ((parse_term @"(:1) HAS_SIZE 1"), 
+         SUBGOAL_THEN (parse_term @"(:1) = {one}") SUBST1_TAC
          |> THENL 
          <| [REWRITE_TAC [EXTENSION; IN_UNIV; IN_SING]
              |> THEN <| MESON_TAC [one]
@@ -414,28 +414,28 @@ let DIMINDEX_3 = MATCH_MP DIMINDEX_UNIQUE HAS_SIZE_3
 (* ------------------------------------------------------------------------- *)
 let FINITE_CART = 
     prove
-        ((parse_term "!P. (!i. 1 <= i /\ i <= dimindex(:N) ==> FINITE {x | P i x})
+        ((parse_term @"!P. (!i. 1 <= i /\ i <= dimindex(:N) ==> FINITE {x | P i x})
        ==> FINITE {v:A^N | !i. 1 <= i /\ i <= dimindex(:N) ==> P i (v$i)}"),
          GEN_TAC
          |> THEN <| DISCH_TAC
-         |> THEN <| SUBGOAL_THEN (parse_term "!n. n <= dimindex(:N)
+         |> THEN <| SUBGOAL_THEN (parse_term @"!n. n <= dimindex(:N)
         ==> FINITE {v:A^N | (!i. 1 <= i /\ i <= dimindex(:N) /\ i <= n
                                  ==> P i (v$i)) /\
                             (!i. 1 <= i /\ i <= dimindex(:N) /\ n < i
                                  ==> v$i = @x. F)}")
-                                 (MP_TAC << SPEC(parse_term "dimindex(:N)"))
+                                 (MP_TAC << SPEC(parse_term @"dimindex(:N)"))
          |> THEN <| REWRITE_TAC [LE_REFL; LET_ANTISYM]
          |> THEN <| INDUCT_TAC
          |> THENL <| 
-           [REWRITE_TAC [ARITH_RULE (parse_term "1 <= i /\ i <= n /\ i <= 0 <=> F")] |> THEN <| 
+           [REWRITE_TAC [ARITH_RULE (parse_term @"1 <= i /\ i <= n /\ i <= 0 <=> F")] |> THEN <| 
             SIMP_TAC [ARITH_RULE (parse_term  "1 <= i /\ i <= n /\ 0 < i <=> 1 <= i /\ i <= n")] |> THEN <| 
-            SUBGOAL_THEN (parse_term "{v | !i. 1 <= i /\ i <= dimindex (:N) ==> v$i = (@x. F)} = {(lambda i. @x. F):A^N}")
+            SUBGOAL_THEN (parse_term @"{v | !i. 1 <= i /\ i <= dimindex (:N) ==> v$i = (@x. F)} = {(lambda i. @x. F):A^N}")
               (fun th -> SIMP_TAC [FINITE_RULES; th]) |> THEN <| 
              SIMP_TAC [EXTENSION; IN_SING; IN_ELIM_THM; CART_EQ; LAMBDA_BETA] 
             ALL_TAC]
          |> THEN <| DISCH_TAC
          |> THEN <| MATCH_MP_TAC FINITE_SUBSET
-         |> THEN <| EXISTS_TAC(parse_term "IMAGE (\(x:A,v:A^N). (lambda i. if i = SUC n then x else v$i):A^N)
+         |> THEN <| EXISTS_TAC(parse_term @"IMAGE (\(x:A,v:A^N). (lambda i. if i = SUC n then x else v$i):A^N)
           {x,v | x IN {x:A | P (SUC n) x} /\
                  v IN {v:A^N | (!i. 1 <= i /\ i <= dimindex(:N) /\ i <= n
                                 ==> P i (v$i)) /\
@@ -446,27 +446,27 @@ let FINITE_CART =
                       |> THEN 
                       <| ASM_SIMP_TAC 
                              [FINITE_PRODUCT
-                              ARITH_RULE(parse_term "1 <= SUC n")
-                              ARITH_RULE(parse_term "SUC n <= m ==> n <= m")]
+                              ARITH_RULE(parse_term @"1 <= SUC n")
+                              ARITH_RULE(parse_term @"SUC n <= m ==> n <= m")]
                       ALL_TAC]
          |> THEN 
          <| REWRITE_TAC [SUBSET; IN_IMAGE; IN_ELIM_PAIR_THM; EXISTS_PAIR_THM]
-         |> THEN <| X_GEN_TAC(parse_term "v:A^N")
+         |> THEN <| X_GEN_TAC(parse_term @"v:A^N")
          |> THEN <| REWRITE_TAC [IN_ELIM_THM]
          |> THEN <| STRIP_TAC
-         |> THEN <| EXISTS_TAC(parse_term "(v:A^N)$(SUC n)")
+         |> THEN <| EXISTS_TAC(parse_term @"(v:A^N)$(SUC n)")
          |> THEN 
          <| EXISTS_TAC
                 (parse_term 
                      "(lambda i. if i = SUC n then @x. F else (v:A^N)$i):A^N")
          |> THEN <| SIMP_TAC [CART_EQ
                               LAMBDA_BETA
-                              ARITH_RULE(parse_term "i <= n ==> ~(i = SUC n)")]
+                              ARITH_RULE(parse_term @"i <= n ==> ~(i = SUC n)")]
          |> THEN 
          <| ASM_MESON_TAC 
                 [LE
-                 ARITH_RULE(parse_term "1 <= SUC n")
-                 ARITH_RULE(parse_term "n < i /\ ~(i = SUC n) ==> SUC n < i")])
+                 ARITH_RULE(parse_term @"1 <= SUC n")
+                 ARITH_RULE(parse_term @"n < i /\ ~(i = SUC n) ==> SUC n < i")])
 
 (* ------------------------------------------------------------------------- *)
 (* More cardinality results for whole universe.                              *)
@@ -486,8 +486,7 @@ let HAS_SIZE_CART_UNIV =
                       DISCH_THEN
                           (MP_TAC 
                            << ISPEC
-                                  (parse_term 
-                                       "mk_cart:((N)finite_image->A)->A^N") 
+                                  (parse_term @"mk_cart:((N)finite_image->A)->A^N") 
                            << MATCH_MP
                                   (REWRITE_RULE [IMP_CONJ_ALT] 
                                        HAS_SIZE_IMAGE_INJ))
@@ -503,18 +502,18 @@ let HAS_SIZE_CART_UNIV =
 
 let CARD_CART_UNIV = 
     prove
-        ((parse_term "FINITE(:A) ==> CARD(:A^N) = CARD(:A) EXP dimindex(:N)"), 
+        ((parse_term @"FINITE(:A) ==> CARD(:A^N) = CARD(:A) EXP dimindex(:N)"), 
          MESON_TAC [HAS_SIZE_CART_UNIV; HAS_SIZE])
 let FINITE_CART_UNIV = 
     prove
-        ((parse_term "FINITE(:A) ==> FINITE(:A^N)"), 
+        ((parse_term @"FINITE(:A) ==> FINITE(:A^N)"), 
          MESON_TAC [HAS_SIZE_CART_UNIV; HAS_SIZE])
 
 (* ------------------------------------------------------------------------- *)
 (* Explicit construction of a vector from a list of components.              *)
 (* ------------------------------------------------------------------------- *)
 let vector = 
-    new_definition(parse_term "(vector l):A^N = lambda i. EL (i - 1) l")
+    new_definition(parse_term @"(vector l):A^N = lambda i. EL (i - 1) l")
 
 (* ------------------------------------------------------------------------- *)
 (* Convenient set membership elimination theorem.                            *)
@@ -537,36 +536,34 @@ let PCROSS =
         (parse_term 
              "s PCROSS t = {pastecart (x:A^M) (y:A^N) | x IN s /\ y IN t}")
 
-let FORALL_IN_PCROSS = prove((parse_term "(!z. z IN s PCROSS t ==> P z) <=>
+let FORALL_IN_PCROSS = prove((parse_term @"(!z. z IN s PCROSS t ==> P z) <=>
    (!x y. x IN s /\ y IN t ==> P(pastecart x y))"), REWRITE_TAC [PCROSS; FORALL_IN_GSPEC])
-let EXISTS_IN_PCROSS = prove((parse_term "(?z. z IN s PCROSS t /\ P z) <=>
+let EXISTS_IN_PCROSS = prove((parse_term @"(?z. z IN s PCROSS t /\ P z) <=>
    (?x y. x IN s /\ y IN t /\ P(pastecart x y))"), REWRITE_TAC [PCROSS; EXISTS_IN_GSPEC; CONJ_ASSOC])
 let PASTECART_IN_PCROSS = 
     prove
-        ((parse_term 
-              "!s t x y. (pastecart x y) IN (s PCROSS t) <=> x IN s /\ y IN t"), 
+        ((parse_term @"!s t x y. (pastecart x y) IN (s PCROSS t) <=> x IN s /\ y IN t"), 
          REWRITE_TAC [PCROSS; IN_ELIM_PASTECART_THM])
 let PCROSS_EQ_EMPTY = 
     prove
-        ((parse_term "!s t. s PCROSS t = {} <=> s = {} \/ t = {}"), 
+        ((parse_term @"!s t. s PCROSS t = {} <=> s = {} \/ t = {}"), 
          REWRITE_TAC [PCROSS]
          |> THEN <| SET_TAC [])
 let PCROSS_EMPTY = 
     prove
-        ((parse_term "(!s. s PCROSS {} = {}) /\ (!t. {} PCROSS t = {})"), 
+        ((parse_term @"(!s. s PCROSS {} = {}) /\ (!t. {} PCROSS t = {})"), 
          REWRITE_TAC [PCROSS_EQ_EMPTY])
-let SUBSET_PCROSS = prove((parse_term "!s t s' t'. s PCROSS t SUBSET s' PCROSS t' <=>
+let SUBSET_PCROSS = prove((parse_term @"!s t s' t'. s PCROSS t SUBSET s' PCROSS t' <=>
                 s = {} \/ t = {} \/ s SUBSET s' /\ t SUBSET t'"), SIMP_TAC [PCROSS; EXTENSION; IN_ELIM_PASTECART_THM; SUBSET; 
                      FORALL_PASTECART; PASTECART_IN_PCROSS; NOT_IN_EMPTY]
                 |> THEN <| MESON_TAC [])
 let PCROSS_MONO = 
     prove
-        ((parse_term 
-              "!s t s' t'. s SUBSET s' /\ t SUBSET t' ==> s PCROSS t SUBSET s' PCROSS t'"), 
+        ((parse_term @"!s t s' t'. s SUBSET s' /\ t SUBSET t' ==> s PCROSS t SUBSET s' PCROSS t'"), 
          SIMP_TAC [SUBSET_PCROSS])
 
 let PCROSS_EQ = 
-    prove((parse_term "!s s':real^M->bool t t':real^N->bool.
+    prove((parse_term @"!s s':real^M->bool t t':real^N->bool.
         s PCROSS t = s' PCROSS t' <=>
         (s = {} \/ t = {}) /\ (s' = {} \/ t' = {}) \/ s = s' /\ t = t'"),
         REWRITE_TAC [GSYM SUBSET_ANTISYM_EQ
@@ -575,36 +572,36 @@ let PCROSS_EQ =
 
 let UNIV_PCROSS_UNIV = 
     prove
-        ((parse_term "(:A^M) PCROSS (:A^N) = (:A^(M,N)finite_sum)"), 
+        ((parse_term @"(:A^M) PCROSS (:A^N) = (:A^(M,N)finite_sum)"), 
          REWRITE_TAC [EXTENSION; FORALL_PASTECART; PASTECART_IN_PCROSS; IN_UNIV])
 
 let HAS_SIZE_PCROSS = 
     prove
-        ((parse_term "!(s:A^M->bool) (t:A^N->bool) m n.
+        ((parse_term @"!(s:A^M->bool) (t:A^N->bool) m n.
         s HAS_SIZE m /\ t HAS_SIZE n ==> (s PCROSS t) HAS_SIZE (m * n)"),
          REPEAT GEN_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP HAS_SIZE_PRODUCT)
          |> THEN <| MATCH_MP_TAC EQ_IMP
-         |> THEN <| SPEC_TAC((parse_term "m * n:num"), (parse_term "k:num"))
+         |> THEN <| SPEC_TAC((parse_term @"m * n:num"), (parse_term @"k:num"))
          |> THEN <| MATCH_MP_TAC BIJECTIONS_HAS_SIZE_EQ
-         |> THEN <| EXISTS_TAC(parse_term "\(x:A^M,y:A^N). pastecart x y")
+         |> THEN <| EXISTS_TAC(parse_term @"\(x:A^M,y:A^N). pastecart x y")
          |> THEN 
-         <| EXISTS_TAC(parse_term "\z:A^(M,N)finite_sum. fstcart z,sndcart z")
+         <| EXISTS_TAC(parse_term @"\z:A^(M,N)finite_sum. fstcart z,sndcart z")
          |> THEN <| REWRITE_TAC [FORALL_IN_GSPEC; PASTECART_IN_PCROSS]
          |> THEN <| REWRITE_TAC [IN_ELIM_PAIR_THM; PASTECART_FST_SND]
          |> THEN 
          <| REWRITE_TAC [FORALL_IN_PCROSS; FSTCART_PASTECART; SNDCART_PASTECART])
 
-let FINITE_PCROSS = prove((parse_term "!(s:A^M->bool) (t:A^N->bool).
+let FINITE_PCROSS = prove((parse_term @"!(s:A^M->bool) (t:A^N->bool).
         FINITE s /\ FINITE t ==> FINITE(s PCROSS t)"), MESON_TAC [REWRITE_RULE [HAS_SIZE] HAS_SIZE_PCROSS])
 
 let FINITE_PCROSS_EQ = 
-    prove((parse_term "!(s:A^M->bool) (t:A^N->bool).
+    prove((parse_term @"!(s:A^M->bool) (t:A^N->bool).
         FINITE(s PCROSS t) <=> s = {} \/ t = {} \/ FINITE s /\ FINITE t"),
         REPEAT GEN_TAC
-        |> THEN <| MAP_EVERY ASM_CASES_TAC [(parse_term "s:A^M->bool = {}")
-                                            (parse_term "t:A^N->bool = {}")]
+        |> THEN <| MAP_EVERY ASM_CASES_TAC [(parse_term @"s:A^M->bool = {}")
+                                            (parse_term @"t:A^N->bool = {}")]
         |> THEN <| ASM_REWRITE_TAC [PCROSS_EMPTY; FINITE_EMPTY]
         |> THEN <| EQ_TAC
         |> THEN <| SIMP_TAC [FINITE_PCROSS]
@@ -625,7 +622,7 @@ let FINITE_PCROSS_EQ =
         |> THEN <| ASM SET_TAC [])
 
 let IMAGE_FSTCART_PCROSS = 
-    prove((parse_term "!s:real^M->bool t:real^N->bool.
+    prove((parse_term @"!s:real^M->bool t:real^N->bool.
         IMAGE fstcart (s PCROSS t) = if t = {} then {} else s"),
         REPEAT GEN_TAC
         |> THEN <| COND_CASES_TAC
@@ -636,7 +633,7 @@ let IMAGE_FSTCART_PCROSS =
         |> THEN <| ASM SET_TAC [])
 
 let IMAGE_SNDCART_PCROSS = 
-    prove((parse_term "!s:real^M->bool t:real^N->bool.
+    prove((parse_term @"!s:real^M->bool t:real^N->bool.
         IMAGE sndcart (s PCROSS t) = if s = {} then {} else t"),
         REPEAT GEN_TAC
         |> THEN <| COND_CASES_TAC

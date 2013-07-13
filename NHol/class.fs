@@ -199,7 +199,7 @@ let EXCLUDED_MIDDLE =
     prove
         ((parse_term @"!t. t \/ ~t"), 
          GEN_TAC
-         |> THEN <| SUBGOAL_THEN (parse_term "(((@x. (x <=> F) \/ t) <=> F) \/ t) /\ (((@x. (x <=> T) \/ t) <=> T) \/ t)") MP_TAC
+         |> THEN <| SUBGOAL_THEN (parse_term @"(((@x. (x <=> F) \/ t) <=> F) \/ t) /\ (((@x. (x <=> T) \/ t) <=> T) \/ t)") MP_TAC
          |> THENL 
          <| [CONJ_TAC
              |> THEN <| CONV_TAC SELECT_CONV
@@ -254,8 +254,7 @@ let TAUT_001 =
 (* ------------------------------------------------------------------------- *)
 let DE_MORGAN_THM = 
     TAUT_001
-        (parse_term 
-             "!t1 t2. (~(t1 /\ t2) <=> ~t1 \/ ~t2) /\ (~(t1 \/ t2) <=> ~t1 /\ ~t2)")
+        (parse_term @"!t1 t2. (~(t1 /\ t2) <=> ~t1 \/ ~t2) /\ (~(t1 \/ t2) <=> ~t1 /\ ~t2)")
 
 let NOT_CLAUSES = 
     TAUT_001(parse_term @"(!t. ~ ~t <=> t) /\ (~T <=> F) /\ (~F <=> T)")
@@ -456,24 +455,21 @@ let COND_ID =
 
 let COND_RAND = 
   prove
-    ((parse_term 
-          "!b (f:A->B) x y. f (if b then x else y) = (if b then f x else f y)"), 
+    ((parse_term @"!b (f:A->B) x y. f (if b then x else y) = (if b then f x else f y)"), 
      REPEAT GEN_TAC
      |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
      |> THEN <| REWRITE_TAC [])
 
 let COND_RATOR = 
   prove
-    ((parse_term 
-          "!b (f:A->B) g x. (if b then f else g)(x) = (if b then f x else g x)"), 
+    ((parse_term @"!b (f:A->B) g x. (if b then f else g)(x) = (if b then f x else g x)"), 
      REPEAT GEN_TAC
      |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
      |> THEN <| REWRITE_TAC [])
 
 let COND_ABS = 
   prove
-    ((parse_term 
-          "!b (f:A->B) g. (\x. if b then f x else g x) = (if b then f else g)"), 
+    ((parse_term @"!b (f:A->B) g. (\x. if b then f x else g x) = (if b then f else g)"), 
      REPEAT GEN_TAC
      |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
      |> THEN <| REWRITE_TAC [ETA_AX])
@@ -501,8 +497,7 @@ let TAUT =
 (* ------------------------------------------------------------------------- *)
 let MONO_COND = 
     prove
-        ((parse_term 
-              "(A ==> B) /\ (C ==> D) ==> (if b then A else C) ==> (if b then B else D)"), 
+        ((parse_term @"(A ==> B) /\ (C ==> D) ==> (if b then A else C) ==> (if b then B else D)"), 
          STRIP_TAC
          |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
          |> THEN <| ASM_REWRITE_TAC [])
@@ -514,8 +509,7 @@ monotonicity_theorems := MONO_COND :: (!monotonicity_theorems)
 (* ------------------------------------------------------------------------- *)
 let COND_ELIM_THM = 
     prove
-        ((parse_term 
-              "(P:A->bool) (if c then x else y) <=> (c ==> P x) /\ (~c ==> P y)"), 
+        ((parse_term @"(P:A->bool) (if c then x else y) <=> (c ==> P x) /\ (~c ==> P y)"), 
          BOOL_CASES_TAC(parse_term @"c:bool")
          |> THEN <| REWRITE_TAC [])
 
@@ -556,8 +550,7 @@ let SKOLEM_THM =
 (* ------------------------------------------------------------------------- *)
 let UNIQUE_SKOLEM_ALT = 
     prove
-        ((parse_term 
-              "!P:A->B->bool. (!x. ?!y. P x y) <=> ?f. !x y. P x y <=> (f x = y)"), 
+        ((parse_term @"!P:A->B->bool. (!x. ?!y. P x y) <=> ?f. !x y. P x y <=> (f x = y)"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_ALT; SKOLEM_THM])
 

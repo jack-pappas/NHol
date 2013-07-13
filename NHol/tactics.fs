@@ -1050,8 +1050,8 @@ let RECALL_ACCEPT_TAC r a g = ACCEPT_TAC (time r a) g
 
 /// Split off antecedent of antecedent of goal as a new subgoal.
 let ANTS_TAC =
-    let tm1 = (parse_term "p /\ (q ==> r)")
-    let tm2 = (parse_term "p ==> q")
+    let tm1 = (parse_term @"p /\ (q ==> r)")
+    let tm2 = (parse_term @"p ==> q")
     let th1,th2 = CONJ_PAIR(ASSUME tm1)
     let th = itlist DISCH [tm1;tm2] (MP th2 (MP(ASSUME tm2) th1))
     MATCH_MP_TAC th |> THEN <| CONJ_TAC

@@ -833,8 +833,7 @@ let LE_SQUARE_REFL =
 (* ------------------------------------------------------------------------- *)
 let WLOG_LE = 
     prove
-        ((parse_term 
-              "(!m n. P m n <=> P n m) /\ (!m n. m <= n ==> P m n) ==> !m n. P m n"), 
+        ((parse_term @"(!m n. P m n <=> P n m) /\ (!m n. m <= n ==> P m n) ==> !m n. P m n"), 
          MESON_TAC [LE_CASES])
 
 let WLOG_LT = 
@@ -1470,8 +1469,7 @@ let DIVISION_0 =
 
 let DIVISION = 
     prove
-        ((parse_term 
-              "!m n. ~(n = 0) ==> (m = m DIV n * n + m MOD n) /\ m MOD n < n"), 
+        ((parse_term @"!m n. ~(n = 0) ==> (m = m DIV n * n + m MOD n) /\ m MOD n < n"), 
          MESON_TAC [DIVISION_0])
 let DIVISION_SIMP = 
     prove
@@ -1535,8 +1533,7 @@ let DIVMOD_UNIQ_LEMMA =
 
 let DIVMOD_UNIQ = 
     prove
-        ((parse_term 
-              "!m n q r. (m = q * n + r) /\ r < n ==> (m DIV n = q) /\ (m MOD n = r)"), 
+        ((parse_term @"!m n q r. (m = q * n + r) /\ r < n ==> (m DIV n = q) /\ (m MOD n = r)"), 
          REPEAT GEN_TAC
          |> THEN <| DISCH_THEN(CONJUNCTS_THEN ASSUME_TAC << GSYM)
          |> THEN <| MATCH_MP_TAC DIVMOD_UNIQ_LEMMA
@@ -1655,8 +1652,7 @@ let DIV_LT =
 
 let MOD_MOD = 
     prove
-        ((parse_term 
-              "!m n p. ~(n * p = 0) ==> ((m MOD (n * p)) MOD n = m MOD n)"), 
+        ((parse_term @"!m n p. ~(n * p = 0) ==> ((m MOD (n * p)) MOD n = m MOD n)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [MULT_EQ_0; DE_MORGAN_THM]
          |> THEN <| STRIP_TAC
@@ -1696,8 +1692,7 @@ let DIV_MULT2 =
 
 let MOD_MULT2 = 
     prove
-        ((parse_term 
-              "!m n p. ~(m * p = 0) ==> ((m * n) MOD (m * p) = m * n MOD p)"), 
+        ((parse_term @"!m n p. ~(m * p = 0) ==> ((m * n) MOD (m * p) = m * n MOD p)"), 
          REWRITE_TAC [MULT_EQ_0; DE_MORGAN_THM]
          |> THEN <| REPEAT STRIP_TAC
          |> THEN <| MATCH_MP_TAC MOD_UNIQ
@@ -1712,8 +1707,7 @@ let MOD_MULT2 =
 
 let MOD_EXISTS = 
     prove
-        ((parse_term 
-              "!m n. (?q. m = n * q) <=> if n = 0 then (m = 0) else (m MOD n = 0)"), 
+        ((parse_term @"!m n. (?q. m = n * q) <=> if n = 0 then (m = 0) else (m MOD n = 0)"), 
          REPEAT GEN_TAC
          |> THEN <| COND_CASES_TAC
          |> THEN <| ASM_REWRITE_TAC [MULT_CLAUSES]
@@ -1845,8 +1839,7 @@ let ODD_MOD =
 
 let MOD_MULT_RMOD = 
     prove
-        ((parse_term 
-              "!m n p. ~(n = 0) ==> ((m * (p MOD n)) MOD n = (m * p) MOD n)"), 
+        ((parse_term @"!m n p. ~(n = 0) ==> ((m * (p MOD n)) MOD n = (m * p) MOD n)"), 
          REPEAT STRIP_TAC
          |> THEN <| CONV_TAC SYM_CONV
          |> THEN <| MATCH_MP_TAC MOD_EQ
@@ -1860,20 +1853,17 @@ let MOD_MULT_RMOD =
 
 let MOD_MULT_LMOD = 
     prove
-        ((parse_term 
-              "!m n p. ~(n = 0) ==> (((m MOD n) * p) MOD n = (m * p) MOD n)"), 
+        ((parse_term @"!m n p. ~(n = 0) ==> (((m MOD n) * p) MOD n = (m * p) MOD n)"), 
          ONCE_REWRITE_TAC [MULT_SYM]
          |> THEN <| SIMP_TAC [MOD_MULT_RMOD])
 let MOD_MULT_MOD2 = 
     prove
-        ((parse_term 
-              "!m n p. ~(n = 0) ==> (((m MOD n) * (p MOD n)) MOD n = (m * p) MOD n)"), 
+        ((parse_term @"!m n p. ~(n = 0) ==> (((m MOD n) * (p MOD n)) MOD n = (m * p) MOD n)"), 
          SIMP_TAC [MOD_MULT_RMOD; MOD_MULT_LMOD])
 
 let MOD_EXP_MOD = 
     prove
-        ((parse_term 
-              "!m n p. ~(n = 0) ==> (((m MOD n) EXP p) MOD n = (m EXP p) MOD n)"), 
+        ((parse_term @"!m n p. ~(n = 0) ==> (((m MOD n) EXP p) MOD n = (m EXP p) MOD n)"), 
          REPEAT STRIP_TAC
          |> THEN <| SPEC_TAC((parse_term @"p:num"), (parse_term @"p:num"))
          |> THEN <| INDUCT_TAC
@@ -1910,8 +1900,7 @@ let DIV_MULT_ADD =
 
 let MOD_ADD_MOD = 
     prove
-        ((parse_term 
-              "!a b n. ~(n = 0) ==> ((a MOD n + b MOD n) MOD n = (a + b) MOD n)"), 
+        ((parse_term @"!a b n. ~(n = 0) ==> ((a MOD n + b MOD n) MOD n = (a + b) MOD n)"), 
          REPEAT STRIP_TAC
          |> THEN <| CONV_TAC SYM_CONV
          |> THEN <| MATCH_MP_TAC MOD_EQ
@@ -1998,8 +1987,7 @@ let DIV_MONO2 =
 
 let DIV_LE_EXCLUSION = 
     prove
-        ((parse_term 
-              "!a b c d. ~(b = 0) /\ b * c < (a + 1) * d ==> c DIV d <= a DIV b"), 
+        ((parse_term @"!a b c d. ~(b = 0) /\ b * c < (a + 1) * d ==> c DIV d <= a DIV b"), 
          REPEAT GEN_TAC
          |> THEN <| ASM_CASES_TAC(parse_term @"d = 0")
          |> THEN <| ASM_REWRITE_TAC [MULT_CLAUSES; LT]
@@ -2022,8 +2010,7 @@ let DIV_LE_EXCLUSION =
 
 let DIV_EQ_EXCLUSION = 
     prove
-        ((parse_term 
-              "b * c < (a + 1) * d /\ a * d < (c + 1) * b ==> (a DIV b = c DIV d)"), 
+        ((parse_term @"b * c < (a + 1) * d /\ a * d < (c + 1) * b ==> (a DIV b = c DIV d)"), 
          REPEAT GEN_TAC
          |> THEN <| ASM_CASES_TAC(parse_term @"b = 0")
          |> THEN <| ASM_REWRITE_TAC [MULT_CLAUSES; LT]
@@ -2047,8 +2034,7 @@ let MULT_DIV_LE =
 
 let DIV_DIV = 
     prove
-        ((parse_term 
-              "!m n p. ~(n * p = 0) ==> ((m DIV n) DIV p = m DIV (n * p))"), 
+        ((parse_term @"!m n p. ~(n * p = 0) ==> ((m DIV n) DIV p = m DIV (n * p))"), 
          REWRITE_TAC [MULT_EQ_0; DE_MORGAN_THM]
          |> THEN <| REPEAT STRIP_TAC
          |> THEN 
@@ -2059,8 +2045,7 @@ let DIV_DIV =
 
 let DIV_MOD = 
     prove
-        ((parse_term 
-              "!m n p. ~(n * p = 0) ==> ((m DIV n) MOD p = (m MOD (n * p)) DIV n)"), 
+        ((parse_term @"!m n p. ~(n * p = 0) ==> ((m DIV n) MOD p = (m MOD (n * p)) DIV n)"), 
          REWRITE_TAC [MULT_EQ_0; DE_MORGAN_THM]
          |> THEN <| REPEAT STRIP_TAC
          |> THEN 
@@ -2108,8 +2093,7 @@ let MOD_MOD_EXP_MIN =
 (* ------------------------------------------------------------------------- *)
 let PRE_ELIM_THM = 
     prove
-        ((parse_term 
-              @"P(PRE n) <=> !m. n = SUC m \/ m = 0 /\ n = 0 ==> P m"), 
+        ((parse_term @"P(PRE n) <=> !m. n = SUC m \/ m = 0 /\ n = 0 ==> P m"), 
          SPEC_TAC((parse_term @"n:num"), (parse_term @"n:num"))
          |> THEN <| INDUCT_TAC
          |> THEN <| REWRITE_TAC [NOT_SUC; SUC_INJ; PRE]
@@ -2219,8 +2203,7 @@ let minimal =
 
 let MINIMAL = 
     prove
-        ((parse_term 
-              "!P. (?n. P n) <=> P((minimal) P) /\ (!m. m < (minimal) P ==> ~(P m))"), 
+        ((parse_term @"!P. (?n. P n) <=> P((minimal) P) /\ (!m. m < (minimal) P ==> ~(P m))"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [minimal]
          |> THEN <| CONV_TAC(RAND_CONV SELECT_CONV)

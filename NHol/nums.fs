@@ -62,8 +62,7 @@ let INFINITY_AX = new_axiom(parse_term @"?f:ind->ind. ONE_ONE f /\ ~(ONTO f)")
 
 let IND_SUC_0_EXISTS = 
     prove
-        ((parse_term 
-              "?(f:ind->ind) z. (!x1 x2. (f x1 = f x2) = (x1 = x2)) /\ (!x. ~(f x = z))"), 
+        ((parse_term @"?(f:ind->ind) z. (!x1 x2. (f x1 = f x2) = (x1 = x2)) /\ (!x. ~(f x = z))"), 
          X_CHOOSE_TAC (parse_term @"f:ind->ind") INFINITY_AX
          |> THEN <| EXISTS_TAC(parse_term @"f:ind->ind")
          |> THEN <| POP_ASSUM MP_TAC
@@ -159,8 +158,7 @@ let num_Axiom_001 =
          |> THEN <| ONCE_REWRITE_TAC [EXISTS_UNIQUE_THM]
          |> THEN <| CONJ_TAC
          |> THENL <| [(MP_TAC << prove_inductive_relations_exist)
-                          (parse_term 
-                               "PRG _0 e /\ (!b:A n:num. PRG n b ==> PRG (SUC n) (f b n))")
+                          (parse_term @"PRG _0 e /\ (!b:A n:num. PRG n b ==> PRG (SUC n) (f b n))")
                       |> THEN 
                       <| DISCH_THEN
                              (CHOOSE_THEN(CONJUNCTS_THEN2 ASSUME_TAC MP_TAC))
@@ -195,8 +193,7 @@ let num_Axiom_001 =
                                    |> THEN <| REPEAT STRIP_TAC
                                    |> THEN <| ASM_REWRITE_TAC []
                                    |> THENL 
-                                   <| [MAP_EVERY EXISTS_TAC [(parse_term 
-                                                                  "(f:A->num->A) y n")
+                                   <| [MAP_EVERY EXISTS_TAC [(parse_term @"(f:A->num->A) y n")
                                                              (parse_term @"y:A")]
                                        AP_THM_TAC
                                        |> THEN <| AP_TERM_TAC
@@ -267,8 +264,7 @@ inductive_type_store
 let BIT0_DEF = 
     let def = 
         new_definition
-            (parse_term 
-                 "BIT0 = @fn. fn 0 = 0 /\ (!n. fn (SUC n) = SUC (SUC(fn n)))")
+            (parse_term @"BIT0 = @fn. fn 0 = 0 /\ (!n. fn (SUC n) = SUC (SUC(fn n)))")
     let th = 
         BETA_RULE(ISPECL [(parse_term @"0")
                           (parse_term @"\m n:num. SUC(SUC m)")] num_RECURSION)

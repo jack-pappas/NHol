@@ -835,8 +835,7 @@ let GEN_REAL_ARITH =
     let ABSMAXMIN_ELIM_CONV2 = 
         let pth_abs = 
             prove
-                ((parse_term 
-                      "P(abs x) <=> (x >= &0 /\ P x) \/ (&0 > x /\ P (--x))"), 
+                ((parse_term @"P(abs x) <=> (x >= &0 /\ P x) \/ (&0 > x /\ P (--x))"), 
                  REWRITE_TAC [real_abs; real_gt; real_ge]
                  |> THEN <| COND_CASES_TAC
                  |> THEN <| ASM_REWRITE_TAC [real_lt])

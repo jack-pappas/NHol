@@ -120,11 +120,9 @@ let SEMIRING_NORMALIZERS_CONV =
       (!x. mul x r0 = r0)") MP_TAC
              |> THENL <| [ASM_MESON_TAC []
                           MAP_EVERY (fun t -> UNDISCH_THEN t (K ALL_TAC)) 
-                              [(parse_term 
-                                    "!x:A y z. add x (add y z) = add (add x y) z")
+                              [(parse_term @"!x:A y z. add x (add y z) = add (add x y) z")
                                (parse_term @"!x:A y. add x y :A = add y x")
-                               (parse_term 
-                                    "!x:A y z. mul x (mul y z) = mul (mul x y) z")
+                               (parse_term @"!x:A y z. mul x (mul y z) = mul (mul x y) z")
                                (parse_term @"!x:A y. mul x y :A = mul y x")]
                           |> THEN <| STRIP_TAC]
              |> THEN <| ASM_REWRITE_TAC [num_CONV(parse_term @"2")
@@ -140,8 +138,7 @@ let SEMIRING_NORMALIZERS_CONV =
                           ALL_TAC]
              |> THEN 
              <| SUBGOAL_THEN 
-                    (parse_term 
-                         "!x:A y:A n:num. pwr (mul x y) n = mul (pwr x n) (pwr y n)") 
+                    (parse_term @"!x:A y:A n:num. pwr (mul x y) n = mul (pwr x n) (pwr y n)") 
                     ASSUME_TAC
              |> THENL <| [GEN_TAC
                           |> THEN <| GEN_TAC

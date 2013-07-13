@@ -642,8 +642,7 @@ let GEN_MESON_TAC =
         let imp_CONV = REWR_CONV(TAUT(parse_term @"a \/ b <=> ~b ==> a"))
         let push_CONV = 
             GEN_REWRITE_CONV TOP_SWEEP_CONV [TAUT
-                                                 (parse_term 
-                                                      "~(a \/ b) <=> ~a /\ ~b")
+                                                 (parse_term @"~(a \/ b) <=> ~a /\ ~b")
                                              TAUT(parse_term @"~(~a) <=> a")]
         let pull_CONV = 
             GEN_REWRITE_CONV DEPTH_CONV 

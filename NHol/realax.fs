@@ -157,8 +157,7 @@ let DIST_EQ_0 =
 (* ------------------------------------------------------------------------- *)
 let DIST_ELIM_THM = 
     prove
-        ((parse_term 
-              "P(dist(x,y)) <=> !d. ((x = y + d) ==> P(d)) /\ ((y = x + d) ==> P(d))"), 
+        ((parse_term @"P(dist(x,y)) <=> !d. ((x = y + d) ==> P(d)) /\ ((y = x + d) ==> P(d))"), 
          DISJ_CASES_TAC(SPECL [(parse_term @"x:num")
                                (parse_term @"y:num")] LE_CASES)
          |> THEN 
@@ -206,8 +205,7 @@ let DIST_LE_CASES, DIST_ADDBOUND, DIST_TRIANGLE, DIST_ADD2, DIST_ADD2_REV =
         |> THEN <| REWRITE_TAC [ADD_CLAUSES; NOT_SUC]
     let DIST_LE_CASES = 
         prove
-            ((parse_term 
-                  "!m n p. dist(m,n) <= p <=> (m <= n + p) /\ (n <= m + p)"), 
+            ((parse_term @"!m n p. dist(m,n) <= p <=> (m <= n + p) /\ (n <= m + p)"), 
              REPEAT GEN_TAC
              |> THEN <| REPEAT DIST_ELIM_TAC
              |> THEN <| REWRITE_TAC [GSYM ADD_ASSOC
@@ -392,8 +390,7 @@ let BOUNDS_IGNORE =
 (* ------------------------------------------------------------------------- *)
 let is_nadd = 
     new_definition
-        (parse_term 
-             "is_nadd x <=> (?B. !m n. dist(m * x(n),n * x(m)) <= B * (m + n))")
+        (parse_term @"is_nadd x <=> (?B. !m n. dist(m * x(n),n * x(m)) <= B * (m + n))")
 
 let is_nadd_0 = 
     prove
@@ -491,8 +488,7 @@ let NADD_ADDITIVE =
          |> THEN <| MATCH_MP_TAC(LE_IMP DIST_ADD2)
          |> THEN 
          <| SUBGOAL_THEN 
-                (parse_term 
-                     "(m + n) * 3 * B = B * (m + m + n) + B * (n + m + n)") 
+                (parse_term @"(m + n) * 3 * B = B * (m + m + n) + B * (n + m + n)") 
                 SUBST1_TAC
          |> THENL <| [REWRITE_TAC 
                           [SYM(REWRITE_CONV [ARITH] (parse_term @"1 + 1 + 1"))]
@@ -559,8 +555,7 @@ let NADD_DIST =
 
 let NADD_ALTMUL = 
     prove
-        ((parse_term 
-              "!x y. ?A B. !n. dist(n * fn x (fn y n),fn x n * fn y n) <= A * n + B"), 
+        ((parse_term @"!x y. ?A B. !n. dist(n * fn x (fn y n),fn x n * fn y n) <= A * n + B"), 
          REPEAT GEN_TAC
          |> THEN 
          <| X_CHOOSE_TAC (parse_term @"B:num") 
@@ -689,8 +684,7 @@ let NADD_LE_WELLDEF_LEMMA =
 
 let NADD_LE_WELLDEF = 
     prove
-        ((parse_term 
-              "!x x' y y'. x === x' /\ y === y' ==> (x <<= y <=> x' <<= y')"), 
+        ((parse_term @"!x x' y y'. x === x' /\ y === y' ==> (x <<= y <=> x' <<= y')"), 
          REPEAT STRIP_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
@@ -743,8 +737,7 @@ let NADD_LE_ANTISYM =
 
 let NADD_LE_TOTAL_LEMMA = 
     prove
-        ((parse_term 
-              "!x y. ~(x <<= y) ==> !B. ?n. ~(n = 0) /\ fn y n + B < fn x n"), 
+        ((parse_term @"!x y. ~(x <<= y) ==> !B. ?n. ~(n = 0) /\ fn y n + B < fn x n"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_le; NOT_FORALL_THM; NOT_EXISTS_THM]
          |> THEN <| REWRITE_TAC [NOT_LE]
@@ -769,21 +762,18 @@ let NADD_LE_TOTAL =
                                                   |> THEN 
                                                   <| GEN_REWRITE_TAC I 
                                                          [TAUT
-                                                              (parse_term 
-                                                                   "a <=> ~ ~ a")]
+                                                              (parse_term @"a <=> ~ ~ a")]
                                                   |> THEN 
                                                   <| X_CHOOSE_TAC 
                                                          (parse_term @"B1:num") 
                                                          (SPEC 
-                                                              (parse_term 
-                                                                   "x:nadd") 
+                                                              (parse_term @"x:nadd") 
                                                               NADD_CAUCHY)
                                                   |> THEN 
                                                   <| X_CHOOSE_TAC 
                                                          (parse_term @"B2:num") 
                                                          (SPEC 
-                                                              (parse_term 
-                                                                   "y:nadd") 
+                                                              (parse_term @"y:nadd") 
                                                               NADD_CAUCHY)
                                                   |> THEN 
                                                   <| PURE_ONCE_REWRITE_TAC 
@@ -803,8 +793,7 @@ let NADD_LE_TOTAL =
                                                   <| DISCH_THEN
                                                          (MP_TAC 
                                                           << SPEC
-                                                                 (parse_term 
-                                                                      "B1 + B2"))
+                                                                 (parse_term @"B1 + B2"))
                                                   |> THEN 
                                                   <| REWRITE_TAC 
                                                          [RIGHT_AND_EXISTS_THM]
@@ -814,19 +803,16 @@ let NADD_LE_TOTAL =
                                                   |> THEN 
                                                   <| DISCH_THEN
                                                          (X_CHOOSE_THEN 
-                                                              (parse_term 
-                                                                   "m:num") 
+                                                              (parse_term @"m:num") 
                                                               (X_CHOOSE_THEN 
-                                                                   (parse_term 
-                                                                        "n:num") 
+                                                                   (parse_term @"n:num") 
                                                                    MP_TAC))
                                                   |> THEN 
                                                   <| DISCH_THEN
                                                          (MP_TAC 
                                                           << MATCH_MP
                                                                  (ITAUT
-                                                                      (parse_term 
-                                                                           "(~a /\ b) /\ (~c /\ d) ==> ~(c \/ ~b) /\ ~(a \/ ~d)")))
+                                                                      (parse_term @"(~a /\ b) /\ (~c /\ d) ==> ~(c \/ ~b) /\ ~(a \/ ~d)")))
                                                   |> THEN 
                                                   <| REWRITE_TAC 
                                                          [NOT_LT
@@ -845,8 +831,7 @@ let NADD_LE_TOTAL =
                                                   |> THEN 
                                                   <| ONCE_REWRITE_TAC 
                                                          [AC ADD_AC 
-                                                              (parse_term 
-                                                                   "(a + b + c) + (d + e + f) = (d + b + e) + (a + c + f)")]
+                                                              (parse_term @"(a + b + c) + (d + e + f) = (d + b + e) + (a + c + f)")]
                                                   |> THEN 
                                                   <| MATCH_MP_TAC LE_ADD2
                                                   |> THEN 
@@ -907,8 +892,7 @@ let NADD_ADD =
 
 let NADD_ADD_WELLDEF = 
     prove
-        ((parse_term 
-              "!x x' y y'. x === x' /\ y === y' ==> (x ++ y === x' ++ y')"), 
+        ((parse_term @"!x x' y y'. x === x' /\ y === y' ==> (x ++ y === x' ++ y')"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_eq; NADD_ADD]
          |> THEN 
@@ -1186,8 +1170,7 @@ let NADD_EQ_IMP_LE =
                                                    |> THEN 
                                                    <| DISCH_THEN
                                                           (X_CHOOSE_TAC
-                                                               (parse_term 
-                                                                    "B:num"))
+                                                               (parse_term @"B:num"))
                                                    |> THEN 
                                                    <| EXISTS_TAC
                                                           (parse_term @"B:num")
@@ -1425,8 +1408,7 @@ let NADD_COMPLETE =
                                                   (parse_term @"x:nadd")] 
                               << MATCH_MP
                                      (ITAUT
-                                          (parse_term 
-                                               "(a \/ b) /\ ~(c /\ b) ==> c ==> a")) 
+                                          (parse_term @"(a \/ b) /\ ~(c /\ b) ==> c ==> a")) 
                               << CONJ
                                      (SPECL [(parse_term @"&n ** x")
                                              (parse_term @"&(SUC(r(n:num)))")] 
@@ -1707,8 +1689,7 @@ let NADD_MUL_LINV_LEMMA0 =
 
 let NADD_MUL_LINV_LEMMA1 = 
     prove
-        ((parse_term 
-              "!x n. ~(fn x n = 0) ==> dist(fn x n * nadd_rinv(x) n, n * n) <= fn x n"), 
+        ((parse_term @"!x n. ~(fn x n = 0) ==> dist(fn x n * nadd_rinv(x) n, n * n) <= fn x n"), 
          REPEAT GEN_TAC
          |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP DIVISION)
          |> THEN 
@@ -1806,8 +1787,7 @@ let NADD_MUL_LINV_LEMMA5 =
                     |> THEN <| ASM_REWRITE_TAC [LE_MULT_LCANCEL]
                     ONCE_REWRITE_TAC 
                         [AC MULT_AC 
-                             (parse_term 
-                                  "(a * b) * (c * d) * e = ((a * c) * (b * d)) * e")]
+                             (parse_term @"(a * b) * (c * d) * e = ((a * c) * (b * d)) * e")]
                     |> THEN <| REWRITE_TAC [LE_MULT_RCANCEL]
                     |> THEN <| DISJ1_TAC
                     |> THEN <| MATCH_MP_TAC LE_MULT2
@@ -1845,15 +1825,13 @@ let NADD_MUL_LINV_LEMMA6 =
                     |> THEN 
                     <| ONCE_REWRITE_TAC 
                            [AC MULT_AC 
-                                (parse_term 
-                                     "((a * b) * c) * d = (a * c) * (b * d)")]
+                                (parse_term @"((a * b) * c) * d = (a * c) * (b * d)")]
                     |> THEN <| MATCH_MP_TAC LE_MULT2
                     |> THEN <| CONJ_TAC
                     |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                     ONCE_REWRITE_TAC 
                         [AC MULT_AC 
-                             (parse_term 
-                                  "(a * b * c) * (d * e) * f = (b * c) * (a * (d * e) * f)")]
+                             (parse_term @"(a * b * c) * (d * e) * f = (b * c) * (a * (d * e) * f)")]
                     |> THEN <| REWRITE_TAC [LE_MULT_LCANCEL]
                     |> THEN <| DISJ2_TAC
                     |> THEN <| FIRST_ASSUM MATCH_MP_TAC
@@ -1937,15 +1915,13 @@ let NADD_MUL_LINV_LEMMA7a =
                     |> THENL <| [MATCH_MP_TAC LE_TRANS
                                  |> THEN 
                                  <| EXISTS_TAC
-                                        (parse_term 
-                                             "SUC N * nadd_rinv x n + n * nadd_rinv x (SUC N)")
+                                        (parse_term @"SUC N * nadd_rinv x n + n * nadd_rinv x (SUC N)")
                                  |> THEN <| REWRITE_TAC [DIST_ADDBOUND]
                                  |> THEN <| REWRITE_TAC [RIGHT_ADD_DISTRIB]
                                  |> THEN 
                                  <| ONCE_REWRITE_TAC 
                                         [AC ADD_AC 
-                                             (parse_term 
-                                                  "(a + b + c) + d + e = (c + d) + (b + a + e)")]
+                                             (parse_term @"(a + b + c) + d + e = (c + d) + (b + a + e)")]
                                  |> THEN <| MATCH_MP_TAC LE_ADD2
                                  |> THEN <| CONJ_TAC
                                  |> THENL 
@@ -2042,8 +2018,7 @@ override_interface("inv", (parse_term @"nadd_inv:nadd->nadd"))
 
 let NADD_INV = 
     prove
-        ((parse_term 
-              @"!x. fn(nadd_inv x) = if x === &0 then (\n. 0) else nadd_rinv x"), 
+        ((parse_term @"!x. fn(nadd_inv x) = if x === &0 then (\n. 0) else nadd_rinv x"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_inv]
          |> THEN <| ASM_CASES_TAC(parse_term @"x === &0")
@@ -2076,8 +2051,7 @@ let NADD_MUL_LINV =
                 (SPEC (parse_term @"x:nadd") NADD_BOUND)
          |> THEN 
          <| SUBGOAL_THEN 
-                (parse_term 
-                     "?A2 B2. !n. dist(fn x n * nadd_rinv x n,n * n) <= A2 * n + B2") 
+                (parse_term @"?A2 B2. !n. dist(fn x n * nadd_rinv x n,n * n) <= A2 * n + B2") 
                 STRIP_ASSUME_TAC
          |> THENL <| [EXISTS_TAC(parse_term @"A':num")
                       |> THEN <| ONCE_REWRITE_TAC [BOUNDS_IGNORE]
@@ -2098,8 +2072,7 @@ let NADD_MUL_LINV =
                       |> THEN 
                       <| ONCE_REWRITE_TAC 
                              [AC ADD_AC 
-                                  (parse_term 
-                                       "(a + b) + c + d = (a + c) + (b + d)")]
+                                  (parse_term @"(a + b) + c + d = (a + c) + (b + d)")]
                       |> THEN <| MATCH_MP_TAC LE_ADD2
                       |> THEN <| ASM_REWRITE_TAC []
                       |> THEN 
@@ -2324,8 +2297,7 @@ let treal_add =
     new_definition(parse_term @"(x1,y1) treal_add (x2,y2) = (x1 + x2, y1 + y2)")
 let treal_mul = 
     new_definition
-        (parse_term 
-             "(x1,y1) treal_mul (x2,y2) = ((x1 * x2) + (y1 * y2),(x1 * y2) + (y1 * x2))")
+        (parse_term @"(x1,y1) treal_mul (x2,y2) = ((x1 * x2) + (y1 * y2),(x1 * y2) + (y1 * x2))")
 let treal_le = 
     new_definition(parse_term @"(x1,y1) treal_le (x2,y2) <=> x1 + y2 <= x2 + y1")
 let treal_inv = new_definition(parse_term @"treal_inv(x,y) = if x = y then (&0, &0)
@@ -2377,8 +2349,7 @@ let TREAL_EQ_AP =
 (* ------------------------------------------------------------------------- *)
 let TREAL_OF_NUM_EQ = 
     prove
-        ((parse_term 
-              "!m n. (treal_of_num m treal_eq treal_of_num n) <=> (m = n)"), 
+        ((parse_term @"!m n. (treal_of_num m treal_eq treal_of_num n) <=> (m = n)"), 
          REWRITE_TAC [treal_of_num; treal_eq; HREAL_OF_NUM_EQ; HREAL_ADD_RID])
 
 let TREAL_OF_NUM_LE = 
@@ -2498,8 +2469,7 @@ let TREAL_LE_TOTAL =
 
 let TREAL_LE_LADD_IMP = 
     prove
-        ((parse_term 
-              "!x y z. (y treal_le z) ==> (x treal_add y) treal_le (x treal_add z)"), 
+        ((parse_term @"!x y z. (y treal_le z) ==> (x treal_add y) treal_le (x treal_add z)"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_le; treal_add]
          |> THEN <| REWRITE_TAC [GSYM HREAL_ADD_ASSOC
                                  HREAL_LE_ADD_LCANCEL]
@@ -2573,16 +2543,14 @@ let TREAL_MUL_LINV =
 (* ------------------------------------------------------------------------- *)
 let TREAL_OF_NUM_WELLDEF = 
     prove
-        ((parse_term 
-              "!m n. (m = n) ==> (treal_of_num m) treal_eq (treal_of_num n)"), 
+        ((parse_term @"!m n. (m = n) ==> (treal_of_num m) treal_eq (treal_of_num n)"), 
          REPEAT GEN_TAC
          |> THEN <| DISCH_THEN SUBST1_TAC
          |> THEN <| MATCH_ACCEPT_TAC TREAL_EQ_REFL)
 
 let TREAL_NEG_WELLDEF = 
     prove
-        ((parse_term 
-              "!x1 x2. x1 treal_eq x2 ==> (treal_neg x1) treal_eq (treal_neg x2)"), 
+        ((parse_term @"!x1 x2. x1 treal_eq x2 ==> (treal_neg x1) treal_eq (treal_neg x2)"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_neg; treal_eq]
          |> THEN <| REPEAT STRIP_TAC
          |> THEN <| ONCE_REWRITE_TAC [HREAL_ADD_SYM]
@@ -2590,8 +2558,7 @@ let TREAL_NEG_WELLDEF =
 
 let TREAL_ADD_WELLDEFR = 
     prove
-        ((parse_term 
-              "!x1 x2 y. x1 treal_eq x2 ==> (x1 treal_add y) treal_eq (x2 treal_add y)"), 
+        ((parse_term @"!x1 x2 y. x1 treal_eq x2 ==> (x1 treal_add y) treal_eq (x2 treal_add y)"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_add; treal_eq]
          |> THEN <| REWRITE_TAC [HREAL_EQ_ADD_RCANCEL; HREAL_ADD_ASSOC]
          |> THEN <| ONCE_REWRITE_TAC [HREAL_ADD_SYM]
@@ -2612,8 +2579,7 @@ let TREAL_ADD_WELLDEF =
 
 let TREAL_MUL_WELLDEFR = 
     prove
-        ((parse_term 
-              "!x1 x2 y. x1 treal_eq x2 ==> (x1 treal_mul y) treal_eq (x2 treal_mul y)"), 
+        ((parse_term @"!x1 x2 y. x1 treal_eq x2 ==> (x1 treal_mul y) treal_eq (x2 treal_mul y)"), 
          REWRITE_TAC [FORALL_PAIR_THM; treal_mul; treal_eq]
          |> THEN <| REPEAT GEN_TAC
          |> THEN 
@@ -2673,8 +2639,7 @@ let TREAL_LE_WELLDEF =
 
 let TREAL_INV_WELLDEF = 
     prove
-        ((parse_term 
-              "!x y. x treal_eq y ==> (treal_inv x) treal_eq (treal_inv y)"), 
+        ((parse_term @"!x y. x treal_eq y ==> (treal_inv x) treal_eq (treal_inv y)"), 
          let lemma = 
              prove
                  ((parse_term @"(@d. x = x + d) = &0"), 
@@ -2993,8 +2958,7 @@ let REAL_COMPLETE_SOMEPOS =
                                    |> THEN 
                                    <| MATCH_MP_TAC
                                           (TAUT
-                                               (parse_term 
-                                                    "(b <=> a) ==> a ==> b"))
+                                               (parse_term @"(b <=> a) ==> a ==> b"))
                                    |> THEN <| AP_TERM_TAC
                                    |> THEN <| FIRST_ASSUM MATCH_MP_TAC
                                    |> THEN <| ASM_REWRITE_TAC []

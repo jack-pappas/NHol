@@ -180,8 +180,7 @@ let int_add =
 
 let int_add_th = 
     prove
-        ((parse_term 
-              "!x y. real_of_int(x + y) = (real_of_int x) + (real_of_int y)"), 
+        ((parse_term @"!x y. real_of_int(x + y) = (real_of_int x) + (real_of_int y)"), 
          REWRITE_TAC [int_add
                       GSYM int_rep
                       is_int]
@@ -217,8 +216,7 @@ let int_sub =
 
 let int_sub_th = 
     prove
-        ((parse_term 
-              "!x y. real_of_int(x - y) = (real_of_int x) - (real_of_int y)"), 
+        ((parse_term @"!x y. real_of_int(x - y) = (real_of_int x) - (real_of_int y)"), 
          REWRITE_TAC [int_sub
                       real_sub
                       GSYM int_neg_th
@@ -231,8 +229,7 @@ let int_mul =
 
 let int_mul_th = 
     prove
-        ((parse_term 
-              "!x y. real_of_int(x * y) = (real_of_int x) * (real_of_int y)"), 
+        ((parse_term @"!x y. real_of_int(x * y) = (real_of_int x) * (real_of_int y)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [int_mul
                                  GSYM int_rep
@@ -281,13 +278,11 @@ let int_sgn_th =
 
 let int_max = 
     new_definition
-        (parse_term 
-             "int_max x y = int_of_real(max (real_of_int x) (real_of_int y))")
+        (parse_term @"int_max x y = int_of_real(max (real_of_int x) (real_of_int y))")
 
 let int_max_th = 
     prove
-        ((parse_term 
-              "!x y. real_of_int(max x y) = max (real_of_int x) (real_of_int y)"), 
+        ((parse_term @"!x y. real_of_int(max x y) = max (real_of_int x) (real_of_int y)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [int_max; real_max]
          |> THEN <| COND_CASES_TAC
@@ -295,13 +290,11 @@ let int_max_th =
 
 let int_min = 
     new_definition
-        (parse_term 
-             "int_min x y = int_of_real(min (real_of_int x) (real_of_int y))")
+        (parse_term @"int_min x y = int_of_real(min (real_of_int x) (real_of_int y))")
 
 let int_min_th = 
     prove
-        ((parse_term 
-              "!x y. real_of_int(min x y) = min (real_of_int x) (real_of_int y)"), 
+        ((parse_term @"!x y. real_of_int(min x y) = min (real_of_int x) (real_of_int y)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [int_min; real_min]
          |> THEN <| COND_CASES_TAC
@@ -745,8 +738,7 @@ let INT_EXISTS_ABS =
 (* ------------------------------------------------------------------------- *)
 let INT_ABS_MUL_1 = 
     prove
-        ((parse_term 
-              "!x y. (abs(x * y) = &1) <=> (abs(x) = &1) /\ (abs(y) = &1)"), 
+        ((parse_term @"!x y. (abs(x * y) = &1) <=> (abs(x) = &1) /\ (abs(y) = &1)"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [INT_ABS_MUL]
          |> THEN <| MP_TAC(SPEC (parse_term @"y:int") INT_ABS_POS)
@@ -759,7 +751,7 @@ let INT_ABS_MUL_1 =
 let INT_WOP = 
     prove((parse_term @"(?x. &0 <= x /\ P x) <=>
     (?x. &0 <= x /\ P x /\ !y. &0 <= y /\ P y ==> x <= y)"), ONCE_REWRITE_TAC 
-       [MESON [] (parse_term "(?x. P x /\ Q x) <=> ~(!x. P x ==> ~Q x)")]
+       [MESON [] (parse_term @"(?x. P x /\ Q x) <=> ~(!x. P x ==> ~Q x)")]
    |> THEN <| REWRITE_TAC [IMP_CONJ
                            GSYM INT_FORALL_POS
                            INT_OF_NUM_LE]
@@ -876,8 +868,7 @@ let INT_ARCH =
                              [INT_POS
                               INT_LE_LMUL
                               INT_ARITH
-                                  (parse_term 
-                                       "x + &1 <= &n /\ &n * &1 <= &n * d ==> x + &1 <= &n * d")]
+                                  (parse_term @"x + &1 <= &n /\ &n * &1 <= &n * d ==> x + &1 <= &n * d")]
                       ALL_TAC]
          |> THEN 
          <| SUBGOAL_THEN (parse_term @"!x d. ~(d = &0) ==> ?c. x < c * d") 
@@ -937,8 +928,7 @@ let INT_DIVMOD_EXIST_0 =
                                 <| DISCH_THEN
                                        (MP_TAC 
                                         << SPEC
-                                               (parse_term 
-                                                    "if &0 <= n then q + &1 else q - &1"))
+                                               (parse_term @"if &0 <= n then q + &1 else q - &1"))
                                 |> THEN <| ASM_INT_ARITH_TAC])
 
 parse_as_infix("div", (22, "left"))
@@ -1207,8 +1197,7 @@ let INT_POW_CONV =
              REWRITE_TAC [INT_OF_NUM_POW; INT_POW_NEG])
     let tth = 
         prove
-            ((parse_term 
-                  "((if T then x:int else y) = x) /\ ((if F then x:int else y) = y)"), 
+            ((parse_term @"((if T then x:int else y) = x) /\ ((if F then x:int else y) = y)"), 
              REWRITE_TAC [])
     let neg_tm = (parse_term @"(--)")
     (GEN_REWRITE_CONV I [pth1]
@@ -1334,8 +1323,7 @@ let INT_DIVMOD_UNIQ =
 let INT_DIV_CONV, INT_REM_CONV = 
     let pth = 
         prove
-            ((parse_term 
-                  "q * n + r = m ==> &0 <= r ==> r < abs n ==> m div n = q /\ m rem n = r"), 
+            ((parse_term @"q * n + r = m ==> &0 <= r ==> r < abs n ==> m div n = q /\ m rem n = r"), 
              MESON_TAC [INT_DIVMOD_UNIQ])
     let m = (parse_term @"m:int")
     let n = (parse_term @"n:int")

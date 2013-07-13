@@ -237,8 +237,7 @@ let REAL_OF_NUM_POW =
 
 let REAL_POW_NEG = 
     prove
-        ((parse_term 
-              "!x n. (--x) pow n = if EVEN n then x pow n else --(x pow n)"), 
+        ((parse_term @"!x n. (--x) pow n = if EVEN n then x pow n else --(x pow n)"), 
          GEN_TAC
          |> THEN <| INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [real_pow; EVEN]
@@ -494,8 +493,7 @@ let REAL_INT_POW_CONV =
              REWRITE_TAC [REAL_OF_NUM_POW; REAL_POW_NEG])
     let tth = 
         prove
-            ((parse_term 
-                  "((if T then x:real else y) = x) /\ ((if F then x:real else y) = y)"), 
+            ((parse_term @"((if T then x:real else y) = x) /\ ((if F then x:real else y) = y)"), 
              REWRITE_TAC [])
     let neg_tm = (parse_term @"(--)")
     (GEN_REWRITE_CONV I [pth1]

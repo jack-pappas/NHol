@@ -346,8 +346,7 @@ let REAL_ABS_REFL =
     prove((parse_term @"!x. (abs(x) = x) <=> &0 <= x"), REAL_ARITH_TAC)
 let REAL_ABS_BETWEEN = 
     prove
-        ((parse_term 
-              "!x y d. &0 < d /\ ((x - d) < y) /\ (y < (x + d)) <=> abs(y - x) < d"), 
+        ((parse_term @"!x y d. &0 < d /\ ((x - d) < y) /\ (y < (x + d)) <=> abs(y - x) < d"), 
          REAL_ARITH_TAC)
 let REAL_ABS_BOUND = 
     prove((parse_term @"!x y d. abs(x - y) < d ==> y < (x + d)"), REAL_ARITH_TAC)
@@ -366,8 +365,7 @@ let REAL_ABS_SIGN2 =
     prove((parse_term @"!x y. abs(x - y) < --y ==> x < &0"), REAL_ARITH_TAC)
 let REAL_ABS_CIRCLE = 
     prove
-        ((parse_term 
-              "!x y h. abs(h) < (abs(y) - abs(x)) ==> abs(x + h) < abs(y)"), 
+        ((parse_term @"!x y h. abs(h) < (abs(y) - abs(x)) ==> abs(x + h) < abs(y)"), 
          REAL_ARITH_TAC)
 let REAL_SUB_ABS = 
     prove((parse_term @"!x y. (abs(x) - abs(y)) <= abs(x - y)"), REAL_ARITH_TAC)
@@ -775,8 +773,7 @@ let REAL_POW_NZ =
 
 let REAL_POW_SUB = 
     prove
-        ((parse_term 
-              "!x m n. ~(x = &0) /\ m <= n ==> (x pow (n - m) = x pow n / x pow m)"), 
+        ((parse_term @"!x m n. ~(x = &0) /\ m <= n ==> (x pow (n - m) = x pow n / x pow m)"), 
          REPEAT GEN_TAC
          |> THEN <| DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC MP_TAC)
          |> THEN <| REWRITE_TAC [LE_EXISTS]
@@ -1127,8 +1124,7 @@ let REAL_INV_1_LT =
 
 let REAL_SUB_INV = 
     prove
-        ((parse_term 
-              "!x y. ~(x = &0) /\ ~(y = &0) ==> (inv(x) - inv(y) = (y - x) / (x * y))"), 
+        ((parse_term @"!x y. ~(x = &0) /\ ~(y = &0) ==> (inv(x) - inv(y) = (y - x) / (x * y))"), 
          REWRITE_TAC [real_div; REAL_SUB_RDISTRIB; REAL_INV_MUL]
          |> THEN <| SIMP_TAC [REAL_MUL_ASSOC; REAL_MUL_RINV; REAL_MUL_LID]
          |> THEN <| REWRITE_TAC [GSYM REAL_MUL_ASSOC]
@@ -1156,8 +1152,7 @@ let REAL_DOWN =
 
 let REAL_DOWN2 = 
     prove
-        ((parse_term 
-              "!d1 d2. &0 < d1 /\ &0 < d2 ==> ?e. &0 < e /\ e < d1 /\ e < d2"), 
+        ((parse_term @"!d1 d2. &0 < d1 /\ &0 < d2 ==> ?e. &0 < e /\ e < d1 /\ e < d2"), 
          REPEAT GEN_TAC
          |> THEN <| STRIP_TAC
          |> THEN <| DISJ_CASES_TAC(SPECL [(parse_term @"d1:real")
@@ -1224,8 +1219,7 @@ let REAL_POW_MONO =
 
 let REAL_POW_LT2 = 
     prove
-        ((parse_term 
-              "!n x y. ~(n = 0) /\ &0 <= x /\ x < y ==> x pow n < y pow n"), 
+        ((parse_term @"!n x y. ~(n = 0) /\ &0 <= x /\ x < y ==> x pow n < y pow n"), 
          INDUCT_TAC
          |> THEN <| REWRITE_TAC [NOT_SUC; real_pow]
          |> THEN <| REPEAT STRIP_TAC
@@ -1406,8 +1400,7 @@ let REAL_SOS_EQ_0 =
                 (MP_TAC 
                  << MATCH_MP
                         (REAL_ARITH
-                             (parse_term 
-                                  "x + y = &0 ==> &0 <= x /\ &0 <= y ==> x = &0 /\ y = &0")))
+                             (parse_term @"x + y = &0 ==> &0 <= x /\ &0 <= y ==> x = &0 /\ y = &0")))
          |> THEN <| REWRITE_TAC [REAL_LE_SQUARE; REAL_ENTIRE])
 
 let REAL_POW_ZERO = 
@@ -1418,8 +1411,7 @@ let REAL_POW_ZERO =
 
 let REAL_POW_MONO_INV = 
     prove
-        ((parse_term 
-              "!m n x. &0 <= x /\ x <= &1 /\ n <= m ==> x pow m <= x pow n"), 
+        ((parse_term @"!m n x. &0 <= x /\ x <= &1 /\ n <= m ==> x pow m <= x pow n"), 
          REPEAT STRIP_TAC
          |> THEN <| ASM_CASES_TAC(parse_term @"x = &0")
          |> THENL <| [ASM_REWRITE_TAC [REAL_POW_ZERO]
@@ -1441,8 +1433,7 @@ let REAL_POW_MONO_INV =
 
 let REAL_POW_LE2_REV = 
     prove
-        ((parse_term 
-              "!n x y. ~(n = 0) /\ &0 <= y /\ x pow n <= y pow n ==> x <= y"), 
+        ((parse_term @"!n x y. ~(n = 0) /\ &0 <= y /\ x pow n <= y pow n ==> x <= y"), 
          MESON_TAC [REAL_POW_LT2; REAL_NOT_LE])
 let REAL_POW_LT2_REV = 
     prove
@@ -1450,8 +1441,7 @@ let REAL_POW_LT2_REV =
          MESON_TAC [REAL_POW_LE2; REAL_NOT_LE])
 let REAL_POW_EQ = 
     prove
-        ((parse_term 
-              "!n x y. ~(n = 0) /\ &0 <= x /\ &0 <= y /\ x pow n = y pow n ==> x = y"), 
+        ((parse_term @"!n x y. ~(n = 0) /\ &0 <= x /\ &0 <= y /\ x pow n = y pow n ==> x = y"), 
          REWRITE_TAC [GSYM REAL_LE_ANTISYM]
          |> THEN <| MESON_TAC [REAL_POW_LE2_REV])
 
@@ -1475,8 +1465,7 @@ let REAL_POW_EQ_1_IMP =
 
 let REAL_POW_EQ_1 = 
     prove
-        ((parse_term 
-              "!x n. x pow n = &1 <=> abs(x) = &1 /\ (x < &0 ==> EVEN(n)) \/ n = 0"), 
+        ((parse_term @"!x n. x pow n = &1 <=> abs(x) = &1 /\ (x < &0 ==> EVEN(n)) \/ n = 0"), 
          REPEAT GEN_TAC
          |> THEN <| ASM_CASES_TAC(parse_term @"n = 0")
          |> THEN <| ASM_REWRITE_TAC [real_pow]
@@ -1661,8 +1650,7 @@ let REAL_SGN_EQ = prove((parse_term @"(!x. real_sgn x = &0 <=> x = &0) /\
                                           |> THEN <| REAL_ARITH_TAC)
 let REAL_SGN_CASES = 
     prove
-        ((parse_term 
-              "!x. real_sgn x = &0 \/ real_sgn x = &1 \/ real_sgn x = -- &1"), 
+        ((parse_term @"!x. real_sgn x = &0 \/ real_sgn x = &1 \/ real_sgn x = -- &1"), 
          REWRITE_TAC [real_sgn]
          |> THEN <| MESON_TAC [])
 
@@ -1671,8 +1659,7 @@ let REAL_SGN_CASES =
 (* ------------------------------------------------------------------------- *)
 let REAL_WLOG_LE = 
     prove
-        ((parse_term 
-              "(!x y. P x y <=> P y x) /\ (!x y. x <= y ==> P x y) ==> !x y. P x y"), 
+        ((parse_term @"(!x y. P x y <=> P y x) /\ (!x y. x <= y ==> P x y) ==> !x y. P x y"), 
          MESON_TAC [REAL_LE_TOTAL])
 
 let REAL_WLOG_LT = 

@@ -116,8 +116,7 @@ let RAT_LEMMA3 =
 
 let RAT_LEMMA4 = 
     prove
-        ((parse_term 
-              "&0 < y1 /\ &0 < y2 ==> (x1 / y1 <= x2 / y2 <=> x1 * y2 <= x2 * y1)"), 
+        ((parse_term @"&0 < y1 /\ &0 < y2 ==> (x1 / y1 <= x2 / y2 <=> x1 * y2 <= x2 * y1)"), 
          let lemma = 
              prove
                  ((parse_term @"&0 < y ==> (&0 <= x * y <=> &0 <= x)"), 
@@ -162,15 +161,13 @@ let RAT_LEMMA4 =
 
 let RAT_LEMMA5 = 
     prove
-        ((parse_term 
-              "&0 < y1 /\ &0 < y2 ==> ((x1 / y1 = x2 / y2) <=> (x1 * y2 = x2 * y1))"), 
+        ((parse_term @"&0 < y1 /\ &0 < y2 ==> ((x1 / y1 = x2 / y2) <=> (x1 * y2 = x2 * y1))"), 
          REPEAT DISCH_TAC
          |> THEN <| REWRITE_TAC [GSYM REAL_LE_ANTISYM]
          |> THEN 
          <| MATCH_MP_TAC
                 (TAUT
-                     (parse_term 
-                          "(a <=> a') /\ (b <=> b') ==> (a /\ b <=> a' /\ b')"))
+                     (parse_term @"(a <=> a') /\ (b <=> b') ==> (a /\ b <=> a' /\ b')"))
          |> THEN <| CONJ_TAC
          |> THEN <| MATCH_MP_TAC RAT_LEMMA4
          |> THEN <| ASM_REWRITE_TAC [])
@@ -195,8 +192,7 @@ let REAL_INT_RAT_CONV =
 let REAL_RAT_LE_CONV = 
     let pth = 
         prove
-            ((parse_term 
-                  "&0 < y1 ==> &0 < y2 ==> (x1 / y1 <= x2 / y2 <=> x1 * y2 <= x2 * y1)"), 
+            ((parse_term @"&0 < y1 ==> &0 < y2 ==> (x1 / y1 <= x2 / y2 <=> x1 * y2 <= x2 * y1)"), 
              REWRITE_TAC [IMP_IMP; RAT_LEMMA4])
     let x1 = (parse_term @"x1:real")
     let x2 = (parse_term @"x2:real")
@@ -223,8 +219,7 @@ let REAL_RAT_LE_CONV =
 let REAL_RAT_LT_CONV = 
     let pth = 
         prove
-            ((parse_term 
-                  "&0 < y1 ==> &0 < y2 ==> (x1 / y1 < x2 / y2 <=> x1 * y2 < x2 * y1)"), 
+            ((parse_term @"&0 < y1 ==> &0 < y2 ==> (x1 / y1 < x2 / y2 <=> x1 * y2 < x2 * y1)"), 
              REWRITE_TAC [IMP_IMP]
              |> THEN 
              <| GEN_REWRITE_TAC (RAND_CONV << ONCE_DEPTH_CONV) 
@@ -261,8 +256,7 @@ let REAL_RAT_GT_CONV = GEN_REWRITE_CONV I [real_gt]
 let REAL_RAT_EQ_CONV = 
     let pth = 
         prove
-            ((parse_term 
-                  "&0 < y1 ==> &0 < y2 ==> ((x1 / y1 = x2 / y2) <=> (x1 * y2 = x2 * y1))"), 
+            ((parse_term @"&0 < y1 ==> &0 < y2 ==> ((x1 / y1 = x2 / y2) <=> (x1 * y2 = x2 * y1))"), 
              REWRITE_TAC [IMP_IMP; RAT_LEMMA5])
     let x1 = (parse_term @"x1:real")
     let x2 = (parse_term @"x2:real")

@@ -78,17 +78,16 @@ let INJ_INVERSE2 =
    |> THEN <| STRIP_TAC
    |> THEN <| ASM_REWRITE_TAC []
    |> THEN <| W(EXISTS_TAC << rand << snd << dest_exists << snd)
-   |> THEN <| REFL_TAC)
+   |> THEN <| REFL_TAC);;
 
 (* ------------------------------------------------------------------------- *)
 (* Define an injective pairing function on ":num".                           *)
 (* ------------------------------------------------------------------------- *)
-let NUMPAIR = new_definition(parse_term @"NUMPAIR x y = (2 EXP x) * (2 * y + 1)")
+let NUMPAIR = new_definition(parse_term @"NUMPAIR x y = (2 EXP x) * (2 * y + 1)");;
 
 let NUMPAIR_INJ_LEMMA = 
     prove
-        ((parse_term 
-              "!x1 y1 x2 y2. (NUMPAIR x1 y1 = NUMPAIR x2 y2) ==> (x1 = x2)"), 
+        ((parse_term @"!x1 y1 x2 y2. (NUMPAIR x1 y1 = NUMPAIR x2 y2) ==> (x1 = x2)"), 
          REWRITE_TAC [NUMPAIR]
          |> THEN <| REPEAT(INDUCT_TAC
                            |> THEN <| GEN_TAC)
@@ -100,12 +99,11 @@ let NUMPAIR_INJ_LEMMA =
                                      GSYM NOT_SUC
                                      SUC_INJ]
          |> THEN <| DISCH_THEN(MP_TAC << AP_TERM(parse_term @"EVEN"))
-         |> THEN <| REWRITE_TAC [EVEN_MULT; EVEN_ADD; ARITH])
+         |> THEN <| REWRITE_TAC [EVEN_MULT; EVEN_ADD; ARITH]);;
 
 let NUMPAIR_INJ = 
     prove
-        ((parse_term 
-              "!x1 y1 x2 y2. (NUMPAIR x1 y1 = NUMPAIR x2 y2) <=> (x1 = x2) /\ (y1 = y2)"), 
+        ((parse_term @"!x1 y1 x2 y2. (NUMPAIR x1 y1 = NUMPAIR x2 y2) <=> (x1 = x2) /\ (y1 = y2)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
@@ -114,22 +112,21 @@ let NUMPAIR_INJ =
          |> THEN <| POP_ASSUM MP_TAC
          |> THEN <| REWRITE_TAC [NUMPAIR]
          |> THEN 
-         <| REWRITE_TAC [EQ_MULT_LCANCEL; EQ_ADD_RCANCEL; EXP_EQ_0; ARITH])
+         <| REWRITE_TAC [EQ_MULT_LCANCEL; EQ_ADD_RCANCEL; EXP_EQ_0; ARITH]);;
 
 let NUMPAIR_DEST = 
     new_specification ["NUMFST"
-                       "NUMSND"] (MATCH_MP INJ_INVERSE2 NUMPAIR_INJ)
+                       "NUMSND"] (MATCH_MP INJ_INVERSE2 NUMPAIR_INJ);;
 
 (* ------------------------------------------------------------------------- *)
 (* Also, an injective map bool->num->num (even easier!)                      *)
 (* ------------------------------------------------------------------------- *)
 let NUMSUM = 
-    new_definition(parse_term @"NUMSUM b x = if b then SUC(2 * x) else 2 * x")
+    new_definition(parse_term @"NUMSUM b x = if b then SUC(2 * x) else 2 * x");;
 
 let NUMSUM_INJ = 
     prove
-        ((parse_term 
-              "!b1 x1 b2 x2. (NUMSUM b1 x1 = NUMSUM b2 x2) <=> (b1 = b2) /\ (x1 = x2)"), 
+        ((parse_term @"!b1 x1 b2 x2. (NUMSUM b1 x1 = NUMSUM b2 x2) <=> (b1 = b2) /\ (x1 = x2)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
@@ -211,8 +208,7 @@ let INJF_INJ =
 (* ------------------------------------------------------------------------- *)
 let INJP = 
     new_definition
-        (parse_term 
-             @"INJP f1 f2:num->A->bool = \n a. if NUMLEFT n then f1 (NUMRIGHT n) a else f2 (NUMRIGHT n) a")
+        (parse_term @"INJP f1 f2:num->A->bool = \n a. if NUMLEFT n then f1 (NUMRIGHT n) a else f2 (NUMRIGHT n) a")
 
 let INJP_INJ = 
     prove((parse_term @"!(f1:num->A->bool) f1' f2 f2'.
@@ -239,8 +235,7 @@ let INJP_INJ =
 (* ------------------------------------------------------------------------- *)
 let ZCONSTR = 
     new_definition
-        (parse_term 
-             "ZCONSTR c i r :num->A->bool = INJP (INJN (SUC c)) (INJP (INJA i) (INJF r))")
+        (parse_term @"ZCONSTR c i r :num->A->bool = INJP (INJN (SUC c)) (INJP (INJA i) (INJF r))")
 
 let ZBOT = 
     new_definition(parse_term @"ZBOT = INJP (INJN 0) (@z:num->A->bool. T)")
@@ -266,8 +261,7 @@ let BOTTOM = new_definition(parse_term @"BOTTOM = _mk_rec (ZBOT:num->A->bool)")
 
 let CONSTR = 
     new_definition
-        (parse_term 
-             @"CONSTR c i r :(A)recspace = _mk_rec (ZCONSTR c i (\n. _dest_rec(r n)))")
+        (parse_term @"CONSTR c i r :(A)recspace = _mk_rec (ZCONSTR c i (\n. _dest_rec(r n)))")
 
 (* ------------------------------------------------------------------------- *)
 (* Some lemmas.                                                              *)
@@ -458,7 +452,7 @@ let CONSTR_REC =
 let FCONS = 
     new_recursive_definition num_RECURSION 
         (parse_term 
-             "(!a f. FCONS (a:A) f 0 = a) /\ (!a f n. FCONS (a:A) f (SUC n) = f n)")
+             @"(!a f. FCONS (a:A) f 0 = a) /\ (!a f n. FCONS (a:A) f (SUC n) = f n)")
 
 let FCONS_UNDO = Sequent([],parse_term @"!f:num->A. f = FCONS (f 0) (f << SUC)")
 //    prove
@@ -1348,7 +1342,7 @@ let cases ty =
 let ISO = 
     new_definition
         (parse_term 
-             "ISO (f:A->B) (g:B->A) <=> (!x. f(g x) = x) /\ (!y. g(f y) = y)")
+             @"ISO (f:A->B) (g:B->A) <=> (!x. f(g x) = x) /\ (!y. g(f y) = y)")
 
 let ISO_REFL = prove((parse_term @"ISO (\x:A. x) (\x. x)"), REWRITE_TAC [ISO])
 let ISO_FUN = 
