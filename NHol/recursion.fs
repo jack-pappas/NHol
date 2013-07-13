@@ -57,6 +57,7 @@ open nums
 (* exact correspondence with recursion theorem; "canon" requires the         *)
 (* PR argument to come first in the arg list; the outer one is more general. *)
 (* ------------------------------------------------------------------------- *)
+/// Prove existence of recursive function over inductive type.
 let prove_recursive_functions_exist = 
     let prove_raw_recursive_functions_exist ax tm = 
         let rawcls = conjuncts tm
@@ -136,6 +137,7 @@ let prove_recursive_functions_exist =
 (* ------------------------------------------------------------------------- *)
 (* Version that defines function(s).                                         *)
 (* ------------------------------------------------------------------------- *)
+/// Define recursive function over inductive type.
 let new_recursive_definition = 
     let the_recursive_definitions = ref []
     let find_redefinition tm th = 

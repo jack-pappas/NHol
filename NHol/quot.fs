@@ -59,6 +59,7 @@ open meson
 (*                                                                           *)
 (*             |- (?x. r = R x) <=> (dest_ty (mk_ty r) = r)                  *)
 (* ------------------------------------------------------------------------- *)
+/// Defines a quotient type based on given equivalence relation.
 let define_quotient_type = 
     fun tyname (absname, repname) eqv -> 
         let ty = hd(snd(dest_type(type_of eqv)))
@@ -88,6 +89,7 @@ let define_quotient_type =
 (* the reflexivity and transitivity (not symmetry!) of the equivalence       *)
 (* relation. The use also gives a name for the new function.                 *)
 (* ------------------------------------------------------------------------- *)
+/// Lift a function on representing type to quotient type of equivalence classes.
 let lift_function = 
     let SELECT_LEMMA = 
         prove
@@ -188,6 +190,7 @@ let lift_function =
 (*                                                                           *)
 (* NB! All and only the first order variables must be bound by quantifiers.  *)
 (* ------------------------------------------------------------------------- *)
+/// Lifts a theorem to quotient type from representing type.
 let lift_theorem = 
     let pth = 
         prove

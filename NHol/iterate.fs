@@ -287,6 +287,7 @@ let NUMSEG_LT =
 (* ------------------------------------------------------------------------- *)
 (* Conversion to evaluate m..n for specific numerals.                        *)
 (* ------------------------------------------------------------------------- *)
+/// Expands a specific interval m..n to a set enumeration.
 let NUMSEG_CONV = 
     let pth_0 = MESON [NUMSEG_EMPTY] (parse_term @"n < m ==> m..n = {}")
     let pth_1 = MESON [NUMSEG_SING] (parse_term @"m..m = {m}")

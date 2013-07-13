@@ -57,6 +57,7 @@ open calc_num
 open normalizer
 #endif
 
+
 (* ------------------------------------------------------------------------- *)
 (* Type for recording history, i.e. how a polynomial was obtained.           *)
 (* ------------------------------------------------------------------------- *)
@@ -70,6 +71,7 @@ type history =
 (* Overall function; everything else is local.                               *)
 (* ------------------------------------------------------------------------- *)
 
+/// Returns a pair giving a ring proof procedure and an ideal membership routine.
 let RING_AND_IDEAL_CONV = 
 
   (* ----------------------------------------------------------------------- *)
@@ -633,8 +635,10 @@ let RING_AND_IDEAL_CONV =
 (* Separate out the cases.                                                 *)
 (* ----------------------------------------------------------------------- *)
 
+/// Generic ring procedure.
 let RING parms = fst(RING_AND_IDEAL_CONV parms);;
 
+/// Generic procedure to compute cofactors for ideal membership.
 let ideal_cofactors parms = snd(RING_AND_IDEAL_CONV parms);;
 
 (* ------------------------------------------------------------------------- *)
@@ -645,6 +649,7 @@ let ideal_cofactors parms = snd(RING_AND_IDEAL_CONV parms);;
 (* you care. This also applies to EVEN and ODD.                              *)
 (* ------------------------------------------------------------------------- *)
 
+/// Eliminates predecessor, cutoff subtraction, even and odd, division and modulus.
 let NUM_SIMPLIFY_CONV =
   let pre_tm = (parse_term @"PRE")
   let div_tm = (parse_term @"(DIV):num->num->num")
@@ -732,6 +737,7 @@ let NUM_SIMPLIFY_CONV =
 (* Natural number version of ring procedure with this normalization.       *)
 (* ----------------------------------------------------------------------- *)
 
+/// Ring decision procedure instantiated to natural numbers.
 let NUM_RING =
   let NUM_INTEGRAL_LEMMA = 
     prove ((parse_term @"(w = x + d) /\ (y = z + e) ==> ((w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))"), DISCH_THEN(fun th -> REWRITE_TAC[th]) 

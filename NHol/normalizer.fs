@@ -56,6 +56,8 @@ open arith
 open calc_num
 #endif
 
+
+/// Produces normalizer functions over a ring or even a semiring.
 let SEMIRING_NORMALIZERS_CONV = 
     let SEMIRING_PTHS = 
         prove
@@ -846,6 +848,8 @@ let SEMIRING_NORMALIZERS_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Instantiate it to the natural numbers.                                    *)
 (* ------------------------------------------------------------------------- *)
+/// Puts natural number expressions built using addition, multiplication and powers in canonical
+/// polynomial form.
 let NUM_NORMALIZE_CONV = 
     let sth = 
         prove

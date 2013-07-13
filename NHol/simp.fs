@@ -50,14 +50,16 @@ type gconv = int * conv
 (* ------------------------------------------------------------------------- *)
 (* Primitive rewriting conversions: unconditional and conditional equations. *)
 (* ------------------------------------------------------------------------- *)
+/// Uses an instance of a given equation to rewrite a term.
 let REWR_CONV = PART_MATCH lhs
-
+/// Basic conditional rewriting conversion.
 let IMP_REWR_CONV = PART_MATCH(lhs << snd << dest_imp)
 
 (* ------------------------------------------------------------------------- *)
 (* Versions with ordered rewriting. We must have l' > r' for the rewrite     *)
 (* |- l = r (or |- c ==> (l = r)) to apply.                                  *)
 (* ------------------------------------------------------------------------- *)
+/// Basic rewriting conversion restricted by term order.
 let ORDERED_REWR_CONV ord th = 
     let basic_conv = REWR_CONV th
     fun tm -> 
@@ -67,6 +69,7 @@ let ORDERED_REWR_CONV ord th =
         then thm
         else failwith "ORDERED_REWR_CONV: wrong orientation"
 
+/// Basic conditional rewriting conversion restricted by term order.
 let ORDERED_IMP_REWR_CONV ord th = 
     let basic_conv = IMP_REWR_CONV th
     fun tm -> 
@@ -93,6 +96,7 @@ let ORDERED_IMP_REWR_CONV ord th =
 (* subterms (the built-in CAML one). This avoids the potentially inefficient *)
 (* calculation of term size in the standard orderings.                       *)
 (* ------------------------------------------------------------------------- *)
+/// Term order for use in AC-rewriting.
 let term_order = 
     let rec lexify ord l1 l2 = 
         if l1 = []
@@ -123,6 +127,7 @@ let term_order =
 (* This includes a completely ad hoc but useful special case for ETA_AX,     *)
 (* which forces a first order match (otherwise it would loop on a lambda).   *)
 (* ------------------------------------------------------------------------- *)
+/// Insert a theorem into a net as a (conditional) rewrite.
 let net_of_thm rep th = 
     let tm = concl th
     let lconsts = freesl(hyp th)
@@ -159,11 +164,13 @@ let net_of_thm rep th =
 (* ------------------------------------------------------------------------- *)
 (* Create a gconv net for a conversion with a term index.                    *)
 (* ------------------------------------------------------------------------- *)
+// TODO : Add brief synopsis from hol-light reference manual.
 let net_of_conv tm conv sofar = enter [] (tm, (2, conv)) sofar
 
 (* ------------------------------------------------------------------------- *)
 (* Create a gconv net for a congruence rule (in canonical form!)             *)
 (* ------------------------------------------------------------------------- *)
+/// Add a congruence rule to a net.
 let net_of_cong th sofar = 
     let conc, n = repeat (fun (tm, m) -> snd(dest_imp tm), m + 1) (concl th, 0)
     if n = 0
@@ -181,6 +188,7 @@ let net_of_cong th sofar =
 (* subset of FV(s) in favour of (s = t) = T, as he does.                     *)
 (* Note: looping rewrites are not discarded here, only when netted.          *)
 (* ------------------------------------------------------------------------- *)
+/// Turn theorem into list of (conditional) rewrites.
 let mk_rewrites = 
     let IMP_CONJ_CONV = 
         REWR_CONV(ITAUT(parse_term @"p ==> q ==> r <=> p /\ q ==> r"))
@@ -226,6 +234,7 @@ let mk_rewrites =
 (* ------------------------------------------------------------------------- *)
 (* Rewriting (and application of other conversions) based on a convnet.      *)
 (* ------------------------------------------------------------------------- *)
+/// Apply a prioritized conversion net to the term at the top level.
 let REWRITES_CONV net tm = 
     let pconvs = lookup tm net
     try 
@@ -241,6 +250,7 @@ let REWRITES_CONV net tm =
 type prover = 
     | Prover of conv * (thm list -> prover)
 
+/// Construct a prover from applicator and state augmentation function.
 let mk_prover applicator augmentor = 
     let rec mk_prover state = 
         let apply = applicator state
@@ -248,7 +258,9 @@ let mk_prover applicator augmentor =
         Prover(apply, augment)
     mk_prover
 
+/// Augments a prover's context with new theorems.
 let augment (Prover(_, aug)) thms = aug thms
+/// Apply a prover to a term.
 let apply_prover (Prover(conv, _)) tm = conv tm
 
 (* ------------------------------------------------------------------------- *)
@@ -272,6 +284,7 @@ and strategy = simpset -> int -> term -> thm
 (* ------------------------------------------------------------------------- *)
 (* Very simple prover: recursively simplify then try provers.                *)
 (* ------------------------------------------------------------------------- *)
+/// The basic prover use function used in the simplifier.
 let basic_prover strat (Simpset(net, prover, provers, rewmaker) as ss) lev tm = 
     let sth = 
         try 
@@ -288,29 +301,36 @@ let basic_prover strat (Simpset(net, prover, provers, rewmaker) as ss) lev tm =
 (* ------------------------------------------------------------------------- *)
 (* Functions for changing or augmenting components of simpsets.              *)
 (* ------------------------------------------------------------------------- *)
+/// Add theorems to a simpset.
 let ss_of_thms thms (Simpset(net, prover, provers, rewmaker)) = 
     let cthms = itlist rewmaker thms []
     let net' = itlist (net_of_thm true) cthms net
     Simpset(net', prover, provers, rewmaker)
 
+/// Add a new conversion to a simpset.
 let ss_of_conv keytm conv (Simpset(net, prover, provers, rewmaker)) = 
     let net' = net_of_conv keytm conv net
     Simpset(net', prover, provers, rewmaker)
 
+/// Add congruence rules to a simpset.
 let ss_of_congs thms (Simpset(net, prover, provers, rewmaker)) = 
     let net' = itlist net_of_cong thms net
     Simpset(net', prover, provers, rewmaker)
 
+/// Change the method of prover application in a simpset.
 let ss_of_prover newprover (Simpset(net, _, provers, rewmaker)) = 
     Simpset(net, newprover, provers, rewmaker)
+/// Add new provers to a simpset.
 let ss_of_provers newprovers (Simpset(net, prover, provers, rewmaker)) = 
     Simpset(net, prover, newprovers @ provers, rewmaker)
+/// Change the rewrite maker in a simpset.
 let ss_of_maker newmaker (Simpset(net, prover, provers, _)) = 
     Simpset(net, prover, provers, newmaker)
 
 (* ------------------------------------------------------------------------- *)
 (* Perform a context-augmentation operation on a simpset.                    *)
 (* ------------------------------------------------------------------------- *)
+/// Augment context of a simpset with a list of theorems.
 let AUGMENT_SIMPSET cth (Simpset(net, prover, provers, rewmaker)) = 
     let provers' = map (C augment [cth]) provers
     let cthms = rewmaker cth []
@@ -320,6 +340,11 @@ let AUGMENT_SIMPSET cth (Simpset(net, prover, provers, rewmaker)) =
 (* ------------------------------------------------------------------------- *)
 (* Depth conversions.                                                        *)
 (* ------------------------------------------------------------------------- *)
+// ONCE_DEPTH_SQCONV: Applies simplification to the first suitable sub-term(s) encountered in top-down order.
+// DEPTH_SQCONV: Applies simplification repeatedly to all the sub-terms of a term, in bottom-up order.
+// REDEPTH_SQCONV: Applies simplification bottom-up to all subterms, retraversing changed ones.
+// TOP_DEPTH_SQCONV: Applies simplification top-down to all subterms, retraversing changed ones.
+// TOP_SWEEP_SQCONV: Applies simplification top-down at all levels, but after descending to subterms, does not return to higher ones.
 let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP_SQCONV = 
     let IMP_REWRITES_CONV strat (Simpset(net, prover, provers, rewmaker) as ss) 
         lev pconvs tm = 
@@ -474,6 +499,13 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
 (* ------------------------------------------------------------------------- *)
 (* Maintenence of basic rewrites and conv nets for rewriting.                *)
 (* ------------------------------------------------------------------------- *)
+// set_basic_rewrites: Assign the set of default rewrites used by rewriting and simplification.
+// extend_basic_rewrites: Extend the set of default rewrites used by rewriting and simplification.
+// basic_rewrites: Returns the set of built-in theorems used, by default, in rewriting.
+// set_basic_convs: Assign the set of default conversions.
+// extend_basic_convs: Extend the set of default conversions used by rewriting and simplification.
+// basic_convs: List the current default conversions used in rewriting and simplification.
+// basic_net: Returns the term net used to optimize access to default rewrites and conversions.
 let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, extend_basic_convs, basic_convs, basic_net = 
     let rewrites = ref([] : thm list)
     let conversions = ref ([] : (string * (term * conv)) list)
@@ -507,6 +539,9 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
 (* ------------------------------------------------------------------------- *)
 (* Same thing for the default congruences.                                   *)
 (* ------------------------------------------------------------------------- *)
+// set_basic_congs: Change the set of basic congruences used by the simplifier.
+// extend_basic_congs: Extends the set of congruence rules used by the simplifier.
+// basic_congs: Lists the congruence rules used by the simplifier.
 let set_basic_congs, extend_basic_congs, basic_congs = 
     let congs = ref([] : thm list)
     (fun thl -> congs := thl), 
@@ -515,63 +550,91 @@ let set_basic_congs, extend_basic_congs, basic_congs =
 (* ------------------------------------------------------------------------- *)
 (* Main rewriting conversions.                                               *)
 (* ------------------------------------------------------------------------- *)
+/// Rewrite with theorems as well as an existing net.
 let GENERAL_REWRITE_CONV rep (cnvl : conv -> conv) (builtin_net : gconv net) thl = 
     let thl_canon = itlist (mk_rewrites false) thl []
     let final_net = itlist (net_of_thm rep) thl_canon builtin_net
     cnvl(REWRITES_CONV final_net)
 
+/// Rewrites a term, selecting terms according to a user-specified strategy.
 let GEN_REWRITE_CONV (cnvl : conv -> conv) thl = 
     GENERAL_REWRITE_CONV false cnvl empty_net thl
+/// Rewrites a term with only the given list of rewrites.
 let PURE_REWRITE_CONV thl = 
     GENERAL_REWRITE_CONV true TOP_DEPTH_CONV empty_net thl
+/// Rewrites a term including built-in tautologies in the list of rewrites.
 let REWRITE_CONV thl = 
     GENERAL_REWRITE_CONV true TOP_DEPTH_CONV (basic_net()) thl
+/// Rewrites a term once with only the given list of rewrites.
 let PURE_ONCE_REWRITE_CONV thl = 
     GENERAL_REWRITE_CONV false ONCE_DEPTH_CONV empty_net thl
+/// Rewrites a term, including built-in tautologies in the list of rewrites.
 let ONCE_REWRITE_CONV thl = 
     GENERAL_REWRITE_CONV false ONCE_DEPTH_CONV (basic_net()) thl
 
 (* ------------------------------------------------------------------------- *)
 (* Rewriting rules and tactics.                                              *)
 (* ------------------------------------------------------------------------- *)
+/// Rewrites a theorem, selecting terms according to a user-specified strategy.
 let GEN_REWRITE_RULE cnvl thl = CONV_RULE(GEN_REWRITE_CONV cnvl thl)
 
+/// Rewrites a theorem with only the given list of rewrites.
 let PURE_REWRITE_RULE thl = CONV_RULE(PURE_REWRITE_CONV thl)
+/// Rewrites a theorem including built-in tautologies in the list of rewrites.
 let REWRITE_RULE thl = CONV_RULE(REWRITE_CONV thl)
+/// Rewrites a theorem once with only the given list of rewrites.
 let PURE_ONCE_REWRITE_RULE thl = CONV_RULE(PURE_ONCE_REWRITE_CONV thl)
+/// Rewrites a theorem, including built-in tautologies in the list of rewrites.
 let ONCE_REWRITE_RULE thl = CONV_RULE(ONCE_REWRITE_CONV thl)
+/// Rewrites a theorem including the theorem's assumptions as rewrites.
 let PURE_ASM_REWRITE_RULE thl th = 
     PURE_REWRITE_RULE ((map ASSUME (hyp th)) @ thl) th
+/// Rewrites a theorem including built-in rewrites and the theorem's assumptions.
 let ASM_REWRITE_RULE thl th = REWRITE_RULE ((map ASSUME (hyp th)) @ thl) th
+/// Rewrites a theorem once, including the theorem's assumptions as rewrites.
 let PURE_ONCE_ASM_REWRITE_RULE thl th = 
     PURE_ONCE_REWRITE_RULE ((map ASSUME (hyp th)) @ thl) th
 let ONCE_ASM_REWRITE_RULE thl th = 
     ONCE_REWRITE_RULE ((map ASSUME (hyp th)) @ thl) th
+/// Rewrites a goal, selecting terms according to a user-specified strategy.
 let GEN_REWRITE_TAC cnvl thl = CONV_TAC(GEN_REWRITE_CONV cnvl thl)
+/// Rewrites a goal with only the given list of rewrites.
 let PURE_REWRITE_TAC thl = CONV_TAC(PURE_REWRITE_CONV thl)
+/// Rewrites a goal including built-in tautologies in the list of rewrites.
 let REWRITE_TAC thl = CONV_TAC(REWRITE_CONV thl)
+/// Rewrites a goal using a supplied list of theorems, making one rewriting pass over the goal.
 let PURE_ONCE_REWRITE_TAC thl = CONV_TAC(PURE_ONCE_REWRITE_CONV thl)
+/// Rewrites a goal only once with basic_rewrites and the supplied list of theorems.
 let ONCE_REWRITE_TAC thl = CONV_TAC(ONCE_REWRITE_CONV thl)
+/// Rewrites a goal including the goal's assumptions as rewrites.
 let (PURE_ASM_REWRITE_TAC : thm list -> tactic) = ASM PURE_REWRITE_TAC
+/// Rewrites a goal including built-in rewrites and the goal's assumptions.
 let (ASM_REWRITE_TAC : thm list -> tactic) = ASM REWRITE_TAC
+/// Rewrites a goal once, including the goal's assumptions as rewrites.
 let (PURE_ONCE_ASM_REWRITE_TAC : thm list -> tactic) = ASM PURE_ONCE_REWRITE_TAC
+/// Rewrites a goal once including built-in rewrites and the goal's assumptions.
 let (ONCE_ASM_REWRITE_TAC : thm list -> tactic) = ASM ONCE_REWRITE_TAC
 
 (* ------------------------------------------------------------------------- *)
 (* Simplification functions.                                                 *)
 (* ------------------------------------------------------------------------- *)
+/// General simplification with given strategy and simpset and theorems.
 let GEN_SIMPLIFY_CONV (strat : strategy) ss lev thl = 
     let ss' = itlist AUGMENT_SIMPSET thl ss
     TRY_CONV(strat ss' lev)
 
+/// General top-level simplification with arbitrary simpset.
 let ONCE_SIMPLIFY_CONV ss = GEN_SIMPLIFY_CONV ONCE_DEPTH_SQCONV ss 1
+/// General simplification at depth with arbitrary simpset.
 let SIMPLIFY_CONV ss = GEN_SIMPLIFY_CONV TOP_DEPTH_SQCONV ss 3
 
 (* ------------------------------------------------------------------------- *)
 (* Simple but useful default version.                                        *)
 (* ------------------------------------------------------------------------- *)
+/// Simpset consisting of only the default rewrites and conversions.
 let empty_ss = Simpset(empty_net, basic_prover, [], mk_rewrites true)
 
+/// Construct a straightforward simpset from a list of theorems.
 let basic_ss = 
     let rewmaker = mk_rewrites true
     fun thl -> 
@@ -580,22 +643,36 @@ let basic_ss =
         let net'' = itlist net_of_cong (basic_congs()) net'
         Simpset(net'', basic_prover, [], rewmaker)
 
+/// Simplify a term repeatedly by conditional contextual rewriting.
 let SIMP_CONV thl = SIMPLIFY_CONV (basic_ss []) thl
+/// Simplify a term repeatedly by conditional contextual rewriting, not using default simplications.
 let PURE_SIMP_CONV thl = SIMPLIFY_CONV empty_ss thl
+/// Simplify a term once by conditional contextual rewriting.
 let ONCE_SIMP_CONV thl = ONCE_SIMPLIFY_CONV (basic_ss []) thl
+/// Simplify conclusion of a theorem repeatedly by conditional contextual rewriting.
 let SIMP_RULE thl = CONV_RULE(SIMP_CONV thl)
+/// Simplify conclusion of a theorem repeatedly by conditional contextual rewriting, not using default simplifications.
 let PURE_SIMP_RULE thl = CONV_RULE(PURE_SIMP_CONV thl)
+/// Simplify conclusion of a theorem once by conditional contextual rewriting.
 let ONCE_SIMP_RULE thl = CONV_RULE(ONCE_SIMP_CONV thl)
+/// Simplify a goal repeatedly by conditional contextual rewriting.
 let SIMP_TAC thl = CONV_TAC(SIMP_CONV thl)
+/// Simplify a goal repeatedly by conditional contextual rewriting without default simplifications.
 let PURE_SIMP_TAC thl = CONV_TAC(PURE_SIMP_CONV thl)
+/// Simplify conclusion of goal once by conditional contextual rewriting.
 let ONCE_SIMP_TAC thl = CONV_TAC(ONCE_SIMP_CONV thl)
+/// Perform simplification of goal by conditional contextual rewriting using assumptions and
+/// built-in simplifications.
 let ASM_SIMP_TAC = ASM SIMP_TAC
+/// Perform simplification of goal by conditional contextual rewriting using assumptions.
 let PURE_ASM_SIMP_TAC = ASM PURE_SIMP_TAC
+/// Simplify toplevel applicable terms in goal using assumptions and context.
 let ONCE_ASM_SIMP_TAC = ASM ONCE_SIMP_TAC
 
 (* ------------------------------------------------------------------------- *)
 (* Abbreviation tactics.                                                     *)
 (* ------------------------------------------------------------------------- *)
+/// Tactic to introduce an abbreviation.
 let ABBREV_TAC tm = 
     let cvs, t = dest_eq tm
     let v, vs = strip_comb cvs
@@ -616,6 +693,7 @@ let ABBREV_TAC tm =
                         |> THEN <| PURE_ONCE_REWRITE_TAC [th]
                         |> THEN <| ASSUME_TAC th) th3 gl
 
+/// Expand an abbreviation in the hypotheses.
 let EXPAND_TAC s = FIRST_ASSUM
                        (SUBST1_TAC << SYM 
                         << check((=) s << fst << dest_var << rhs << concl))

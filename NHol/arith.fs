@@ -2152,6 +2152,7 @@ let DIVMOD_ELIM_THM' =
 (* ------------------------------------------------------------------------- *)
 (* Crude but useful conversion for cancelling down equations.                *)
 (* ------------------------------------------------------------------------- *)
+/// Cancels identical terms from both sides of natural number equation.
 let NUM_CANCEL_CONV = 
     let rec minter i l1' l2' l1 l2 = 
         if l1 = []
@@ -2188,6 +2189,7 @@ let NUM_CANCEL_CONV =
 (* ------------------------------------------------------------------------- *)
 (* This is handy for easing MATCH_MP on inequalities.                        *)
 (* ------------------------------------------------------------------------- *)
+/// Perform transitivity chaining for non-strict natural number inequality.
 let LE_IMP = 
     let pth = PURE_ONCE_REWRITE_RULE [IMP_CONJ] LE_TRANS
     fun th -> GEN_ALL(MATCH_MP pth (SPEC_ALL th))

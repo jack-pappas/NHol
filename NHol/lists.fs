@@ -62,6 +62,7 @@ open ind_types
 (* ------------------------------------------------------------------------- *)
 (* Standard tactic for list induction using MATCH_MP_TAC list_INDUCT         *)
 (* ------------------------------------------------------------------------- *)
+/// Performs tactical proof by structural induction on lists.
 let LIST_INDUCT_TAC = 
     let list_INDUCT = 
         prove
@@ -716,6 +717,7 @@ let MEM_APPEND_DECOMPOSE =
 (* ------------------------------------------------------------------------- *)
 (* Syntax.                                                                   *)
 (* ------------------------------------------------------------------------- *)
+/// Constructs a CONS pair.
 let mk_cons h t = 
     try 
         let cons = mk_const("CONS", [type_of h, aty])
@@ -723,6 +725,7 @@ let mk_cons h t =
     with
     | Failure _ -> failwith "mk_cons"
 
+/// Constructs object-level list from list of terms.
 let mk_list(tms, ty) = 
     try 
         let nil = mk_const("NIL", [ty, aty])
@@ -734,6 +737,7 @@ let mk_list(tms, ty) =
     with
     | Failure _ -> failwith "mk_list"
 
+/// Constructs object-level list from nonempty list of terms.
 let mk_flist tms = 
     try 
         mk_list(tms, type_of(hd tms))
@@ -770,6 +774,7 @@ monotonicity_theorems := [MONO_ALL; MONO_ALL2] @ !monotonicity_theorems
 (* ------------------------------------------------------------------------- *)
 (* Apply a conversion down a list.                                           *)
 (* ------------------------------------------------------------------------- *)
+/// Apply a conversion to each element of a list.
 let rec LIST_CONV conv tm = 
     if is_cons tm
     then COMB2_CONV (RAND_CONV conv) (LIST_CONV conv) tm
