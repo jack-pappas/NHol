@@ -16,6 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tutorial", "Tutorial", "{BD
 	ProjectSection(SolutionItems) = preProject
 		Tutorial\all.fsx = Tutorial\all.fsx
 		Tutorial\examples.fsx = Tutorial\examples.fsx
+		Tutorial\exploration.fsx = Tutorial\exploration.fsx
 		Tutorial\hol.fsx = Tutorial\hol.fsx
 		Tutorial\holBasics.fsx = Tutorial\holBasics.fsx
 	EndProjectSection
