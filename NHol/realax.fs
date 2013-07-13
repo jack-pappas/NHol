@@ -56,8 +56,8 @@ open wf
 open calc_num
 open normalizer
 open grobner
-open ind_types
-open lists
+//open ind_types
+//open lists
 #endif
 
 parse_as_infix("++", (16, "right"))
@@ -2043,7 +2043,7 @@ override_interface("inv", (parse_term @"nadd_inv:nadd->nadd"))
 let NADD_INV = 
     prove
         ((parse_term 
-              "!x. fn(nadd_inv x) = if x === &0 then (\n. 0) else nadd_rinv x"), 
+              @"!x. fn(nadd_inv x) = if x === &0 then (\n. 0) else nadd_rinv x"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [nadd_inv]
          |> THEN <| ASM_CASES_TAC(parse_term @"x === &0")

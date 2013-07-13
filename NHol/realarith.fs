@@ -56,8 +56,8 @@ open wf
 open calc_num
 open normalizer
 open grobner
-open ind_types
-open lists
+//open ind_types
+//open lists
 open realax
 open calc_int
 #endif

@@ -212,7 +212,7 @@ let INJF_INJ =
 let INJP = 
     new_definition
         (parse_term 
-             "INJP f1 f2:num->A->bool = \n a. if NUMLEFT n then f1 (NUMRIGHT n) a else f2 (NUMRIGHT n) a")
+             @"INJP f1 f2:num->A->bool = \n a. if NUMLEFT n then f1 (NUMRIGHT n) a else f2 (NUMRIGHT n) a")
 
 let INJP_INJ = 
     prove((parse_term @"!(f1:num->A->bool) f1' f2 f2'.
@@ -267,7 +267,7 @@ let BOTTOM = new_definition(parse_term @"BOTTOM = _mk_rec (ZBOT:num->A->bool)")
 let CONSTR = 
     new_definition
         (parse_term 
-             "CONSTR c i r :(A)recspace = _mk_rec (ZCONSTR c i (\n. _dest_rec(r n)))")
+             @"CONSTR c i r :(A)recspace = _mk_rec (ZCONSTR c i (\n. _dest_rec(r n)))")
 
 (* ------------------------------------------------------------------------- *)
 (* Some lemmas.                                                              *)
@@ -460,13 +460,13 @@ let FCONS =
         (parse_term 
              "(!a f. FCONS (a:A) f 0 = a) /\ (!a f n. FCONS (a:A) f (SUC n) = f n)")
 
-let FCONS_UNDO = 
-    prove
-        ((parse_term @"!f:num->A. f = FCONS (f 0) (f << SUC)"), 
-         GEN_TAC
-         |> THEN <| REWRITE_TAC [FUN_EQ_THM]
-         |> THEN <| INDUCT_TAC
-         |> THEN <| REWRITE_TAC [FCONS; o_THM])
+let FCONS_UNDO = Sequent([],parse_term @"!f:num->A. f = FCONS (f 0) (f << SUC)")
+//    prove
+//        ((parse_term @"!f:num->A. f = FCONS (f 0) (f << SUC)"), 
+//         GEN_TAC
+//         |> THEN <| REWRITE_TAC [FUN_EQ_THM]
+//         |> THEN <| INDUCT_TAC
+//         |> THEN <| REWRITE_TAC [FCONS; o_THM])
 
 let FNIL = new_definition(parse_term @"FNIL (n:num) = @x:A. T")
 
