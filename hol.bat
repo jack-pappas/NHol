@@ -1,5 +1,4 @@
 fsi^
-  --optimize+^
   --lib:NHol^
   --use:system.fsx^
   --use:lib.fs^
