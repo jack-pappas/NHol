@@ -62,16 +62,19 @@ parse_as_infix("=", (12, "right"))
 (* Special syntax for Boolean equations (IFF).                               *)
 (* ------------------------------------------------------------------------- *)
 
+/// Tests if a term is an equation between Boolean terms (iff / logical equivalence).
 let is_iff tm = 
     match tm with
     | Comb(Comb(Const("=", Tyapp("fun", [Tyapp("bool", []); _])), l), r) -> true
     | _ -> false
 
+/// Term destructor for logical equivalence.
 let dest_iff tm = 
     match tm with
     | Comb(Comb(Const("=", Tyapp("fun", [Tyapp("bool", []); _])), l), r) -> (l, r)
     | _ -> failwith "dest_iff"
 
+/// Constructs a logical equivalence (Boolean equation).
 let mk_iff = 
     let eq_tm = parse_term @"(<=>)"
     fun (l, r) -> mk_comb(mk_comb(eq_tm, l), r)
@@ -80,6 +83,7 @@ let mk_iff =
 (* Rule allowing easy instantiation of polymorphic proformas.                *)
 (* ------------------------------------------------------------------------- *)
 
+/// Instantiate types and terms in a theorem.
 let PINST tyin tmin = 
     let iterm_fn = INST(map (I ||>> (inst tyin)) tmin)
     let itype_fn = INST_TYPE tyin
@@ -93,6 +97,7 @@ let PINST tyin tmin =
 (* Useful derived deductive rule.                                            *)
 (* ------------------------------------------------------------------------- *)
 
+/// Eliminates a provable assumption from a theorem.
 let PROVE_HYP ath bth = 
     if exists (aconv(concl ath)) (hyp bth) then EQ_MP (DEDUCT_ANTISYM_RULE ath bth) ath
     else bth
@@ -104,12 +109,14 @@ let PROVE_HYP ath bth =
 let T_DEF = new_basic_definition <| parse_term @"T = ((\p:bool. p) = (\p:bool. p))"
 let TRUTH = EQ_MP (SYM T_DEF) (REFL(parse_term @"\p:bool. p"))
 
+/// Eliminates equality with T.
 let EQT_ELIM th = 
     try 
         EQ_MP (SYM th) TRUTH
     with
     | Failure _ -> failwith "EQT_ELIM"
 
+/// Introduces equality with T.
 let EQT_INTRO = 
     let t = parse_term @"t:bool"
     let pth = 
@@ -123,9 +130,12 @@ let EQT_INTRO =
 (* ------------------------------------------------------------------------- *)
 
 let AND_DEF = new_basic_definition <| parse_term @"(/\) = \p q. (\f:bool->bool->bool. f p q) = (\f. f T T)"
+/// Constructs a conjunction.
 let mk_conj = mk_binary "/\\"
+/// Constructs the conjunction of a list of terms.
 let list_mk_conj = end_itlist(curry mk_conj)
 
+/// Introduces a conjunction.
 let CONJ = 
     let f = parse_term @"f:bool->bool->bool"
     let p = parse_term @"p:bool"
@@ -143,6 +153,7 @@ let CONJ =
                   concl th2, q] <| pth()
         PROVE_HYP th2 (PROVE_HYP th1 th)
 
+/// Extracts left conjunct of theorem.
 let CONJUNCT1 = 
     let P = parse_term @"P:bool"
     let Q = parse_term @"Q:bool"
@@ -159,6 +170,7 @@ let CONJUNCT1 =
         with
         | Failure _ -> failwith "CONJUNCT1"
 
+/// Extracts right conjunct of theorem.
 let CONJUNCT2 = 
     let P = parse_term @"P:bool"
     let Q = parse_term @"Q:bool"
@@ -175,12 +187,14 @@ let CONJUNCT2 =
         with
         | Failure _ -> failwith "CONJUNCT2"
 
+/// Extracts both conjuncts of a conjunction.
 let CONJ_PAIR th = 
     try 
         CONJUNCT1 th, CONJUNCT2 th
     with
     | Failure _ -> failwith "CONJ_PAIR: Not a conjunction"
 
+/// Recursively splits conjunctions into a list of conjuncts.
 let CONJUNCTS = striplist CONJ_PAIR
 
 (* ------------------------------------------------------------------------- *)
@@ -188,8 +202,10 @@ let CONJUNCTS = striplist CONJ_PAIR
 (* ------------------------------------------------------------------------- *)
 
 let IMP_DEF = new_basic_definition <| parse_term @"(==>) = \p q. p /\ q <=> p"
+/// Constructs an implication.
 let mk_imp = mk_binary "==>"
 
+/// Implements the Modus Ponens inference rule.
 let MP = 
     let p = parse_term @"p:bool"
     let q = parse_term @"q:bool"
@@ -204,6 +220,7 @@ let MP =
                                                con, q] <| pth()))
         else failwith "MP: theorems do not agree"
 
+/// Discharges an assumption.
 let DISCH = 
     let p = parse_term @"p:bool"
     let q = parse_term @"q:bool"
@@ -217,25 +234,31 @@ let DISCH =
                   concl th, q] <| pth()
         EQ_MP th4 th3
 
+/// Discharges all hypotheses of a theorem.
 let rec DISCH_ALL th = 
     try 
         DISCH_ALL(DISCH (hd(hyp th)) th)
     with
     | Failure _ -> th
 
+/// Undischarges the antecedent of an implicative theorem.
 let UNDISCH th = 
     try 
         MP th (ASSUME(rand(rator(concl th))))
     with
     | Failure _ -> failwith "UNDISCH"
 
+/// Iteratively undischarges antecedents in a chain of implications.
 let rec UNDISCH_ALL th = 
     if is_imp(concl th) then UNDISCH_ALL(UNDISCH th)
     else th
 
+/// Deduces equality of boolean terms from forward and backward implications.
 let IMP_ANTISYM_RULE th1 th2 = DEDUCT_ANTISYM_RULE (UNDISCH th2) (UNDISCH th1)
+/// Adds an assumption to a theorem.
 let ADD_ASSUM tm th = MP (DISCH tm th) (ASSUME tm)
 
+/// Derives forward and backward implication from equality of boolean terms.
 let EQ_IMP_RULE = 
     let peq = parse_term @"p <=> q"
     let p, q = dest_iff peq
@@ -247,6 +270,7 @@ let EQ_IMP_RULE =
                   r, q] <| pth1()) th, MP (INST [l, p;
                                             r, q] <| pth2()) th
 
+/// Implements the transitivity of implication.
 let IMP_TRANS = 
     let pq = parse_term @"p ==> q"
     let qr = parse_term @"q ==> r"
@@ -267,9 +291,12 @@ let IMP_TRANS =
 (* ------------------------------------------------------------------------- *)
 
 let FORALL_DEF = new_basic_definition <| parse_term @"(!) = \P:A->bool. P = \x. T"
+/// Term constructor for universal quantification.
 let mk_forall = mk_binder "!"
+/// Iteratively constructs a universal quantification.
 let list_mk_forall(vs, bod) = itlist (curry mk_forall) vs bod
 
+/// Specializes the conclusion of a theorem.
 let SPEC = 
     let P = parse_term @"P:A->bool"
     let x = parse_term @"x:A"
@@ -286,20 +313,24 @@ let SPEC =
         with
         | Failure _ -> failwith "SPEC"
 
+/// Specializes zero or more variables in the conclusion of a theorem.
 let SPECL tms th = 
     try 
         rev_itlist SPEC tms th
     with
     | Failure _ -> failwith "SPECL"
 
+/// Specializes the conclusion of a theorem, returning the chosen variant.
 let SPEC_VAR th = 
     let bv = variant (thm_frees th) (bndvar(rand(concl th)))
     bv, SPEC bv th
 
+/// Specializes the conclusion of a theorem with its own quantified variables.
 let rec SPEC_ALL th = 
     if is_forall(concl th) then SPEC_ALL(snd(SPEC_VAR th))
     else th
 
+/// Specializes a theorem, with type instantiation if necessary.
 let ISPEC t th = 
     let x, _ = 
         try 
@@ -316,6 +347,7 @@ let ISPEC t th =
     with
     | Failure _ -> failwith "ISPEC: type variable(s) free in assumptions"
 
+/// Specializes a theorem zero or more times, with type instantiation if necessary.
 let ISPECL tms th = 
     try 
         if tms = [] then th
@@ -326,6 +358,7 @@ let ISPECL tms th =
     with
     | Failure _ -> failwith "ISPECL"
 
+/// Generalizes the conclusion of a theorem.
 let GEN = 
     let pth() = SYM(CONV_RULE (RAND_CONV BETA_CONV) (AP_THM FORALL_DEF <| parse_term @"P:A->bool"))
     fun x -> 
@@ -337,8 +370,10 @@ let GEN =
             let rth = INST [phi, ptm] qth
             EQ_MP rth th'
 
+/// Generalizes zero or more variables in the conclusion of a theorem.
 let GENL = itlist GEN
 
+/// Generalizes the conclusion of a theorem over its own free variables.
 let GEN_ALL th = 
     let asl, c = dest_thm th
     let vars = subtract (frees c) (freesl asl)
@@ -349,9 +384,12 @@ let GEN_ALL th =
 (* ------------------------------------------------------------------------- *)
 
 let EXISTS_DEF = new_basic_definition <| parse_term @"(?) = \P:A->bool. !q. (!x. P x ==> q) ==> q"
+/// Term constructor for existential quantification.
 let mk_exists = mk_binder "?"
+/// Multiply existentially quantifies both sides of an equation using the given variables.
 let list_mk_exists(vs, bod) = itlist (curry mk_exists) vs bod
 
+/// Introduces existential quantification given a particular witness.
 let EXISTS = 
     let P = parse_term @"P:A->bool"
     let x = parse_term @"x:A"
@@ -371,8 +409,10 @@ let EXISTS =
         with
         | Failure _ -> failwith "EXISTS"
 
+/// Introduces an existential quantifier over a variable in a theorem.
 let SIMPLE_EXISTS v th = EXISTS (mk_exists(v, concl th), v) th
 
+/// Eliminates existential quantification using deduction from a particular witness.
 let CHOOSE = 
     let P = parse_term @"P:A->bool"
     let Q = parse_term @"Q:bool"
@@ -395,6 +435,7 @@ let CHOOSE =
         with
         | Failure _ -> failwith "CHOOSE"
 
+/// Existentially quantifies a hypothesis of a theorem.
 let SIMPLE_CHOOSE v th = CHOOSE (v, ASSUME(mk_exists(v, hd(hyp th)))) th
 
 (* ------------------------------------------------------------------------- *)
@@ -402,9 +443,12 @@ let SIMPLE_CHOOSE v th = CHOOSE (v, ASSUME(mk_exists(v, hd(hyp th)))) th
 (* ------------------------------------------------------------------------- *)
 
 let OR_DEF = new_basic_definition <| parse_term @"(\/) = \p q. !r. (p ==> r) ==> (q ==> r) ==> r"
+/// Constructs a disjunction.
 let mk_disj = mk_binary "\\/"
+/// Constructs the disjunction of a list of terms.
 let list_mk_disj = end_itlist(curry mk_disj)
 
+/// Introduces a right disjunct into the conclusion of a theorem.
 let DISJ1 = 
     let P = parse_term @"P:bool"
     let Q = parse_term @"Q:bool"
@@ -421,6 +465,7 @@ let DISJ1 =
         with
         | Failure _ -> failwith "DISJ1"
 
+/// Introduces a left disjunct into the conclusion of a theorem.
 let DISJ2 = 
     let P = parse_term @"P:bool"
     let Q = parse_term @"Q:bool"
@@ -437,6 +482,7 @@ let DISJ2 =
         with
         | Failure _ -> failwith "DISJ2"
 
+/// Eliminates disjunction by cases.
 let DISJ_CASES = 
     let P = parse_term @"P:bool"
     let Q = parse_term @"Q:bool"
@@ -461,6 +507,7 @@ let DISJ_CASES =
         with
         | Failure _ -> failwith "DISJ_CASES"
 
+/// Disjoins hypotheses of two theorems with same conclusion.
 let SIMPLE_DISJ_CASES th1 th2 = DISJ_CASES (ASSUME(mk_disj(hd(hyp th1), hd(hyp th2)))) th1 th2
 
 (* ------------------------------------------------------------------------- *)
@@ -470,6 +517,7 @@ let SIMPLE_DISJ_CASES th1 th2 = DISJ_CASES (ASSUME(mk_disj(hd(hyp th1), hd(hyp t
 let F_DEF = new_basic_definition <| parse_term @"F = !p:bool. p"
 let NOT_DEF = new_basic_definition <| parse_term @"(~) = \p. p ==> F"
 
+/// Constructs a logical negation.
 let mk_neg = 
     let neg_tm = parse_term @"(~)"
     fun tm -> 
@@ -478,6 +526,9 @@ let mk_neg =
         with
         | Failure _ -> failwith "mk_neg"
 
+/// <summary>
+/// Transforms <c>|- ~t</c> into <c>|- t ==> F</c>.
+/// </summary>
 let NOT_ELIM = 
     let P = parse_term @"P:bool"
     let pth() = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM NOT_DEF P)
@@ -487,6 +538,9 @@ let NOT_ELIM =
         with
         | Failure _ -> failwith "NOT_ELIM"
 
+/// <summary>
+/// Transforms <c>|- t ==> F</c> into <c>|- ~t</c>.
+/// </summary>
 let NOT_INTRO = 
     let P = parse_term @"P:bool"
     let pth() = SYM(CONV_RULE (RAND_CONV BETA_CONV) (AP_THM NOT_DEF P))
@@ -496,6 +550,7 @@ let NOT_INTRO =
         with
         | Failure _ -> failwith "NOT_INTRO"
 
+/// Converts negation to equality with F.
 let EQF_INTRO = 
     let P = parse_term @"P:bool"
     let pth() = 
@@ -508,6 +563,7 @@ let EQF_INTRO =
         with
         | Failure _ -> failwith "EQF_INTRO"
 
+/// Replaces equality with F by negation.
 let EQF_ELIM = 
     let P = parse_term @"P:bool"
     let pth() = 
@@ -520,6 +576,7 @@ let EQF_ELIM =
         with
         | Failure _ -> failwith "EQF_ELIM"
 
+/// Implements the intuitionistic contradiction rule.
 let CONTR = 
     let P = parse_term @"P:bool"
     let f_tm = parse_term @"F"
@@ -533,8 +590,10 @@ let CONTR =
 (* ------------------------------------------------------------------------- *)
 
 let EXISTS_UNIQUE_DEF = new_basic_definition <| parse_term @"(?!) = \P:A->bool. ((?) P) /\ (!x y. P x /\ P y ==> x = y)"
+/// Term constructor for unique existence.
 let mk_uexists = mk_binder "?!"
 
+/// Deduces existence from unique existence.
 let EXISTENCE = 
     let P = parse_term @"P:A->bool"
     let pth() = 
