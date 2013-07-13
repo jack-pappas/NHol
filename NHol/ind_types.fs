@@ -976,6 +976,7 @@ let define_type_raw_001 =
 (* ------------------------------------------------------------------------- *)
 (* Parser to present a nice interface a la Melham.                           *)
 (* ------------------------------------------------------------------------- *)
+/// Parses the specication for an inductive type into a structured format.
 let parse_inductive_type_specification = 
     let parse_type_loc src = 
         let pty, rst = parse_pretype src
@@ -1165,6 +1166,7 @@ let list_INDUCT, list_RECURSION =
 (* ------------------------------------------------------------------------- *)
 (* Tools for proving injectivity and distinctness of constructors.           *)
 (* ------------------------------------------------------------------------- *)
+/// Proves that the constructors of an automatically-defined concrete type are injective.
 let prove_constructors_injective = 
     let DEPAIR = GEN_REWRITE_RULE TOP_SWEEP_CONV [PAIR_EQ]
     let prove_distinctness ax pat = 
@@ -1192,6 +1194,7 @@ let prove_constructors_injective =
         let pats = map (rand << lhand << snd << strip_forall) cls
         end_itlist CONJ (mapfilter (prove_distinctness ax) pats)
 
+/// Proves that the constructors of an automatically-dened concrete type yield distinct values.
 let prove_constructors_distinct = 
     let num_ty = (parse_type @"num")
     let rec allopairs f l m = 
@@ -1234,6 +1237,7 @@ let prove_constructors_distinct =
 (* ------------------------------------------------------------------------- *)
 (* Automatically prove the case analysis theorems.                           *)
 (* ------------------------------------------------------------------------- *)
+/// Proves a structural cases theorem for an automatically-defined concrete type.
 let prove_cases_thm = 
     let mk_exclauses x rpats = 
         let xts = map (fun t -> list_mk_exists(frees t, mk_eq(x, t))) rpats
@@ -1304,11 +1308,15 @@ inductive_type_store
 (* there can be quadratically many distinctness clauses, it would really be  *)
 (* preferable to have a conversion, but this seems OK up 100 constructors.   *)
 (* ------------------------------------------------------------------------- *)
+/// Net of injectivity and distinctness properties for recursive type constructors.
 let basic_rectype_net = ref empty_net
 
+/// Internal theorem list of distinctness theorems.
 let distinctness_store = ref ["bool", TAUT(parse_term @"(T <=> F) <=> F")]
+/// Internal theorem list of injectivity theorems.
 let injectivity_store = ref []
 
+/// Extends internal store of distinctness and injectivity theorems for a new inductive type.
 let extend_rectype_net(tyname, (_, _, rth)) = 
     let ths1 = 
         try 
@@ -1331,10 +1339,13 @@ do_list extend_rectype_net (!inductive_type_store)
 (* ------------------------------------------------------------------------- *)
 (* Return distinctness and injectivity for a type by simple lookup.          *)
 (* ------------------------------------------------------------------------- *)
+/// Produce distinctness theorem for an inductive type.
 let distinctness ty = assoc ty (!distinctness_store)
 
+/// Produce injectivity theorem for an inductive type.
 let injectivity ty = assoc ty (!injectivity_store)
 
+/// Produce cases theorem for an inductive type.
 let cases ty = 
     if ty = "num"
     then num_CASES
@@ -1367,6 +1378,9 @@ let ISO_USAGE = prove((parse_term @"ISO f g
 (* ------------------------------------------------------------------------- *)
 (* Hence extend type definition to nested types.                             *)
 (* ------------------------------------------------------------------------- *)
+/// <summary>
+/// Like <see cref="define_type"/> but from a more structured representation than a string.
+/// </summary>
 let rec define_type_raw = 
     (* ----------------------------------------------------------------------- *)
     (* Dispose of trivial antecedent.                                          *)
@@ -1725,11 +1739,13 @@ let rec define_type_raw =
 (* ----------------------------------------------------------------------- *)
 (* The overall function, with rather crude string-based benignity.         *)
 (* ----------------------------------------------------------------------- *)
+/// List of previously declared inductive types.
 let the_inductive_types = 
     ref ["list = NIL | CONS A list", (list_INDUCT, list_RECURSION)
          "option = NONE | SOME A", (option_INDUCT, option_RECURSION)
          "sum = INL A | INR B", (sum_INDUCT, sum_RECURSION)]
 
+/// Automatically define user-specified inductive data types.
 let define_type s = 
     try 
         let retval = assoc s (!the_inductive_types)
@@ -1760,6 +1776,8 @@ let define_type s =
 (* ------------------------------------------------------------------------- *)
 (* Unwinding, and application of patterns. Add easy cases to default net.    *)
 (* ------------------------------------------------------------------------- *)
+// UNWIND_CONV: Eliminates existentially quantified variables that are equated to something.
+// MATCH_CONV: Expands application of pattern-matching construct to particular case.
 let UNWIND_CONV, MATCH_CONV = 
     let pth_0 = 
       prove((parse_term @"(if ?!x. x = a /\ p then @x. x = a /\ p else @x. F) =
@@ -1909,6 +1927,7 @@ let UNWIND_CONV, MATCH_CONV =
     (CHANGED_CONV UNWIND_CONV, (MATCH_SEQPATTERN_CONV_GEN
                                 |> ORELSEC <| MATCH_ONEPATTERN_CONV_GEN))
 
+/// Eliminates universally quantified variables that are equated to something.
 let FORALL_UNWIND_CONV = 
     let PUSH_FORALL_CONV = 
         let econv = REWR_CONV SWAP_FORALL_THM

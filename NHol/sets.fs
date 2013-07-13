@@ -266,6 +266,7 @@ let CHOICE_DEF =
 (* ------------------------------------------------------------------------- *)
 (* Tactic to automate some routine set theory by reduction to FOL.           *)
 (* ------------------------------------------------------------------------- *)
+/// Attempt to prove goal using basic set-theoretic reasoning.
 let SET_TAC = 
     let PRESET_TAC = 
         POP_ASSUM_LIST(K ALL_TAC)
@@ -283,6 +284,7 @@ let SET_TAC =
         |> THEN <| PRESET_TAC
         |> THEN <| MESON_TAC []
 
+/// Attempt to prove elementary set-theoretic lemma.
 let SET_RULE tm = prove(tm, SET_TAC [])
 
 (* ------------------------------------------------------------------------- *)
@@ -2091,6 +2093,7 @@ let HAS_SIZE_CLAUSES =
 (* ------------------------------------------------------------------------- *)
 (* Produce an explicit expansion for "s HAS_SIZE n" for numeral n.           *)
 (* ------------------------------------------------------------------------- *)
+/// Converts statement about set's size into existential enumeration.
 let HAS_SIZE_CONV = 
     let pth = prove((parse_term @"(~(a IN {}) /\ P <=> P) /\
      (~(a IN {b}) /\ P <=> ~(a = b) /\ P) /\
@@ -3201,6 +3204,7 @@ let SET_OF_LIST_EQ_EMPTY =
 (* ------------------------------------------------------------------------- *)
 (* Mappings from finite set enumerations to lists (no "setification").       *)
 (* ------------------------------------------------------------------------- *)
+/// Breaks apart a set enumeration.
 let dest_setenum = 
     let fn = splitlist(dest_binary "INSERT")
     fun tm -> 
@@ -3209,8 +3213,10 @@ let dest_setenum =
         then l
         else failwith "dest_setenum: not a finite set enumeration"
 
+/// Tests if a term is a set enumeration.
 let is_setenum = can dest_setenum
 
+/// Constructs an explicit set enumeration from a list of elements.
 let mk_setenum = 
     let insert_atm = (parse_term @"(INSERT):A->(A->bool)->(A->bool)")
     let nil_atm = (parse_term @"(EMPTY):A->bool")
@@ -3219,6 +3225,7 @@ let mk_setenum =
         let nil_tm = inst [ty, aty] nil_atm
         itlist (mk_binop insert_tm) l nil_tm
 
+/// Constructs an explicit set enumeration from a nonempty list of elements.
 let mk_fset l = mk_setenum(l, type_of(hd l))
 
 (* ------------------------------------------------------------------------- *)
@@ -3879,6 +3886,7 @@ let REAL_SUP_EQ_INF =
 (* ------------------------------------------------------------------------- *)
 (* Inductive definition of sets, by reducing them to inductive relations.    *)
 (* ------------------------------------------------------------------------- *)
+/// Dene a set or family of sets inductively.
 let new_inductive_set = 
     let const_of_var v = mk_mconst(name_of v, type_of v)
     let comb_all = 

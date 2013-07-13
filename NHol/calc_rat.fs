@@ -178,6 +178,7 @@ let RAT_LEMMA5 =
 (* ------------------------------------------------------------------------- *)
 (* Create trivial rational from integer or decimal, and postconvert back.    *)
 (* ------------------------------------------------------------------------- *)
+/// Convert basic rational constant of real type to canonical form.
 let REAL_INT_RAT_CONV = 
     let pth = 
         prove
@@ -192,6 +193,7 @@ let REAL_INT_RAT_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Relational operations.                                                    *)
 (* ------------------------------------------------------------------------- *)
+/// Conversion to prove whether one rational literal of type :real is <= another.
 let REAL_RAT_LE_CONV = 
     let pth = 
         prove
@@ -220,6 +222,7 @@ let REAL_RAT_LE_CONV =
     BINOP_CONV REAL_INT_RAT_CONV
     |> THENC <| RAW_REAL_RAT_LE_CONV
 
+/// Conversion to prove whether one rational literal of type :real is < another.
 let REAL_RAT_LT_CONV = 
     let pth = 
         prove
@@ -253,11 +256,14 @@ let REAL_RAT_LT_CONV =
     BINOP_CONV REAL_INT_RAT_CONV
     |> THENC <| RAW_REAL_RAT_LT_CONV
 
+/// Conversion to prove whether one rational literal of type :real is >= another.
 let REAL_RAT_GE_CONV = GEN_REWRITE_CONV I [real_ge]
                        |> THENC <| REAL_RAT_LE_CONV
+/// Conversion to prove whether one rational literal of type :real is > another.
 let REAL_RAT_GT_CONV = GEN_REWRITE_CONV I [real_gt]
                        |> THENC <| REAL_RAT_LT_CONV
 
+/// Conversion to prove whether one rational constant of type :real is equal to another.
 let REAL_RAT_EQ_CONV = 
     let pth = 
         prove
@@ -289,6 +295,7 @@ let REAL_RAT_EQ_CONV =
 (* ------------------------------------------------------------------------- *)
 (* The unary operations; all easy.                                           *)
 (* ------------------------------------------------------------------------- *)
+/// Conversion to negate a rational literal of type :real.
 let REAL_RAT_NEG_CONV = 
     let pth = 
         prove
@@ -315,6 +322,7 @@ let REAL_RAT_NEG_CONV =
             with
             | Failure _ -> failwith "REAL_RAT_NEG_CONV"
 
+/// Conversion to produce absolute value of a rational literal of type :real.
 let REAL_RAT_ABS_CONV = 
     let pth = 
         prove
@@ -327,6 +335,7 @@ let REAL_RAT_ABS_CONV =
              REWRITE_TAC [DECIMAL; REAL_ABS_DIV; REAL_ABS_NEG; REAL_ABS_NUM])
     GEN_REWRITE_CONV I [pth]
 
+/// Conversion to invert a rational constant of type :real.
 let REAL_RAT_INV_CONV = 
     let pth1 = 
         prove
@@ -360,6 +369,7 @@ let REAL_RAT_INV_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Addition.                                                                 *)
 (* ------------------------------------------------------------------------- *)
+/// Conversion to perform addition on two rational literals of type :real.
 let REAL_RAT_ADD_CONV = 
   let pth = 
     prove ((parse_term @"&0 < y1 ==> &0 < y2 ==> &0 < y3 ==>
@@ -425,6 +435,7 @@ let REAL_RAT_ADD_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Subtraction.                                                              *)
 (* ------------------------------------------------------------------------- *)
+/// Conversion to perform subtraction on two rational literals of type :real.
 let REAL_RAT_SUB_CONV = 
     let pth = prove((parse_term @"x - y = x + --y"), REWRITE_TAC [real_sub])
     GEN_REWRITE_CONV I [pth]
@@ -434,6 +445,7 @@ let REAL_RAT_SUB_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Multiplication.                                                           *)
 (* ------------------------------------------------------------------------- *)
+/// Conversion to perform multiplication on two rational literals of type :real.
 let REAL_RAT_MUL_CONV = 
     let pth_nocancel = 
         prove
@@ -514,6 +526,7 @@ let REAL_RAT_MUL_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Division.                                                                 *)
 (* ------------------------------------------------------------------------- *)
+/// Conversion to perform division on two rational literals of type :real.
 let REAL_RAT_DIV_CONV = 
     let pth = prove((parse_term @"x / y = x * inv(y)"), REWRITE_TAC [real_div])
     GEN_REWRITE_CONV I [pth]
@@ -523,6 +536,7 @@ let REAL_RAT_DIV_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Powers.                                                                   *)
 (* ------------------------------------------------------------------------- *)
+/// Conversion to perform exponentiation on a rational literal of type :real.
 let REAL_RAT_POW_CONV = 
     let pth = 
         prove
@@ -536,11 +550,13 @@ let REAL_RAT_POW_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Max and min.                                                              *)
 (* ------------------------------------------------------------------------- *)
+/// Conversion to perform addition on two rational literals of type :real.
 let REAL_RAT_MAX_CONV = 
     REWR_CONV real_max
     |> THENC <| RATOR_CONV(RATOR_CONV(RAND_CONV REAL_RAT_LE_CONV))
     |> THENC <| GEN_REWRITE_CONV I [COND_CLAUSES]
 
+/// Conversion to perform addition on two rational literals of type :real.
 let REAL_RAT_MIN_CONV = 
     REWR_CONV real_min
     |> THENC <| RATOR_CONV(RATOR_CONV(RAND_CONV REAL_RAT_LE_CONV))
@@ -549,6 +565,7 @@ let REAL_RAT_MIN_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Everything.                                                               *)
 (* ------------------------------------------------------------------------- *)
+/// Performs one arithmetic or relational operation on rational literals of type :real.
 let REAL_RAT_RED_CONV = 
     let gconv_net = 
         itlist (uncurry net_of_conv) [(parse_term @"x <= y"), REAL_RAT_LE_CONV
@@ -572,11 +589,17 @@ let REAL_RAT_RED_CONV =
             (basic_net())
     REWRITES_CONV gconv_net
 
+/// Evaluate subexpressions built up from rational literals of type :real, by proof.
 let REAL_RAT_REDUCE_CONV = DEPTH_CONV REAL_RAT_RED_CONV
 
 (* ------------------------------------------------------------------------- *)
 (* Real normalizer dealing with rational constants.                          *)
 (* ------------------------------------------------------------------------- *)
+// REAL_POLY_NEG_CONV: Negates real polynomial while retaining canonical form.
+// REAL_POLY_ADD_CONV: Adds two real polynomials while retaining canonical form.
+// REAL_POLY_SUB_CONV: Subtracts two real polynomials while retaining canonical form.
+// REAL_POLY_MUL_CONV: Multiplies two real polynomials while retaining canonical form.
+// REAL_POLY_POW_CONV: Raise real polynomial to numeral power while retaining canonical form.
 let REAL_POLY_NEG_CONV, REAL_POLY_ADD_CONV, REAL_POLY_SUB_CONV, REAL_POLY_MUL_CONV, REAL_POLY_POW_CONV, REAL_POLY_CONV_001 = 
     SEMIRING_NORMALIZERS_CONV REAL_POLY_CLAUSES REAL_POLY_NEG_CLAUSES 
         (is_ratconst, REAL_RAT_ADD_CONV, REAL_RAT_MUL_CONV, REAL_RAT_POW_CONV) 
@@ -586,6 +609,7 @@ let REAL_POLY_NEG_CONV, REAL_POLY_ADD_CONV, REAL_POLY_SUB_CONV, REAL_POLY_MUL_CO
 (* Extend normalizer to handle "inv" and division by rational constants, and *)
 (* normalize inside nested "max", "min" and "abs" terms.                     *)
 (* ------------------------------------------------------------------------- *)
+/// Converts a real polynomial into canonical form.
 let REAL_POLY_CONV = 
     let neg_tm = (parse_term @"(--):real->real")
     let inv_tm = (parse_term @"inv:real->real")
@@ -644,6 +668,8 @@ let REAL_POLY_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Basic ring and ideal conversions.                                         *)
 (* ------------------------------------------------------------------------- *)
+// REAL_RING: Ring decision procedure instantiated to real numbers.
+// real_ideal_cofactors: Produces cofactors proving that one real polynomial is in the ideal generated by others.
 let REAL_RING,real_ideal_cofactors =
    let REAL_INTEGRAL = 
      prove ((parse_term @"(!x. &0 * x = &0) /\
@@ -678,6 +704,7 @@ let REAL_RING,real_ideal_cofactors =
 (* ------------------------------------------------------------------------- *)
 (* Conversion for ideal membership.                                          *)
 (* ------------------------------------------------------------------------- *)
+/// Produces identity proving ideal membership over the reals.
 let REAL_IDEAL_CONV =
    let mk_add = mk_binop (parse_term @"( + ):real->real->real")
    let mk_mul = mk_binop (parse_term @"( * ):real->real->real")
@@ -691,6 +718,7 @@ let REAL_IDEAL_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Further specialize GEN_REAL_ARITH and REAL_ARITH (final versions).        *)
 (* ------------------------------------------------------------------------- *)
+/// Initial normalization and proof reconstruction wrapper for real decision procedure.
 let GEN_REAL_ARITH PROVER =
   GEN_REAL_ARITH
    (term_of_rat,
@@ -698,6 +726,7 @@ let GEN_REAL_ARITH PROVER =
     REAL_POLY_CONV,REAL_POLY_NEG_CONV,REAL_POLY_ADD_CONV,REAL_POLY_MUL_CONV,
     PROVER)
 
+/// Attempt to prove term using basic algebra and linear arithmetic over the reals.
 let REAL_ARITH =
   let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
   let ``pure`` = GEN_REAL_ARITH REAL_LINEAR_PROVER
@@ -705,8 +734,10 @@ let REAL_ARITH =
     let th = init tm 
     EQ_MP (SYM th) (``pure``(rand(concl th)))
 
+/// Attempt to prove goal using basic algebra and linear arithmetic over the reals.
 let REAL_ARITH_TAC = CONV_TAC REAL_ARITH
 
+/// Attempt to prove goal using basic algebra and linear arithmetic over the reals.
 let ASM_REAL_ARITH_TAC =
   REPEAT(FIRST_X_ASSUM(MP_TAC << check (not << is_forall << concl))) |>THEN<|
   REAL_ARITH_TAC
@@ -714,6 +745,7 @@ let ASM_REAL_ARITH_TAC =
 (* ------------------------------------------------------------------------- *)
 (* A simple "field" rule.                                                    *)
 (* ------------------------------------------------------------------------- *)
+/// Prove basic 'field' facts over the reals.
 let REAL_FIELD =
   let prenex_conv =
     TOP_DEPTH_CONV BETA_CONV |>THENC<|

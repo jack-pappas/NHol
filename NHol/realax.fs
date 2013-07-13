@@ -94,6 +94,7 @@ do_list overload_interface ["+", (parse_term @"(+):num->num->num")
 (* ------------------------------------------------------------------------- *)
 (* The main infix overloaded operations                                      *)
 (* ------------------------------------------------------------------------- *)
+/// Give natural number type 'num' priority in operator overloading.
 let prioritize_num() = prioritize_overload(mk_type("num", []))
 
 (* ------------------------------------------------------------------------- *)
@@ -2829,6 +2830,7 @@ do_list overload_interface ["+", (parse_term @"real_add:real->real->real")
 (* ------------------------------------------------------------------------- *)
 (* Set up a friendly interface.                                              *)
 (* ------------------------------------------------------------------------- *)
+/// Give real number type 'real' priority in operator overloading.
 let prioritize_real() = prioritize_overload(mk_type("real", []))
 
 (* ------------------------------------------------------------------------- *)

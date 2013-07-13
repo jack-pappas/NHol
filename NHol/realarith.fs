@@ -582,6 +582,7 @@ let GEN_REAL_ARITH_001 =
 (* Linear prover. This works over the rationals in general, but is designed  *)
 (* to be OK on integers provided the input contains only integers.           *)
 (* ------------------------------------------------------------------------- *)
+/// Refute real equations and inequations by linear reasoning (not intended for general use).
 let REAL_LINEAR_PROVER = 
     let linear_add = combine (+/) (fun z -> z =/ num_0)
     let linear_cmul c = mapf(fun x -> c */ x)
@@ -746,6 +747,7 @@ let REAL_ARITH_001 =
 (* Slightly less parametrized GEN_REAL_ARITH with more intelligent           *)
 (* elimination of abs, max and min hardwired in.                             *)
 (* ------------------------------------------------------------------------- *)
+/// Initial normalization and proof reconstruction wrapper for real decision procedure.
 let GEN_REAL_ARITH = 
     let ABSMAXMIN_ELIM_CONV1 = 
      GEN_REWRITE_CONV I [time REAL_ARITH_001 (parse_term @"(--(&1) * abs(x) >= r <=>
@@ -908,6 +910,7 @@ let GEN_REAL_ARITH =
 (* ------------------------------------------------------------------------- *)
 (* Incorporate that. This gets overwritten again in "calc_rat.ml".           *)
 (* ------------------------------------------------------------------------- *)
+/// Attempt to prove term using basic algebra and linear arithmetic over the reals.
 let REAL_ARITH = 
     let REAL_POLY_NEG_CONV, REAL_POLY_ADD_CONV, REAL_POLY_SUB_CONV, REAL_POLY_MUL_CONV, REAL_POLY_POW_CONV, REAL_POLY_CONV = 
         SEMIRING_NORMALIZERS_CONV REAL_POLY_CLAUSES REAL_POLY_NEG_CLAUSES 

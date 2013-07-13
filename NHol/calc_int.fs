@@ -64,6 +64,7 @@ open realax
 (* ------------------------------------------------------------------------- *)
 (* Syntax operations on integer constants of type ":real".                   *)
 (* ------------------------------------------------------------------------- *)
+/// Tests if a term is an integer literal of type :real.
 let is_realintconst tm = 
     match tm with
     | Comb(Const("real_of_num", _), n) -> is_numeral n
@@ -71,6 +72,7 @@ let is_realintconst tm =
         is_numeral n && not(dest_numeral n = num_0)
     | _ -> false
 
+/// Converts an integer literal of type :real to an F# number.
 let dest_realintconst tm = 
     match tm with
     | Comb(Const("real_of_num", _), n) -> dest_numeral n
@@ -81,6 +83,7 @@ let dest_realintconst tm =
         else failwith "dest_realintconst"
     | _ -> failwith "dest_realintconst"
 
+/// Converts an F# number to a canonical integer literal of type :real.
 let mk_realintconst = 
     let cast_tm = (parse_term @"real_of_num")
     let neg_tm = (parse_term @"(--)")
@@ -90,6 +93,7 @@ let mk_realintconst =
         then mk_comb(neg_tm, mk_numconst(minus_num x))
         else mk_numconst x
 
+/// Tests if a term is a canonical rational literal of type :real.
 let is_ratconst tm = 
     match tm with
     | Comb(Comb(Const("real_div", _), p), q) -> 
@@ -99,6 +103,7 @@ let is_ratconst tm =
             n > num_1 && gcd_num m n = num_1)
     | _ -> is_realintconst tm
 
+/// Converts a canonical rational literal of type :real to an F# number.
 let rat_of_term tm = 
     match tm with
     | Comb(Comb(Const("real_div", _), p), q) -> 
@@ -109,6 +114,7 @@ let rat_of_term tm =
         else failwith "rat_of_term"
     | _ -> dest_realintconst tm
 
+/// Converts F# number to canonical rational literal of type :real.
 let term_of_rat = 
     let div_tm = (parse_term @"(/)")
     fun x -> 
@@ -258,7 +264,11 @@ let REAL_ABS_NEG =
 (* ------------------------------------------------------------------------- *)
 (* First, the conversions on integer constants.                              *)
 (* ------------------------------------------------------------------------- *)
-
+// REAL_INT_LE_CONV: Conversion to prove whether one integer literal of type :real is <= another.
+// REAL_INT_LT_CONV: Conversion to prove whether one integer literal of type :real is < another.
+// REAL_INT_GE_CONV: Conversion to prove whether one integer literal of type :real is >= another.
+// REAL_INT_GT_CONV: Conversion to prove whether one integer literal of type :real is < another.
+// REAL_INT_EQ_CONV: Conversion to prove whether one integer literal of type :real is equal to another.
 let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL_INT_EQ_CONV = 
     let tth = TAUT (parse_term @"(F /\ F <=> F) /\ (F /\ T <=> F) /\
           (T /\ F <=> F) /\ (T /\ T <=> T)")
@@ -356,11 +366,13 @@ let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL
         | _ -> failwith "ltfuncs: Unhandled case."
     | _ -> failwith "lefuncs: Unhandled case."
 
+/// Conversion to negate an integer literal of type :real.
 let REAL_INT_NEG_CONV = 
     let pth = prove((parse_term @"(--(&0) = &0) /\
      (--(--(&x)) = &x)"), REWRITE_TAC [REAL_NEG_NEG; REAL_NEG_0])
     GEN_REWRITE_CONV I [pth]
 
+/// Conversion to perform multiplication on two integer literals of type :real.
 let REAL_INT_MUL_CONV = 
     let pth0 = prove((parse_term @"(&0 * &x = &0) /\
      (&0 * --(&x) = &0) /\
@@ -379,6 +391,7 @@ let REAL_INT_MUL_CONV =
                 GEN_REWRITE_CONV I [pth2]
                 |> THENC <| RAND_CONV(RAND_CONV NUM_MULT_CONV)]
 
+/// Conversion to perform addition on two integer literals of type :real.
 let REAL_INT_ADD_CONV = 
     let neg_tm = (parse_term @"(--)")
     let amp_tm = (parse_term @"&")
@@ -481,11 +494,13 @@ let REAL_INT_ADD_CONV =
         with
         | Failure _ -> failwith "REAL_INT_ADD_CONV")
 
+/// Conversion to perform subtraction on two integer literals of type :real.
 let REAL_INT_SUB_CONV = 
     GEN_REWRITE_CONV I [real_sub]
     |> THENC <| TRY_CONV(RAND_CONV REAL_INT_NEG_CONV)
     |> THENC <| REAL_INT_ADD_CONV
 
+/// Conversion to perform exponentiation on a integer literal of type :real.
 let REAL_INT_POW_CONV = 
     let pth1, pth2 = 
         (CONJ_PAIR << prove)
@@ -508,11 +523,13 @@ let REAL_INT_POW_CONV =
                        then RAND_CONV (RAND_CONV NUM_EXP_CONV) tm
                        else RAND_CONV NUM_EXP_CONV tm))
 
+/// Conversion to produce absolute value of an integer literal of type :real.
 let REAL_INT_ABS_CONV = 
     let pth = prove((parse_term @"(abs(--(&x)) = &x) /\
      (abs(&x) = &x)"), REWRITE_TAC [REAL_ABS_NEG; REAL_ABS_NUM])
     GEN_REWRITE_CONV I [pth]
 
+/// Performs one arithmetic or relational operation on integer literals of type :real.
 let REAL_INT_RED_CONV = 
     let gconv_net = 
         itlist (uncurry net_of_conv) [(parse_term @"x <= y"), REAL_INT_LE_CONV
@@ -531,4 +548,5 @@ let REAL_INT_RED_CONV =
             (basic_net())
     REWRITES_CONV gconv_net
 
+/// Evaluate subexpressions built up from integer literals of type :real, by proof.
 let REAL_INT_REDUCE_CONV = DEPTH_CONV REAL_INT_RED_CONV
