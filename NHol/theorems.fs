@@ -78,6 +78,7 @@ let EQ_TRANS =
 (* ------------------------------------------------------------------------- *)
 (* The following is a common special case of ordered rewriting.              *)
 (* ------------------------------------------------------------------------- *)
+/// Proves equality of terms using associative, commutative, and optionally idempotence laws.
 let AC acsuite = EQT_ELIM << PURE_REWRITE_CONV [acsuite; REFL_CLAUSE]
 
 (* ------------------------------------------------------------------------- *)
@@ -403,6 +404,9 @@ let EXISTS_UNIQUE =
 (* DESTRUCT_TAC, FIX_TAC and INTRO_TAC, giving more brief and elegant ways   *)
 (* of naming introduced variables and assumptions (from Marco Maggesi).      *)
 (* ------------------------------------------------------------------------- *)
+// DESTRUCT_TAC: Performs elimination on a theorem within a tactic proof.
+// FIX_TAC: Fixes universally quantified variables in goal.
+// INTRO_TAC: Breaks down outer quantifiers in goal, introducing variables and named hypotheses.
 let DESTRUCT_TAC, FIX_TAC, INTRO_TAC = 
     let NAME_GEN_TAC s gl = 
         let ty = (snd << dest_var << fst << dest_forall << snd) gl
