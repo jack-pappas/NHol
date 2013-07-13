@@ -51,19 +51,19 @@ open canon
 (* ------------------------------------------------------------------------- *)
 (* Some parameters controlling MESON behaviour.                              *)
 (* ------------------------------------------------------------------------- *)
-
+/// Make MESON's search algorithm work by proof depth rather than size.
 let meson_depth = ref false   (* Use depth not inference bound.            *)
-
+/// Makes MESON apply Plaisted's positive refinement.
 let meson_prefine = ref true  (* Use Plaisted's positive refinement.       *)
-
+/// Determines cut-in point for divide-and-conquer refinement in MESON.
 let meson_dcutin = ref 1      (* Min size for d-and-c optimization cut-in. *)
-
+/// Determines skew in MESON proof tree search limits.
 let meson_skew = ref 3        (* Skew proof bias (one side is <= n / skew) *)
-
+/// Makes MESON handle equations using Brand's transformation.
 let meson_brand = ref false   (* Use Brand transformation                  *)
-
+/// Limit initial case splits before MESON proper is applied.
 let meson_split_limit = ref 8 (* Limit of case splits before MESON proper  *)
-
+/// Make MESON's output more verbose and detailed.
 let meson_chatty = ref false  (* Old-style verbose MESON output            *)
 
 (* ------------------------------------------------------------------------- *)
@@ -96,6 +96,7 @@ type fol_goal =
 (* ------------------------------------------------------------------------- *)
 (* General MESON procedure, using assumptions and with settable limits.      *)
 (* ------------------------------------------------------------------------- *)
+/// First-order proof search with specified search limits and increment.
 let GEN_MESON_TAC = 
     let offinc = 10000
     let inferences = ref 0
@@ -1050,12 +1051,15 @@ let GEN_MESON_TAC =
 (* ------------------------------------------------------------------------- *)
 (* Common cases.                                                             *)
 (* ------------------------------------------------------------------------- *)
+/// Automated first-order proof search tactic using assumptions of goal.
 let ASM_MESON_TAC = GEN_MESON_TAC 0 50 1
 
+/// Automated first-order proof search tactic.
 let MESON_TAC ths = POP_ASSUM_LIST(K ALL_TAC)
                     |> THEN <| ASM_MESON_TAC ths
 
 (* ------------------------------------------------------------------------- *)
 (* Also introduce a rule.                                                  *)
 (* ------------------------------------------------------------------------- *)
+/// Attempt to prove a term by first-order proof search.
 let MESON ths tm = prove(tm, MESON_TAC ths)

@@ -47,6 +47,7 @@ open theorems
 (* ------------------------------------------------------------------------- *)
 (* Strip off exactly n arguments from combination.                           *)
 (* ------------------------------------------------------------------------- *)
+/// Strip away a given number of arguments from a combination.
 let strip_ncomb = 
     let rec strip(n, tm, acc) = 
         if n < 1
@@ -59,6 +60,7 @@ let strip_ncomb =
 (* ------------------------------------------------------------------------- *)
 (* Expand lambda-term function definition with its arguments.                *)
 (* ------------------------------------------------------------------------- *)
+/// Apply and beta-reduce equational theorem with abstraction on RHS.
 let RIGHT_BETAS = 
     rev_itlist(fun a -> CONV_RULE(RAND_CONV BETA_CONV) << C AP_THM a)
 
@@ -67,6 +69,7 @@ let RIGHT_BETAS =
 (*     ------------------ EXISTS_EQUATION                                    *)
 (*        A |- ?x. P[x]                                                      *)
 (* ------------------------------------------------------------------------- *)
+/// Derives existence from explicit equational constraint.
 let EXISTS_EQUATION = 
     let pth = 
         prove
@@ -91,6 +94,7 @@ let EXISTS_EQUATION =
 (* Part 1: The main part of the inductive definitions package.               *)
 (* This proves that a certain definition yields the requires theorems.       *)
 (* ========================================================================= *)
+/// Deduce inductive definitions properties from an explicit assignment.
 let derive_nonschematic_inductive_relations = 
     let getconcl tm = 
         let bod = repeat (snd << dest_forall) tm
@@ -328,12 +332,14 @@ let MONO_EXISTS =
 (* ------------------------------------------------------------------------- *)
 (* Assignable list of monotonicity theorems, so users can add their own.     *)
 (* ------------------------------------------------------------------------- *)
+/// List of monotonicity theorems for inductive definitions package.
 let monotonicity_theorems = 
     ref [MONO_AND; MONO_OR; MONO_IMP; MONO_NOT; MONO_EXISTS; MONO_FORALL]
 
 (* ------------------------------------------------------------------------- *)
 (* Attempt to backchain through the monotonicity theorems.                   *)
 (* ------------------------------------------------------------------------- *)
+/// Attempt to prove monotonicity theorem automatically.
 let MONO_TAC = 
     let imp = (parse_term @"(==>)")
     let IMP_REFL = ITAUT(parse_term @"!p. p ==> p")
@@ -391,6 +397,7 @@ let MONO_TAC =
 (* ------------------------------------------------------------------------- *)
 (* Attempt to dispose of the non-equational assumption(s) of a theorem.      *)
 (* ------------------------------------------------------------------------- *)
+/// Attempt to prove monotonicity hypotheses of theorem automatically.
 let prove_monotonicity_hyps = 
     let tac = 
         REPEAT GEN_TAC
@@ -405,8 +412,11 @@ let prove_monotonicity_hyps =
 (* ========================================================================= *)
 (* Part 3: The final user wrapper, with schematic variables added.           *)
 (* ========================================================================= *)
+/// List of all definitions introduced so far.
 let the_inductive_definitions = ref []
 
+// prove_inductive_relations_exist: Prove existence of inductively defined relations without defining them.
+// new_inductive_definition: Attempt to prove monotonicity hypotheses of theorem automatically.
 let prove_inductive_relations_exist, new_inductive_definition = 
     let rec pare_comb qvs tm = 
         if intersect (frees tm) qvs = [] && forall is_var (snd(strip_comb tm))
@@ -495,6 +505,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
 (* ------------------------------------------------------------------------- *)
 (* Derivation of "strong induction".                                         *)
 (* ------------------------------------------------------------------------- *)
+/// Derive stronger induction theorem from inductive definition.
 let derive_strong_induction = 
     let dest_ibod tm = 
         let avs, ibod = strip_forall tm

@@ -50,6 +50,7 @@ open ind_defs
 (* ------------------------------------------------------------------------- *)
 let ETA_AX = new_axiom(parse_term @"!t:A->B. (\x. t x) = t")
 
+/// Performs a toplevel eta-conversion.
 let ETA_CONV = 
     let t = (parse_term @"t:A->B")
     let pth = 
@@ -90,9 +91,12 @@ parse_as_binder "@"
 (* ------------------------------------------------------------------------- *)
 (* Indefinite descriptor (giving AC).                                        *)
 (* ------------------------------------------------------------------------- *)
+/// Tests a term to see if it is a choice binding.
 let is_select = is_binder "@"
 
+/// Breaks apart a choice term into selected variable and body.
 let dest_select = dest_binder "@"
+/// Constructs a choice binding.
 let mk_select = mk_binder "@"
 let SELECT_AX = new_axiom(parse_term @"!P (x:A). P x ==> P((@) P)")
 
@@ -116,6 +120,7 @@ let EXISTS_THM =
 (* ------------------------------------------------------------------------- *)
 (* Rules and so on for the select operator.                                  *)
 (* ------------------------------------------------------------------------- *)
+/// Introduces an epsilon term in place of an existential quantifier.
 let SELECT_RULE = 
     let P = (parse_term @"P:A->bool")
     let pth = 
@@ -130,6 +135,7 @@ let SELECT_RULE =
         with
         | Failure _ -> failwith "SELECT_RULE"
 
+/// Eliminates an epsilon term by introducing an existential quantifier.
 let SELECT_CONV = 
     let P = (parse_term @"P:A->bool")
     let pth = 
@@ -171,8 +177,10 @@ extend_basic_rewrites [SELECT_REFL]
 (* ------------------------------------------------------------------------- *)
 (* Now we can derive type definitions from existence; check benignity.       *)
 (* ------------------------------------------------------------------------- *)
+/// List of type definitions made so far.
 let the_type_definitions = ref([] : ((string * string * string) * (thm * thm)) list)
 
+/// Introduces a new type in bijection with a nonempty subset of an existing type.
 let new_type_definition tyname (absname, repname) th = 
     try 
         let th', tth' = assoc (tyname, absname, repname) (!the_type_definitions)
@@ -228,8 +236,10 @@ let BOOL_CASES_AX =
 (* ------------------------------------------------------------------------- *)
 (* Classically based tactics. (See also COND_CASES_TAC later on.)            *)
 (* ------------------------------------------------------------------------- *)
+/// Performs boolean case analysis on a (free) term in the goal.
 let BOOL_CASES_TAC p = STRUCT_CASES_TAC(SPEC p BOOL_CASES_AX)
 
+/// Given a term, produces a case split based on whether or not that term is true.
 let ASM_CASES_TAC t = DISJ_CASES_TAC(SPEC t EXCLUDED_MIDDLE)
 
 (* ------------------------------------------------------------------------- *)
@@ -267,6 +277,7 @@ extend_basic_rewrites [CONJUNCT1 NOT_CLAUSES]
 (* ------------------------------------------------------------------------- *)
 (* Some classically based rules.                                             *)
 (* ------------------------------------------------------------------------- *)
+/// Implements the classical contradiction rule.
 let CCONTR = 
     let P = (parse_term @"P:bool")
     let pth = TAUT_001(parse_term @"(~P ==> F) ==> P")
@@ -277,6 +288,7 @@ let CCONTR =
         with
         | Failure _ -> failwith "CCONTR"
 
+/// Proves the equivalence of an implication and its contrapositive.
 let CONTRAPOS_CONV = 
     let a = (parse_term @"a:bool")
     let b = (parse_term @"b:bool")
@@ -290,8 +302,9 @@ let CONTRAPOS_CONV =
         | Failure _ -> failwith "CONTRAPOS_CONV"
 
 (* ------------------------------------------------------------------------- *)
-(* A classicalal "refutation" tactic.                                        *)
+(* A classical "refutation" tactic.                                        *)
 (* ------------------------------------------------------------------------- *)
+/// Assume the negation of the goal and apply theorem-tactic to it.
 let REFUTE_THEN = 
     let f_tm = (parse_term @"F")
     let conv = REWR_CONV(TAUT_001(parse_term @"p <=> ~p ==> F"))
@@ -414,12 +427,14 @@ let COND_DEF = new_definition(parse_term @"COND = \t t1 t2. @x:A. ((t <=> T) ==>
 let COND_CLAUSES = prove((parse_term @"!(t1:A) t2. ((if T then t1 else t2) = t1) /\
                ((if F then t1 else t2) = t2)"), REWRITE_TAC [COND_DEF])
 
+/// Tests a term to see if it is a conditional.
 let is_cond tm = 
     try 
         fst(dest_const(rator(rator(rator tm)))) = "COND"
     with
     | Failure _ -> false
 
+/// Constructs a conditional term.
 let mk_cond(b, x, y) = 
     try 
         let c = mk_const("COND", [type_of x, aty])
@@ -427,6 +442,7 @@ let mk_cond(b, x, y) =
     with
     | Failure _ -> failwith "mk_cond"
 
+/// Breaks apart a conditional into the three terms involved.
 let dest_cond tm = 
     try 
         let tm1, y = dest_comb tm
@@ -481,6 +497,7 @@ let COND_ABS =
 (* ------------------------------------------------------------------------- *)
 (* Redefine TAUT_001 to freeze in the rewrites including COND.                   *)
 (* ------------------------------------------------------------------------- *)
+/// Proves a propositional tautology.
 let TAUT = 
     let PROP_REWRITE_TAC = REWRITE_TAC []
     let RTAUT_TAC(asl, w) = 
@@ -519,8 +536,10 @@ let COND_ELIM_THM =
          BOOL_CASES_TAC(parse_term @"c:bool")
          |> THEN <| REWRITE_TAC [])
 
+/// Remove all conditional expressions from a Boolean formula.
 let COND_ELIM_CONV = HIGHER_REWRITE_CONV [COND_ELIM_THM] true
 
+/// Induces a case split on a conditional expression in the goal.
 let (COND_CASES_TAC : tactic) = 
     let DENEG_RULE = GEN_REWRITE_RULE I [TAUT(parse_term @"~ ~ p <=> p")]
     CONV_TAC COND_ELIM_CONV
@@ -624,4 +643,5 @@ let bool_RECURSION =
                                                     |> THEN <| EXISTS_TAC (parse_term @"\x. if x then b:A else a")
                                                     |> THEN <| REWRITE_TAC [])
 
+/// List of inductive types defined with corresponding theorems.
 let inductive_type_store = ref ["bool", (2, bool_INDUCT, bool_RECURSION)]

@@ -59,6 +59,7 @@ open arith
 (* Simple rule to get rid of NUMERAL constant.                               *)
 (* ------------------------------------------------------------------------- *)
 
+/// Remove instances of the NUMERAL constant from a theorem.
 let DENUMERAL = GEN_REWRITE_RULE DEPTH_CONV [NUMERAL];;
 
 (* ------------------------------------------------------------------------- *)
@@ -254,6 +255,11 @@ let ARITH =
 (* Now more delicate conversions for situations where efficiency matters.    *)
 (* ------------------------------------------------------------------------- *)
 
+// NUM_EQ_CONV: Proves equality or inequality of two numerals.
+// NUM_LE_CONV: Proves whether one numeral is less than or equal to another.
+// NUM_LT_CONV: Proves whether one numeral is less than another.
+// NUM_GE_CONV: Proves whether one numeral is greater than or equal to another.
+// NUM_GT_CONV: Proves whether one numeral is greater than another.
 let NUM_EQ_CONV,NUM_LE_CONV,NUM_LT_CONV,NUM_GE_CONV,NUM_GT_CONV =
     let ARITH_GE',ARITH_GT' = 
      (CONJ_PAIR << prove)
@@ -272,14 +278,20 @@ let NUM_EQ_CONV,NUM_LE_CONV,NUM_LT_CONV,NUM_GE_CONV,NUM_GT_CONV =
      GEN_NUM_REL_CONV ARITH_GE' NUM_LL_CONV',
      GEN_NUM_REL_CONV ARITH_GT' NUM_LL_CONV';;
 
+/// Proves whether a natural number numeral is even.
 let NUM_EVEN_CONV =
     let tth,rths = CONJ_PAIR ARITH_EVEN in
     GEN_REWRITE_CONV I [tth] |>THENC<| GEN_REWRITE_CONV I [rths];;
 
+/// Proves whether a natural number numeral is odd.
 let NUM_ODD_CONV =
     let tth,rths = CONJ_PAIR ARITH_ODD in
     GEN_REWRITE_CONV I [tth] |>THENC<| GEN_REWRITE_CONV I [rths];;
 
+// NUM_SUC_CONV: Proves what the successor of a natural number numeral is.
+// NUM_ADD_CONV: Proves what the sum of two natural number numerals is.
+// NUM_MULT_CONV: Proves what the product of two natural number numerals is.
+// NUM_EXP_CONV: Proves what the exponential of two natural number numerals is.
 let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
     let NUM_SUC_CONV,NUM_ADD_CONV',NUM_ADD_CONV =
       let std_tm = rand (parse_term @"2") in
@@ -682,6 +694,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
                 with Failure _ -> failwith "NUM_EXP_CONV" in
     NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV;;
 
+/// Proves what the cutoff predecessor of a natural number numeral is.
 let NUM_PRE_CONV =
     let tth =
      prove
@@ -704,6 +717,7 @@ let NUM_PRE_CONV =
                   MP (INST [tm',m; r,n] pth) th1
               with Failure _ -> failwith "NUM_PRE_CONV";;
 
+/// Proves what the cutoff difference of two natural number numerals is.
 let NUM_SUB_CONV =
     let pth0 =
      prove
@@ -735,6 +749,8 @@ let NUM_SUB_CONV =
                     MP pth th0
               with Failure _ -> failwith "NUM_SUB_CONV";;
 
+// NUM_DIV_CONV: Proves what the truncated quotient of two natural number numerals is.
+// NUM_MOD_CONV: Proves what the remainder on dividing one natural number numeral by another is.
 let NUM_DIV_CONV,NUM_MOD_CONV =
     let pth =
      prove
@@ -763,6 +779,7 @@ let NUM_DIV_CONV,NUM_MOD_CONV =
                    CONJUNCT2(NUM_DIVMOD_CONV (dest_numeral xt) (dest_numeral yt))
                with Failure _ -> failwith "NUM_MOD_CONV");;
 
+/// Proves what the factorial of a natural number numeral is.
 let NUM_FACT_CONV =
     let suc = (parse_term @"SUC")
     let mul = (parse_term @"(*)") in
@@ -800,11 +817,13 @@ let NUM_FACT_CONV =
           else fail()
       with Failure _ -> failwith "NUM_FACT_CONV";;
 
+/// Proves what the maximum of two natural number numerals is.
 let NUM_MAX_CONV =
     REWR_CONV MAX |>THENC<|
     RATOR_CONV(RATOR_CONV(RAND_CONV NUM_LE_CONV)) |>THENC<|
     GEN_REWRITE_CONV I [COND_CLAUSES];;
 
+/// Proves what the minimum of two natural number numerals is.
 let NUM_MIN_CONV =
     REWR_CONV MIN |>THENC<|
     RATOR_CONV(RATOR_CONV(RAND_CONV NUM_LE_CONV)) |>THENC<|
@@ -814,6 +833,7 @@ let NUM_MIN_CONV =
 (* Final hack-together.                                                      *)
 (* ------------------------------------------------------------------------- *)
 
+/// Performs relational operation on natural number numerals by proof.
 let NUM_REL_CONV =
     let gconv_net = 
      itlist (uncurry net_of_conv)
@@ -825,6 +845,7 @@ let NUM_REL_CONV =
       (basic_net()) in
     REWRITES_CONV gconv_net;;
 
+/// Performs one arithmetic or relational operation on natural number numerals by proof.
 let NUM_RED_CONV =
     let gconv_net = 
      itlist (uncurry net_of_conv)
@@ -849,14 +870,17 @@ let NUM_RED_CONV =
       (basic_net()) in
     REWRITES_CONV gconv_net;;
 
+/// Evaluate subexpressions built up from natural number numerals, by proof.
 let NUM_REDUCE_CONV = DEPTH_CONV NUM_RED_CONV;;
 
+/// Evaluate subexpressions of goal built up from natural number numerals.
 let NUM_REDUCE_TAC = CONV_TAC NUM_REDUCE_CONV;;
 
 (* ------------------------------------------------------------------------- *)
 (* I do like this after all...                                               *)
 (* ------------------------------------------------------------------------- *)
 
+/// Provides definitional axiom for a nonzero numeral.
 let num_CONV =
     let SUC_tm = (parse_term @"SUC") in
     fun tm ->
@@ -869,6 +893,9 @@ let num_CONV =
 (* Expands "!n. n < numeral-constant ==> P(n)" into all the cases.           *)
 (* ------------------------------------------------------------------------- *)
 
+/// <summary>
+/// Expand a numerical range <c>!i. i < n ==> P[i]</c>.
+/// </summary>
 let EXPAND_CASES_CONV =
     let pth_base =
      prove

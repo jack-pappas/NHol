@@ -50,6 +50,7 @@ open trivia
 (* ------------------------------------------------------------------------- *)
 (* Pre-simplification.                                                       *)
 (* ------------------------------------------------------------------------- *)
+/// Applies basic propositional simplications and some miniscoping.
 let PRESIMP_CONV = 
     GEN_REWRITE_CONV TOP_DEPTH_CONV 
         [NOT_CLAUSES; AND_CLAUSES; OR_CLAUSES; IMP_CLAUSES; EQ_CLAUSES; 
@@ -61,6 +62,7 @@ let PRESIMP_CONV =
 (* ACI rearrangements of conjunctions and disjunctions. This is much faster  *)
 (* than AC xxx_ACI on large problems, as well as being more controlled.      *)
 (* ------------------------------------------------------------------------- *)
+/// Proves equivalence of two conjunctions containing same set of conjuncts.
 let CONJ_ACI_RULE = 
     let rec mk_fun th fn = 
         let tm = concl th
@@ -84,6 +86,7 @@ let CONJ_ACI_RULE =
             let th' = use_fun (mk_fun (ASSUME p') undefined) p
             IMP_ANTISYM_RULE (DISCH_ALL th) (DISCH_ALL th')
 
+/// Proves equivalence of two disjunctions containing same set of disjuncts.
 let DISJ_ACI_RULE = 
     let pth_left = UNDISCH(TAUT(parse_term @"~(a \/ b) ==> ~a"))
     let pth_right = UNDISCH(TAUT(parse_term @"~(a \/ b) ==> ~b"))
@@ -129,10 +132,12 @@ let DISJ_ACI_RULE =
 (* ------------------------------------------------------------------------- *)
 (* Order canonically, right-associate and remove duplicates.                 *)
 (* ------------------------------------------------------------------------- *)
+/// Puts an iterated conjunction in canonical form.
 let CONJ_CANON_CONV tm = 
     let tm' = list_mk_conj(setify(conjuncts tm))
     CONJ_ACI_RULE(mk_eq(tm, tm'))
 
+/// Puts an iterated disjunction in canonical form.
 let DISJ_CANON_CONV tm = 
     let tm' = list_mk_disj(setify(disjuncts tm))
     DISJ_ACI_RULE(mk_eq(tm, tm'))
@@ -152,6 +157,7 @@ let DISJ_CANON_CONV tm =
 (* for "p" and "~p", so the user needs to supply an atomic "conversion"      *)
 (* that does the same.                                                       *)
 (* ------------------------------------------------------------------------- *)
+/// General NNF (negation normal form) conversion.
 let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) = 
     let and_tm = (parse_term @"(/\)")
     let or_tm = (parse_term @"(\/)")
@@ -465,15 +471,18 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
 (* ------------------------------------------------------------------------- *)
 (* Some common special cases.                                                *)
 (* ------------------------------------------------------------------------- *)
+/// Convert a term to negation normal form.
 let NNF_CONV = 
     (GEN_NNF_CONV false (ALL_CONV, fun t -> REFL t, REFL(mk_neg t)) : conv)
 
+/// Convert a term to negation normal form.
 let NNFC_CONV = 
     (GEN_NNF_CONV true (ALL_CONV, fun t -> REFL t, REFL(mk_neg t)) : conv)
 
 (* ------------------------------------------------------------------------- *)
 (* Skolemize a term already in NNF (doesn't matter if it's not prenex).      *)
 (* ------------------------------------------------------------------------- *)
+/// Completely Skolemize a term already in negation normal form.
 let SKOLEM_CONV = 
     GEN_REWRITE_CONV TOP_DEPTH_CONV 
         [EXISTS_OR_THM; LEFT_EXISTS_AND_THM; RIGHT_EXISTS_AND_THM; 
@@ -487,6 +496,7 @@ let SKOLEM_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Put a term already in NNF into prenex form.                               *)
 (* ------------------------------------------------------------------------- *)
+/// Puts a term already in NNF into prenex form.
 let PRENEX_CONV = 
     GEN_REWRITE_CONV REDEPTH_CONV 
         [AND_FORALL_THM; LEFT_AND_FORALL_THM; RIGHT_AND_FORALL_THM; 
@@ -503,6 +513,8 @@ let PRENEX_CONV =
 (* In both cases the input term is supposed to be in NNF already. We do go   *)
 (* inside quantifiers and transform their body, but don't move them.         *)
 (* ------------------------------------------------------------------------- *)
+// WEAK_DNF_CONV: Converts a term already in negation normal form into disjunctive normal form.
+// DNF_CONV: Converts a term already in negation normal form into disjunctive normal form.
 let WEAK_DNF_CONV, DNF_CONV = 
     let pth1 = TAUT(parse_term @"a /\ (b \/ c) <=> a /\ b \/ a /\ c")
     let pth2 = TAUT(parse_term @"(a \/ b) /\ c <=> a /\ c \/ b /\ c")
@@ -552,6 +564,8 @@ let WEAK_DNF_CONV, DNF_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Likewise for CNF.                                                         *)
 (* ------------------------------------------------------------------------- *)
+// WEAK_CNF_CONV: Converts a term already in negation normal form into conjunctive normal form.
+// CNF_CONV: Converts a term already in negation normal form into conjunctive normal form.
 let WEAK_CNF_CONV, CNF_CONV = 
     let pth1 = TAUT(parse_term @"a \/ (b /\ c) <=> (a \/ b) /\ (a \/ c)")
     let pth2 = TAUT(parse_term @"(a /\ b) \/ c <=> (a \/ c) /\ (b \/ c)")
@@ -601,6 +615,7 @@ let WEAK_CNF_CONV, CNF_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Simply right-associate w.r.t. a binary operator.                          *)
 (* ------------------------------------------------------------------------- *)
+/// Right-associates a term with respect to an associative binary operator.
 let ASSOC_CONV th = 
     let th' = SYM(SPEC_ALL th)
     let opx, yopz = dest_comb(rhs(concl th'))
@@ -630,6 +645,7 @@ let ASSOC_CONV th =
 (* ------------------------------------------------------------------------- *)
 (* Eliminate select terms from a goal.                                       *)
 (* ------------------------------------------------------------------------- *)
+/// Eliminate select terms from a goal.
 let SELECT_ELIM_TAC = 
     let SELECT_ELIM_CONV = 
         let SELECT_ELIM_THM = 
@@ -692,6 +708,7 @@ let SELECT_ELIM_TAC =
 (* ------------------------------------------------------------------------- *)
 (* Eliminate all lambda-terms except those part of quantifiers.              *)
 (* ------------------------------------------------------------------------- *)
+/// Eliminate lambda-terms that are not part of quantifiers from Boolean term.
 let LAMBDA_ELIM_CONV = 
     let HALF_MK_ABS_CONV = 
         let pth = 
@@ -763,6 +780,8 @@ let LAMBDA_ELIM_CONV =
 (* for refutation procedures, and CONDS_CELIM_CONV for conjunctive.          *)
 (* Both switch modes "sensibly" when going through a quantifier.             *)
 (* ------------------------------------------------------------------------- *)
+// CONDS_ELIM_CONV: Remove all conditional expressions from a Boolean formula.
+// CONDS_CELIM_CONV: Remove all conditional expressions from a Boolean formula.
 let CONDS_ELIM_CONV, CONDS_CELIM_CONV = 
     let th_cond = 
       prove ((parse_term @"((b <=> F) ==> x = x0) /\ ((b <=> T) ==> x = x1)
@@ -840,6 +859,7 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
 (* Fix up all head arities to be consistent, in "first order logic" style.   *)
 (* Applied to the assumptions (not conclusion) in a goal.                    *)
 (* ------------------------------------------------------------------------- *)
+/// Fix up function arities for first-order proof search.
 let ASM_FOL_TAC = 
     let rec get_heads lconsts tm (cheads, vheads as sofar) = 
         try 
@@ -927,6 +947,7 @@ let ASM_FOL_TAC =
 (* ------------------------------------------------------------------------- *)
 (* Depth conversion to apply at "atomic" formulas in "first-order" term.     *)
 (* ------------------------------------------------------------------------- *)
+/// Applies a conversion to the 'atomic subformulas' of a formula.
 let rec PROP_ATOM_CONV conv tm = 
     match tm with
     | Comb((Const("!", _) | Const("?", _) | Const("?!", _)), Abs(_, _)) -> 

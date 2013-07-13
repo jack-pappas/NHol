@@ -235,6 +235,7 @@ let NOT_SUC, num_INDUCTION, num_Axiom =
     | [not_suc; num_induction; num_axiom] -> not_suc, num_induction, num_axiom
     | _ -> failwith "xFuncs: Unhandled case."
 
+/// Performs tactical proof by mathematical induction on the natural numbers.
 let (INDUCT_TAC : tactic) = 
     MATCH_MP_TAC num_INDUCTION
     |> THEN <| CONJ_TAC
@@ -276,6 +277,7 @@ let BIT0_DEF =
 
 let BIT1_DEF = new_definition(parse_term @"BIT1 n = SUC (BIT0 n)")
 
+/// Maps a nonnegative integer to corresponding numeral term.
 let mk_numeral = 
     let Z = mk_const("_0", [])
     let BIT0 = mk_const("BIT0", [])
@@ -294,11 +296,16 @@ let mk_numeral =
         then failwith "mk_numeral: negative argument"
         else mk_comb(NUMERAL, mk_num n)
 
+/// Maps a nonnegative integer to corresponding numeral term.
 let mk_small_numeral n = mk_numeral(Int n)
+/// Converts a HOL numeral term to machine integer.
 let dest_small_numeral t = Num.int_of_num(dest_numeral t)
+/// Tests if a term is a natural number numeral.
 let is_numeral = can dest_numeral
+/// List of all constant specifications introduced so far.
 let the_specifications = ref []
 
+/// Introduces a constant or constants satisfying a given property.
 let new_specification = 
     let check_distinct l = 
         try 
