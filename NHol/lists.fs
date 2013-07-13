@@ -203,8 +203,7 @@ let LENGTH_APPEND =
 
 let MAP_APPEND = 
     prove
-        ((parse_term 
-              "!f:A->B. !l1 l2. MAP f (APPEND l1 l2) = APPEND (MAP f l1) (MAP f l2)"), 
+        ((parse_term @"!f:A->B. !l1 l2. MAP f (APPEND l1 l2) = APPEND (MAP f l1) (MAP f l2)"), 
          GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [MAP; APPEND])

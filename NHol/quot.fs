@@ -202,8 +202,7 @@ let lift_theorem =
              |> THEN 
              <| MATCH_MP_TAC
                     (TAUT
-                         (parse_term 
-                              "(a /\ b /\ c) /\ (b ==> a ==> d) ==> a /\ b /\ c /\ d"))
+                         (parse_term @"(a /\ b /\ c) /\ (b ==> a ==> d) ==> a /\ b /\ c /\ d"))
              |> THEN <| CONJ_TAC
              |> THENL <| [ASM_REWRITE_TAC []
                           |> THEN <| REWRITE_TAC [FUN_EQ_THM]

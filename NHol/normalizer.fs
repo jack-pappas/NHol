@@ -129,8 +129,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                          num_CONV(parse_term @"1")]
              |> THEN 
              <| SUBGOAL_THEN 
-                    (parse_term 
-                         "!m n:num x:A. pwr x (m + n) :A = mul (pwr x m) (pwr x n)") 
+                    (parse_term @"!m n:num x:A. pwr x (m + n) :A = mul (pwr x m) (pwr x n)") 
                     ASSUME_TAC
              |> THENL <| [GEN_TAC
                           |> THEN <| INDUCT_TAC

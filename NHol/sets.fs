@@ -233,8 +233,7 @@ let IN_SING =
          REWRITE_TAC [IN_INSERT; NOT_IN_EMPTY])
 let IN_IMAGE = 
     prove
-        ((parse_term 
-              "!y:B. !s f. (y IN (IMAGE f s)) <=> ?x:A. (y = f x) /\ x IN s"), 
+        ((parse_term @"!y:B. !s f. (y IN (IMAGE f s)) <=> ?x:A. (y = f x) /\ x IN s"), 
          ONCE_REWRITE_TAC [CONJ_SYM]
          |> THEN <| REWRITE_TAC [IN_ELIM_THM; IMAGE])
 let IN_REST = 
@@ -243,14 +242,12 @@ let IN_REST =
          REWRITE_TAC [REST; IN_DELETE])
 let FORALL_IN_INSERT = 
     prove
-        ((parse_term 
-              "!P a s. (!x. x IN (a INSERT s) ==> P x) <=> P a /\ (!x. x IN s ==> P x)"), 
+        ((parse_term @"!P a s. (!x. x IN (a INSERT s) ==> P x) <=> P a /\ (!x. x IN s ==> P x)"), 
          REWRITE_TAC [IN_INSERT]
          |> THEN <| MESON_TAC [])
 let EXISTS_IN_INSERT = 
     prove
-        ((parse_term 
-              "!P a s. (?x. x IN (a INSERT s) /\ P x) <=> P a \/ ?x. x IN s /\ P x"), 
+        ((parse_term @"!P a s. (?x. x IN (a INSERT s) /\ P x) <=> P a \/ ?x. x IN s /\ P x"), 
          REWRITE_TAC [IN_INSERT]
          |> THEN <| MESON_TAC [])
 
@@ -338,19 +335,16 @@ let SING_SUBSET =
 (* ------------------------------------------------------------------------- *)
 let PSUBSET_TRANS = 
     prove
-        ((parse_term 
-              "!(s:A->bool) t u. s PSUBSET t /\ t PSUBSET u ==> s PSUBSET u"), 
+        ((parse_term @"!(s:A->bool) t u. s PSUBSET t /\ t PSUBSET u ==> s PSUBSET u"), 
          SET_TAC [])
 
 let PSUBSET_SUBSET_TRANS = 
     prove
-        ((parse_term 
-              "!(s:A->bool) t u. s PSUBSET t /\ t SUBSET u ==> s PSUBSET u"), 
+        ((parse_term @"!(s:A->bool) t u. s PSUBSET t /\ t SUBSET u ==> s PSUBSET u"), 
          SET_TAC [])
 let SUBSET_PSUBSET_TRANS = 
     prove
-        ((parse_term 
-              "!(s:A->bool) t u. s SUBSET t /\ t PSUBSET u ==> s PSUBSET u"), 
+        ((parse_term @"!(s:A->bool) t u. s SUBSET t /\ t PSUBSET u ==> s PSUBSET u"), 
          SET_TAC [])
 let PSUBSET_IRREFL = 
     prove((parse_term @"!s:A->bool. ~(s PSUBSET s)"), SET_TAC [])
@@ -372,8 +366,7 @@ let PSUBSET_ALT =
 (* ------------------------------------------------------------------------- *)
 let UNION_ASSOC = 
     prove
-        ((parse_term 
-              "!(s:A->bool) t u. (s UNION t) UNION u = s UNION (t UNION u)"), 
+        ((parse_term @"!(s:A->bool) t u. (s UNION t) UNION u = s UNION (t UNION u)"), 
          SET_TAC [])
 
 let UNION_IDEMPOT = prove((parse_term @"!s:A->bool. s UNION s = s"), SET_TAC [])
@@ -391,8 +384,7 @@ let UNION_UNIV = prove((parse_term @"(!s:A->bool. UNIV UNION s = UNIV) /\
    (!s:A->bool. s UNION UNIV = UNIV)"), SET_TAC [])
 let EMPTY_UNION = 
     prove
-        ((parse_term 
-              "!s:A->bool. !t. (s UNION t = EMPTY) <=> (s = EMPTY) /\ (t = EMPTY)"), 
+        ((parse_term @"!s:A->bool. !t. (s UNION t = EMPTY) <=> (s = EMPTY) /\ (t = EMPTY)"), 
          SET_TAC [])
 let UNION_SUBSET = 
     prove
@@ -404,8 +396,7 @@ let UNION_SUBSET =
 (* ------------------------------------------------------------------------- *)
 let INTER_ASSOC = 
     prove
-        ((parse_term 
-              "!(s:A->bool) t u. (s INTER t) INTER u = s INTER (t INTER u)"), 
+        ((parse_term @"!(s:A->bool) t u. (s INTER t) INTER u = s INTER (t INTER u)"), 
          SET_TAC [])
 
 let INTER_IDEMPOT = prove((parse_term @"!s:A->bool. s INTER s = s"), SET_TAC [])
@@ -431,14 +422,12 @@ let SUBSET_INTER =
 (* ------------------------------------------------------------------------- *)
 let UNION_OVER_INTER = 
     prove
-        ((parse_term 
-              "!s:A->bool. !t u. s INTER (t UNION u) = (s INTER t) UNION (s INTER u)"), 
+        ((parse_term @"!s:A->bool. !t u. s INTER (t UNION u) = (s INTER t) UNION (s INTER u)"), 
          SET_TAC [])
 
 let INTER_OVER_UNION = 
     prove
-        ((parse_term 
-              "!s:A->bool. !t u. s UNION (t INTER u) = (s UNION t) INTER (s UNION u)"), 
+        ((parse_term @"!s:A->bool. !t u. s UNION (t INTER u) = (s UNION t) INTER (s UNION u)"), 
          SET_TAC [])
 
 (* ------------------------------------------------------------------------- *)
@@ -461,8 +450,7 @@ let DISJOINT_EMPTY_REFL =
     prove((parse_term @"!s:A->bool. (s = EMPTY) <=> (DISJOINT s s)"), SET_TAC [])
 let DISJOINT_UNION = 
     prove
-        ((parse_term 
-              "!s:A->bool. !t u. DISJOINT (s UNION t) u <=> DISJOINT s u /\ DISJOINT t u"), 
+        ((parse_term @"!s:A->bool. !t u. DISJOINT (s UNION t) u <=> DISJOINT s u /\ DISJOINT t u"), 
          SET_TAC [])
 
 (* ------------------------------------------------------------------------- *)
@@ -488,8 +476,7 @@ let COMPONENT = prove((parse_term @"!x:A. !s. x IN (x INSERT s)"), SET_TAC [])
 
 let DECOMPOSITION = 
     prove
-        ((parse_term 
-              "!s:A->bool. !x. x IN s <=> ?t. (s = x INSERT t) /\ ~(x IN t)"), 
+        ((parse_term @"!s:A->bool. !x. x IN s <=> ?t. (s = x INSERT t) /\ ~(x IN t)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| STRIP_TAC
@@ -500,8 +487,7 @@ let DECOMPOSITION =
 
 let SET_CASES = 
     prove
-        ((parse_term 
-              "!s:A->bool. (s = EMPTY) \/ ?x:A. ?t. (s = x INSERT t) /\ ~(x IN t)"), 
+        ((parse_term @"!s:A->bool. (s = EMPTY) \/ ?x:A. ?t. (s = x INSERT t) /\ ~(x IN t)"), 
          MESON_TAC [MEMBER_NOT_EMPTY; DECOMPOSITION])
 let ABSORPTION = 
     prove((parse_term @"!x:A. !s. x IN s <=> (x INSERT s = s)"), SET_TAC [])
@@ -541,18 +527,15 @@ let INSERT_INTER =
 
 let DISJOINT_INSERT = 
     prove
-        ((parse_term 
-              "!(x:A) s t. DISJOINT (x INSERT s) t <=> (DISJOINT s t) /\ ~(x IN t)"), 
+        ((parse_term @"!(x:A) s t. DISJOINT (x INSERT s) t <=> (DISJOINT s t) /\ ~(x IN t)"), 
          SET_TAC [])
 let INSERT_SUBSET = 
     prove
-        ((parse_term 
-              "!x:A. !s t. (x INSERT s) SUBSET t <=> (x IN t /\ s SUBSET t)"), 
+        ((parse_term @"!x:A. !s t. (x INSERT s) SUBSET t <=> (x IN t /\ s SUBSET t)"), 
          SET_TAC [])
 let SUBSET_INSERT = 
     prove
-        ((parse_term 
-              "!x:A. !s. ~(x IN s) ==> !t. s SUBSET (x INSERT t) <=> s SUBSET t"), 
+        ((parse_term @"!x:A. !s. ~(x IN s) ==> !t. s SUBSET (x INSERT t) <=> s SUBSET t"), 
          SET_TAC [])
 
 let INSERT_DIFF = 
@@ -595,13 +578,11 @@ let DELETE_SUBSET =
     prove((parse_term @"!x:A. !s. (s DELETE x) SUBSET s"), SET_TAC [])
 let SUBSET_DELETE = 
     prove
-        ((parse_term 
-              "!x:A. !s t. s SUBSET (t DELETE x) <=> ~(x IN s) /\ (s SUBSET t)"), 
+        ((parse_term @"!x:A. !s t. s SUBSET (t DELETE x) <=> ~(x IN s) /\ (s SUBSET t)"), 
          SET_TAC [])
 let SUBSET_INSERT_DELETE = 
     prove
-        ((parse_term 
-              "!x:A. !s t. s SUBSET (x INSERT t) <=> ((s DELETE x) SUBSET t)"), 
+        ((parse_term @"!x:A. !s t. s SUBSET (x INSERT t) <=> ((s DELETE x) SUBSET t)"), 
          SET_TAC [])
 let DIFF_INSERT = 
     prove
@@ -609,13 +590,11 @@ let DIFF_INSERT =
          SET_TAC [])
 let PSUBSET_INSERT_SUBSET = 
     prove
-        ((parse_term 
-              "!s t. s PSUBSET t <=> ?x:A. ~(x IN s) /\ (x INSERT s) SUBSET t"), 
+        ((parse_term @"!s t. s PSUBSET t <=> ?x:A. ~(x IN s) /\ (x INSERT s) SUBSET t"), 
          SET_TAC [])
 let PSUBSET_MEMBER = 
     prove
-        ((parse_term 
-              "!s:A->bool. !t. s PSUBSET t <=> (s SUBSET t /\ ?y. y IN t /\ ~(y IN s))"), 
+        ((parse_term @"!s:A->bool. !t. s PSUBSET t <=> (s SUBSET t /\ ?y. y IN t /\ ~(y IN s))"), 
          SET_TAC [])
 
 let DELETE_INSERT = 
@@ -637,8 +616,7 @@ let DELETE_INTER =
          SET_TAC [])
 let DISJOINT_DELETE_SYM = 
     prove
-        ((parse_term 
-              "!s t. !x:A. DISJOINT (s DELETE x) t = DISJOINT (t DELETE x) s"), 
+        ((parse_term @"!s t. !x:A. DISJOINT (s DELETE x) t = DISJOINT (t DELETE x) s"), 
          SET_TAC [])
 
 (* ------------------------------------------------------------------------- *)
@@ -652,13 +630,11 @@ let UNIONS_INSERT =
     prove((parse_term @"UNIONS (s INSERT u) = s UNION (UNIONS u)"), SET_TAC [])
 let FORALL_IN_UNIONS = 
     prove
-        ((parse_term 
-              "!P s. (!x. x IN UNIONS s ==> P x) <=> !t x. t IN s /\ x IN t ==> P x"), 
+        ((parse_term @"!P s. (!x. x IN UNIONS s ==> P x) <=> !t x. t IN s /\ x IN t ==> P x"), 
          SET_TAC [])
 let EXISTS_IN_UNIONS = 
     prove
-        ((parse_term 
-              "!P s. (?x. x IN UNIONS s /\ P x) <=> (?t x. t IN s /\ x IN t /\ P x)"), 
+        ((parse_term @"!P s. (?x. x IN UNIONS s /\ P x) <=> (?t x. t IN s /\ x IN t /\ P x)"), 
          SET_TAC [])
 let EMPTY_UNIONS = 
     prove
@@ -691,8 +667,7 @@ let INTERS_UNION =
          SET_TAC [])
 let UNIONS_MONO = 
     prove
-        ((parse_term 
-              "(!x. x IN s ==> ?y. y IN t /\ x SUBSET y) ==> UNIONS s SUBSET UNIONS t"), 
+        ((parse_term @"(!x. x IN s ==> ?y. y IN t /\ x SUBSET y) ==> UNIONS s SUBSET UNIONS t"), 
          SET_TAC [])
 let UNIONS_MONO_IMAGE = prove((parse_term @"(!x. x IN s ==> f x SUBSET g x)
    ==> UNIONS(IMAGE f s) SUBSET UNIONS(IMAGE g s)"), SET_TAC [])
@@ -724,8 +699,7 @@ let IMAGE_CLAUSES = prove((parse_term @"(IMAGE f {} = {}) /\
 
 let IMAGE_UNION = 
     prove
-        ((parse_term 
-              "!f s t. IMAGE f (s UNION t) = (IMAGE f s) UNION (IMAGE f t)"), 
+        ((parse_term @"!f s t. IMAGE f (s UNION t) = (IMAGE f s) UNION (IMAGE f t)"), 
          REWRITE_TAC [EXTENSION; IN_IMAGE; IN_UNION]
          |> THEN <| MESON_TAC [])
 let IMAGE_ID = 
@@ -760,21 +734,18 @@ let IMAGE_EQ_EMPTY =
          |> THEN <| MESON_TAC [])
 let FORALL_IN_IMAGE = 
     prove
-        ((parse_term 
-              "!f s. (!y. y IN IMAGE f s ==> P y) <=> (!x. x IN s ==> P(f x))"), 
+        ((parse_term @"!f s. (!y. y IN IMAGE f s ==> P y) <=> (!x. x IN s ==> P(f x))"), 
          REWRITE_TAC [IN_IMAGE]
          |> THEN <| MESON_TAC [])
 let EXISTS_IN_IMAGE = 
     prove
-        ((parse_term 
-              "!f s. (?y. y IN IMAGE f s /\ P y) <=> ?x. x IN s /\ P(f x)"), 
+        ((parse_term @"!f s. (?y. y IN IMAGE f s /\ P y) <=> ?x. x IN s /\ P(f x)"), 
          REWRITE_TAC [IN_IMAGE]
          |> THEN <| MESON_TAC [])
 
 let SUBSET_IMAGE = 
     prove
-        ((parse_term 
-              "!f:A->B s t. s SUBSET (IMAGE f t) <=> ?u. u SUBSET t /\ (s = IMAGE f u)"), 
+        ((parse_term @"!f:A->B s t. s SUBSET (IMAGE f t) <=> ?u. u SUBSET t /\ (s = IMAGE f u)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THENL <| [ALL_TAC
@@ -918,14 +889,12 @@ let UNIONS_DIFF =
          |> THEN <| SET_TAC [])
 let DIFF_UNIONS = 
     prove
-        ((parse_term 
-              "!u s. u DIFF UNIONS s = u INTER INTERS {u DIFF t | t IN s}"), 
+        ((parse_term @"!u s. u DIFF UNIONS s = u INTER INTERS {u DIFF t | t IN s}"), 
          REWRITE_TAC [INTERS_GSPEC]
          |> THEN <| SET_TAC [])
 let DIFF_UNIONS_NONEMPTY = 
     prove
-        ((parse_term 
-              "!u s. ~(s = {}) ==> u DIFF UNIONS s = INTERS {u DIFF t | t IN s}"), 
+        ((parse_term @"!u s. ~(s = {}) ==> u DIFF UNIONS s = INTERS {u DIFF t | t IN s}"), 
          REWRITE_TAC [INTERS_GSPEC]
          |> THEN <| SET_TAC [])
 
@@ -976,8 +945,7 @@ let INJECTIVE_ON_ALT = prove((parse_term @"!P f. (!x y. P x /\ P y /\ f x = f y 
 
 let INJECTIVE_ALT = 
     prove
-        ((parse_term 
-              "!f. (!x y. f x = f y ==> x = y) <=> (!x y. f x = f y <=> x = y)"), 
+        ((parse_term @"!f. (!x y. f x = f y ==> x = y) <=> (!x y. f x = f y <=> x = y)"), 
          MESON_TAC [])
 let SURJECTIVE_ON_RIGHT_INVERSE = prove((parse_term @"!f t. (!y. y IN t ==> ?x. x IN s /\ (f(x) = y)) <=>
          (?g. !y. y IN t ==> g(y) IN s /\ (f(g(y)) = y))"), REWRITE_TAC [RIGHT_IMP_EXISTS_THM; SKOLEM_THM])
@@ -1069,8 +1037,7 @@ let FUNCTION_FACTORS_RIGHT =
 
 let SURJECTIVE_FORALL_THM = 
     prove
-        ((parse_term 
-              "!f:A->B. (!y. ?x. f x = y) <=> (!P. (!x. P(f x)) <=> (!y. P y))"), 
+        ((parse_term @"!f:A->B. (!y. ?x. f x = y) <=> (!P. (!x. P(f x)) <=> (!y. P y))"), 
          GEN_TAC
          |> THEN <| EQ_TAC
          |> THENL <| [MESON_TAC []
@@ -1080,8 +1047,7 @@ let SURJECTIVE_FORALL_THM =
 
 let SURJECTIVE_EXISTS_THM = 
     prove
-        ((parse_term 
-              "!f:A->B. (!y. ?x. f x = y) <=> (!P. (?x. P(f x)) <=> (?y. P y))"), 
+        ((parse_term @"!f:A->B. (!y. ?x. f x = y) <=> (!P. (?x. P(f x)) <=> (?y. P y))"), 
          GEN_TAC
          |> THEN <| EQ_TAC
          |> THENL <| [MESON_TAC []
@@ -1092,8 +1058,7 @@ let SURJECTIVE_EXISTS_THM =
 
 let SURJECTIVE_IMAGE_THM = 
     prove
-        ((parse_term 
-              "!f:A->B. (!y. ?x. f x = y) <=> (!P. IMAGE f {x | P(f x)} = {x | P x})"), 
+        ((parse_term @"!f:A->B. (!y. ?x. f x = y) <=> (!P. IMAGE f {x | P(f x)} = {x | P x})"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXTENSION; IN_IMAGE; IN_ELIM_THM]
          |> THEN <| EQ_TAC
@@ -1110,8 +1075,7 @@ let IMAGE_INJECTIVE_IMAGE_OF_SUBSET =
          REPEAT GEN_TAC
          |> THEN 
          <| SUBGOAL_THEN 
-                (parse_term 
-                     "?g. !y. y IN IMAGE (f:A->B) s ==> g(y) IN s /\ f(g(y)) = y") 
+                (parse_term @"?g. !y. y IN IMAGE (f:A->B) s ==> g(y) IN s /\ f(g(y)) = y") 
                 STRIP_ASSUME_TAC
          |> THENL <| [REWRITE_TAC [GSYM SURJECTIVE_ON_RIGHT_INVERSE]
                       |> THEN <| SET_TAC []
@@ -1164,24 +1128,21 @@ let FINITE_SUBSET =
 
 let FINITE_UNION_IMP = 
     prove
-        ((parse_term 
-              "!(s:A->bool) t. FINITE s /\ FINITE t ==> FINITE (s UNION t)"), 
+        ((parse_term @"!(s:A->bool) t. FINITE s /\ FINITE t ==> FINITE (s UNION t)"), 
          REWRITE_TAC [IMP_CONJ]
          |> THEN <| REWRITE_TAC [RIGHT_FORALL_IMP_THM]
          |> THEN <| MATCH_MP_TAC FINITE_INDUCT
          |> THEN <| REWRITE_TAC [UNION_EMPTY]
          |> THEN 
          <| SUBGOAL_THEN 
-                (parse_term 
-                     "!x s t. (x:A INSERT s) UNION t = x INSERT (s UNION t)") 
+                (parse_term @"!x s t. (x:A INSERT s) UNION t = x INSERT (s UNION t)") 
                 (fun th -> REWRITE_TAC [th])
          |> THENL <| [SET_TAC []
                       MESON_TAC [FINITE_RULES]])
 
 let FINITE_UNION = 
     prove
-        ((parse_term 
-              "!(s:A->bool) t. FINITE(s UNION t) <=> FINITE(s) /\ FINITE(t)"), 
+        ((parse_term @"!(s:A->bool) t. FINITE(s UNION t) <=> FINITE(s) /\ FINITE(t)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THENL <| [REPEAT STRIP_TAC
@@ -1193,8 +1154,7 @@ let FINITE_UNION =
 
 let FINITE_INTER = 
     prove
-        ((parse_term 
-              "!(s:A->bool) t. FINITE s \/ FINITE t ==> FINITE (s INTER t)"), 
+        ((parse_term @"!(s:A->bool) t. FINITE s \/ FINITE t ==> FINITE (s INTER t)"), 
          MESON_TAC [INTER_SUBSET; FINITE_SUBSET])
 
 let FINITE_INSERT = 
@@ -1243,8 +1203,7 @@ let FINITE_DELETE =
 
 let FINITE_FINITE_UNIONS = 
     prove
-        ((parse_term 
-              "!s. FINITE(s) ==> (FINITE(UNIONS s) <=> (!t. t IN s ==> FINITE(t)))"), 
+        ((parse_term @"!s. FINITE(s) ==> (FINITE(UNIONS s) <=> (!t. t IN s ==> FINITE(t)))"), 
          MATCH_MP_TAC FINITE_INDUCT
          |> THEN 
          <| REWRITE_TAC [IN_INSERT; NOT_IN_EMPTY; UNIONS_0; UNIONS_INSERT]
@@ -1253,8 +1212,7 @@ let FINITE_FINITE_UNIONS =
 
 let FINITE_IMAGE_EXPAND = 
     prove
-        ((parse_term 
-              "!(f:A->B) s. FINITE s ==> FINITE {y | ?x. x IN s /\ (y = f x)}"), 
+        ((parse_term @"!(f:A->B) s. FINITE s ==> FINITE {y | ?x. x IN s /\ (y = f x)}"), 
          GEN_TAC
          |> THEN <| MATCH_MP_TAC FINITE_INDUCT
          |> THEN <| REWRITE_TAC [NOT_IN_EMPTY
@@ -1368,8 +1326,7 @@ let INFINITE_NONEMPTY =
 
 let INFINITE_DIFF_FINITE = 
     prove
-        ((parse_term 
-              "!s:A->bool t. INFINITE(s) /\ FINITE(t) ==> INFINITE(s DIFF t)"), 
+        ((parse_term @"!s:A->bool t. INFINITE(s) /\ FINITE(t) ==> INFINITE(s DIFF t)"), 
          REPEAT GEN_TAC
          |> THEN 
          <| MATCH_MP_TAC(TAUT(parse_term @"(b /\ ~c ==> ~a) ==> a /\ b ==> c"))
@@ -1446,8 +1403,7 @@ let FINREC =
 
 let FINREC_1_LEMMA = 
     prove
-        ((parse_term 
-              "!f b s a. FINREC f b s a (SUC 0) <=> ?x. (s = {x}) /\ (a = f x b)"), 
+        ((parse_term @"!f b s a. FINREC f b s a (SUC 0) <=> ?x. (s = {x}) /\ (a = f x b)"), 
          REWRITE_TAC [FINREC]
          |> THEN <| REPEAT GEN_TAC
          |> THEN <| AP_TERM_TAC
@@ -1493,8 +1449,7 @@ let FINREC_SUC_LEMMA =
                       |> THENL <| [EXISTS_TAC(parse_term @"c:B")
                                    |> THEN <| ASM_REWRITE_TAC []
                                    UNDISCH_TAC
-                                       (parse_term 
-                                            "FINREC (f:A->B->B) b (s DELETE y) c (SUC n)")
+                                       (parse_term @"FINREC (f:A->B->B) b (s DELETE y) c (SUC n)")
                                    |> THEN 
                                    <| DISCH_THEN
                                           (ANTE_RES_THEN
@@ -1640,15 +1595,13 @@ let FINREC_FUN =
                                           (parse_term @"(g (s DELETE x:A) = w:B)") 
                                           SUBST1_TAC
                                    |> THENL <| [SUBGOAL_THEN 
-                                                    (parse_term 
-                                                         "FINITE(s DELETE x:A)") 
+                                                    (parse_term @"FINITE(s DELETE x:A)") 
                                                     MP_TAC
                                                 |> THENL 
                                                 <| [MATCH_MP_TAC FINITE_SUBSET
                                                     |> THEN 
                                                     <| EXISTS_TAC
-                                                           (parse_term 
-                                                                "s:A->bool")
+                                                           (parse_term @"s:A->bool")
                                                     |> THEN 
                                                     <| ASM_REWRITE_TAC []
                                                     |> THEN <| SET_TAC []
@@ -1879,8 +1832,7 @@ let CARD_UNION_EQ = prove((parse_term @"!s t u. FINITE u /\ (s INTER t = {}) /\ 
 
 let CARD_DIFF = 
     prove
-        ((parse_term 
-              "!s t. FINITE s /\ t SUBSET s ==> CARD(s DIFF t) = CARD s - CARD t"), 
+        ((parse_term @"!s t. FINITE s /\ t SUBSET s ==> CARD(s DIFF t) = CARD s - CARD t"), 
          REPEAT STRIP_TAC
          |> THEN 
          <| MATCH_MP_TAC(ARITH_RULE(parse_term @"a + b:num = c ==> a = c - b"))
@@ -1915,8 +1867,7 @@ let FINITE_INDUCT_DELETE =
       |> THEN <| DISCH_TAC
       |> THEN 
       <| UNDISCH_TAC
-             (parse_term 
-                  "!s. FINITE s /\ ~(s = {}) ==> ?x:A. x IN s /\ (P(s DELETE x) ==> P s)")
+             (parse_term @"!s. FINITE s /\ ~(s = {}) ==> ?x:A. x IN s /\ (P(s DELETE x) ==> P s)")
       |> THEN <| DISCH_THEN(MP_TAC << SPEC(parse_term @"s:A->bool"))
       |> THEN <| ASM_REWRITE_TAC []
       |> THEN 
@@ -2046,16 +1997,14 @@ let HAS_SIZE_UNIONS =
        |> THEN 
        <| REWRITE_TAC 
               [SET_RULE
-                   (parse_term 
-                        "UNIONS {t y | y IN x INSERT s} = t x UNION UNIONS {t y | y IN s}")]
+                   (parse_term @"UNIONS {t y | y IN x INSERT s} = t x UNION UNIONS {t y | y IN s}")]
        |> THEN <| REWRITE_TAC [ARITH_RULE(parse_term @"SUC a * b = b + a * b")]
        |> THEN <| MATCH_MP_TAC HAS_SIZE_UNION
        |> THEN <| ASM_SIMP_TAC [IN_INSERT]
        |> THEN 
        <| REWRITE_TAC 
               [SET_RULE
-                   (parse_term 
-                        "DISJOINT a (UNIONS s) <=> !x. x IN s ==> DISJOINT a x")]
+                   (parse_term @"DISJOINT a (UNIONS s) <=> !x. x IN s ==> DISJOINT a x")]
        |> THEN <| ASM_SIMP_TAC [IN_ELIM_THM; LEFT_IMP_EXISTS_THM]
        |> THEN <| ASM_MESON_TAC [IN_INSERT])
 
@@ -2134,8 +2083,7 @@ let HAS_SIZE_CONV =
 (* ------------------------------------------------------------------------- *)
 let CARD_SUBSET_EQ = 
     prove
-        ((parse_term 
-              "!(a:A->bool) b. FINITE b /\ a SUBSET b /\ (CARD a = CARD b) ==> (a = b)"), 
+        ((parse_term @"!(a:A->bool) b. FINITE b /\ a SUBSET b /\ (CARD a = CARD b) ==> (a = b)"), 
          REPEAT STRIP_TAC
          |> THEN <| MP_TAC(SPECL [(parse_term @"a:A->bool")
                                   (parse_term @"b DIFF (a:A->bool)")] CARD_UNION)
@@ -2173,8 +2121,7 @@ let CARD_SUBSET_EQ =
 
 let CARD_SUBSET = 
     prove
-        ((parse_term 
-              "!(a:A->bool) b. a SUBSET b /\ FINITE(b) ==> CARD(a) <= CARD(b)"), 
+        ((parse_term @"!(a:A->bool) b. a SUBSET b /\ FINITE(b) ==> CARD(a) <= CARD(b)"), 
          REPEAT STRIP_TAC
          |> THEN 
          <| SUBGOAL_THEN (parse_term @"b:A->bool = a UNION (b DIFF a)") 
@@ -2184,8 +2131,7 @@ let CARD_SUBSET =
                       ALL_TAC]
          |> THEN 
          <| SUBGOAL_THEN 
-                (parse_term 
-                     "CARD (a UNION b DIFF a) = CARD(a:A->bool) + CARD(b DIFF a)") 
+                (parse_term @"CARD (a UNION b DIFF a) = CARD(a:A->bool) + CARD(b DIFF a)") 
                 SUBST1_TAC
          |> THENL <| [MATCH_MP_TAC CARD_UNION
                       |> THEN <| REPEAT CONJ_TAC
@@ -2201,25 +2147,21 @@ let CARD_SUBSET =
 
 let CARD_SUBSET_LE = 
     prove
-        ((parse_term 
-              "!(a:A->bool) b. FINITE b /\ a SUBSET b /\ (CARD b <= CARD a) ==> (a = b)"), 
+        ((parse_term @"!(a:A->bool) b. FINITE b /\ a SUBSET b /\ (CARD b <= CARD a) ==> (a = b)"), 
          MESON_TAC [CARD_SUBSET; CARD_SUBSET_EQ; LE_ANTISYM])
 let SUBSET_CARD_EQ = 
     prove
-        ((parse_term 
-              "!s t. FINITE t /\ s SUBSET t ==> (CARD s = CARD t <=> s = t)"), 
+        ((parse_term @"!s t. FINITE t /\ s SUBSET t ==> (CARD s = CARD t <=> s = t)"), 
          MESON_TAC [CARD_SUBSET_EQ; LE_ANTISYM; CARD_SUBSET])
 
 let CARD_PSUBSET = 
     prove
-        ((parse_term 
-              "!(a:A->bool) b. a PSUBSET b /\ FINITE(b) ==> CARD(a) < CARD(b)"), 
+        ((parse_term @"!(a:A->bool) b. a PSUBSET b /\ FINITE(b) ==> CARD(a) < CARD(b)"), 
          REPEAT GEN_TAC
          |> THEN 
          <| REWRITE_TAC 
                 [SET_RULE
-                     (parse_term 
-                          "a PSUBSET b <=> ?x. x IN b /\ ~(x IN a) /\ a SUBSET (b DELETE x)")]
+                     (parse_term @"a PSUBSET b <=> ?x. x IN b /\ ~(x IN a) /\ a SUBSET (b DELETE x)")]
          |> THEN <| DISCH_THEN(CONJUNCTS_THEN2 MP_TAC ASSUME_TAC)
          |> THEN 
          <| DISCH_THEN(X_CHOOSE_THEN (parse_term @"x:A") STRIP_ASSUME_TAC)
@@ -2268,13 +2210,11 @@ let CARD_UNIONS_LE =
        |> THEN 
        <| REWRITE_TAC 
               [SET_RULE
-                   (parse_term 
-                        "UNIONS {t x | x IN a INSERT s} = t(a) UNION UNIONS {t x | x IN s}")]
+                   (parse_term @"UNIONS {t x | x IN a INSERT s} = t(a) UNION UNIONS {t x | x IN s}")]
        |> THEN <| MATCH_MP_TAC LE_TRANS
        |> THEN 
        <| EXISTS_TAC
-              (parse_term 
-                   "CARD((t:A->B->bool) x) + CARD(UNIONS {(t:A->B->bool) y | y IN s})")
+              (parse_term @"CARD((t:A->B->bool) x) + CARD(UNIONS {(t:A->B->bool) y | y IN s})")
        |> THEN <| CONJ_TAC
        |> THENL <| [MATCH_MP_TAC CARD_UNION_LE
                     |> THEN <| ASM_SIMP_TAC [IN_INSERT]
@@ -2287,8 +2227,7 @@ let CARD_UNIONS_LE =
                             IN_INSERT]
                     MATCH_MP_TAC
                         (ARITH_RULE
-                             (parse_term 
-                                  "a <= n /\ b <= x * n ==> a + b <= SUC x * n"))
+                             (parse_term @"a <= n /\ b <= x * n ==> a + b <= SUC x * n"))
                     |> THEN <| ASM_SIMP_TAC [IN_INSERT]])
 
 let CARD_UNION_GEN = 
@@ -2299,8 +2238,7 @@ let CARD_UNION_GEN =
         <| ONCE_REWRITE_TAC 
                [SET_RULE(parse_term @"s UNION t = s UNION (t DIFF s)")]
         |> THEN <| ASM_SIMP_TAC [ARITH_RULE
-                                     (parse_term 
-                                          "x:num <= y ==> (a + y) - x = a + (y - x)")
+                                     (parse_term @"x:num <= y ==> (a + y) - x = a + (y - x)")
                                  CARD_SUBSET
                                  INTER_SUBSET
                                  GSYM CARD_DIFF]
@@ -2374,8 +2312,7 @@ let CARD_IMAGE_INJ_EQ =
 
 let CARD_SUBSET_IMAGE = 
     prove
-        ((parse_term 
-              "!f s t. FINITE t /\ s SUBSET IMAGE f t ==> CARD s <= CARD t"), 
+        ((parse_term @"!f s t. FINITE t /\ s SUBSET IMAGE f t ==> CARD s <= CARD t"), 
          MESON_TAC [LE_TRANS; FINITE_IMAGE; CARD_IMAGE_LE; CARD_SUBSET])
 
 let HAS_SIZE_IMAGE_INJ_EQ = 
@@ -2387,8 +2324,7 @@ let HAS_SIZE_IMAGE_INJ_EQ =
        |> THEN 
        <| MATCH_MP_TAC
               (TAUT
-                   (parse_term 
-                        "(a' <=> a) /\ (a ==> (b' <=> b)) ==> (a' /\ b' <=> a /\ b)"))
+                   (parse_term @"(a' <=> a) /\ (a ==> (b' <=> b)) ==> (a' /\ b' <=> a /\ b)"))
        |> THEN <| CONJ_TAC
        |> THENL <| [MATCH_MP_TAC FINITE_IMAGE_INJ_EQ
                     DISCH_TAC
@@ -2468,8 +2404,7 @@ let CHOOSE_SUBSET_STRONG =
 
 let CHOOSE_SUBSET = 
     prove
-        ((parse_term 
-              "!s:A->bool. FINITE s ==> !n. n <= CARD s ==> ?t. t SUBSET s /\ t HAS_SIZE n"), 
+        ((parse_term @"!s:A->bool. FINITE s ==> !n. n <= CARD s ==> ?t. t SUBSET s /\ t HAS_SIZE n"), 
          MESON_TAC [CHOOSE_SUBSET_STRONG])
 
 let CHOOSE_SUBSET_BETWEEN = 
@@ -2568,16 +2503,14 @@ let FINITE_PRODUCT_DEPENDENT =
                     MESON_TAC []]
        |> THEN <| MAP_EVERY UNDISCH_TAC [(parse_term @"!x:A. x IN s ==> FINITE(t x :B->bool)")
                                          (parse_term @"FINITE(s:A->bool)")]
-       |> THEN <| MAP_EVERY (fun t -> SPEC_TAC(t, t)) [(parse_term 
-                                                            "t:A->B->bool")
+       |> THEN <| MAP_EVERY (fun t -> SPEC_TAC(t, t)) [(parse_term @"t:A->B->bool")
                                                        (parse_term @"s:A->bool")]
        |> THEN <| REWRITE_TAC [RIGHT_FORALL_IMP_THM]
        |> THEN <| MATCH_MP_TAC FINITE_INDUCT_STRONG
        |> THEN <| CONJ_TAC
        |> THENL <| [GEN_TAC
                     |> THEN <| SUBGOAL_THEN 
-                           (parse_term 
-                                "{(x:A,y:B) | x IN {} /\ y IN (t x)} = {}") 
+                           (parse_term @"{(x:A,y:B) | x IN {} /\ y IN (t x)} = {}") 
                            (fun th -> REWRITE_TAC [th; FINITE_RULES])
                     |> THEN <| REWRITE_TAC [EXTENSION; IN_ELIM_THM; NOT_IN_EMPTY]
                     ALL_TAC]
@@ -2624,8 +2557,7 @@ let IN_CROSS =
          REWRITE_TAC [CROSS; IN_ELIM_PAIR_THM])
 let HAS_SIZE_CROSS = 
     prove
-        ((parse_term 
-              "!s t m n. s HAS_SIZE m /\ t HAS_SIZE n ==> (s CROSS t) HAS_SIZE (m * n)"), 
+        ((parse_term @"!s t m n. s HAS_SIZE m /\ t HAS_SIZE n ==> (s CROSS t) HAS_SIZE (m * n)"), 
          REWRITE_TAC [CROSS; HAS_SIZE_PRODUCT])
 let FINITE_CROSS = 
     prove
@@ -2633,8 +2565,7 @@ let FINITE_CROSS =
          SIMP_TAC [CROSS; FINITE_PRODUCT])
 let CARD_CROSS = 
     prove
-        ((parse_term 
-              "!s t. FINITE s /\ FINITE t ==> CARD(s CROSS t) = CARD s * CARD t"), 
+        ((parse_term @"!s t. FINITE s /\ FINITE t ==> CARD(s CROSS t) = CARD s * CARD t"), 
          SIMP_TAC [CROSS; CARD_PRODUCT])
 let CROSS_EQ_EMPTY = 
     prove
@@ -2690,8 +2621,7 @@ let HAS_SIZE_FUNSPACE =
                                      |> THEN 
                                      <| MAP_EVERY EXISTS_TAC 
                                             [(parse_term @"(f:A->B) a")
-                                             (parse_term 
-                                                  "\x. if x IN s then (f:A->B) x else d")]
+                                             (parse_term @"\x. if x IN s then (f:A->B) x else d")]
                                      |> THEN <| REWRITE_TAC [FUN_EQ_THM]
                                      |> THEN <| ASM_MESON_TAC []
                                      DISCH_THEN
@@ -2732,8 +2662,7 @@ let FINITE_FUNSPACE =
 
 let HAS_SIZE_FUNSPACE_UNIV = 
     prove
-        ((parse_term 
-              "!m n. (:A) HAS_SIZE m /\ (:B) HAS_SIZE n ==> (:A->B) HAS_SIZE (n EXP m)"), 
+        ((parse_term @"!m n. (:A) HAS_SIZE m /\ (:B) HAS_SIZE n ==> (:A->B) HAS_SIZE (n EXP m)"), 
          REPEAT GEN_TAC
          |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP HAS_SIZE_FUNSPACE)
          |> THEN <| REWRITE_TAC [IN_UNIV; UNIV_GSPEC])
@@ -2771,8 +2700,7 @@ let FINITE_BOOL =
 (* ------------------------------------------------------------------------- *)
 let HAS_SIZE_POWERSET = 
     prove
-        ((parse_term 
-              "!(s:A->bool) n. s HAS_SIZE n ==> {t | t SUBSET s} HAS_SIZE (2 EXP n)"), 
+        ((parse_term @"!(s:A->bool) n. s HAS_SIZE n ==> {t | t SUBSET s} HAS_SIZE (2 EXP n)"), 
          REPEAT STRIP_TAC
          |> THEN <| SUBGOAL_THEN (parse_term @"{t | t SUBSET s} =
     {f | (!x:A. x IN s ==> f(x) IN UNIV) /\ (!x. ~(x IN s) ==> (f x = F))}")
@@ -2792,8 +2720,7 @@ let HAS_SIZE_POWERSET =
 
 let CARD_POWERSET = 
     prove
-        ((parse_term 
-              "!s:A->bool. FINITE s ==> (CARD {t | t SUBSET s} = 2 EXP (CARD s))"), 
+        ((parse_term @"!s:A->bool. FINITE s ==> (CARD {t | t SUBSET s} = 2 EXP (CARD s))"), 
          MESON_TAC [HAS_SIZE_POWERSET; HAS_SIZE])
 let FINITE_POWERSET = 
     prove
@@ -2949,8 +2876,7 @@ let FINITE_REAL_INTERVAL =
                       |> THEN 
                       <| ASM_SIMP_TAC 
                              [REAL_ARITH
-                                  (parse_term 
-                                       "~(a:real < b) ==> ~(a < x /\ x < b)")]
+                                  (parse_term @"~(a:real < b) ==> ~(a < x /\ x < b)")]
                       |> THEN <| REWRITE_TAC [EMPTY_GSPEC; FINITE_EMPTY]
                       |> THEN 
                       <| DISCH_THEN
@@ -2960,8 +2886,7 @@ let FINITE_REAL_INTERVAL =
                       <| DISCH_THEN
                              (MP_TAC 
                               << SPEC
-                                     (parse_term 
-                                          "IMAGE (\n. a + (b - a) / (&n + &2)) (:num)"))
+                                     (parse_term @"IMAGE (\n. a + (b - a) / (&n + &2)) (:num)"))
                       |> THEN 
                       <| REWRITE_TAC 
                              [SUBSET; FORALL_IN_IMAGE; IN_UNIV; IN_ELIM_THM]
@@ -2980,8 +2905,7 @@ let FINITE_REAL_INTERVAL =
                       |> THEN 
                       <| REWRITE_TAC 
                              [REAL_ARITH
-                                  (parse_term 
-                                       "x:real < x * (n + &2) <=> &0 < x * (n + &1)")]
+                                  (parse_term @"x:real < x * (n + &2) <=> &0 < x * (n + &1)")]
                       |> THEN 
                       <| ASM_SIMP_TAC 
                              [REAL_SUB_LT
@@ -3105,8 +3029,7 @@ let set_of_list = new_recursive_definition list_RECURSION (parse_term @"(set_of_
 
 let list_of_set = 
     new_definition
-        (parse_term 
-             "list_of_set s = @l. (set_of_list l = s) /\ (LENGTH l = CARD s)")
+        (parse_term @"list_of_set s = @l. (set_of_list l = s) /\ (LENGTH l = CARD s)")
 
 let LIST_OF_SET_PROPERTIES = 
     prove
@@ -3140,8 +3063,7 @@ let LENGTH_LIST_OF_SET =
 
 let MEM_LIST_OF_SET = 
     prove
-        ((parse_term 
-              "!s:A->bool. FINITE(s) ==> !x. MEM x (list_of_set s) <=> x IN s"), 
+        ((parse_term @"!s:A->bool. FINITE(s) ==> !x. MEM x (list_of_set s) <=> x IN s"), 
          GEN_TAC
          |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP SET_OF_LIST_OF_SET)
          |> THEN 
@@ -3172,8 +3094,7 @@ let IN_SET_OF_LIST =
 
 let SET_OF_LIST_APPEND = 
     prove
-        ((parse_term 
-              "!l1 l2. set_of_list(APPEND l1 l2) = set_of_list(l1) UNION set_of_list(l2)"), 
+        ((parse_term @"!l1 l2. set_of_list(APPEND l1 l2) = set_of_list(l1) UNION set_of_list(l2)"), 
          REWRITE_TAC [EXTENSION; IN_SET_OF_LIST; IN_UNION; MEM_APPEND])
 
 let SET_OF_LIST_MAP = 
@@ -3217,8 +3138,7 @@ let mk_fset l = mk_setenum(l, type_of(hd l))
 (* ------------------------------------------------------------------------- *)
 let pairwise = 
     new_definition
-        (parse_term 
-             "pairwise r s <=> !x y. x IN s /\ y IN s /\ ~(x = y) ==> r x y")
+        (parse_term @"pairwise r s <=> !x y. x IN s /\ y IN s /\ ~(x = y) ==> r x y")
 
 let PAIRWISE = new_recursive_definition list_RECURSION (parse_term @"(PAIRWISE (r:A->A->bool) [] <=> T) /\
    (PAIRWISE (r:A->A->bool) (CONS h t) <=> ALL (r h) t /\ PAIRWISE r t)")
@@ -3257,8 +3177,7 @@ let CARD_SET_OF_LIST_LE =
 
 let HAS_SIZE_SET_OF_LIST = 
     prove
-        ((parse_term 
-              "!l. (set_of_list l) HAS_SIZE (LENGTH l) <=> PAIRWISE (\x y. ~(x = y)) l"), 
+        ((parse_term @"!l. (set_of_list l) HAS_SIZE (LENGTH l) <=> PAIRWISE (\x y. ~(x = y)) l"), 
          REWRITE_TAC [HAS_SIZE; FINITE_SET_OF_LIST]
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_SIMP_TAC [CARD_CLAUSES
@@ -3557,16 +3476,14 @@ let ge_c = new_definition(parse_term @"s >=_c t <=> t <=_c s")
 let gt_c = new_definition(parse_term @"s >_c t <=> t <_c s")
 let LE_C = 
     prove
-        ((parse_term 
-              "!s t. s <=_c t <=> ?g. !x. x IN s ==> ?y. y IN t /\ (g y = x)"), 
+        ((parse_term @"!s t. s <=_c t <=> ?g. !x. x IN s ==> ?y. y IN t /\ (g y = x)"), 
          REWRITE_TAC 
              [le_c; INJECTIVE_ON_LEFT_INVERSE; SURJECTIVE_ON_RIGHT_INVERSE; 
               RIGHT_IMP_EXISTS_THM; SKOLEM_THM; RIGHT_AND_EXISTS_THM]
          |> THEN <| MESON_TAC [])
 let GE_C = 
     prove
-        ((parse_term 
-              "!s t. s >=_c t <=> ?f. !y. y IN t ==> ?x. x IN s /\ (y = f x)"), 
+        ((parse_term @"!s t. s >=_c t <=> ?f. !y. y IN t ==> ?x. x IN s /\ (y = f x)"), 
          REWRITE_TAC [ge_c; LE_C]
          |> THEN <| MESON_TAC [])
 let COUNTABLE = new_definition(parse_term @"COUNTABLE t <=> (:num) >=_c t")
@@ -3593,8 +3510,7 @@ let SUP =
 
 let SUP_FINITE_LEMMA = 
     prove
-        ((parse_term 
-              "!s. FINITE s /\ ~(s = {}) ==> ?b:real. b IN s /\ !x. x IN s ==> x <= b"), 
+        ((parse_term @"!s. FINITE s /\ ~(s = {}) ==> ?b:real. b IN s /\ !x. x IN s ==> x <= b"), 
          REWRITE_TAC [IMP_CONJ]
          |> THEN <| MATCH_MP_TAC FINITE_INDUCT_STRONG
          |> THEN <| REWRITE_TAC [NOT_INSERT_EMPTY; IN_INSERT]
@@ -3603,8 +3519,7 @@ let SUP_FINITE_LEMMA =
 
 let SUP_FINITE = 
     prove
-        ((parse_term 
-              "!s. FINITE s /\ ~(s = {}) ==> (sup s) IN s /\ !x. x IN s ==> x <= sup s"), 
+        ((parse_term @"!s. FINITE s /\ ~(s = {}) ==> (sup s) IN s /\ !x. x IN s ==> x <= sup s"), 
          GEN_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP SUP_FINITE_LEMMA)
@@ -3612,23 +3527,19 @@ let SUP_FINITE =
 
 let REAL_LE_SUP_FINITE = 
     prove
-        ((parse_term 
-              "!s a. FINITE s /\ ~(s = {}) ==> (a <= sup s <=> ?x. x IN s /\ a <= x)"), 
+        ((parse_term @"!s a. FINITE s /\ ~(s = {}) ==> (a <= sup s <=> ?x. x IN s /\ a <= x)"), 
          MESON_TAC [SUP_FINITE; REAL_LE_TRANS])
 let REAL_SUP_LE_FINITE = 
     prove
-        ((parse_term 
-              "!s a. FINITE s /\ ~(s = {}) ==> (sup s <= a <=> !x. x IN s ==> x <= a)"), 
+        ((parse_term @"!s a. FINITE s /\ ~(s = {}) ==> (sup s <= a <=> !x. x IN s ==> x <= a)"), 
          MESON_TAC [SUP_FINITE; REAL_LE_TRANS])
 let REAL_LT_SUP_FINITE = 
     prove
-        ((parse_term 
-              "!s a. FINITE s /\ ~(s = {}) ==> (a < sup s <=> ?x. x IN s /\ a < x)"), 
+        ((parse_term @"!s a. FINITE s /\ ~(s = {}) ==> (a < sup s <=> ?x. x IN s /\ a < x)"), 
          MESON_TAC [SUP_FINITE; REAL_LTE_TRANS])
 let REAL_SUP_LT_FINITE = 
     prove
-        ((parse_term 
-              "!s a. FINITE s /\ ~(s = {}) ==> (sup s < a <=> !x. x IN s ==> x < a)"), 
+        ((parse_term @"!s a. FINITE s /\ ~(s = {}) ==> (sup s < a <=> !x. x IN s ==> x < a)"), 
          MESON_TAC [SUP_FINITE; REAL_LET_TRANS])
 
 let REAL_SUP_UNIQUE = 
@@ -3668,13 +3579,12 @@ let REAL_SUP_BOUNDS =
 
 let REAL_ABS_SUP_LE = 
     prove
-        ((parse_term 
-              "!s a. ~(s = {}) /\ (!x. x IN s ==> abs(x) <= a) ==> abs(sup s) <= a"), 
+        ((parse_term @"!s a. ~(s = {}) /\ (!x. x IN s ==> abs(x) <= a) ==> abs(sup s) <= a"), 
          REWRITE_TAC [GSYM REAL_BOUNDS_LE
                       REAL_SUP_BOUNDS])
 
 let REAL_SUP_ASCLOSE = prove((parse_term @"!s l e. ~(s = {}) /\ (!x. x IN s ==> abs(x - l) <= e)
-           ==> abs(sup s - l) <= e"), SIMP_TAC  [REAL_ARITH (parse_term  "abs(x - l):real <= e <=> l - e <= x /\ x <= l + e")]
+           ==> abs(sup s - l) <= e"), SIMP_TAC  [REAL_ARITH (parse_term @"abs(x - l):real <= e <=> l - e <= x /\ x <= l + e")]
           |> THEN <| REWRITE_TAC [REAL_SUP_BOUNDS])
 let inf = new_definition(parse_term @"inf s = @a:real. (!x. x IN s ==> a <= x) /\
                     !b. (!x. x IN s ==> b <= x) ==> b <= a")
@@ -3701,8 +3611,7 @@ let INF =
 
 let INF_FINITE_LEMMA = 
     prove
-        ((parse_term 
-              "!s. FINITE s /\ ~(s = {}) ==> ?b:real. b IN s /\ !x. x IN s ==> b <= x"), 
+        ((parse_term @"!s. FINITE s /\ ~(s = {}) ==> ?b:real. b IN s /\ !x. x IN s ==> b <= x"), 
          REWRITE_TAC [IMP_CONJ]
          |> THEN <| MATCH_MP_TAC FINITE_INDUCT_STRONG
          |> THEN <| REWRITE_TAC [NOT_INSERT_EMPTY; IN_INSERT]
@@ -3711,8 +3620,7 @@ let INF_FINITE_LEMMA =
 
 let INF_FINITE = 
     prove
-        ((parse_term 
-              "!s. FINITE s /\ ~(s = {}) ==> (inf s) IN s /\ !x. x IN s ==> inf s <= x"), 
+        ((parse_term @"!s. FINITE s /\ ~(s = {}) ==> (inf s) IN s /\ !x. x IN s ==> inf s <= x"), 
          GEN_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| FIRST_ASSUM(MP_TAC << MATCH_MP INF_FINITE_LEMMA)
@@ -3720,23 +3628,19 @@ let INF_FINITE =
 
 let REAL_LE_INF_FINITE = 
     prove
-        ((parse_term 
-              "!s a. FINITE s /\ ~(s = {}) ==> (a <= inf s <=> !x. x IN s ==> a <= x)"), 
+        ((parse_term @"!s a. FINITE s /\ ~(s = {}) ==> (a <= inf s <=> !x. x IN s ==> a <= x)"), 
          MESON_TAC [INF_FINITE; REAL_LE_TRANS])
 let REAL_INF_LE_FINITE = 
     prove
-        ((parse_term 
-              "!s a. FINITE s /\ ~(s = {}) ==> (inf s <= a <=> ?x. x IN s /\ x <= a)"), 
+        ((parse_term @"!s a. FINITE s /\ ~(s = {}) ==> (inf s <= a <=> ?x. x IN s /\ x <= a)"), 
          MESON_TAC [INF_FINITE; REAL_LE_TRANS])
 let REAL_LT_INF_FINITE = 
     prove
-        ((parse_term 
-              "!s a. FINITE s /\ ~(s = {}) ==> (a < inf s <=> !x. x IN s ==> a < x)"), 
+        ((parse_term @"!s a. FINITE s /\ ~(s = {}) ==> (a < inf s <=> !x. x IN s ==> a < x)"), 
          MESON_TAC [INF_FINITE; REAL_LTE_TRANS])
 let REAL_INF_LT_FINITE = 
     prove
-        ((parse_term 
-              "!s a. FINITE s /\ ~(s = {}) ==> (inf s < a <=> ?x. x IN s /\ x < a)"), 
+        ((parse_term @"!s a. FINITE s /\ ~(s = {}) ==> (inf s < a <=> ?x. x IN s /\ x < a)"), 
          MESON_TAC [INF_FINITE; REAL_LET_TRANS])
 
 let REAL_INF_UNIQUE = 
@@ -3776,13 +3680,12 @@ let REAL_INF_BOUNDS =
 
 let REAL_ABS_INF_LE = 
     prove
-        ((parse_term 
-              "!s a. ~(s = {}) /\ (!x. x IN s ==> abs(x) <= a) ==> abs(inf s) <= a"), 
+        ((parse_term @"!s a. ~(s = {}) /\ (!x. x IN s ==> abs(x) <= a) ==> abs(inf s) <= a"), 
          REWRITE_TAC [GSYM REAL_BOUNDS_LE
                       REAL_INF_BOUNDS])
 
 let REAL_INF_ASCLOSE = prove((parse_term @"!s l e. ~(s = {}) /\ (!x. x IN s ==> abs(x - l) <= e)
-           ==> abs(inf s - l) <= e"), SIMP_TAC [REAL_ARITH (parse_term  "abs(x - l):real <= e <=> l - e <= x /\ x <= l + e")]
+           ==> abs(inf s - l) <= e"), SIMP_TAC [REAL_ARITH (parse_term @"abs(x - l):real <= e <=> l - e <= x /\ x <= l + e")]
           |> THEN <| REWRITE_TAC [REAL_INF_BOUNDS])
 
 let SUP_UNIQUE_FINITE = 
@@ -3805,8 +3708,7 @@ let INF_UNIQUE_FINITE =
 
 let SUP_INSERT_FINITE = 
     prove
-        ((parse_term 
-              "!x s. FINITE s ==> sup(x INSERT s) = if s = {} then x else max x (sup s)"), 
+        ((parse_term @"!x s. FINITE s ==> sup(x INSERT s) = if s = {} then x else max x (sup s)"), 
          REPEAT STRIP_TAC
          |> THEN <| COND_CASES_TAC
          |> THEN 
@@ -3826,8 +3728,7 @@ let SUP_SING =
 
 let INF_INSERT_FINITE = 
     prove
-        ((parse_term 
-              "!x s. FINITE s ==> inf(x INSERT s) = if s = {} then x else min x (inf s)"), 
+        ((parse_term @"!x s. FINITE s ==> inf(x INSERT s) = if s = {} then x else min x (inf s)"), 
          REPEAT STRIP_TAC
          |> THEN <| COND_CASES_TAC
          |> THEN 
@@ -3857,8 +3758,7 @@ let REAL_SUP_EQ_INF =
              |> THEN 
              <| MATCH_MP_TAC
                     (SET_RULE
-                         (parse_term 
-                              "~(s = {}) /\ (!x. x IN s ==> x = a) ==> s = {a}"))
+                         (parse_term @"~(s = {}) /\ (!x. x IN s ==> x = a) ==> s = {a}"))
              |> THEN <| ASM_REWRITE_TAC [GSYM REAL_LE_ANTISYM]
              |> THEN <| ASM_MESON_TAC [SUP; REAL_ABS_BOUNDS; INF]
              STRIP_TAC
