@@ -47,6 +47,7 @@ type instantiation = (int * term) list * (term * term) list * (hol_type * hol_ty
 (* ------------------------------------------------------------------------- *)
 (* The last recourse when all else fails!                                    *)
 (* ------------------------------------------------------------------------- *)
+/// Creates an arbitrary theorem as an axiom (dangerous!)
 let mk_thm(asl, c) = 
     let ax = new_axiom(itlist (curry mk_imp) (rev asl) c)
     rev_itlist (fun t th -> MP th (ASSUME t)) (rev asl) ax
@@ -54,18 +55,22 @@ let mk_thm(asl, c) =
 (* ------------------------------------------------------------------------- *)
 (* Derived congruence rules; very useful things!                             *)
 (* ------------------------------------------------------------------------- *)
+/// Conjoin both sides of two equational theorems.
 let MK_CONJ = 
     let andtm = parse_term @"(/\)"
     fun eq1 eq2 -> MK_COMB(AP_TERM andtm eq1, eq2)
 
+/// Disjoin both sides of two equational theorems.
 let MK_DISJ = 
     let ortm = parse_term @"(\/)"
     fun eq1 eq2 -> MK_COMB(AP_TERM ortm eq1, eq2)
 
+/// Universally quantifies both sides of equational theorem.
 let MK_FORALL = 
     let atm = mk_const("!", [])
     fun v th -> AP_TERM (inst [type_of v, aty] atm) (ABS v th)
 
+/// Existentially quantifies both sides of equational theorem.
 let MK_EXISTS = 
     let atm = mk_const("?", [])
     fun v th -> AP_TERM (inst [type_of v, aty] atm) (ABS v th)
@@ -73,6 +78,7 @@ let MK_EXISTS =
 (* ------------------------------------------------------------------------- *)
 (* Eliminate the antecedent of a theorem using a conversion/proof rule.      *)
 (* ------------------------------------------------------------------------- *)
+/// Removes antecedent of implication theorem by solving it with a conversion.
 let MP_CONV (cnv : conv) th = 
     let l, r = dest_imp(concl th)
     let ath = cnv l
@@ -84,6 +90,7 @@ let MP_CONV (cnv : conv) th =
 (* ------------------------------------------------------------------------- *)
 (* Multiple beta-reduction (we use a slight variant below).                  *)
 (* ------------------------------------------------------------------------- *)
+/// Beta conversion over multiple arguments.
 let rec BETAS_CONV tm = 
     match tm with
     | Comb(Abs(_, _), _) -> BETA_CONV tm
@@ -93,6 +100,7 @@ let rec BETAS_CONV tm =
 (* ------------------------------------------------------------------------- *)
 (* Instantiators.                                                            *)
 (* ------------------------------------------------------------------------- *)
+/// Apply a higher-order instantiation to a term.
 let (instantiate : instantiation -> term -> term) = 
     let betas n tm = 
         let args, lam = funpow n (fun (l, t) -> (rand t) :: l, rator t) ([], tm)
@@ -146,6 +154,7 @@ let (instantiate : instantiation -> term -> term) =
                 with
                 | Failure _ -> ttm
 
+/// Apply a higher-order instantiation to conclusion of a theorem.
 let (INSTANTIATE : instantiation -> thm -> thm) = 
     let rec BETAS_CONV n tm = 
         if n = 1
@@ -202,6 +211,7 @@ let (INSTANTIATE : instantiation -> thm -> thm) =
                     | Failure _ -> tth
             else failwith "INSTANTIATE: term or type var free in assumptions"
 
+/// Apply a higher-order instantiation to assumptions and conclusion of a theorem.
 let (INSTANTIATE_ALL : instantiation -> thm -> thm) = 
     fun ((_, tmin, tyin) as i) th -> 
         if tmin = [] && tyin = [] then th
@@ -236,6 +246,7 @@ let (INSTANTIATE_ALL : instantiation -> thm -> thm) =
 (* anyway. A test could be put in (see if any "env" variables are left in    *)
 (* the term after abstracting out the pattern instances) but it'd be slower. *)
 (* ------------------------------------------------------------------------- *)
+/// Match one term against another.
 let (term_match : term list -> term -> term -> instantiation) = 
     let safe_inserta ((y, x) as n) l = 
         try 
@@ -401,6 +412,7 @@ let (term_match : term list -> term -> term -> instantiation) =
 (* ------------------------------------------------------------------------- *)
 (* First order unification (no type instantiation -- yet).                   *)
 (* ------------------------------------------------------------------------- *)
+/// Unify two terms.
 let (term_unify : term list -> term -> term -> instantiation) = 
     let augment1 sofar (s, x) = 
         let s' = subst sofar s
@@ -446,6 +458,7 @@ let (term_unify : term list -> term -> term -> instantiation) =
 (* ------------------------------------------------------------------------- *)
 (* Modify bound variable names at depth. (Not very efficient...)             *)
 (* ------------------------------------------------------------------------- *)
+/// Modify bound variable according to renaming scheme.
 let deep_alpha = 
     let tryalpha v tm = 
         try 
@@ -485,6 +498,8 @@ let deep_alpha =
 (* Instantiate theorem by matching part of it to a term.                     *)
 (* The GEN_PART_MATCH version renames free vars to avoid clashes.            *)
 (* ------------------------------------------------------------------------- *)
+// PART_MATCH: Instantiates a theorem by matching part of it to a term.
+// GEN_PART_MATCH: Instantiates a theorem by matching part of it to a term.
 let PART_MATCH, GEN_PART_MATCH = 
     let rec match_bvs t1 t2 acc = 
         try 
@@ -556,6 +571,7 @@ let PART_MATCH, GEN_PART_MATCH =
 (* ------------------------------------------------------------------------- *)
 (* Matching modus ponens.                                                    *)
 (* ------------------------------------------------------------------------- *)
+/// Modus Ponens inference rule with automatic matching.
 let MATCH_MP ith = 
     let sth = 
         try 
@@ -581,6 +597,7 @@ let MATCH_MP ith =
 (* ------------------------------------------------------------------------- *)
 (* Useful instance of more general higher order matching.                    *)
 (* ------------------------------------------------------------------------- *)
+/// Rewrite once using more general higher order matching.
 let HIGHER_REWRITE_CONV = 
     let BETA_VAR = 
         let rec BETA_CONVS n = 
@@ -646,6 +663,7 @@ let HIGHER_REWRITE_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Derived principle of definition justifying |- c x1 .. xn = t[x1,..,xn]    *)
 (* ------------------------------------------------------------------------- *)
+/// Declare a new constant and a definitional axiom.
 let new_definition tm = 
     let avs, bod = strip_forall tm
     let l, r = 
