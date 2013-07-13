@@ -19,6 +19,8 @@ limitations under the License.
 *)
 
 #if INTERACTIVE
+open FSharp.Compatibility.OCaml;;
+open FSharp.Compatibility.OCaml.Num;;
 #else
 /// Various useful general library functions.
 module NHol.lib
@@ -32,7 +34,10 @@ open FSharp.Compatibility.OCaml.Num
 (* ------------------------------------------------------------------------- *)
 
 // TODO : Move this into FSharp.Compatibility.OCaml
-module Ratio = 
+module Ratio =
+    open FSharp.Compatibility.OCaml
+    open FSharp.Compatibility.OCaml.Num
+
     // NOTE : not sure what kind of normalization should be done here
     let normalize_ratio x = x
     let numerator_ratio(r : Ratio.ratio) = r.Numerator
@@ -58,6 +63,8 @@ let fail () = failwith ""
 (* Combinators.                                                              *)
 (* ------------------------------------------------------------------------- *)
 
+(* OPTIMIZE :   The functions below should (probably) all be inlined; alternatively,
+                some can be replaced (used as aliases for) F# intrinsic functions. *)
 let curry f x y = f(x, y)
 let uncurry f (x, y) = f x y
 let I x = x
