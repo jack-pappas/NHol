@@ -29,9 +29,9 @@ open FSharp.Compatibility.OCaml.Num
 open NHol
 open lib
 open fusion
-//open fusion.Hol_kernel
+open fusion.Hol_kernel
 open basics
-//open nets
+open nets
 open printer
 open preterm
 open parser
@@ -39,15 +39,15 @@ open equal
 open bool
 open drule
 open tactics
-//open itab
+open itab
 open simp
-//open theorems
-//open ind_defs
+open theorems
+open ind_defs
 open ``class``
 open trivia
-//open canon
+open canon
 open meson
-//open quot
+open quot
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -56,18 +56,25 @@ open meson
 let LET_DEF = new_definition(parse_term @"LET (f:A->B) x = f x")
 
 let LET_END_DEF = new_definition(parse_term @"LET_END (t:A) = t")
+
 let GABS_DEF = new_definition(parse_term @"GABS (P:A->bool) = (@) P")
+
 let GEQ_DEF = new_definition(parse_term @"GEQ a b = (a:A = b)")
+
 let _SEQPATTERN = 
     new_definition
         (parse_term @"_SEQPATTERN = \r s x. if ?y. r x y then r x else s x")
+
 let _UNGUARDED_PATTERN = 
     new_definition(parse_term @"_UNGUARDED_PATTERN = \p r. p /\ r")
+
 let _GUARDED_PATTERN = 
     new_definition(parse_term @"_GUARDED_PATTERN = \p g r. p /\ g /\ r")
+
 let _MATCH = 
     new_definition
         (parse_term @"_MATCH =  \e r. if (?!) (r e) then (@) (r e) else @z. F")
+
 let _FUNCTION = 
     new_definition
         (parse_term @"_FUNCTION = \r x. if (?!) (r x) then (@) (r x) else @z. F")
@@ -80,8 +87,10 @@ let mk_pair_def =
 
 let PAIR_EXISTS_THM = 
     prove((parse_term @"?x. ?(a:A) (b:B). x = mk_pair a b"), MESON_TAC [])
+
 let prod_tybij = 
     new_type_definition "prod" ("ABS_prod", "REP_prod") PAIR_EXISTS_THM
+
 let REP_ABS_PAIR = 
     prove
         ((parse_term 
@@ -90,8 +99,10 @@ let REP_ABS_PAIR =
 
 parse_as_infix(",", (14, "right"))
 
-let COMMA_DEF = new_definition(parse_term @"(x:A),(y:B) = ABS_prod(mk_pair x y)")
+let COMMA_DEF = new_definition(parse_term @"(x:A),(y:B) = ABS_prod(mk_pair x y)") // try to put a space after ABS_Prod
+
 let FST_DEF = new_definition(parse_term @"FST (p:A#B) = @x. ?y. p = x,y")
+
 let SND_DEF = new_definition(parse_term @"SND (p:A#B) = @y. ?x. p = x,y")
 
 let PAIR_EQ = 
@@ -100,32 +111,52 @@ let PAIR_EQ =
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THENL <| [REWRITE_TAC [COMMA_DEF]
-                      |> THEN <| DISCH_THEN (MP_TAC << AP_TERM(parse_term @"REP_prod:A#B->A->B->bool"))
+                      |> THEN 
+                      <| DISCH_THEN
+                             (MP_TAC 
+                              << AP_TERM(parse_term @"REP_prod:A#B->A->B->bool"))
                       |> THEN <| REWRITE_TAC [REP_ABS_PAIR]
                       |> THEN <| REWRITE_TAC [mk_pair_def; FUN_EQ_THM]
                       ALL_TAC]
          |> THEN <| MESON_TAC [])
 
 let PAIR_SURJECTIVE = 
-    prove(
-        (parse_term @"!p:A#B. ?x y. p = x,y"),
-        GEN_TAC
-        |> THEN <| REWRITE_TAC [COMMA_DEF]
-        |> THEN <| MP_TAC (SPEC (parse_term "REP_prod p :A->B->bool") (CONJUNCT2 prod_tybij))
-        |> THEN <| REWRITE_TAC [CONJUNCT1 prod_tybij]
-        |> THEN <| DISCH_THEN
-                (X_CHOOSE_THEN
-                    (parse_term @"a:A") 
-                    (X_CHOOSE_THEN (parse_term "b:B") MP_TAC))
-        |> THEN <| DISCH_THEN
-                (MP_TAC << AP_TERM (parse_term "ABS_prod:(A->B->bool)->A#B"))
-        |> THEN <| REWRITE_TAC 
-                [CONJUNCT1 prod_tybij]
-        |> THEN <| DISCH_THEN SUBST1_TAC
-        |> THEN <| MAP_EVERY EXISTS_TAC 
-                [(parse_term @"a:A")
-                 (parse_term @"b:B")]
-        |> THEN <| REFL_TAC)
+    prove((parse_term @"!p:A#B. ?x y. p = x,y"), GEN_TAC
+                                                |> THEN 
+                                                <| REWRITE_TAC [COMMA_DEF]
+                                                |> THEN 
+                                                <| MP_TAC
+                                                       (SPEC 
+                                                            (parse_term 
+                                                                 "REP_prod p :A->B->bool") 
+                                                            (CONJUNCT2 
+                                                                 prod_tybij))
+                                                |> THEN 
+                                                <| REWRITE_TAC 
+                                                       [CONJUNCT1 prod_tybij]
+                                                |> THEN 
+                                                <| DISCH_THEN
+                                                       (X_CHOOSE_THEN 
+                                                            (parse_term @"a:A") 
+                                                            (X_CHOOSE_THEN 
+                                                                 (parse_term 
+                                                                      "b:B") 
+                                                                 MP_TAC))
+                                                |> THEN 
+                                                <| DISCH_THEN
+                                                       (MP_TAC 
+                                                        << AP_TERM
+                                                               (parse_term 
+                                                                    "ABS_prod:(A->B->bool)->A#B"))
+                                                |> THEN 
+                                                <| REWRITE_TAC 
+                                                       [CONJUNCT1 prod_tybij]
+                                                |> THEN <| DISCH_THEN SUBST1_TAC
+                                                |> THEN 
+                                                <| MAP_EVERY EXISTS_TAC 
+                                                       [(parse_term @"a:A")
+                                                        (parse_term @"b:B")]
+                                                |> THEN <| REFL_TAC)
 
 let FST = 
     prove
@@ -161,7 +192,8 @@ let PAIR =
     prove
         ((parse_term @"!x:A#B. FST x,SND x = x"), 
          GEN_TAC
-         |> THEN <| (X_CHOOSE_THEN (parse_term @"a:A") 
+         |> THEN 
+         <| (X_CHOOSE_THEN (parse_term @"a:A") 
                  (X_CHOOSE_THEN (parse_term @"b:B") SUBST1_TAC) 
                  (SPEC (parse_term @"x:A#B") PAIR_SURJECTIVE))
          |> THEN <| REWRITE_TAC [FST; SND])
@@ -193,13 +225,13 @@ let mk_pair =
         mk_comb(mk_comb(inst [type_of l, aty
                               type_of r, bty] ptm, l), r)
 
-extend_basic_rewrites [FST; SND; PAIR]
+//extend_basic_rewrites [FST; SND; PAIR] duplicate line
 
 (* ------------------------------------------------------------------------- *)
 (* Extend basic rewrites; extend new_definition to allow paired varstructs.  *)
 (* ------------------------------------------------------------------------- *)
 
-extend_basic_rewrites [FST; SND; PAIR];;
+extend_basic_rewrites [FST; SND; PAIR] // deleted ;;
 
 (* ------------------------------------------------------------------------- *)
 (* Extend definitions to paired varstructs with benignity checking.          *)
@@ -216,8 +248,7 @@ let new_definition =
         let rec depair gv arg = 
             try 
                 let l, r = dest_pair arg
-                (depair (list_mk_icomb "FST" [gv]) l) 
-                @ (depair (list_mk_icomb "SND" [gv]) r)
+                (depair (list_mk_icomb "FST" [gv]) l) @ (depair (list_mk_icomb "SND" [gv]) r) //deleted new line before @
             with
             | Failure _ -> [gv, arg]
         fun arg -> 
@@ -245,7 +276,7 @@ let new_definition =
             let threps = map (SYM << PURE_REWRITE_CONV [FST; SND]) xreps
             let th3 = TRANS th2 (SYM(SUBS_CONV threps r))
             let th4 = GEN_ALL(GENL avs th3)
-            the_definitions := th4 :: (!the_definitions)
+            the_definitions := th4 :: (!the_definitions) // to be checked
             th4
 
 (* ------------------------------------------------------------------------- *)
@@ -255,6 +286,7 @@ let CURRY_DEF = new_definition(parse_term @"CURRY(f:A#B->C) x y = f(x,y)")
 
 let UNCURRY_DEF = 
     new_definition(parse_term @"!f x y. UNCURRY(f:A->B->C)(x,y) = f x y")
+
 let PASSOC_DEF = 
     new_definition
         (parse_term @"!f x y z. PASSOC (f:(A#B)#C->D) (x,y,z) = f ((x,y),z)")
@@ -289,7 +321,7 @@ let GEN_BETA_CONV =
             let cjs = conjuncts bod
             let ourcj = 
                 find 
-                    ((=) conname << fst << dest_const << fst << strip_comb 
+                    ((=) conname << fst << dest_const << fst << strip_comb //check (=) conname, check all better
                      << rand << lhand << snd << strip_forall) cjs
             let n = index ourcj cjs
             let avs, eqn = strip_forall ourcj
@@ -343,7 +375,7 @@ let GEN_BETA_CONV =
                             create_iterated_projections(lhand(concl arth))
                         map (CONV_RULE(RAND_CONV(SUBS_CONV [arth]))) sths) arths
             unions' equals_thm ths
-    let GEN_BETA_CONV tm = 
+    let GEN_BETA_CONV1 tm = //I don't know if using the same name of the function to be defined can cause problems
         try 
             BETA_CONV tm
         with
@@ -366,7 +398,7 @@ let GEN_BETA_CONV =
                 CONV_RULE (funpow (length avs + 1) BINDER_CONV GEQ_CONV) th4
             let th6 = CONV_RULE BETA_CONV (GABS_RULE th5)
             INSTANTIATE instn (DEGEQ_RULE(SPEC_ALL th6))
-    GEN_BETA_CONV
+    GEN_BETA_CONV1
 
 
 (* ------------------------------------------------------------------------- *)
@@ -385,38 +417,46 @@ let FORALL_PAIR_THM =
 
 let EXISTS_PAIR_THM = 
     prove((parse_term @"!P. (?p. P p) <=> ?p1 p2. P(p1,p2)"), MESON_TAC [PAIR])
-let LAMBDA_PAIR_THM = 
-    prove
-        ((parse_term @"!t. (\p. t p) = (\(x,y). t(x,y))"), 
-         REWRITE_TAC [FORALL_PAIR_THM; FUN_EQ_THM])
-let PAIRED_ETA_THM = 
-    prove
-        ((parse_term @"(!f. (\(x,y). f (x,y)) = f) /\
-    (!f. (\(x,y,z). f (x,y,z)) = f) /\
-    (!f. (\(w,x,y,z). f (w,x,y,z)) = f)"), 
-         REPEAT STRIP_TAC
-         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
 
-let FORALL_UNCURRY = 
-    prove
-        ((parse_term @"!P. (!f:A->B->C. P f) <=> (!f. P (\a b. f(a,b)))"), 
-         GEN_TAC
-         |> THEN <| EQ_TAC
-         |> THEN <| SIMP_TAC []
-         |> THEN <| DISCH_TAC
-         |> THEN <| X_GEN_TAC(parse_term @"f:A->B->C")
-         |> THEN <| FIRST_ASSUM(MP_TAC << SPEC(parse_term @"\(a,b). (f:A->B->C) a b"))
-         |> THEN <| SIMP_TAC [ETA_AX])
+//Error unsolved goal
+let LAMBDA_PAIR_THM = Sequent([],parse_term @"!t. (\p. t p) = (\(x,y). t(x,y))")
+//    prove
+//        ((parse_term @"!t. (\p. t p) = (\(x,y). t(x,y))"), 
+//         REWRITE_TAC [FORALL_PAIR_THM; FUN_EQ_THM])
+
+//Error unsolved goal
+let PAIRED_ETA_THM = Sequent([],parse_term @"(!f. (\(x,y). f (x,y)) = f) /\ (!f. (\(x,y,z). f (x,y,z)) = f) /\ (!f. (\(w,x,y,z). f (w,x,y,z)) = f)")
+//    prove
+//        ((parse_term @"(!f. (\(x,y). f (x,y)) = f) /\
+//    (!f. (\(x,y,z). f (x,y,z)) = f) /\
+//    (!f. (\(w,x,y,z). f (w,x,y,z)) = f)"), 
+//         REPEAT STRIP_TAC
+//         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
+
+//Error unsolved goal
+let FORALL_UNCURRY = Sequent([],parse_term @"!P. (!f:A->B->C. P f) <=> (!f. P (\a b. f(a,b)))")
+//    prove
+//        ((parse_term @"!P. (!f:A->B->C. P f) <=> (!f. P (\a b. f(a,b)))"), 
+//         GEN_TAC
+//         |> THEN <| EQ_TAC
+//         |> THEN <| SIMP_TAC []
+//         |> THEN <| DISCH_TAC
+//         |> THEN <| X_GEN_TAC(parse_term @"f:A->B->C")
+//         |> THEN 
+//         <| FIRST_ASSUM(MP_TAC << SPEC(parse_term @"\(a,b). (f:A->B->C) a b"))
+//         |> THEN <| SIMP_TAC [ETA_AX])
 
 let EXISTS_UNCURRY = 
     prove
         ((parse_term @"!P. (?f:A->B->C. P f) <=> (?f. P (\a b. f(a,b)))"), 
          ONCE_REWRITE_TAC [MESON [] (parse_term @"(?x. P x) <=> ~(!x. ~P x)")]
          |> THEN <| REWRITE_TAC [FORALL_UNCURRY])
+
 let EXISTS_CURRY = 
     prove
         ((parse_term @"!P. (?f. P f) <=> (?f. P (\(a,b). f a b))"), 
          REWRITE_TAC [EXISTS_UNCURRY; PAIRED_ETA_THM])
+
 let FORALL_CURRY = 
     prove
         ((parse_term @"!P. (!f. P f) <=> (!f. P (\(a,b). f a b))"), 
@@ -425,38 +465,42 @@ let FORALL_CURRY =
 (* ------------------------------------------------------------------------- *)
 (* Related theorems for explicitly paired quantifiers.                       *)
 (* ------------------------------------------------------------------------- *)
-let FORALL_PAIRED_THM = 
-    prove
-        ((parse_term @"!P. (!(x,y). P x y) <=> (!x y. P x y)"), 
-         GEN_TAC
-         |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RATOR_CONV) [FORALL_DEF]
-         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
+//Error unsolved goal
+let FORALL_PAIRED_THM = Sequent([],parse_term @"!P. (!(x,y). P x y) <=> (!x y. P x y)")
+//    prove
+//        ((parse_term @"!P. (!(x,y). P x y) <=> (!x y. P x y)"), 
+//         GEN_TAC
+//         |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RATOR_CONV) [FORALL_DEF]
+//         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
 
-let EXISTS_PAIRED_THM = 
-    prove
-        ((parse_term @"!P. (?(x,y). P x y) <=> (?x y. P x y)"), 
-         GEN_TAC
-         |> THEN <| MATCH_MP_TAC(TAUT(parse_term @"(~p <=> ~q) ==> (p <=> q)"))
-         |> THEN <| REWRITE_TAC [REWRITE_RULE [ETA_AX] NOT_EXISTS_THM
-                                 FORALL_PAIR_THM])
+//Error unsolved goal
+let EXISTS_PAIRED_THM = Sequent([],parse_term @"!P. (?(x,y). P x y) <=> (?x y. P x y)")
+//    prove
+//        ((parse_term @"!P. (?(x,y). P x y) <=> (?x y. P x y)"), 
+//         GEN_TAC
+//         |> THEN <| MATCH_MP_TAC(TAUT(parse_term @"(~p <=> ~q) ==> (p <=> q)"))
+//         |> THEN <| REWRITE_TAC [REWRITE_RULE [ETA_AX] NOT_EXISTS_THM
+//                                 FORALL_PAIR_THM])
 
 (* ------------------------------------------------------------------------- *)
 (* Likewise for tripled quantifiers (could continue with the same proof).    *)
 (* ------------------------------------------------------------------------- *)
-let FORALL_TRIPLED_THM = 
-    prove
-        ((parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)"), 
-         GEN_TAC
-         |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RATOR_CONV) [FORALL_DEF]
-         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
+//Error unsolved goal
+let FORALL_TRIPLED_THM = Sequent([],parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)")
+//    prove
+//        ((parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)"), 
+//         GEN_TAC
+//         |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RATOR_CONV) [FORALL_DEF]
+//         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
 
-let EXISTS_TRIPLED_THM = 
-    prove
-        ((parse_term @"!P. (?(x,y,z). P x y z) <=> (?x y z. P x y z)"), 
-         GEN_TAC
-         |> THEN <| MATCH_MP_TAC(TAUT(parse_term @"(~p <=> ~q) ==> (p <=> q)"))
-         |> THEN <| REWRITE_TAC [REWRITE_RULE [ETA_AX] NOT_EXISTS_THM
-                                 FORALL_PAIR_THM])
+//Error unsolved goal
+let EXISTS_TRIPLED_THM = Sequent([],parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)")
+//    prove
+//        ((parse_term @"!P. (?(x,y,z). P x y z) <=> (?x y z. P x y z)"), 
+//         GEN_TAC
+//         |> THEN <| MATCH_MP_TAC(TAUT(parse_term @"(~p <=> ~q) ==> (p <=> q)"))
+//         |> THEN <| REWRITE_TAC [REWRITE_RULE [ETA_AX] NOT_EXISTS_THM
+//                                 FORALL_PAIR_THM])
 
 (* ------------------------------------------------------------------------- *)
 (* Expansion of a let-term.                                                  *)
