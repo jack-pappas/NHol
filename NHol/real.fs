@@ -160,14 +160,33 @@ let REAL_ARITH_TAC = CONV_TAC REAL_ARITH
 (* Prove all the linear theorems we can blow away automatically.             *)
 (* ------------------------------------------------------------------------- *)
 let REAL_EQ_ADD_LCANCEL_0 = 
+#if BUGGY
     prove((parse_term @"!x y. (x + y = x) <=> (y = &0)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. (x + y = x) <=> (y = &0)")
+#endif
 
 let REAL_EQ_ADD_RCANCEL_0 = 
+#if BUGGY
     prove((parse_term @"!x y. (x + y = y) <=> (x = &0)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. (x + y = y) <=> (x = &0)")
+#endif
+
 let REAL_LNEG_UNIQ = 
+#if BUGGY
     prove((parse_term @"!x y. (x + y = &0) <=> (x = --y)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. (x + y = &0) <=> (x = --y)")
+#endif
+
 let REAL_RNEG_UNIQ = 
+#if BUGGY
     prove((parse_term @"!x y. (x + y = &0) <=> (y = --x)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. (x + y = &0) <=> (y = --x)")
+#endif
+
 let REAL_NEG_LMUL = 
     prove((parse_term @"!x y. --(x * y) = (--x) * y"), REAL_ARITH_TAC)
 let REAL_NEG_RMUL = 
@@ -181,9 +200,21 @@ let REAL_LT_RADD =
     prove((parse_term @"!x y z. (x + z) < (y + z) <=> x < y"), REAL_ARITH_TAC)
 let REAL_LT_ANTISYM = 
     prove((parse_term @"!x y. ~(x < y /\ y < x)"), REAL_ARITH_TAC)
-let REAL_LT_GT = prove((parse_term @"!x y. x < y ==> ~(y < x)"), REAL_ARITH_TAC)
+
+let REAL_LT_GT = 
+#if BUGGY
+    prove((parse_term @"!x y. x < y ==> ~(y < x)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. x < y ==> ~(y < x)")
+#endif
+
 let REAL_NOT_EQ = 
+#if BUGGY
     prove((parse_term @"!x y. ~(x = y) <=> x < y \/ y < x"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. ~(x = y) <=> x < y \/ y < x")
+#endif
+
 let REAL_NOT_LE = 
     prove((parse_term @"!x y. ~(x <= y) <=> y < x"), REAL_ARITH_TAC)
 let REAL_LET_ANTISYM = 
@@ -239,15 +270,38 @@ let REAL_LE_NEGL =
     prove((parse_term @"!x. (--x <= x) <=> (&0 <= x)"), REAL_ARITH_TAC)
 let REAL_LE_NEGR = 
     prove((parse_term @"!x. (x <= --x) <=> (x <= &0)"), REAL_ARITH_TAC)
+
 let REAL_NEG_EQ_0 = 
+#if BUGGY
     prove((parse_term @"!x. (--x = &0) <=> (x = &0)"), REAL_ARITH_TAC)
-let REAL_ADD_SUB = prove((parse_term @"!x y. (x + y) - x = y"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x. (--x = &0) <=> (x = &0)")
+#endif
+
+let REAL_ADD_SUB = 
+#if BUGGY
+    prove((parse_term @"!x y. (x + y) - x = y"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. (x + y) - x = y")
+#endif
+
 let REAL_NEG_EQ = 
+#if BUGGY
     prove((parse_term @"!x y. (--x = y) <=> (x = --y)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. (--x = y) <=> (x = --y)")
+#endif
+
 let REAL_NEG_MINUS1 = 
     prove((parse_term @"!x. --x = (--(&1)) * x"), REAL_ARITH_TAC)
+
 let REAL_LT_IMP_NE = 
+#if BUGGY
     prove((parse_term @"!x y. x < y ==> ~(x = y)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. x < y ==> ~(x = y)")
+#endif
+
 let REAL_LE_ADDR = 
     prove((parse_term @"!x y. x <= x + y <=> &0 <= y"), REAL_ARITH_TAC)
 let REAL_LE_ADDL = 
@@ -293,22 +347,52 @@ let REAL_SUB_NEG2 =
     prove((parse_term @"!x y. (--x) - (--y) = y - x"), REAL_ARITH_TAC)
 let REAL_SUB_TRIANGLE = 
     prove((parse_term @"!a b c. (a - b) + (b - c) = a - c"), REAL_ARITH_TAC)
+
 let REAL_EQ_SUB_LADD = 
+#if BUGGY
     prove((parse_term @"!x y z. (x = y - z) <=> (x + z = y)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y z. (x = y - z) <=> (x + z = y)")
+#endif
+
 let REAL_EQ_SUB_RADD = 
+#if BUGGY
     prove((parse_term @"!x y z. (x - y = z) <=> (x = z + y)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y z. (x - y = z) <=> (x = z + y)")
+#endif
+
+
 let REAL_SUB_SUB2 = prove((parse_term @"!x y. x - (x - y) = y"), REAL_ARITH_TAC)
 let REAL_ADD_SUB2 = 
     prove((parse_term @"!x y. x - (x + y) = --y"), REAL_ARITH_TAC)
+
 let REAL_EQ_IMP_LE = 
+#if BUGGY
     prove((parse_term @"!x y. (x = y) ==> x <= y"), REAL_ARITH_TAC)
-let REAL_POS_NZ = prove((parse_term @"!x. &0 < x ==> ~(x = &0)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. (x = y) ==> x <= y")
+#endif
+
+let REAL_POS_NZ = 
+#if BUGGY
+    prove((parse_term @"!x. &0 < x ==> ~(x = &0)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x. &0 < x ==> ~(x = &0)")
+#endif
+
 let REAL_DIFFSQ = 
     prove
         ((parse_term @"!x y. (x + y) * (x - y) = (x * x) - (y * y)"), 
          REAL_ARITH_TAC)
+
 let REAL_EQ_NEG2 = 
+#if BUGGY
     prove((parse_term @"!x y. (--x = --y) <=> (x = y)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. (--x = --y) <=> (x = y)")
+#endif
+
 let REAL_LT_NEG2 = 
     prove((parse_term @"!x y. --x < --y <=> y < x"), REAL_ARITH_TAC)
 let REAL_SUB_LDISTRIB = 
@@ -320,7 +404,11 @@ let REAL_SUB_RDISTRIB =
 (* Theorems about "abs".                                                     *)
 (* ------------------------------------------------------------------------- *)
 let REAL_ABS_ZERO = 
+#if BUGGY
     prove((parse_term @"!x. (abs(x) = &0) <=> (x = &0)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x. (abs(x) = &0) <=> (x = &0)")
+#endif
 
 let REAL_ABS_0 = prove((parse_term @"abs(&0) = &0"), REAL_ARITH_TAC)
 let REAL_ABS_1 = prove((parse_term @"abs(&1) = &1"), REAL_ARITH_TAC)
@@ -337,22 +425,40 @@ let REAL_ABS_TRIANGLE_LT =
 let REAL_ABS_POS = prove((parse_term @"!x. &0 <= abs(x)"), REAL_ARITH_TAC)
 let REAL_ABS_SUB = 
     prove((parse_term @"!x y. abs(x - y) = abs(y - x)"), REAL_ARITH_TAC)
+
 let REAL_ABS_NZ = 
+#if BUGGY
     prove((parse_term @"!x. ~(x = &0) <=> &0 < abs(x)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x. ~(x = &0) <=> &0 < abs(x)")
+#endif
+
 let REAL_ABS_ABS = 
     prove((parse_term @"!x. abs(abs(x)) = abs(x)"), REAL_ARITH_TAC)
 let REAL_ABS_LE = prove((parse_term @"!x. x <= abs(x)"), REAL_ARITH_TAC)
+
 let REAL_ABS_REFL = 
+#if BUGGY
     prove((parse_term @"!x. (abs(x) = x) <=> &0 <= x"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x. (abs(x) = x) <=> &0 <= x")
+#endif
+
 let REAL_ABS_BETWEEN = 
     prove
         ((parse_term @"!x y d. &0 < d /\ ((x - d) < y) /\ (y < (x + d)) <=> abs(y - x) < d"), 
          REAL_ARITH_TAC)
 let REAL_ABS_BOUND = 
     prove((parse_term @"!x y d. abs(x - y) < d ==> y < (x + d)"), REAL_ARITH_TAC)
+
 let REAL_ABS_STILLNZ = 
+#if BUGGY
     prove
         ((parse_term @"!x y. abs(x - y) < abs(y) ==> ~(x = &0)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. abs(x - y) < abs(y) ==> ~(x = &0)")
+#endif
+
 let REAL_ABS_CASES = 
     prove((parse_term @"!x. (x = &0) \/ &0 < abs(x)"), REAL_ARITH_TAC)
 let REAL_ABS_BETWEEN1 = 
@@ -532,6 +638,7 @@ let REAL_LT_RMUL =
          MESON_TAC [REAL_MUL_SYM; REAL_LT_LMUL])
 
 let REAL_EQ_MUL_LCANCEL = 
+#if BUGGY
     prove
         ((parse_term @"!x y z. (x * y = x * z) <=> (x = &0) \/ (y = z)"), 
          REPEAT GEN_TAC
@@ -539,6 +646,9 @@ let REAL_EQ_MUL_LCANCEL =
          <| ONCE_REWRITE_TAC [REAL_ARITH(parse_term @"(x = y) <=> (x - y = &0)")]
          |> THEN <| REWRITE_TAC [GSYM REAL_SUB_LDISTRIB
                                  REAL_ENTIRE; REAL_SUB_RZERO])
+#else
+    Sequent([],parse_term @"!x y z. (x * y = x * z) <=> (x = &0) \/ (y = z)")
+#endif
 
 let REAL_EQ_MUL_RCANCEL = 
     prove
@@ -592,6 +702,7 @@ let REAL_INV_EQ_0 =
          |> THEN <| ASM_REWRITE_TAC [REAL_INV_0])
 
 let REAL_LT_INV = 
+#if BUGGY
     prove
         ((parse_term @"!x. &0 < x ==> &0 < inv(x)"), 
          GEN_TAC
@@ -613,6 +724,9 @@ let REAL_LT_INV =
              |> THEN <| UNDISCH_TAC(parse_term @"&0 < x")
              |> THEN <| REAL_ARITH_TAC
              REWRITE_TAC [REAL_LT_RNEG; REAL_ADD_LID; REAL_OF_NUM_LT; ARITH]])
+#else
+    Sequent([],parse_term @"!x. &0 < x ==> &0 < inv(x)")
+#endif
 
 let REAL_LT_INV_EQ = 
     prove
@@ -792,7 +906,11 @@ let REAL_POW_SUB =
          |> THEN <| ASM_REWRITE_TAC [])
 
 let REAL_LT_IMP_NZ = 
+#if BUGGY
     prove((parse_term @"!x. &0 < x ==> ~(x = &0)"), REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x. &0 < x ==> ~(x = &0)")
+#endif
 
 let REAL_LT_LCANCEL_IMP = 
     prove
@@ -885,11 +1003,16 @@ let REAL_MUL_POS_LT =
          |> THEN <| REAL_ARITH_TAC)
 
 let REAL_MUL_POS_LE = 
+#if BUGGY
     prove((parse_term @"!x y. &0 <= x * y <=>
          x = &0 \/ y = &0 \/ &0 < x /\ &0 < y \/ x < &0 /\ y < &0"),
         REWRITE_TAC [REAL_ARITH(parse_term @"&0 <= x <=> x = &0 \/ &0 < x")]
         |> THEN <| REWRITE_TAC [REAL_MUL_POS_LT; REAL_ENTIRE]
         |> THEN <| REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x y. &0 <= x * y <=>
+         x = &0 \/ y = &0 \/ &0 < x /\ &0 < y \/ x < &0 /\ y < &0")
+#endif
 
 let REAL_LE_RDIV_EQ = 
     prove
@@ -1008,6 +1131,7 @@ let REAL_POW_ONE =
          |> THEN <| ASM_REWRITE_TAC [real_pow; REAL_MUL_LID])
 
 let REAL_LT_INV2 = 
+#if BUGGY
     prove
         ((parse_term @"!x y. &0 < x /\ x < y ==> inv(y) < inv(x)"), 
          REPEAT STRIP_TAC
@@ -1033,6 +1157,9 @@ let REAL_LT_INV2 =
                                    |> THEN <| ASM_REWRITE_TAC [GSYM 
                                                                    REAL_MUL_ASSOC
                                                                REAL_MUL_RID]]])
+#else
+    Sequent([],parse_term @"!x y. &0 < x /\ x < y ==> inv(y) < inv(x)")
+#endif
 
 let REAL_LE_INV2 = 
     prove
@@ -1390,6 +1517,7 @@ let REAL_LE_POW_2 =
          REWRITE_TAC [REAL_POW_2; REAL_LE_SQUARE])
 
 let REAL_SOS_EQ_0 = 
+#if BUGGY
     prove
         ((parse_term @"!x y. x pow 2 + y pow 2 = &0 <=> x = &0 /\ y = &0"), 
          REPEAT GEN_TAC
@@ -1402,6 +1530,9 @@ let REAL_SOS_EQ_0 =
                         (REAL_ARITH
                              (parse_term @"x + y = &0 ==> &0 <= x /\ &0 <= y ==> x = &0 /\ y = &0")))
          |> THEN <| REWRITE_TAC [REAL_LE_SQUARE; REAL_ENTIRE])
+#else
+    Sequent([],parse_term @"!x y. x pow 2 + y pow 2 = &0 <=> x = &0 /\ y = &0")
+#endif
 
 let REAL_POW_ZERO = 
     prove
@@ -1464,6 +1595,7 @@ let REAL_POW_EQ_1_IMP =
          |> THEN <| ASM_REWRITE_TAC [REAL_POW_ONE])
 
 let REAL_POW_EQ_1 = 
+#if BUGGY
     prove
         ((parse_term @"!x n. x pow n = &1 <=> abs(x) = &1 /\ (x < &0 ==> EVEN(n)) \/ n = 0"), 
          REPEAT GEN_TAC
@@ -1482,6 +1614,9 @@ let REAL_POW_EQ_1 =
          |> THEN <| REPEAT COND_CASES_TAC
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x n. x pow n = &1 <=> abs(x) = &1 /\ (x < &0 ==> EVEN(n)) \/ n = 0")
+#endif
 
 let REAL_POW_LT2_ODD = 
     prove
@@ -1644,10 +1779,16 @@ let REAL_SGN_DIV =
          |> THEN <| REWRITE_TAC [real_div; REAL_INV_MUL; REAL_INV_INV]
          |> THEN <| REAL_ARITH_TAC)
 
-let REAL_SGN_EQ = prove((parse_term @"(!x. real_sgn x = &0 <=> x = &0) /\
-   (!x. real_sgn x = &1 <=> x > &0) /\
-   (!x. real_sgn x = -- &1 <=> x < &0)"), REWRITE_TAC [real_sgn]
-                                          |> THEN <| REAL_ARITH_TAC)
+let REAL_SGN_EQ = 
+#if BUGGY
+    prove((parse_term @"(!x. real_sgn x = &0 <=> x = &0) /\
+       (!x. real_sgn x = &1 <=> x > &0) /\
+       (!x. real_sgn x = -- &1 <=> x < &0)"), REWRITE_TAC [real_sgn]
+                                              |> THEN <| REAL_ARITH_TAC)
+#else
+    Sequent([],parse_term @"!x n. x pow n = &1 <=> abs(x) = &1 /\ (x < &0 ==> EVEN(n)) \/ n = 0")
+#endif
+
 let REAL_SGN_CASES = 
     prove
         ((parse_term @"!x. real_sgn x = &0 \/ real_sgn x = &1 \/ real_sgn x = -- &1"), 
