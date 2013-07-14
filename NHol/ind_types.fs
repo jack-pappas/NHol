@@ -1100,7 +1100,7 @@ let OUTR =
 (* ------------------------------------------------------------------------- *)
 
 // CAUTION: change to bypass value restrictions
-let rec define_type_raw_002 def : thm * thm = 
+let define_type_raw_002 = 
     let generalize_recursion_theorem = 
         let ELIM_OUTCOMBS = GEN_REWRITE_RULE TOP_DEPTH_CONV [OUTL; OUTR]
         let rec mk_sum tys = 
@@ -1223,37 +1223,21 @@ let rec define_type_raw_002 def : thm * thm =
                     map (fst << strip_comb << rand << snd << strip_forall) 
                         (conjuncts(concl eth))
                 GENL xvs hth
-
-    let ith, rth = define_type_raw_002 def
-    ith, generalize_recursion_theorem rth;;
+    fun def ->
+        let ith, rth = define_type_raw_001 def
+        ith, generalize_recursion_theorem rth;;
 
 (* ------------------------------------------------------------------------- *)
 (* Set up options and lists.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
 let option_INDUCT, option_RECURSION = 
-#if BUGGY
     define_type_raw_002
         (parse_inductive_type_specification "option = NONE | SOME A")
-#else
-    parse_inductive_type_specification "option = NONE | SOME A" |> ignore
-    Sequent([], parse_term @"!P. P NONE /\ (!a. P (SOME a)) ==> (!x. P x)"),
-    Sequent([], parse_term @"!NONE' SOME'. ?fn. fn NONE = NONE' /\ (!a. fn (SOME a) = SOME' a)")
-#endif
-;;
 
 let list_INDUCT, list_RECURSION = 
-#if BUGGY
     define_type_raw_002
         (parse_inductive_type_specification "list = NIL | CONS A list")
-#else
-    // Ensure that side effects are preserved
-    parse_inductive_type_specification "list = NIL | CONS A list" |> ignore
-    Sequent([], parse_term @"!P. P [] /\ (!a0 a1. P a1 ==> P (CONS a0 a1)) ==> (!x. P x)"),
-    Sequent([], parse_term @"!NIL' CONS'.
-         ?fn. fn [] = NIL' /\ (!a0 a1. fn (CONS a0 a1) = CONS' a0 a1 (fn a1))")
-#endif
-;;
 
 (* ------------------------------------------------------------------------- *)
 (* Tools for proving injectivity and distinctness of constructors.           *)
@@ -1467,7 +1451,7 @@ let ISO_USAGE = prove((parse_term @"ISO f g
 (* Hence extend type definition to nested types.                             *)
 (* ------------------------------------------------------------------------- *)
 
-let rec define_type_raw = 
+let define_type_raw = 
 
     (* ----------------------------------------------------------------------- *)
     (* Dispose of trivial antecedent.                                          *)
@@ -1694,7 +1678,7 @@ let rec define_type_raw =
     let define_type_basecase def = 
         let add_id s = fst(dest_var(genvar bool_ty))
         let def' = map (I ||>> (map(add_id ||>> I))) def
-        define_type_raw def'
+        define_type_raw_002 def'
     let SIMPLE_BETA_RULE = GSYM << PURE_REWRITE_RULE [BETA_THM; FUN_EQ_THM]
     let ISO_USAGE_RULE = MATCH_MP ISO_USAGE
     let SIMPLE_ISO_EXPAND_RULE = CONV_RULE(REWR_CONV ISO)
@@ -1862,7 +1846,7 @@ let define_type s =
             let t = find (can get_const_type) constructors
             failwith("define_type: constant " + t + " already defined")
         else 
-            let retval = define_type_raw defspec
+            let retval = define_type_raw_002 defspec
             the_inductive_types := (s, retval) :: (!the_inductive_types)
             retval
 
