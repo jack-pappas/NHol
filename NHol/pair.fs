@@ -414,33 +414,45 @@ let FORALL_PAIR_THM =
 let EXISTS_PAIR_THM = 
     prove((parse_term @"!P. (?p. P p) <=> ?p1 p2. P(p1,p2)"), MESON_TAC [PAIR])
 
-//Error unsolved goal
-let LAMBDA_PAIR_THM = Sequent([],parse_term @"!t. (\p. t p) = (\(x,y). t(x,y))")
-//    prove
-//        ((parse_term @"!t. (\p. t p) = (\(x,y). t(x,y))"), 
-//         REWRITE_TAC [FORALL_PAIR_THM; FUN_EQ_THM])
+// Error unsolved goal
+let LAMBDA_PAIR_THM = 
+#if BUGGY
+    prove
+        ((parse_term @"!t. (\p. t p) = (\(x,y). t(x,y))"), 
+         REWRITE_TAC [FORALL_PAIR_THM; FUN_EQ_THM])
+#else
+    Sequent([],parse_term @"!t. (\p. t p) = (\(x,y). t(x,y))")
+#endif
 
-//Error unsolved goal
-let PAIRED_ETA_THM = Sequent([],parse_term @"(!f. (\(x,y). f (x,y)) = f) /\ (!f. (\(x,y,z). f (x,y,z)) = f) /\ (!f. (\(w,x,y,z). f (w,x,y,z)) = f)")
-//    prove
-//        ((parse_term @"(!f. (\(x,y). f (x,y)) = f) /\
-//    (!f. (\(x,y,z). f (x,y,z)) = f) /\
-//    (!f. (\(w,x,y,z). f (w,x,y,z)) = f)"), 
-//         REPEAT STRIP_TAC
-//         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
+// Error unsolved goal
+let PAIRED_ETA_THM = 
+#if BUGGY
+    prove
+        ((parse_term @"(!f. (\(x,y). f (x,y)) = f) /\
+    (!f. (\(x,y,z). f (x,y,z)) = f) /\
+    (!f. (\(w,x,y,z). f (w,x,y,z)) = f)"), 
+         REPEAT STRIP_TAC
+         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
+#else
+    Sequent([],parse_term @"(!f. (\(x,y). f (x,y)) = f) /\ (!f. (\(x,y,z). f (x,y,z)) = f) /\ (!f. (\(w,x,y,z). f (w,x,y,z)) = f)")
+#endif
 
-//Error unsolved goal
-let FORALL_UNCURRY = Sequent([],parse_term @"!P. (!f:A->B->C. P f) <=> (!f. P (\a b. f(a,b)))")
-//    prove
-//        ((parse_term @"!P. (!f:A->B->C. P f) <=> (!f. P (\a b. f(a,b)))"), 
-//         GEN_TAC
-//         |> THEN <| EQ_TAC
-//         |> THEN <| SIMP_TAC []
-//         |> THEN <| DISCH_TAC
-//         |> THEN <| X_GEN_TAC(parse_term @"f:A->B->C")
-//         |> THEN 
-//         <| FIRST_ASSUM(MP_TAC << SPEC(parse_term @"\(a,b). (f:A->B->C) a b"))
-//         |> THEN <| SIMP_TAC [ETA_AX])
+// Error unsolved goal
+let FORALL_UNCURRY = 
+#if BUGGY
+    prove
+        ((parse_term @"!P. (!f:A->B->C. P f) <=> (!f. P (\a b. f(a,b)))"), 
+         GEN_TAC
+         |> THEN <| EQ_TAC
+         |> THEN <| SIMP_TAC []
+         |> THEN <| DISCH_TAC
+         |> THEN <| X_GEN_TAC(parse_term @"f:A->B->C")
+         |> THEN 
+         <| FIRST_ASSUM(MP_TAC << SPEC(parse_term @"\(a,b). (f:A->B->C) a b"))
+         |> THEN <| SIMP_TAC [ETA_AX])
+#else
+    Sequent([],parse_term @"!P. (!f:A->B->C. P f) <=> (!f. P (\a b. f(a,b)))")
+#endif
 
 let EXISTS_UNCURRY = 
     prove
@@ -461,42 +473,60 @@ let FORALL_CURRY =
 (* ------------------------------------------------------------------------- *)
 (* Related theorems for explicitly paired quantifiers.                       *)
 (* ------------------------------------------------------------------------- *)
-//Error unsolved goal
-let FORALL_PAIRED_THM = Sequent([],parse_term @"!P. (!(x,y). P x y) <=> (!x y. P x y)")
-//    prove
-//        ((parse_term @"!P. (!(x,y). P x y) <=> (!x y. P x y)"), 
-//         GEN_TAC
-//         |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RATOR_CONV) [FORALL_DEF]
-//         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
 
-//Error unsolved goal
-let EXISTS_PAIRED_THM = Sequent([],parse_term @"!P. (?(x,y). P x y) <=> (?x y. P x y)")
-//    prove
-//        ((parse_term @"!P. (?(x,y). P x y) <=> (?x y. P x y)"), 
-//         GEN_TAC
-//         |> THEN <| MATCH_MP_TAC(TAUT(parse_term @"(~p <=> ~q) ==> (p <=> q)"))
-//         |> THEN <| REWRITE_TAC [REWRITE_RULE [ETA_AX] NOT_EXISTS_THM
-//                                 FORALL_PAIR_THM])
+// Error unsolved goal
+let FORALL_PAIRED_THM = 
+#if BUGGY
+    prove
+        ((parse_term @"!P. (!(x,y). P x y) <=> (!x y. P x y)"), 
+         GEN_TAC
+         |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RATOR_CONV) [FORALL_DEF]
+         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
+#else
+    Sequent([],parse_term @"!P. (!(x,y). P x y) <=> (!x y. P x y)")
+#endif
+
+// Error unsolved goal
+let EXISTS_PAIRED_THM = 
+#if BUGGY
+    prove
+        ((parse_term @"!P. (?(x,y). P x y) <=> (?x y. P x y)"), 
+         GEN_TAC
+         |> THEN <| MATCH_MP_TAC(TAUT(parse_term @"(~p <=> ~q) ==> (p <=> q)"))
+         |> THEN <| REWRITE_TAC [REWRITE_RULE [ETA_AX] NOT_EXISTS_THM
+                                 FORALL_PAIR_THM])
+#else
+    Sequent([],parse_term @"!P. (?(x,y). P x y) <=> (?x y. P x y)")
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Likewise for tripled quantifiers (could continue with the same proof).    *)
 (* ------------------------------------------------------------------------- *)
-//Error unsolved goal
-let FORALL_TRIPLED_THM = Sequent([],parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)")
-//    prove
-//        ((parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)"), 
-//         GEN_TAC
-//         |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RATOR_CONV) [FORALL_DEF]
-//         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
 
-//Error unsolved goal
-let EXISTS_TRIPLED_THM = Sequent([],parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)")
-//    prove
-//        ((parse_term @"!P. (?(x,y,z). P x y z) <=> (?x y z. P x y z)"), 
-//         GEN_TAC
-//         |> THEN <| MATCH_MP_TAC(TAUT(parse_term @"(~p <=> ~q) ==> (p <=> q)"))
-//         |> THEN <| REWRITE_TAC [REWRITE_RULE [ETA_AX] NOT_EXISTS_THM
-//                                 FORALL_PAIR_THM])
+// Error unsolved goal
+let FORALL_TRIPLED_THM = 
+#if BUGGY
+    prove
+        ((parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)"), 
+         GEN_TAC
+         |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RATOR_CONV) [FORALL_DEF]
+         |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
+#else
+    Sequent([],parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)")
+#endif
+
+// Error unsolved goal
+let EXISTS_TRIPLED_THM = 
+#if BUGGY
+    prove
+        ((parse_term @"!P. (?(x,y,z). P x y z) <=> (?x y z. P x y z)"), 
+         GEN_TAC
+         |> THEN <| MATCH_MP_TAC(TAUT(parse_term @"(~p <=> ~q) ==> (p <=> q)"))
+         |> THEN <| REWRITE_TAC [REWRITE_RULE [ETA_AX] NOT_EXISTS_THM
+                                 FORALL_PAIR_THM])
+#else
+    Sequent([],parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)")
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Expansion of a let-term.                                                  *)
