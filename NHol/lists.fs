@@ -228,12 +228,16 @@ let LENGTH_EQ_CONS =
          |> THEN <| MESON_TAC [])
 
 let MAP_o = 
+#if BUGGY
     prove
         ((parse_term @"!f:A->B. !g:B->C. !l. MAP (g << f) l = MAP g (MAP f l)"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [MAP; o_THM])
+#else
+    Sequent([],parse_term @"!f:A->B. !g:B->C. !l. MAP (g << f) l = MAP g (MAP f l)")
+#endif
 
 let MAP_EQ = 
     prove
@@ -268,12 +272,16 @@ let NOT_ALL =
          |> THEN <| ASM_REWRITE_TAC [EX; ALL; DE_MORGAN_THM])
 
 let ALL_MAP = 
+#if BUGGY
     prove
         ((parse_term @"!P f l. ALL P (MAP f l) <=> ALL (P << f) l"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [ALL; MAP; o_THM])
+#else
+    Sequent([],parse_term @"!P f l. ALL P (MAP f l) <=> ALL (P << f) l")
+#endif
 
 let ALL_T = 
     prove((parse_term @"!l. ALL (\x. T) l"), LIST_INDUCT_TAC
@@ -366,12 +374,16 @@ let LENGTH_REPLICATE =
          |> THEN <| ASM_REWRITE_TAC [LENGTH; REPLICATE])
 
 let EX_MAP = 
+#if BUGGY
     prove
         ((parse_term @"!P f l. EX P (MAP f l) <=> EX (P << f) l"), 
          GEN_TAC
          |> THEN <| GEN_TAC
          |> THEN <| LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [MAP; EX; o_THM])
+#else
+    Sequent([],parse_term @"!P f l. EX P (MAP f l) <=> EX (P << f) l")
+#endif
 
 let EXISTS_EX = 
     prove
@@ -416,6 +428,7 @@ let FILTER_APPEND =
          |> THEN <| ASM_REWRITE_TAC [APPEND])
 
 let FILTER_MAP = 
+#if BUGGY
     prove
         ((parse_term @"!P f l. FILTER P (MAP f l) = MAP f (FILTER (P << f) l)"), 
          GEN_TAC
@@ -424,6 +437,9 @@ let FILTER_MAP =
          |> THEN <| ASM_REWRITE_TAC [MAP; FILTER; o_THM]
          |> THEN <| COND_CASES_TAC
          |> THEN <| REWRITE_TAC [MAP])
+#else
+    Sequent([],parse_term @"!P f l. FILTER P (MAP f l) = MAP f (FILTER (P << f) l)")
+#endif
 
 let MEM_FILTER = 
     prove
