@@ -211,10 +211,13 @@ let pair_RECURSION =
 (* ------------------------------------------------------------------------- *)
 (* Syntax operations.                                                        *)
 (* ------------------------------------------------------------------------- *)
+/// Tests a term to see if it is a pair.
 let is_pair = is_binary ","
 
+/// Breaks apart a pair into two separate terms.
 let dest_pair = dest_binary ","
 
+/// Constructs object-level pair from a pair of terms.
 let mk_pair = 
     let ptm = mk_const(",", [])
     fun (l, r) -> 
@@ -232,6 +235,7 @@ extend_basic_rewrites [FST; SND; PAIR] // deleted ;;
 (* ------------------------------------------------------------------------- *)
 (* Extend definitions to paired varstructs with benignity checking.          *)
 (* ------------------------------------------------------------------------- *)
+/// List of all definitions introduced so far.
 let the_definitions = 
     ref 
         [SND_DEF; FST_DEF; COMMA_DEF; mk_pair_def; GEQ_DEF; GABS_DEF; 
@@ -239,6 +243,7 @@ let the_definitions =
          EXISTS_UNIQUE_DEF; NOT_DEF; F_DEF; OR_DEF; EXISTS_DEF; FORALL_DEF; 
          IMP_DEF; AND_DEF; T_DEF]
 
+/// Declare a new constant and a definitional axiom.
 let new_definition = 
     let depair = 
         let rec depair gv arg = 
@@ -290,6 +295,7 @@ let PASSOC_DEF =
 (* ------------------------------------------------------------------------- *)
 (* Analog of ABS_CONV for generalized abstraction.                           *)
 (* ------------------------------------------------------------------------- *)
+/// Applies a conversion to the body of a generalized abstraction.
 let GABS_CONV conv tm = 
     if is_abs tm
     then ABS_CONV conv tm
@@ -302,6 +308,7 @@ let GABS_CONV conv tm =
 (* ------------------------------------------------------------------------- *)
 (* General beta-conversion over linear pattern of nested constructors.       *)
 (* ------------------------------------------------------------------------- *)
+/// Beta-reduces general beta-redexes (e.g. paired ones).
 let GEN_BETA_CONV = 
     let projection_cache = ref []
     let create_projections conname = 
@@ -531,6 +538,7 @@ let EXISTS_TRIPLED_THM =
 (* ------------------------------------------------------------------------- *)
 (* Expansion of a let-term.                                                  *)
 (* ------------------------------------------------------------------------- *)
+/// Evaluates let-terms in the HOL logic.
 let let_CONV = 
     let let1_CONV = REWR_CONV LET_DEF
                     |> THENC <| GEN_BETA_CONV
@@ -558,6 +566,7 @@ let let_CONV =
             else (EXPAND_BETAS_CONV
                   |> THENC <| lete_CONV) tm
 
+/// Eliminates a let binding in a goal by introducing equational assumptions.
 let (LET_TAC : tactic) = 
     let is_trivlet tm = 
         try 

@@ -132,6 +132,7 @@ do_list overload_interface ["+", (parse_term @"int_add:int->int->int")
                             "min", (parse_term @"int_min:int->int->int")
                             "&", (parse_term @"int_of_num:num->int")]
 
+/// Give integer type 'int' priority in operator overloading.
 let prioritize_int() = prioritize_overload(mk_type("int", []))
 
 (* ------------------------------------------------------------------------- *)
@@ -375,8 +376,9 @@ let INT_GT_DISCRETE =
          |> THEN <| MATCH_ACCEPT_TAC INT_LT_DISCRETE)
 
 (* ------------------------------------------------------------------------- *)
-(* Conversions of integer constants to and from OCaml numbers.               *)
+(* Conversions of integer constants to and from F# numbers.                  *)
 (* ------------------------------------------------------------------------- *)
+/// Tests if a term is an integer literal of type :int.
 let is_intconst tm = 
     match tm with
     | Comb(Const("int_of_num", _), n) -> is_numeral n
@@ -384,6 +386,7 @@ let is_intconst tm =
         is_numeral n && not(dest_numeral n = num_0)
     | _ -> false
 
+/// Converts an integer literal of type :int to an F# number.
 let dest_intconst tm = 
     match tm with
     | Comb(Const("int_of_num", _), n) -> dest_numeral n
@@ -394,6 +397,7 @@ let dest_intconst tm =
         else failwith "dest_intconst"
     | _ -> failwith "dest_intconst"
 
+/// Converts an F# number to a canonical integer literal of type :int.
 let mk_intconst = 
     let cast_tm = (parse_term @"int_of_num")
     let neg_tm = (parse_term @"int_neg")
@@ -407,6 +411,7 @@ let mk_intconst =
 (* A simple procedure to lift most universal real theorems to integers.      *)
 (* For a more complete procedure, give required term to INT_ARITH (below).   *)
 (* ------------------------------------------------------------------------- *)
+/// Map a universally quantied theorem from reals to integers.
 let INT_OF_REAL_THM = 
     let dest = (parse_term @"real_of_int")
     let real_ty = (parse_type @"real")
@@ -793,6 +798,7 @@ let INT_LT =
 (* ------------------------------------------------------------------------- *)
 (* Now a decision procedure for the integers.                                *)
 (* ------------------------------------------------------------------------- *)
+/// Proves integer theorems needing basic rearrangement and linear inequality reasoning only.
 let INT_ARITH = 
     let atom_CONV = 
         let pth = 
@@ -830,7 +836,9 @@ let INT_ARITH =
         let th2 = REAL_ARITH(mk_neg(rand(concl th1)))
         EQ_MP th0 (EQ_MP (AP_TERM not_tm (SYM th1)) th2)
 
+/// Attempt to prove goal using basic algebra and linear arithmetic over the integers.
 let INT_ARITH_TAC = CONV_TAC(EQT_INTRO << INT_ARITH)
+/// Attempt to prove goal using basic algebra and linear arithmetic over the integers.
 let ASM_INT_ARITH_TAC = REPEAT
                             (FIRST_X_ASSUM
                                  (MP_TAC << check(not << is_forall << concl)))
@@ -947,6 +955,11 @@ let INT_DIVISION =
 (* Arithmetic operations on integers. Essentially a clone of stuff for reals *)
 (* in the file "calc_int.ml", except for div and rem, which are more like N. *)
 (* ------------------------------------------------------------------------- *)
+// INT_LE_CONV: Conversion to prove whether one integer literal of type :int is <= another.
+// INT_LT_CONV: Conversion to prove whether one integer literal of type :int is < another.
+// INT_GE_CONV: Conversion to prove whether one integer literal of type :real is >= another.
+// INT_GT_CONV: Conversion to prove whether one integer literal of type :real is < another.
+// INT_EQ_CONV: Conversion to prove whether one integer literal of type :int is equal to another.
 let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV = 
     let tth = TAUT(parse_term @"(F /\ F <=> F) /\ (F /\ T <=> F) /\
           (T /\ F <=> F) /\ (T /\ T <=> T)")
@@ -1059,11 +1072,13 @@ let INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV =
                     |> THENC <| NUM2_EQ_CONV]
     INT_LE_CONV, INT_LT_CONV, INT_GE_CONV, INT_GT_CONV, INT_EQ_CONV
 
+/// Conversion to negate an integer literal of type :int.
 let INT_NEG_CONV = 
     let pth = prove((parse_term @"(--(&0) = &0) /\
       (--(--(&x)) = &x)"), REWRITE_TAC [INT_NEG_NEG; INT_NEG_0])
     GEN_REWRITE_CONV I [pth]
 
+/// Conversion to perform multiplication on two integer literals of type :real.
 let INT_MUL_CONV = 
     let pth0 = prove((parse_term @"(&0 * &x = &0) /\
       (&0 * --(&x) = &0) /\
@@ -1082,6 +1097,7 @@ let INT_MUL_CONV =
                 GEN_REWRITE_CONV I [pth2]
                 |> THENC <| RAND_CONV(RAND_CONV NUM_MULT_CONV)]
 
+/// Conversion to perform addition on two integer literals of type :int.
 let INT_ADD_CONV = 
     let neg_tm = (parse_term @"(--)")
     let amp_tm = (parse_term @"&")
@@ -1184,11 +1200,13 @@ let INT_ADD_CONV =
         with
         | Failure _ -> failwith "INT_ADD_CONV")
 
+/// Conversion to perform subtraction on two integer literals of type :int.
 let INT_SUB_CONV = 
     GEN_REWRITE_CONV I [INT_SUB]
     |> THENC <| TRY_CONV(RAND_CONV INT_NEG_CONV)
     |> THENC <| INT_ADD_CONV
 
+/// Conversion to perform exponentiation on a integer literal of type :real.
 let INT_POW_CONV = 
     let pth1, pth2 = 
         (CONJ_PAIR << prove)
@@ -1210,16 +1228,19 @@ let INT_POW_CONV =
                        then RAND_CONV (RAND_CONV NUM_EXP_CONV) tm
                        else RAND_CONV NUM_EXP_CONV tm))
 
+/// Conversion to produce absolute value of an integer literal of type :int.
 let INT_ABS_CONV = 
     let pth = prove((parse_term @"(abs(--(&x)) = &x) /\
       (abs(&x) = &x)"), REWRITE_TAC [INT_ABS_NEG; INT_ABS_NUM])
     GEN_REWRITE_CONV I [pth]
 
+/// Conversion to perform addition on two integer literals of type :int.
 let INT_MAX_CONV = 
     REWR_CONV INT_MAX
     |> THENC <| RATOR_CONV(RATOR_CONV(RAND_CONV INT_LE_CONV))
     |> THENC <| GEN_REWRITE_CONV I [COND_CLAUSES]
 
+/// Conversion to perform addition on two integer literals of type :int.
 let INT_MIN_CONV = 
     REWR_CONV INT_MIN
     |> THENC <| RATOR_CONV(RATOR_CONV(RAND_CONV INT_LE_CONV))
@@ -1228,6 +1249,7 @@ let INT_MIN_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Instantiate the normalizer.                                               *)
 (* ------------------------------------------------------------------------- *)
+/// Converts a integer polynomial into canonical form.
 let INT_POLY_CONV = 
     let sth = prove((parse_term @"(!x y z. x + (y + z) = (x + y) + z) /\
       (!x y. x + y = y + x) /\
@@ -1261,6 +1283,8 @@ let INT_POLY_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Instantiate the ring and ideal procedures.                                *)
 (* ------------------------------------------------------------------------- *)
+// INT_RING: Ring decision procedure instantiated to integers.
+// int_ideal_cofactors: Produces cofactors proving that one integer polynomial is in the ideal generated by others.
 let INT_RING, int_ideal_cofactors = 
     let INT_INTEGRAL = 
         prove
@@ -1366,6 +1390,7 @@ let INT_DIV_CONV, INT_REM_CONV =
         with
         | Failure _ -> failwith "INT_MOD_CONV")
 
+/// Performs one arithmetic or relational operation on integer literals of type :int.
 let INT_RED_CONV = 
     let gconv_net = 
         itlist (uncurry net_of_conv) [(parse_term @"x <= y"), INT_LE_CONV
@@ -1387,6 +1412,7 @@ let INT_RED_CONV =
             (basic_net())
     REWRITES_CONV gconv_net
 
+/// Evaluate subexpressions built up from integer literals of type :int, by proof.
 let INT_REDUCE_CONV = DEPTH_CONV INT_RED_CONV
 
 (* ------------------------------------------------------------------------- *)
@@ -1634,6 +1660,7 @@ overload_interface("gcd", (parse_term @"int_gcd:int#int->int"))
 
 let int_gcd = new_specification ["int_gcd"] (REWRITE_RULE[EXISTS_UNCURRY; SKOLEM_THM] INT_GCD_EXISTS_POS);;
 
+/// Automated tactic for elementary divisibility properties over the integers.
 let INTEGER_TAC =
   let GCD_ELIM_TAC =
     let gcd_tm = (parse_term @"gcd") in
@@ -1648,6 +1675,7 @@ let INTEGER_TAC =
           MAP_EVERY SPEC_TAC (zip gts (map (genvar << type_of) gts))) in
   REPEAT(GEN_TAC |>ORELSE<| CONJ_TAC) |>THEN<| GCD_ELIM_TAC |>THEN<| INTEGER_TAC_001;;
 
+/// Automatically prove elementary divisibility property over the integers.
 let INTEGER_RULE tm = prove(tm,INTEGER_TAC);;
 
 
@@ -1698,6 +1726,7 @@ let num_gcd = new_definition(parse_term @"gcd(a,b) = num_of_int(gcd(&a,&b))")
 (* To make this work nicely, all variables of type num should be quantified. *)
 (* ------------------------------------------------------------------------- *)
 
+/// Maps an assertion over natural numbers to equivalent over reals.
 let NUM_TO_INT_CONV =
   let pth_relativize = 
    prove ((parse_term @"((!n. P(&n)) <=> (!i. ~(&0 <= i) \/ P i)) /\
@@ -1713,6 +1742,8 @@ let NUM_TO_INT_CONV =
 (* Linear decision procedure for the naturals at last!                       *)
 (* ------------------------------------------------------------------------- *)
 
+/// Automatically proves natural number arithmetic theorems needing basic rearrangement
+/// and linear inequality reasoning only.
 let ARITH_RULE =
   let init_conv =
     NUM_SIMPLIFY_CONV |>THENC<|
@@ -1740,8 +1771,12 @@ let ARITH_RULE =
     let th3 = GENL avs (rev_itlist (C MP) pths th2) in
     EQ_MP (SYM th1) th3;;
 
+/// Tactic for proving arithmetic goals needing basic rearrangement and linear inequality
+/// reasoning only.
 let ARITH_TAC = CONV_TAC(EQT_INTRO << ARITH_RULE);;
 
+/// Tactic for proving arithmetic goals needing basic rearrangement and linear inequality
+/// reasoning only, using assumptions.
 let ASM_ARITH_TAC =
   REPEAT(FIRST_X_ASSUM(MP_TAC << check (not << is_forall << concl))) |>THEN<|
   ARITH_TAC;;
@@ -1754,6 +1789,7 @@ let NUM_GCD =
  prove ((parse_term @"!a b. &(gcd(a,b)) = gcd(&a,&b)"),
   REWRITE_TAC[num_gcd; GSYM NUM_OF_INT; int_gcd]);;
 
+/// Automated tactic for elementary divisibility properties over the natural numbers.
 let NUMBER_TAC =
   let pth_relativize = 
    prove ((parse_term @"((!n. P(&n)) <=> (!i. &0 <= i ==> P i)) /\
@@ -1770,11 +1806,11 @@ let NUMBER_TAC =
   REWRITE_TAC[RIGHT_IMP_FORALL_THM] |>THEN<| REPEAT GEN_TAC |>THEN<|
   INTEGER_TAC;;
 
+/// Automatically prove elementary divisibility property over the natural numbers.
 let NUMBER_RULE tm = prove(tm,NUMBER_TAC);;
 
 (* ------------------------------------------------------------------------- *)
 (* Make sure we give priority to N.                                          *)
 (* ------------------------------------------------------------------------- *)
-
 
 prioritize_num()

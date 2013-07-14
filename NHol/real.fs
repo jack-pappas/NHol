@@ -154,6 +154,7 @@ let REAL_LT_MUL =
 (* ------------------------------------------------------------------------- *)
 (* Tactic version of REAL_ARITH.                                             *)
 (* ------------------------------------------------------------------------- *)
+/// Attempt to prove goal using basic algebra and linear arithmetic over the reals.
 let REAL_ARITH_TAC = CONV_TAC REAL_ARITH
 
 (* ------------------------------------------------------------------------- *)
@@ -550,10 +551,12 @@ let REAL_MIN_ACI = prove((parse_term @"(min x y = min y x) /\
 (* ------------------------------------------------------------------------- *)
 (* To simplify backchaining, just as in the natural number case.             *)
 (* ------------------------------------------------------------------------- *)
+/// Perform transitivity chaining for non-strict real number inequality.
 let REAL_LE_IMP = 
     let pth = PURE_ONCE_REWRITE_RULE [IMP_CONJ] REAL_LE_TRANS
     fun th -> GEN_ALL(MATCH_MP pth (SPEC_ALL th))
 
+/// Perform transitivity chaining for mixed strict/non-strict real number inequality.
 let REAL_LET_IMP = 
     let pth = PURE_ONCE_REWRITE_RULE [IMP_CONJ] REAL_LET_TRANS
     fun th -> GEN_ALL(MATCH_MP pth (SPEC_ALL th))

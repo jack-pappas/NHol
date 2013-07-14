@@ -525,6 +525,9 @@ let RECURSION_SUPERADMISSIBLE =
 (* The main suite of functions for justifying recursion.                     *)
 (* ------------------------------------------------------------------------- *)
 
+// instantiate_casewise_recursion: Instantiate the general scheme for a recursive function existence assertion.
+// pure_prove_recursive_function_exists: Proves existence of general recursive function but leaves unproven assumptions.
+// prove_general_recursive_function_exists: Proves existence of general recursive function.
 let instantiate_casewise_recursion,
     pure_prove_recursive_function_exists,
     prove_general_recursive_function_exists =
@@ -1017,7 +1020,7 @@ let instantiate_casewise_recursion,
 (* ------------------------------------------------------------------------- *)
 (* Simple "define" function.                                                 *)
 (* ------------------------------------------------------------------------- *)
-
+/// Defines a general recursive function.
 let define =
   let close_definition_clauses tm =
     let avs,bod = strip_forall tm

@@ -521,6 +521,7 @@ let WF_REC_TAIL_GENERAL =
 (* ------------------------------------------------------------------------- *)
 (* Tactic to apply WF induction on a free "measured" term in the goal.       *)
 (* ------------------------------------------------------------------------- *)
+/// Performs wellfounded induction with respect to a given 'measure'.
 let WF_INDUCT_TAC = 
     let qqconv = 
         let pth = 

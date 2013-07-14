@@ -354,6 +354,7 @@ let PASTECART_INJ =
 (* ------------------------------------------------------------------------- *)
 (* Automatically define a type of size n.                                    *)
 (* ------------------------------------------------------------------------- *)
+/// Defines a new type of a specified finite size.
 let define_finite_type = 
     let lemma_pre = 
         prove((parse_term @"~(n = 0) ==> ?x. x IN 1..n"), DISCH_TAC
