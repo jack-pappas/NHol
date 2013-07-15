@@ -586,8 +586,7 @@ let ITERATE_CLAUSES_GEN =
                                 |> THEN <| GEN_TAC
                                 |> THEN 
                                 <| MP_TAC
-                                       (ISPECL [(parse_term 
-                                                     "\x a. (op:B->B->B) ((f:A->B)(x)) a")
+                                       (ISPECL [(parse_term @"\x a. (op:B->B->B) ((f:A->B)(x)) a")
                                                 (parse_term @"neutral op :B")] 
                                             FINITE_RECURSION)
                                 |> THEN <| ANTS_TAC
@@ -1992,8 +1991,7 @@ let SUM_NEG =
          |> THEN <| SIMP_TAC [SUM_LMUL])
 let SUM_SUB = 
     prove
-        ((parse_term 
-              "!f g s. FINITE s ==> (sum s (\x. f(x) - g(x)) = sum s f - sum s g)"), 
+        ((parse_term @"!f g s. FINITE s ==> (sum s (\x. f(x) - g(x)) = sum s f - sum s g)"), 
          ONCE_REWRITE_TAC [real_sub]
          |> THEN <| SIMP_TAC [SUM_NEG; SUM_ADD])
 
@@ -2087,8 +2085,7 @@ let SUM_CONST =
 
 let SUM_POS_LE = 
     prove
-        ((parse_term 
-              "!f s. FINITE s /\ (!x. x IN s ==> &0 <= f(x)) ==> &0 <= sum s f"), 
+        ((parse_term @"!f s. FINITE s /\ (!x. x IN s ==> &0 <= f(x)) ==> &0 <= sum s f"), 
          REWRITE_TAC [REWRITE_RULE [SUM_0] (ISPEC (parse_term @"\x. &0") SUM_LE)])
 
 let SUM_POS_BOUND = 
@@ -2778,8 +2775,7 @@ let SUM_COMBINE_L =
 (* redex or we'll get a loop since f(x) will lambda-reduce recursively.      *)
 (* ------------------------------------------------------------------------- *)
 let th_001 = 
-    prove((parse_term 
-      @"(!f g s.   (!x. x IN s ==> f(x) = g(x)) 
+    prove((parse_term @"(!f g s.   (!x. x IN s ==> f(x) = g(x)) 
             ==> sum s (\i. f(i)) = sum s g) /\ 
         (!f g a b. (!i. a <= i /\ i <= b ==> f(i) = g(i)) 
             ==> sum(a..b) (\i. f(i)) = sum(a..b) g) /\ 

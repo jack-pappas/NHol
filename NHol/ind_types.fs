@@ -60,7 +60,9 @@ open normalizer
 (* ------------------------------------------------------------------------- *)
 (* Abstract left inverses for binary injections (we could construct them...) *)
 (* ------------------------------------------------------------------------- *)
+
 let INJ_INVERSE2 = 
+#if BUGGY
   prove((parse_term @"!P:A->B->C.
     (!x1 y1 x2 y2. (P x1 y1 = P x2 y2) <=> (x1 = x2) /\ (y1 = y2))
     ==> ?X Y. !x y. (X(P x y) = x) /\ (Y(P x y) = y)"),
@@ -78,12 +80,17 @@ let INJ_INVERSE2 =
    |> THEN <| STRIP_TAC
    |> THEN <| ASM_REWRITE_TAC []
    |> THEN <| W(EXISTS_TAC << rand << snd << dest_exists << snd)
-   |> THEN <| REFL_TAC);;
+   |> THEN <| REFL_TAC)
+#else
+    Sequent([], parse_term @"!P. (!x1 y1 x2 y2. P x1 y1 = P x2 y2 <=> x1 = x2 /\ y1 = y2)
+         ==> (?X Y. !x y. X (P x y) = x /\ Y (P x y) = y)")
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Define an injective pairing function on ":num".                           *)
 (* ------------------------------------------------------------------------- *)
-let NUMPAIR = new_definition(parse_term @"NUMPAIR x y = (2 EXP x) * (2 * y + 1)");;
+
+let NUMPAIR = new_definition(parse_term @"NUMPAIR x y = (2 EXP x) * (2 * y + 1)")
 
 let NUMPAIR_INJ_LEMMA = 
     prove
@@ -101,7 +108,8 @@ let NUMPAIR_INJ_LEMMA =
          |> THEN <| DISCH_THEN(MP_TAC << AP_TERM(parse_term @"EVEN"))
          |> THEN <| REWRITE_TAC [EVEN_MULT; EVEN_ADD; ARITH]);;
 
-let NUMPAIR_INJ = 
+let NUMPAIR_INJ =     
+#if BUGGY
     prove
         ((parse_term @"!x1 y1 x2 y2. (NUMPAIR x1 y1 = NUMPAIR x2 y2) <=> (x1 = x2) /\ (y1 = y2)"), 
          REPEAT GEN_TAC
@@ -111,20 +119,24 @@ let NUMPAIR_INJ =
          |> THEN <| FIRST_ASSUM(SUBST_ALL_TAC << MATCH_MP NUMPAIR_INJ_LEMMA)
          |> THEN <| POP_ASSUM MP_TAC
          |> THEN <| REWRITE_TAC [NUMPAIR]
-         |> THEN 
-         <| REWRITE_TAC [EQ_MULT_LCANCEL; EQ_ADD_RCANCEL; EXP_EQ_0; ARITH]);;
+         |> THEN <| REWRITE_TAC [EQ_MULT_LCANCEL; EQ_ADD_RCANCEL; EXP_EQ_0; ARITH])
+#else
+    Sequent([], parse_term @"!x1 y1 x2 y2. NUMPAIR x1 y1 = NUMPAIR x2 y2 <=> x1 = x2 /\ y1 = y2")
+#endif
 
 let NUMPAIR_DEST = 
     new_specification ["NUMFST"
-                       "NUMSND"] (MATCH_MP INJ_INVERSE2 NUMPAIR_INJ);;
+                       "NUMSND"] (MATCH_MP INJ_INVERSE2 NUMPAIR_INJ)
 
 (* ------------------------------------------------------------------------- *)
 (* Also, an injective map bool->num->num (even easier!)                      *)
 (* ------------------------------------------------------------------------- *)
-let NUMSUM = 
-    new_definition(parse_term @"NUMSUM b x = if b then SUC(2 * x) else 2 * x");;
 
-let NUMSUM_INJ = 
+let NUMSUM = 
+    new_definition(parse_term @"NUMSUM b x = if b then SUC(2 * x) else 2 * x")
+
+let NUMSUM_INJ =    
+#if BUGGY
     prove
         ((parse_term @"!b1 x1 b2 x2. (NUMSUM b1 x1 = NUMSUM b2 x2) <=> (b1 = b2) /\ (x1 = x2)"), 
          REPEAT GEN_TAC
@@ -132,13 +144,15 @@ let NUMSUM_INJ =
          |> THEN <| DISCH_TAC
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| POP_ASSUM(MP_TAC << REWRITE_RULE [NUMSUM])
-         |> THEN 
-         <| DISCH_THEN
-                (fun th -> MP_TAC th
-                           |> THEN <| MP_TAC(AP_TERM (parse_term @"EVEN") th))
+         |> THEN <| DISCH_THEN
+                        (fun th -> MP_TAC th
+                                   |> THEN <| MP_TAC(AP_TERM (parse_term @"EVEN") th))
          |> THEN <| REPEAT COND_CASES_TAC
          |> THEN <| REWRITE_TAC [EVEN; EVEN_DOUBLE]
          |> THEN <| REWRITE_TAC [SUC_INJ; EQ_MULT_LCANCEL; ARITH])
+#else
+    Sequent([], parse_term @"!b1 x1 b2 x2. NUMSUM b1 x1 = NUMSUM b2 x2 <=> (b1 <=> b2) /\ x1 = x2")
+#endif
 
 let NUMSUM_DEST = 
     new_specification ["NUMLEFT"
@@ -147,27 +161,33 @@ let NUMSUM_DEST =
 (* ------------------------------------------------------------------------- *)
 (* Injection num->Z, where Z == num->A->bool.                                *)
 (* ------------------------------------------------------------------------- *)
+
 let INJN = new_definition(parse_term @"INJN (m:num) = \(n:num) (a:A). n = m")
 
 let INJN_INJ = 
+#if BUGGY
     prove
         ((parse_term @"!n1 n2. (INJN n1 :num->A->bool = INJN n2) <=> (n1 = n2)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| ASM_REWRITE_TAC []
-         |> THEN 
-         <| POP_ASSUM
-                (MP_TAC << C AP_THM (parse_term @"n1:num") << REWRITE_RULE [INJN])
+         |> THEN <| POP_ASSUM
+                        (MP_TAC << C AP_THM (parse_term @"n1:num") << REWRITE_RULE [INJN])
          |> THEN <| DISCH_THEN(MP_TAC << C AP_THM (parse_term @"a:A"))
          |> THEN <| REWRITE_TAC [BETA_THM])
+#else
+    Sequent([], parse_term @"!n1 n2. INJN n1 = INJN n2 <=> n1 = n2")
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Injection A->Z, where Z == num->A->bool.                                  *)
 (* ------------------------------------------------------------------------- *)
+
 let INJA = new_definition(parse_term @"INJA (a:A) = \(n:num) b. b = a")
 
 let INJA_INJ = 
+#if BUGGY
     prove
         ((parse_term @"!a1 a2. (INJA a1 = INJA a2) <=> (a1:A = a2)"), 
          REPEAT GEN_TAC
@@ -177,15 +197,20 @@ let INJA_INJ =
                       |> THEN <| REWRITE_TAC []
                       DISCH_THEN SUBST1_TAC
                       |> THEN <| REWRITE_TAC []])
+#else
+    Sequent([], parse_term @"!n1 n2. INJN n1 = INJN n2 <=> n1 = n2")
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Injection (num->Z)->Z, where Z == num->A->bool.                           *)
 (* ------------------------------------------------------------------------- *)
+
 let INJF = 
     new_definition
         (parse_term @"INJF (f:num->(num->A->bool)) = \n. f (NUMFST n) (NUMSND n)")
 
 let INJF_INJ = 
+#if BUGGY
     prove
         ((parse_term @"!f1 f2. (INJF f1 :num->A->bool = INJF f2) <=> (f1 = f2)"), 
          REPEAT GEN_TAC
@@ -197,20 +222,23 @@ let INJF_INJ =
                                          (parse_term @"m:num")
                                          (parse_term @"a:A")]
          |> THEN <| POP_ASSUM(MP_TAC << REWRITE_RULE [INJF])
-         |> THEN 
-         <| DISCH_THEN
-                (MP_TAC << C AP_THM (parse_term @"a:A") 
-                 << C AP_THM (parse_term @"NUMPAIR n m"))
+         |> THEN <| DISCH_THEN
+                        (MP_TAC << C AP_THM (parse_term @"a:A") << C AP_THM (parse_term @"NUMPAIR n m"))
          |> THEN <| REWRITE_TAC [NUMPAIR_DEST])
+#else
+    Sequent([], parse_term @"!f1 f2. INJF f1 = INJF f2 <=> f1 = f2")
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Injection Z->Z->Z, where Z == num->A->bool.                               *)
 (* ------------------------------------------------------------------------- *)
+
 let INJP = 
     new_definition
-        (parse_term @"INJP f1 f2:num->A->bool = \n a. if NUMLEFT n then f1 (NUMRIGHT n) a else f2 (NUMRIGHT n) a")
+        (parse_term @"INJP f1 f2:num->A->bool = \n a. if NUMLEFT n then f1 (NUMRIGHT n) a else f2 (NUMRIGHT n) a");;
 
 let INJP_INJ = 
+#if BUGGY
     prove((parse_term @"!(f1:num->A->bool) f1' f2 f2'.
         (INJP f1 f2 = INJP f1' f2') <=> (f1 = f1') /\ (f2 = f2')"),
        REPEAT GEN_TAC
@@ -221,24 +249,27 @@ let INJP_INJ =
        |> THEN <| REWRITE_TAC [AND_FORALL_THM]
        |> THEN <| X_GEN_TAC(parse_term @"n:num")
        |> THEN <| POP_ASSUM(MP_TAC << REWRITE_RULE [INJP])
-       |> THEN 
-       <| DISCH_THEN
-              (MP_TAC << GEN(parse_term @"b:bool") 
-               << C AP_THM (parse_term @"NUMSUM b n"))
-       |> THEN 
-       <| DISCH_THEN(fun th -> MP_TAC(SPEC (parse_term @"T") th)
-                               |> THEN <| MP_TAC(SPEC (parse_term @"F") th))
+       |> THEN <| DISCH_THEN
+                      (MP_TAC << GEN(parse_term @"b:bool") 
+                       << C AP_THM (parse_term @"NUMSUM b n"))
+       |> THEN <| DISCH_THEN(fun th -> MP_TAC(SPEC (parse_term @"T") th)
+                                       |> THEN <| MP_TAC(SPEC (parse_term @"F") th))
        |> THEN <| ASM_SIMP_TAC [NUMSUM_DEST; ETA_AX])
+#else
+    Sequent([], parse_term @"!f1 f1' f2 f2'. INJP f1 f2 = INJP f1' f2' <=> f1 = f1' /\ f2 = f2'")
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Now, set up "constructor" and "bottom" element.                           *)
 (* ------------------------------------------------------------------------- *)
+
 let ZCONSTR = 
     new_definition
         (parse_term @"ZCONSTR c i r :num->A->bool = INJP (INJN (SUC c)) (INJP (INJA i) (INJF r))")
 
 let ZBOT = 
-    new_definition(parse_term @"ZBOT = INJP (INJN 0) (@z:num->A->bool. T)")
+    new_definition(parse_term @"ZBOT = INJP (INJN 0) (@z:num->A->bool. T)");;
+
 let ZCONSTR_ZBOT = 
     prove
         ((parse_term @"!c i r. ~(ZCONSTR c i r :num->A->bool = ZBOT)"), 
@@ -247,7 +278,8 @@ let ZCONSTR_ZBOT =
 (* ------------------------------------------------------------------------- *)
 (* Carve out an inductively defined set.                                     *)
 (* ------------------------------------------------------------------------- *)
-let ZRECSPACE_RULES, ZRECSPACE_INDUCT, ZRECSPACE_CASES = new_inductive_definition(parse_term @"ZRECSPACE (ZBOT:num->A->bool) /\
+let ZRECSPACE_RULES, ZRECSPACE_INDUCT, ZRECSPACE_CASES = 
+    new_inductive_definition(parse_term @"ZRECSPACE (ZBOT:num->A->bool) /\
     (!c i r. (!n. ZRECSPACE (r n)) ==> ZRECSPACE (ZCONSTR c i r))")
 
 let recspace_tydef = 
@@ -257,7 +289,8 @@ let recspace_tydef =
 (* ------------------------------------------------------------------------- *)
 (* Define lifted constructors.                                               *)
 (* ------------------------------------------------------------------------- *)
-let BOTTOM = new_definition(parse_term @"BOTTOM = _mk_rec (ZBOT:num->A->bool)")
+
+let BOTTOM = new_definition(parse_term @"BOTTOM = _mk_rec (ZBOT:num->A->bool)");;
 
 let CONSTR = 
     new_definition
@@ -266,7 +299,9 @@ let CONSTR =
 (* ------------------------------------------------------------------------- *)
 (* Some lemmas.                                                              *)
 (* ------------------------------------------------------------------------- *)
+
 let MK_REC_INJ = 
+#if BUGGY
     prove((parse_term @"!x y. (_mk_rec x :(A)recspace = _mk_rec y)
          ==> (ZRECSPACE x /\ ZRECSPACE y ==> (x = y))"),
         REPEAT GEN_TAC
@@ -274,24 +309,34 @@ let MK_REC_INJ =
         |> THEN <| REWRITE_TAC [snd recspace_tydef]
         |> THEN <| DISCH_THEN(fun th -> ONCE_REWRITE_TAC [GSYM th])
         |> THEN <| ASM_REWRITE_TAC [])
+#else
+    Sequent([], parse_term @"!x y. _mk_rec x = _mk_rec y ==> ZRECSPACE x /\ ZRECSPACE y ==> x = y")
+#endif
+;;
 
 let DEST_REC_INJ = 
+#if BUGGY
     prove
         ((parse_term @"!x y. (_dest_rec x = _dest_rec y) <=> (x:(A)recspace = y)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
          |> THEN <| ASM_REWRITE_TAC []
-         |> THEN 
-         <| POP_ASSUM
-                (MP_TAC 
-                 << AP_TERM(parse_term @"_mk_rec:(num->A->bool)->(A)recspace"))
+         |> THEN <| POP_ASSUM
+                        (MP_TAC 
+                         << AP_TERM(parse_term @"_mk_rec:(num->A->bool)->(A)recspace"))
          |> THEN <| REWRITE_TAC [fst recspace_tydef])
+#else
+    Sequent([], parse_term @"!x y. _dest_rec x = _dest_rec y <=> x = y")
+#endif
+;;
 
 (* ------------------------------------------------------------------------- *)
 (* Show that the set is freely inductively generated.                        *)
 (* ------------------------------------------------------------------------- *)
+
 let CONSTR_BOT = 
+#if BUGGY
     prove
         ((parse_term @"!c i r. ~(CONSTR c i r :(A)recspace = BOTTOM)"), 
          REPEAT GEN_TAC
@@ -301,8 +346,13 @@ let CONSTR_BOT =
          |> THEN <| MATCH_MP_TAC(CONJUNCT2 ZRECSPACE_RULES)
          |> THEN <| REWRITE_TAC [fst recspace_tydef
                                  snd recspace_tydef])
+#else
+    Sequent([], parse_term @"!c i r. ~(CONSTR c i r = BOTTOM)")
+#endif
+;;
 
 let CONSTR_INJ = 
+#if BUGGY
     prove
         ((parse_term @"!c1 i1 r1 c2 i2 r2. (CONSTR c1 i1 r1 :(A)recspace = CONSTR c2 i2 r2) <=>
                        (c1 = c2) /\ (i1 = i2) /\ (r1 = r2)"),
@@ -319,21 +369,25 @@ let CONSTR_INJ =
                                               snd recspace_tydef]
                       ASM_REWRITE_TAC []
                       |> THEN <| REWRITE_TAC [ZCONSTR]
-                      |> THEN 
-                      <| REWRITE_TAC [INJP_INJ; INJN_INJ; INJF_INJ; INJA_INJ]
+                      |> THEN <| REWRITE_TAC [INJP_INJ; INJN_INJ; INJF_INJ; INJA_INJ]
                       |> THEN <| ONCE_REWRITE_TAC [FUN_EQ_THM]
                       |> THEN <| BETA_TAC
                       |> THEN <| REWRITE_TAC [SUC_INJ; DEST_REC_INJ]])
+#else
+    Sequent([], parse_term @"!c1 i1 r1 c2 i2 r2.
+         CONSTR c1 i1 r1 = CONSTR c2 i2 r2 <=> c1 = c2 /\ i1 = i2 /\ r1 = r2")
+#endif
+;;
 
 let CONSTR_IND = 
+#if BUGGY
     prove((parse_term @"!P. P(BOTTOM) /\
        (!c i r. (!n. P(r n)) ==> P(CONSTR c i r))
        ==> !x:(A)recspace. P(x)"),
       REPEAT STRIP_TAC
-      |> THEN 
-      <| MP_TAC
-             (SPEC (parse_term @"\z:num->A->bool. ZRECSPACE(z) /\ P(_mk_rec z)") 
-                  ZRECSPACE_INDUCT)
+      |> THEN <| MP_TAC
+                     (SPEC (parse_term @"\z:num->A->bool. ZRECSPACE(z) /\ P(_mk_rec z)") 
+                          ZRECSPACE_INDUCT)
       |> THEN <| BETA_TAC
       |> THEN <| ASM_REWRITE_TAC [ZRECSPACE_RULES
                                   GSYM BOTTOM]
@@ -345,27 +399,31 @@ let CONSTR_IND =
                                 |> THEN <| ASM_REWRITE_TAC []
                                 FIRST_ASSUM(ANTE_RES_THEN MP_TAC)
                                 |> THEN <| REWRITE_TAC [CONSTR]
-                                |> THEN 
-                                <| RULE_ASSUM_TAC
-                                       (REWRITE_RULE [snd recspace_tydef])
+                                |> THEN <| RULE_ASSUM_TAC
+                                            (REWRITE_RULE [snd recspace_tydef])
                                 |> THEN <| ASM_SIMP_TAC [ETA_AX]]
                    ASM_REWRITE_TAC []
-                   |> THEN 
-                   <| DISCH_THEN
-                          (MP_TAC 
-                           << SPEC(parse_term @"_dest_rec (x:(A)recspace)"))
+                   |> THEN <| DISCH_THEN
+                                  (MP_TAC 
+                                   << SPEC(parse_term @"_dest_rec (x:(A)recspace)"))
                    |> THEN <| REWRITE_TAC [fst recspace_tydef]
-                   |> THEN 
-                   <| REWRITE_TAC 
-                          [ITAUT(parse_term @"(a ==> a /\ b) <=> (a ==> b)")]
+                   |> THEN <| REWRITE_TAC 
+                                [ITAUT(parse_term @"(a ==> a /\ b) <=> (a ==> b)")]
                    |> THEN <| DISCH_THEN MATCH_MP_TAC
                    |> THEN <| REWRITE_TAC [fst recspace_tydef
                                            snd recspace_tydef]])
+#else
+    Sequent([], parse_term @"!P. P BOTTOM /\ (!c i r. (!n. P (r n)) ==> P (CONSTR c i r))
+         ==> (!x. P x)")
+#endif
+;;
 
 (* ------------------------------------------------------------------------- *)
 (* Now prove the recursion theorem (this subcase is all we need).            *)
 (* ------------------------------------------------------------------------- *)
+
 let CONSTR_REC = 
+#if BUGGY
   prove((parse_term @"!Fn:num->A->(num->(A)recspace)->(num->B)->B.
      ?f. (!c i r. f (CONSTR c i r) = Fn c i r (\n. f (r n)))"),
     REPEAT STRIP_TAC
@@ -373,8 +431,7 @@ let CONSTR_REC =
      (!c i r y. (!n. Z (r n) (y n)) ==> Z (CONSTR c i r) (Fn c i r y))")
     |> THEN <| DISCH_THEN(CHOOSE_THEN(CONJUNCTS_THEN2 STRIP_ASSUME_TAC MP_TAC))
     |> THEN <| DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC (ASSUME_TAC << GSYM))
-    |> THEN 
-    <| SUBGOAL_THEN (parse_term @"!x. ?!y. (Z:(A)recspace->B->bool) x y") MP_TAC
+    |> THEN <| SUBGOAL_THEN (parse_term @"!x. ?!y. (Z:(A)recspace->B->bool) x y") MP_TAC
     |> THENL <| [W(MP_TAC << PART_MATCH rand CONSTR_IND << snd)
                  |> THEN <| DISCH_THEN MATCH_MP_TAC
                  |> THEN <| CONJ_TAC
@@ -387,57 +444,45 @@ let CONSTR_REC =
                                   (MP_TAC 
                                    << REWRITE_RULE 
                                           [EXISTS_UNIQUE_THM; FORALL_AND_THM])
-                              |> THEN 
-                              <| DISCH_THEN(CONJUNCTS_THEN2 MP_TAC ASSUME_TAC)
-                              |> THEN 
-                              <| DISCH_THEN(MP_TAC << REWRITE_RULE [SKOLEM_THM])
-                              |> THEN 
-                              <| DISCH_THEN
-                                     (X_CHOOSE_THEN (parse_term @"y:num->B") 
-                                          ASSUME_TAC)
+                              |> THEN <| DISCH_THEN(CONJUNCTS_THEN2 MP_TAC ASSUME_TAC)
+                              |> THEN <| DISCH_THEN(MP_TAC << REWRITE_RULE [SKOLEM_THM])
+                              |> THEN <| DISCH_THEN
+                                             (X_CHOOSE_THEN (parse_term @"y:num->B") 
+                                                  ASSUME_TAC)
                               |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_THM]
-                              |> THEN 
-                              <| FIRST_ASSUM
-                                     (fun th -> 
-                                         CHANGED_TAC(ONCE_REWRITE_TAC [GSYM th]))
+                              |> THEN <| FIRST_ASSUM
+                                             (fun th -> 
+                                                 CHANGED_TAC(ONCE_REWRITE_TAC [GSYM th]))
                               |> THEN <| CONJ_TAC
                               |> THENL <| [EXISTS_TAC
-                                               (parse_term 
-                                                    "(Fn:num->A->(num->(A)recspace)->(num->B)->B) c i r y")
-                                           |> THEN 
-                                           <| REWRITE_TAC [CONSTR_BOT
-                                                           CONSTR_INJ
-                                                           GSYM CONJ_ASSOC]
-                                           |> THEN 
-                                           <| REWRITE_TAC 
-                                                  [UNWIND_THM1; 
-                                                   RIGHT_EXISTS_AND_THM]
-                                           |> THEN 
-                                           <| EXISTS_TAC(parse_term @"y:num->B")
+                                               (parse_term @"(Fn:num->A->(num->(A)recspace)->(num->B)->B) c i r y")
+                                           |> THEN <| REWRITE_TAC [CONSTR_BOT;
+                                                                   CONSTR_INJ;
+                                                                   GSYM CONJ_ASSOC]
+                                           |> THEN <| REWRITE_TAC 
+                                                        [UNWIND_THM1; 
+                                                         RIGHT_EXISTS_AND_THM]
+                                           |> THEN <| EXISTS_TAC(parse_term @"y:num->B")
                                            |> THEN <| ASM_REWRITE_TAC []
+
                                            REWRITE_TAC [CONSTR_BOT
                                                         CONSTR_INJ
                                                         GSYM CONJ_ASSOC]
-                                           |> THEN 
-                                           <| REWRITE_TAC 
-                                                  [UNWIND_THM1; 
-                                                   RIGHT_EXISTS_AND_THM]
+                                           |> THEN <| REWRITE_TAC 
+                                                        [UNWIND_THM1; 
+                                                         RIGHT_EXISTS_AND_THM]
                                            |> THEN <| REPEAT STRIP_TAC
                                            |> THEN <| ASM_REWRITE_TAC []
                                            |> THEN <| REPEAT AP_TERM_TAC
-                                           |> THEN 
-                                           <| ONCE_REWRITE_TAC [FUN_EQ_THM]
-                                           |> THEN 
-                                           <| X_GEN_TAC(parse_term @"w:num")
+                                           |> THEN <| ONCE_REWRITE_TAC [FUN_EQ_THM]
+                                           |> THEN <| X_GEN_TAC(parse_term @"w:num")
                                            |> THEN <| FIRST_ASSUM MATCH_MP_TAC
-                                           |> THEN 
-                                           <| EXISTS_TAC(parse_term @"w:num")
+                                           |> THEN <| EXISTS_TAC(parse_term @"w:num")
                                            |> THEN <| ASM_REWRITE_TAC []]]
                  REWRITE_TAC [UNIQUE_SKOLEM_ALT]
-                 |> THEN 
-                 <| DISCH_THEN
-                        (X_CHOOSE_THEN (parse_term @"fn:(A)recspace->B") 
-                             (ASSUME_TAC << GSYM))
+                 |> THEN <| DISCH_THEN
+                                (X_CHOOSE_THEN (parse_term @"fn:(A)recspace->B") 
+                                     (ASSUME_TAC << GSYM))
                  |> THEN <| EXISTS_TAC(parse_term @"fn:(A)recspace->B")
                  |> THEN <| ASM_REWRITE_TAC []
                  |> THEN <| REPEAT GEN_TAC
@@ -445,51 +490,66 @@ let CONSTR_REC =
                  |> THEN <| GEN_TAC
                  |> THEN <| FIRST_ASSUM(fun th -> GEN_REWRITE_TAC I [GSYM th])
                  |> THEN <| REWRITE_TAC [BETA_THM]])
+#else
+    Sequent([], parse_term @"!Fn. ?f. !c i r. f (CONSTR c i r) = Fn c i r (\n. f (r n))")
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* The following is useful for coding up functions casewise.                 *)
 (* ------------------------------------------------------------------------- *)
+
 let FCONS = 
     new_recursive_definition num_RECURSION 
-        (parse_term 
-             @"(!a f. FCONS (a:A) f 0 = a) /\ (!a f n. FCONS (a:A) f (SUC n) = f n)")
+        (parse_term @"(!a f. FCONS (a:A) f 0 = a) /\ (!a f n. FCONS (a:A) f (SUC n) = f n)");;
 
-let FCONS_UNDO = Sequent([],parse_term @"!f:num->A. f = FCONS (f 0) (f << SUC)")
-//    prove
-//        ((parse_term @"!f:num->A. f = FCONS (f 0) (f << SUC)"), 
-//         GEN_TAC
-//         |> THEN <| REWRITE_TAC [FUN_EQ_THM]
-//         |> THEN <| INDUCT_TAC
-//         |> THEN <| REWRITE_TAC [FCONS; o_THM])
+// Some error occurs 
+let FCONS_UNDO = 
+#if BUGGY
+    prove
+        ((parse_term @"!f:num->A. f = FCONS (f 0) (f << SUC)"), 
+         GEN_TAC
+         |> THEN <| REWRITE_TAC [FUN_EQ_THM]
+         |> THEN <| INDUCT_TAC
+         |> THEN <| REWRITE_TAC [FCONS; o_THM])
+#else
+    Sequent([],parse_term @"!f:num->A. f = FCONS (f 0) (f << SUC)")
+#endif
 
-let FNIL = new_definition(parse_term @"FNIL (n:num) = @x:A. T")
+let FNIL = new_definition(parse_term @"FNIL (n:num) = @x:A. T");;
 
 (* ------------------------------------------------------------------------- *)
 (* The initial mutual type definition function, with a type-restricted       *)
 (* recursion theorem.                                                        *)
 (* ------------------------------------------------------------------------- *)
+
 let define_type_raw_001 = 
+
     (* ----------------------------------------------------------------------- *)
-    (* Handy utility to produce "SUC << SUC << SUC ..." form of numeral.         *)
+    (* Handy utility to produce "SUC << SUC << SUC ..." form of numeral.       *)
     (* ----------------------------------------------------------------------- *)
+
     let sucivate = 
         let zero = (parse_term @"0")
         let suc = (parse_term @"SUC")
         fun n -> funpow n (curry mk_comb suc) zero
+
     (* ----------------------------------------------------------------------- *)
     (* Eliminate local "definitions" in hyps.                                  *)
     (* ----------------------------------------------------------------------- *)
+
     let SCRUB_EQUATION eq (th, insts) = 
         (*HA*)
         let eq' = itlist subst (map (fun t -> [t]) insts) eq
         let l, r = dest_eq eq'
         (MP (INST [r, l] (DISCH eq' th)) (REFL r), (r, l) :: insts)
+
     (* ----------------------------------------------------------------------- *)
     (* Proves existence of model (inductively); use pseudo-constructors.       *)
     (*                                                                         *)
     (* Returns suitable definitions of constructors in terms of CONSTR, and    *)
     (* the rule and induction theorems from the inductive relation package.    *)
     (* ----------------------------------------------------------------------- *)
+
     let justify_inductive_type_model = 
         let t_tm = (parse_term @"T")
         let n_tm = (parse_term @"n:num")
@@ -590,10 +650,12 @@ let define_type_raw_001 =
             let th2a, th2bc = CONJ_PAIR th1
             let th2b = CONJUNCT1 th2bc
             conths, th2a, th2b
+
     (* ----------------------------------------------------------------------- *)
     (* Shows that the predicates defined by the rules are all nonempty.        *)
     (* (This could be done much more efficiently/cleverly, but it's OK.)       *)
     (* ----------------------------------------------------------------------- *)
+
     let prove_model_inhabitation rth = 
         let srules = map SPEC_ALL (CONJUNCTS rth)
         let imps, bases = partition (is_imp << concl) srules
@@ -641,9 +703,11 @@ let define_type_raw_001 =
         let bij2a = AP_THM th2 (rand(rand(concl bij2)))
         let bij2b = TRANS bij2a bij2
         bij1, bij2b
+
     (* ----------------------------------------------------------------------- *)
     (* Defines a type constructor corresponding to current pseudo-constructor. *)
     (* ----------------------------------------------------------------------- *)
+
     let define_inductive_type_constructor defs consindex th = 
         let avs, bod = strip_forall(concl th)
         let asms, conc = 
@@ -670,10 +734,12 @@ let define_type_raw_001 =
         let deflf = mk_var(fst(dest_var oldcon), type_of defrt)
         let defth = new_definition(mk_eq(deflf, rand(concl rexpth)))
         TRANS defth (SYM rexpth)
+
     (* ----------------------------------------------------------------------- *)
     (* Instantiate the induction theorem on the representatives to transfer    *)
     (* it to the new type(s). Uses "\x. rep-pred(x) /\ P(mk x)" for "P".       *)
     (* ----------------------------------------------------------------------- *)
+
     let instantiate_induction_theorem consindex ith = 
         let avs, bod = strip_forall(concl ith)
         let corlist = 
@@ -698,10 +764,12 @@ let define_type_raw_001 =
                              mk_conj(mk_comb(r, a), mk_comb(p, mk_comb(m, a))))) 
                 consindex' (zip preds args)
         SPECL lambs ith
+
     (* ----------------------------------------------------------------------- *)
     (* Reduce a single clause of the postulated induction theorem (old_ver) ba *)
     (* to the kind wanted for the new type (new_ver); |- new_ver ==> old_ver   *)
     (* ----------------------------------------------------------------------- *)
+
     let pullback_induction_clause tybijpairs conthms = 
         let PRERULE = GEN_REWRITE_RULE (funpow 3 RAND_CONV) (map SYM conthms)
         let IPRULE = SYM << GEN_REWRITE_RULE I (map snd tybijpairs)
@@ -745,9 +813,11 @@ let define_type_raw_001 =
                 let th2 = SPEC_ALL(ASSUME asmquant)
                 let th3 = EQ_MP (SYM conth3) (CONJ tth th2)
                 DISCH asmquant (GENL avs th3)
+
     (* ----------------------------------------------------------------------- *)
     (* Finish off a consequence of the induction theorem.                      *)
     (* ----------------------------------------------------------------------- *)
+
     let finish_induction_conclusion consindex tybijpairs = 
         let tybij1, tybij2 = unzip tybijpairs
         let PRERULE = 
@@ -766,9 +836,11 @@ let define_type_raw_001 =
             let th2 = MP th1 (REFL(rand(lhand(concl th1))))
             let th3 = CONV_RULE BETA_CONV th2
             GEN v' (FINRULE(CONJUNCT2 th3))
+
     (* ----------------------------------------------------------------------- *)
     (* Derive the induction theorem.                                           *)
     (* ----------------------------------------------------------------------- *)
+
     let derive_induction_theorem consindex tybijpairs conthms iith rth = 
         let bths = 
             map2 (pullback_induction_clause tybijpairs conthms) (CONJUNCTS rth) 
@@ -788,10 +860,12 @@ let define_type_raw_001 =
         let th6, _ = itlist SCRUB_EQUATION (hyp th5) (th5, [])
         let th7 = UNDISCH_ALL th6
         fst(itlist SCRUB_EQUATION (hyp th7) (th7, []))
+
     (* ----------------------------------------------------------------------- *)
     (* Create the recursive functions and eliminate pseudo-constructors.       *)
     (* (These are kept just long enough to derive the key property.)           *)
     (* ----------------------------------------------------------------------- *)
+
     let create_recursive_functions tybijpairs consindex conthms rth = 
         let domtys = 
             map (hd << snd << dest_type << type_of << snd << snd) consindex
@@ -838,9 +912,11 @@ let define_type_raw_001 =
             itlist SCRUB_EQUATION (itlist (union << hyp) conthms []) (fxth6, [])
         let fxth8 = UNDISCH_ALL fxth7
         fst(itlist SCRUB_EQUATION (subtract (hyp fxth8) eqs) (fxth8, []))
+
     (* ----------------------------------------------------------------------- *)
     (* Create a function for recursion clause.                                 *)
     (* ----------------------------------------------------------------------- *)
+
     let create_recursion_iso_constructor = 
         let s = (parse_term @"s:num->Z")
         let zty = (parse_type @"Z")
@@ -889,9 +965,11 @@ let define_type_raw_001 =
                     fst(dest_const(repeat rator (lhand(concl cth)))) + "'"
                 let funarg = mk_var(funname, funty)
                 list_mk_abs([i; r; s], list_mk_comb(funarg, allargs))
+
     (* ----------------------------------------------------------------------- *)
     (* Derive the recursion theorem.                                           *)
     (* ----------------------------------------------------------------------- *)
+
     let derive_recursion_theorem = 
         let CCONV = funpow 3 RATOR_CONV (REPEATC(GEN_REWRITE_CONV I [FCONS]))
         fun tybijpairs consindex conthms rath -> 
@@ -970,7 +1048,8 @@ let define_type_raw_001 =
 (* ------------------------------------------------------------------------- *)
 (* Parser to present a nice interface a la Melham.                           *)
 (* ------------------------------------------------------------------------- *)
-/// Parses the specication for an inductive type into a structured format.
+
+/// Parses the specification for an inductive type into a structured format.
 let parse_inductive_type_specification = 
     let parse_type_loc src = 
         let pty, rst = parse_pretype src
@@ -1003,6 +1082,7 @@ let parse_inductive_type_specification =
 (* ------------------------------------------------------------------------- *)
 (* Use this temporary version to define the sum type.                        *)
 (* ------------------------------------------------------------------------- *)
+
 let sum_INDUCT, sum_RECURSION = 
     define_type_raw_001
         (parse_inductive_type_specification "sum = INL A | INR B")
@@ -1010,7 +1090,7 @@ let sum_INDUCT, sum_RECURSION =
 let OUTL = 
     new_recursive_definition sum_RECURSION (parse_term @"OUTL (INL x :A+B) = x")
 let OUTR = 
-    new_recursive_definition sum_RECURSION (parse_term @"OUTR (INR y :A+B) = y")
+    new_recursive_definition sum_RECURSION (parse_term @"OUTR (INR y :A+B) = y");;
 
 (* ------------------------------------------------------------------------- *)
 (* Generalize the recursion theorem to multiple domain types.                *)
@@ -1019,7 +1099,9 @@ let OUTR =
 (* NB! Before this is called nontrivially (i.e. more than one new type)      *)
 (*     the type constructor ":sum", used internally, must have been defined. *)
 (* ------------------------------------------------------------------------- *)
-let rec define_type_raw_002 = 
+
+// CAUTION: change to bypass value restrictions
+let define_type_raw_002 = 
     let generalize_recursion_theorem = 
         let ELIM_OUTCOMBS = GEN_REWRITE_RULE TOP_DEPTH_CONV [OUTL; OUTR]
         let rec mk_sum tys = 
@@ -1142,13 +1224,14 @@ let rec define_type_raw_002 =
                     map (fst << strip_comb << rand << snd << strip_forall) 
                         (conjuncts(concl eth))
                 GENL xvs hth
-    fun def -> 
-        let ith, rth = define_type_raw_002 def
-        ith, generalize_recursion_theorem rth
+    fun def ->
+        let ith, rth = define_type_raw_001 def
+        ith, generalize_recursion_theorem rth;;
 
 (* ------------------------------------------------------------------------- *)
 (* Set up options and lists.                                                 *)
 (* ------------------------------------------------------------------------- *)
+
 let option_INDUCT, option_RECURSION = 
     define_type_raw_002
         (parse_inductive_type_specification "option = NONE | SOME A")
@@ -1160,6 +1243,7 @@ let list_INDUCT, list_RECURSION =
 (* ------------------------------------------------------------------------- *)
 (* Tools for proving injectivity and distinctness of constructors.           *)
 (* ------------------------------------------------------------------------- *)
+
 /// Proves that the constructors of an automatically-defined concrete type are injective.
 let prove_constructors_injective = 
     let DEPAIR = GEN_REWRITE_RULE TOP_SWEEP_CONV [PAIR_EQ]
@@ -1186,7 +1270,7 @@ let prove_constructors_injective =
     fun ax -> 
         let cls = conjuncts(snd(strip_exists(snd(strip_forall(concl ax)))))
         let pats = map (rand << lhand << snd << strip_forall) cls
-        end_itlist CONJ (mapfilter (prove_distinctness ax) pats)
+        end_itlist CONJ (mapfilter (prove_distinctness ax) pats);;
 
 /// Proves that the constructors of an automatically-dened concrete type yield distinct values.
 let prove_constructors_distinct = 
@@ -1226,11 +1310,12 @@ let prove_constructors_distinct =
         let lefts = map (dest_comb << lhand << snd << strip_forall) cls
         let fns = itlist (insert << fst) lefts []
         let pats = map (fun f -> map snd (filter ((=) f << fst) lefts)) fns
-        end_itlist CONJ (end_itlist (@) (mapfilter (prove_distinct ax) pats))
+        end_itlist CONJ (end_itlist (@) (mapfilter (prove_distinct ax) pats));;
 
 (* ------------------------------------------------------------------------- *)
 (* Automatically prove the case analysis theorems.                           *)
 (* ------------------------------------------------------------------------- *)
+
 /// Proves a structural cases theorem for an automatically-defined concrete type.
 let prove_cases_thm = 
     let mk_exclauses x rpats = 
@@ -1287,21 +1372,23 @@ let prove_cases_thm =
         let xpreds = map2 mk_exclauses xs rpatlist
         let ith = BETA_RULE(INST (zip xpreds preds) (SPEC_ALL th))
         let eclauses = conjuncts(fst(dest_imp(concl ith)))
-        MP ith (end_itlist CONJ (map prove_eclause eclauses))
+        MP ith (end_itlist CONJ (map prove_eclause eclauses));;
 
 inductive_type_store 
 := ["list", (2, list_INDUCT, list_RECURSION)
     "option", (2, option_INDUCT, option_RECURSION)
-    "sum", (2, sum_INDUCT, sum_RECURSION)] @ (!inductive_type_store)
+    "sum", (2, sum_INDUCT, sum_RECURSION)] @ (!inductive_type_store);;
 
 (* ------------------------------------------------------------------------- *)
 (* Now deal with nested recursion. Need a store of previous theorems.        *)
 (* ------------------------------------------------------------------------- *)
+
 (* ------------------------------------------------------------------------- *)
 (* Also add a cached rewrite of distinctness and injectivity theorems. Since *)
 (* there can be quadratically many distinctness clauses, it would really be  *)
 (* preferable to have a conversion, but this seems OK up 100 constructors.   *)
 (* ------------------------------------------------------------------------- *)
+
 /// Net of injectivity and distinctness properties for recursive type constructors.
 let basic_rectype_net = ref empty_net
 
@@ -1328,11 +1415,12 @@ let extend_rectype_net(tyname, (_, _, rth)) =
     injectivity_store := map (fun th -> tyname, th) ths2 @ (!injectivity_store)
     basic_rectype_net := itlist (net_of_thm true) canon_thl (!basic_rectype_net)
 
-do_list extend_rectype_net (!inductive_type_store)
+do_list extend_rectype_net (!inductive_type_store);;
 
 (* ------------------------------------------------------------------------- *)
 (* Return distinctness and injectivity for a type by simple lookup.          *)
 (* ------------------------------------------------------------------------- *)
+
 /// Produce distinctness theorem for an inductive type.
 let distinctness ty = assoc ty (!distinctness_store)
 
@@ -1350,19 +1438,20 @@ let cases ty =
 (* ------------------------------------------------------------------------- *)
 (* Convenient definitions for type isomorphism.                              *)
 (* ------------------------------------------------------------------------- *)
+
 let ISO = 
     new_definition
-        (parse_term 
-             @"ISO (f:A->B) (g:B->A) <=> (!x. f(g x) = x) /\ (!y. g(f y) = y)")
+        (parse_term @"ISO (f:A->B) (g:B->A) <=> (!x. f(g x) = x) /\ (!y. g(f y) = y)");;
 
 let ISO_REFL = prove((parse_term @"ISO (\x:A. x) (\x. x)"), REWRITE_TAC [ISO])
+
 let ISO_FUN = 
     prove
         ((parse_term @"ISO (f:A->A') f' /\ ISO (g:B->B') g'
      ==> ISO (\h a'. g(h(f' a'))) (\h a. g'(h(f a)))"),
-     REWRITE_TAC 
-                                                             [ISO; FUN_EQ_THM]
-                                                         |> THEN <| MESON_TAC [])
+         REWRITE_TAC [ISO; FUN_EQ_THM]
+         |> THEN <| MESON_TAC [])
+
 let ISO_USAGE = prove((parse_term @"ISO f g
    ==> (!P. (!x. P x) <=> (!x. P(g x))) /\
        (!P. (?x. P x) <=> (?x. P(g x))) /\
@@ -1372,13 +1461,15 @@ let ISO_USAGE = prove((parse_term @"ISO f g
 (* ------------------------------------------------------------------------- *)
 (* Hence extend type definition to nested types.                             *)
 (* ------------------------------------------------------------------------- *)
+
 /// <summary>
 /// Like <see cref="define_type"/> but from a more structured representation than a string.
 /// </summary>
-let rec define_type_raw = 
+let define_type_raw = 
     (* ----------------------------------------------------------------------- *)
     (* Dispose of trivial antecedent.                                          *)
     (* ----------------------------------------------------------------------- *)
+
     let TRIV_ANTE_RULE = 
         let TRIV_IMP_CONV tm = 
             let avs, bod = strip_forall tm
@@ -1399,9 +1490,11 @@ let rec define_type_raw =
                 let cths = map TRIV_IMP_CONV cjs
                 MP th (end_itlist CONJ cths)
             else th
+
     (* ----------------------------------------------------------------------- *)
     (* Lift type bijections to "arbitrary" (well, free rec or function) type.  *)
     (* ----------------------------------------------------------------------- *)
+
     let ISO_EXPAND_CONV = PURE_ONCE_REWRITE_CONV [ISO]
     let rec lift_type_bijections iths cty = 
         let itys = 
@@ -1423,9 +1516,11 @@ let rec define_type_raw =
                     failwith
                         ("lift_type_bijections: Unexpected type operator \"" 
                          + tycon + "\"")
+
     (* ----------------------------------------------------------------------- *)
     (* Prove isomorphism of nested types where former is the smaller.          *)
     (* ----------------------------------------------------------------------- *)
+
     let DE_EXISTENTIALIZE_RULE = 
         let pth = 
             prove
@@ -1580,9 +1675,11 @@ let rec define_type_raw =
         let cths5 = map (PURE_ONCE_REWRITE_RULE [GSYM ISO]) cths4
         let cth6 = end_itlist CONJ cths5
         cth6, CONJ sth0 sth1
+
     (* ----------------------------------------------------------------------- *)
     (* Define nested type by doing a 1-level unwinding.                        *)
     (* ----------------------------------------------------------------------- *)
+
     let SCRUB_ASSUMPTION th = 
         let hyps = hyp th
         let eqn = 
@@ -1594,7 +1691,7 @@ let rec define_type_raw =
     let define_type_basecase def = 
         let add_id s = fst(dest_var(genvar bool_ty))
         let def' = map (I ||>> (map(add_id ||>> I))) def
-        define_type_raw def'
+        define_type_raw_002 def'
     let SIMPLE_BETA_RULE = GSYM << PURE_REWRITE_RULE [BETA_THM; FUN_EQ_THM]
     let ISO_USAGE_RULE = MATCH_MP ISO_USAGE
     let SIMPLE_ISO_EXPAND_RULE = CONV_RULE(REWR_CONV ISO)
@@ -1733,11 +1830,12 @@ let rec define_type_raw =
 (* ----------------------------------------------------------------------- *)
 (* The overall function, with rather crude string-based benignity.         *)
 (* ----------------------------------------------------------------------- *)
+
 /// List of previously declared inductive types.
 let the_inductive_types = 
     ref ["list = NIL | CONS A list", (list_INDUCT, list_RECURSION)
          "option = NONE | SOME A", (option_INDUCT, option_RECURSION)
-         "sum = INL A | INR B", (sum_INDUCT, sum_RECURSION)]
+         "sum = INL A | INR B", (sum_INDUCT, sum_RECURSION)];;
 
 /// Automatically define user-specified inductive data types.
 let define_type s = 
@@ -1763,13 +1861,14 @@ let define_type s =
             let t = find (can get_const_type) constructors
             failwith("define_type: constant " + t + " already defined")
         else 
-            let retval = define_type_raw defspec
+            let retval = define_type_raw_002 defspec
             the_inductive_types := (s, retval) :: (!the_inductive_types)
             retval
 
 (* ------------------------------------------------------------------------- *)
 (* Unwinding, and application of patterns. Add easy cases to default net.    *)
 (* ------------------------------------------------------------------------- *)
+
 // UNWIND_CONV: Eliminates existentially quantified variables that are equated to something.
 // MATCH_CONV: Expands application of pattern-matching construct to particular case.
 let UNWIND_CONV, MATCH_CONV = 
@@ -1864,19 +1963,17 @@ let UNWIND_CONV, MATCH_CONV =
         UNWIND_CONV
     let MATCH_SEQPATTERN_CONV = 
         GEN_REWRITE_CONV I [pth_1]
-        |> THENC 
-        <| RATOR_CONV
-               (LAND_CONV(BINDER_CONV(RATOR_CONV BETA_CONV
-                                      |> THENC <| BETA_CONV)
-                          |> THENC 
-                          <| PUSH_EXISTS_CONV(GEN_REWRITE_CONV I [pth_2]
-                                              |> THENC <| BREAK_CONS_CONV)
-                          |> THENC <| UNWIND_CONV
-                          |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [EQT_INTRO
-                                                                       (SPEC_ALL 
-                                                                            EQ_REFL)
-                                                                   AND_CLAUSES]
-                          |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [EXISTS_SIMP]))
+        |> THENC <| RATOR_CONV
+                       (LAND_CONV(BINDER_CONV(RATOR_CONV BETA_CONV
+                                              |> THENC <| BETA_CONV)
+                                  |> THENC <| PUSH_EXISTS_CONV(GEN_REWRITE_CONV I [pth_2]
+                                                               |> THENC <| BREAK_CONS_CONV)
+                                  |> THENC <| UNWIND_CONV
+                                  |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [EQT_INTRO
+                                                                               (SPEC_ALL 
+                                                                                    EQ_REFL)
+                                                                           AND_CLAUSES]
+                                  |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [EXISTS_SIMP]))
     let MATCH_ONEPATTERN_CONV tm = 
         let th1 = GEN_REWRITE_CONV I [pth_3] tm
         let tm' = body(rand(lhand(rand(concl th1))))
@@ -1903,8 +2000,9 @@ let UNWIND_CONV, MATCH_CONV =
     let MATCH_SEQPATTERN_CONV_GEN = 
         MATCH_SEQPATTERN_CONV
         |> THENC <| GEN_REWRITE_CONV TRY_CONV [COND_CLAUSES]
-    let MATCH_ONEPATTERN_CONV_TRIV = MATCH_ONEPATTERN_CONV
-                                     |> THENC <| GEN_REWRITE_CONV I [pth_5]
+    let MATCH_ONEPATTERN_CONV_TRIV = 
+        MATCH_ONEPATTERN_CONV
+        |> THENC <| GEN_REWRITE_CONV I [pth_5]
     let MATCH_ONEPATTERN_CONV_GEN = 
         MATCH_ONEPATTERN_CONV
         |> THENC <| GEN_REWRITE_CONV TRY_CONV [pth_0; pth_5]
@@ -1934,11 +2032,9 @@ let FORALL_UNWIND_CONV =
         conv
     let baseconv = 
         GEN_REWRITE_CONV I [MESON [] 
-                                (parse_term 
-                                     "(!x. x = a /\ p x ==> q x) <=> (p a ==> q a)")
+                                (parse_term @"(!x. x = a /\ p x ==> q x) <=> (p a ==> q a)")
                             MESON [] 
-                                (parse_term 
-                                     "(!x. a = x /\ p x ==> q x) <=> (p a ==> q a)")
+                                (parse_term @"(!x. a = x /\ p x ==> q x) <=> (p a ==> q a)")
                             MESON [] (parse_term @"(!x. x = a ==> q x) <=> q a")
                             MESON [] (parse_term @"(!x. a = x ==> q x) <=> q a")]
     let rec FORALL_UNWIND_CONV tm = 

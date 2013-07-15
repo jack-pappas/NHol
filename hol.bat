@@ -1,3 +1,4 @@
+::"C:\Program Files (x86)\Microsoft SDKs\F#\3.0\Framework\v4.0\fsi.exe"
 fsi^
   --lib:NHol^
   --use:system.fsx^
@@ -28,7 +29,7 @@ fsi^
   --use:wf.fs^
   --use:calc_num.fs^
   --use:normalizer.fs^
-  --use:grober.fs^
+  --use:grobner.fs^
   --use:ind_types.fs^
   --use:lists.fs^
   --use:realax.fs^

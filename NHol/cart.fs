@@ -115,8 +115,7 @@ let finite_image_tybij =
 
 let FINITE_IMAGE_IMAGE = 
     prove
-        ((parse_term 
-              "UNIV:(A)finite_image->bool = IMAGE finite_index (1..dimindex(:A))"), 
+        ((parse_term @"UNIV:(A)finite_image->bool = IMAGE finite_index (1..dimindex(:A))"), 
          REWRITE_TAC [EXTENSION; IN_UNIV; IN_IMAGE]
          |> THEN <| MESON_TAC [finite_image_tybij])
 
@@ -125,8 +124,7 @@ let FINITE_IMAGE_IMAGE =
 (* ------------------------------------------------------------------------- *)
 let HAS_SIZE_FINITE_IMAGE = 
     prove
-        ((parse_term 
-              "!s. (UNIV:(A)finite_image->bool) HAS_SIZE dimindex(s:A->bool)"), 
+        ((parse_term @"!s. (UNIV:(A)finite_image->bool) HAS_SIZE dimindex(s:A->bool)"), 
          GEN_TAC
          |> THEN <| SIMP_TAC [FINITE_IMAGE_IMAGE]
          |> THEN <| MATCH_MP_TAC HAS_SIZE_IMAGE_INJ
@@ -136,8 +134,7 @@ let HAS_SIZE_FINITE_IMAGE =
 
 let CARD_FINITE_IMAGE = 
     prove
-        ((parse_term 
-              "!s. CARD(UNIV:(A)finite_image->bool) = dimindex(s:A->bool)"), 
+        ((parse_term @"!s. CARD(UNIV:(A)finite_image->bool) = dimindex(s:A->bool)"), 
          MESON_TAC [HAS_SIZE_FINITE_IMAGE; HAS_SIZE])
 let FINITE_FINITE_IMAGE = 
     prove
@@ -146,8 +143,7 @@ let FINITE_FINITE_IMAGE =
 
 let DIMINDEX_FINITE_IMAGE = 
     prove
-        ((parse_term 
-              "!s t. dimindex(s:(A)finite_image->bool) = dimindex(t:A->bool)"), 
+        ((parse_term @"!s t. dimindex(s:(A)finite_image->bool) = dimindex(t:A->bool)"), 
          REPEAT GEN_TAC
          |> THEN <| GEN_REWRITE_TAC LAND_CONV [dimindex]
          |> THEN <| MP_TAC(ISPEC (parse_term @"t:A->bool") HAS_SIZE_FINITE_IMAGE)
@@ -276,8 +272,7 @@ let FINITE_SUM_IMAGE =
 
 let DIMINDEX_HAS_SIZE_FINITE_SUM = 
     prove
-        ((parse_term 
-              "(UNIV:(M,N)finite_sum->bool) HAS_SIZE (dimindex(:M) + dimindex(:N))"), 
+        ((parse_term @"(UNIV:(M,N)finite_sum->bool) HAS_SIZE (dimindex(:M) + dimindex(:N))"), 
          SIMP_TAC [FINITE_SUM_IMAGE]
          |> THEN <| MATCH_MP_TAC HAS_SIZE_IMAGE_INJ
          |> THEN <| ONCE_REWRITE_TAC [DIMINDEX_UNIV]
@@ -316,8 +311,7 @@ let SNDCART_PASTECART =
              |> THEN 
              <| MATCH_MP_TAC
                     (ARITH_RULE
-                         (parse_term 
-                              "1 <= i /\ i <= b ==> 1 <= i + a /\ i + a <= a + b"))
+                         (parse_term @"1 <= i /\ i <= b ==> 1 <= i + a /\ i + a <= a + b"))
              |> THEN <| ASM_REWRITE_TAC []
              DISCH_THEN SUBST1_TAC
              |> THEN <| REWRITE_TAC []
@@ -342,8 +336,7 @@ let PASTECART_FST_SND =
 
 let PASTECART_EQ = 
     prove
-        ((parse_term 
-              "!x y. (x = y) <=> (fstcart x = fstcart y) /\ (sndcart x = sndcart y)"), 
+        ((parse_term @"!x y. (x = y) <=> (fstcart x = fstcart y) /\ (sndcart x = sndcart y)"), 
          MESON_TAC [PASTECART_FST_SND])
 let FORALL_PASTECART = 
     prove
@@ -355,8 +348,7 @@ let EXISTS_PASTECART =
          MESON_TAC [PASTECART_FST_SND; FSTCART_PASTECART; SNDCART_PASTECART])
 let PASTECART_INJ = 
     prove
-        ((parse_term 
-              "!x:real^M y:real^N w z. pastecart x y = pastecart w z <=> x = w /\ y = z"), 
+        ((parse_term @"!x:real^M y:real^N w z. pastecart x y = pastecart w z <=> x = w /\ y = z"), 
          REWRITE_TAC [PASTECART_EQ; FSTCART_PASTECART; SNDCART_PASTECART])
 
 (* ------------------------------------------------------------------------- *)
@@ -429,7 +421,7 @@ let FINITE_CART =
          |> THEN <| INDUCT_TAC
          |> THENL <| 
            [REWRITE_TAC [ARITH_RULE (parse_term @"1 <= i /\ i <= n /\ i <= 0 <=> F")] |> THEN <| 
-            SIMP_TAC [ARITH_RULE (parse_term  "1 <= i /\ i <= n /\ 0 < i <=> 1 <= i /\ i <= n")] |> THEN <| 
+            SIMP_TAC [ARITH_RULE (parse_term @"1 <= i /\ i <= n /\ 0 < i <=> 1 <= i /\ i <= n")] |> THEN <| 
             SUBGOAL_THEN (parse_term @"{v | !i. 1 <= i /\ i <= dimindex (:N) ==> v$i = (@x. F)} = {(lambda i. @x. F):A^N}")
               (fun th -> SIMP_TAC [FINITE_RULES; th]) |> THEN <| 
              SIMP_TAC [EXTENSION; IN_SING; IN_ELIM_THM; CART_EQ; LAMBDA_BETA] 
@@ -458,8 +450,7 @@ let FINITE_CART =
          |> THEN <| EXISTS_TAC(parse_term @"(v:A^N)$(SUC n)")
          |> THEN 
          <| EXISTS_TAC
-                (parse_term 
-                     "(lambda i. if i = SUC n then @x. F else (v:A^N)$i):A^N")
+                (parse_term @"(lambda i. if i = SUC n then @x. F else (v:A^N)$i):A^N")
          |> THEN <| SIMP_TAC [CART_EQ
                               LAMBDA_BETA
                               ARITH_RULE(parse_term @"i <= n ==> ~(i = SUC n)")]
@@ -474,13 +465,11 @@ let FINITE_CART =
 (* ------------------------------------------------------------------------- *)
 let HAS_SIZE_CART_UNIV = 
     prove
-        ((parse_term 
-              "!m. (:A) HAS_SIZE m ==> (:A^N) HAS_SIZE m EXP (dimindex(:N))"), 
+        ((parse_term @"!m. (:A) HAS_SIZE m ==> (:A^N) HAS_SIZE m EXP (dimindex(:N))"), 
          REPEAT STRIP_TAC
          |> THEN 
          <| SUBGOAL_THEN 
-                (parse_term 
-                     "(:(N)finite_image->A) HAS_SIZE m EXP (dimindex(:N))") 
+                (parse_term @"(:(N)finite_image->A) HAS_SIZE m EXP (dimindex(:N))") 
                 MP_TAC
          |> THENL <| [ASM_SIMP_TAC 
                           [HAS_SIZE_FUNSPACE_UNIV; HAS_SIZE_FINITE_IMAGE]
@@ -521,8 +510,7 @@ let vector =
 (* ------------------------------------------------------------------------- *)
 let IN_ELIM_PASTECART_THM = 
     prove
-        ((parse_term 
-              "!P a b. pastecart a b IN {pastecart x y | P x y} <=> P a b"), 
+        ((parse_term @"!P a b. pastecart a b IN {pastecart x y | P x y} <=> P a b"), 
          REWRITE_TAC 
              [IN_ELIM_THM; PASTECART_EQ; FSTCART_PASTECART; SNDCART_PASTECART]
          |> THEN <| MESON_TAC [])
@@ -534,8 +522,7 @@ parse_as_infix("PCROSS", (22, "right"))
 (* ------------------------------------------------------------------------- *)
 let PCROSS = 
     new_definition
-        (parse_term 
-             "s PCROSS t = {pastecart (x:A^M) (y:A^N) | x IN s /\ y IN t}")
+        (parse_term @"s PCROSS t = {pastecart (x:A^M) (y:A^N) | x IN s /\ y IN t}")
 
 let FORALL_IN_PCROSS = prove((parse_term @"(!z. z IN s PCROSS t ==> P z) <=>
    (!x y. x IN s /\ y IN t ==> P(pastecart x y))"), REWRITE_TAC [PCROSS; FORALL_IN_GSPEC])
@@ -610,11 +597,9 @@ let FINITE_PCROSS_EQ =
         |> THEN <| MATCH_MP_TAC FINITE_SUBSET
         |> THENL 
         <| [EXISTS_TAC
-                (parse_term 
-                     "IMAGE fstcart ((s PCROSS t):A^(M,N)finite_sum->bool)")
+                (parse_term @"IMAGE fstcart ((s PCROSS t):A^(M,N)finite_sum->bool)")
             EXISTS_TAC
-                (parse_term 
-                     "IMAGE sndcart ((s PCROSS t):A^(M,N)finite_sum->bool)")]
+                (parse_term @"IMAGE sndcart ((s PCROSS t):A^(M,N)finite_sum->bool)")]
         |> THEN 
         <| ASM_SIMP_TAC [FINITE_IMAGE; SUBSET; IN_IMAGE; EXISTS_PASTECART]
         |> THEN 

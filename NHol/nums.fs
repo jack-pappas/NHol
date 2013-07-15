@@ -72,8 +72,7 @@ let IND_SUC_0_EXISTS =
 let IND_SUC_SPEC = 
     let th1 = 
         new_definition
-            (parse_term 
-                 "IND_SUC = @f:ind->ind. ?z. (!x1 x2. (f x1 = f x2) = (x1 = x2)) /\ (!x. ~(f x = z))")
+            (parse_term @"IND_SUC = @f:ind->ind. ?z. (!x1 x2. (f x1 = f x2) = (x1 = x2)) /\ (!x. ~(f x = z))")
     let th2 = REWRITE_RULE [GSYM th1] (SELECT_RULE IND_SUC_0_EXISTS)
     let th3 = new_definition(parse_term @"IND_0 = @z:ind. (!x1 x2. IND_SUC x1 = IND_SUC x2 <=> x1 = x2) /\
                     (!x. ~(IND_SUC x = z))")

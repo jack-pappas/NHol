@@ -93,6 +93,7 @@
     <Compile Include="define.fs" />
     <Compile Include="help.fs" />
     <Compile Include="database.fs" />
+    <Compile Include="util.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ExtCore">
