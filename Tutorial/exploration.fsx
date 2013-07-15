@@ -111,7 +111,7 @@ REAL_OF_NUM_LT;;    //real various
 #load "calc_rat.fs" 
 open NHol.calc_rat 
 
-//DECIMAL;;           //calc_rat first issue at line 120
+DECIMAL;;           //calc_rat first issue at line 120
 //integer;;           //int
 //IN;;                //sets
 //FINITE_NUMSEG;;     //iterate
