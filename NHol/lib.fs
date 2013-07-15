@@ -582,8 +582,20 @@ let num_0 = Int 0
 let num_1 = Int 1
 let num_2 = Int 2
 let num_10 = Int 10
-let pow2 n = power_num num_2 (Int n)
-let pow10 n = power_num num_10 (Int n)
+
+let pow2 (n:int) = 
+    if n < 0 
+        then 
+            let n' = System.Math.Abs(n)
+            (Int 1) / (power_num num_2 (Int n'))
+        else power_num num_2 (Int n)
+
+let pow10 (n:int) = 
+    if n < 0 
+        then 
+            let n' = System.Math.Abs(n)
+            (Int 1) / (power_num num_10 (Int n'))
+        else power_num num_10 (Int n)
 
 /// Returns numerator and denominator of normalized fraction.
 let numdom r = 
@@ -599,8 +611,28 @@ module Big_int =
     let inline gcd_big_int (a : System.Numerics.BigInteger) (b : System.Numerics.BigInteger) : System.Numerics.BigInteger =
         System.Numerics.BigInteger.GreatestCommonDivisor(a,b) 
 
+    let big_int_of_ratio r =
+        let numerator,denominator = numdom r
+        if denominator = num_of_big_int System.Numerics.BigInteger.One 
+            then 
+                match numerator with
+                | Int i -> bigint i
+                | Big_int i -> i
+            else failwith "big_int_of_ratio" // TODO: substitute with an HolFail exception
+
+module Num =
+
+    let big_int_of_num (n : num) : bigint =
+        match n with
+        | Int i ->
+            bigint i
+        | Big_int i ->
+            i
+        | Ratio q ->
+            Big_int.big_int_of_ratio n
+
 /// Computes greatest common divisor of two unlimited-precision integers.
-let gcd_num n1 n2 = num_of_big_int(Big_int.gcd_big_int (big_int_of_num n1) (big_int_of_num n2))
+let gcd_num n1 n2 = num_of_big_int(Big_int.gcd_big_int (Num.big_int_of_num n1) (Num.big_int_of_num n2))
 
 /// Computes lowest common multiple of two unlimited-precision integers.
 let lcm_num x y = 
