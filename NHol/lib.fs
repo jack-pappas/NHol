@@ -2,7 +2,7 @@
 
 Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
-Copyright 2013 Jack Pappas, Anh-Dung Phan, Eric Taucher
+Copyright 2013 Jack Pappas, Anh-Dung Phan, Eric Taucher, Domenico Masini
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -594,6 +594,10 @@ let numdom r =
 let numerator = fst << numdom
 /// Returns denominator of rational number in canonical form.
 let denominator = snd << numdom
+
+module Big_int =
+    let inline gcd_big_int (a : System.Numerics.BigInteger) (b : System.Numerics.BigInteger) : System.Numerics.BigInteger =
+        System.Numerics.BigInteger.GreatestCommonDivisor(a,b) 
 
 /// Computes greatest common divisor of two unlimited-precision integers.
 let gcd_num n1 n2 = num_of_big_int(Big_int.gcd_big_int (big_int_of_num n1) (big_int_of_num n2))
