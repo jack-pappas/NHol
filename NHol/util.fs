@@ -106,7 +106,8 @@ let getMatches (filenames : string list) (patterns : string list) : (string * in
         | fileName :: tl ->
             let lineEndings = lineEndingMap fileName
             let fileText = (System.IO.File.ReadAllText fileName)
-            let matches = Regex.Matches(fileText, pattern)
+            let regex = new Regex(pattern, RegexOptions.Multiline)
+            let matches = regex.Matches(fileText)
             let matchesList = matches |> Seq.cast |> Seq.toList
             let rec addInfo list (acc : (string * int * Match) list) =
                 match list with
@@ -165,6 +166,18 @@ let substringFoundCondtion (item : (string * int * Match)) (substring : string) 
 /// Adds a message to the list if "|>" occurs in the string for a parse_term or parse_type.
 let invalidTextCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
     substringFoundCondtion (item : (string * int * Match)) "|>" acc
+
+/// Adds a message to the list if linebreak occurs in the string for a parse_term or parse_type.
+let containsLinebreakCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
+    let substring = "\n"
+    let (fileName, lineNumber, regexMatch) = item
+    let parseString = regexMatch.Groups.["parseString"].Value
+    let parseStringCondition = parseString.Contains(substring)
+    if  parseStringCondition 
+    then
+        let msg = "String contains line break: " + substring
+        (fileName, lineNumber, regexMatch, parseString, msg) :: acc
+    else acc
     
 /// Adds a message to the list if a parsing error occurs for a parse_term or parse_type.
 let parsingErrorCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
@@ -270,7 +283,6 @@ let projectFiles : string list =
         @"iterate.fs";
         @"cart.fs";
         @"define.fs";
-        @"util.fs";
         @"help.fs";
         @"database.fs"]
     let rec convertFiles filenames acc =
@@ -282,22 +294,24 @@ let projectFiles : string list =
         | [] -> List.rev acc
     convertFiles projectCodeFiles []
 
-// "(?<parse_function>parse_term)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>.*?)(?:\x22)"
+// "(?<parse_function>parse_term)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
+// Regex options used: RegexOptions.Multiline
 // A parse_term in code should macth
 // (?<parse_function>parse_term) - the named group parse_function which is the function name parse_term
 // (?:[ ]?)                      - an optional space
 // (?<atSign>[@]?)               - the named group atSign which is an @ before opening ". It is optional here to match were we missed adding @.
 // (?:\x22)                      - a starting " here as \x22
-// (?<parseString>.*?)           - the named group parseString which is any non greedy characters upto the next "
+// (?<parseString>[^""]*)        - the named group parseString which is any characters upto the next "
 // (?:\x22)                      - a ending " here as \x22
 
-// "(?<parse_function>parse_type)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>.*?)(?:\x22)"
+// "(?<parse_function>parse_type)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
+// Regex options used: RegexOptions.Multiline
 // A parse_type in code should macth
 // (?<parse_function>parse_type) - the named group parse_function which is the function name parse_type
 // (?:[ ]?)                      - an optional space
 // (?<atSign>[@]?)               - the named group atSign which is an @ before opening ". It is optional here to match were we missed adding @.
 // (?:\x22)                      - a starting " here as \x22
-// (?<parseString>.*?)           - the named group parseString which is any non greedy characters upto the next "
+// (?<parseString>[^""]*)        - the named group parseString which is any characters upto the next "
 // (?:\x22)                      - a ending " here as \x22
 
 let test001 =
@@ -307,10 +321,12 @@ let test001 =
 //    let path = @"bool.fs"
 //    let fileList = getFiles path
 
-    let parseTermPattern = @"(?<parse_function>parse_term)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>.*?)(?:\x22)"
-    let parseTypePattern = @"(?<parse_function>parse_type)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>.*?)(?:\x22)"
+    let parseTermPattern = @"(?<parse_function>parse_term)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
+    let parseTypePattern = @"(?<parse_function>parse_type)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
     let patterns = [parseTermPattern; parseTypePattern]
 
-    let conditions = [atSignCondition; invalidTextCondition; parsingErrorCondition; parsingSuccessCondition]
+    let conditions = [atSignCondition; invalidTextCondition; parsingErrorCondition; parsingSuccessCondition; containsLinebreakCondition]
+//    let conditions = [containsLinebreakCondition]
+//    let conditions = [parsingSuccessCondition]
 
     printMessages projectFiles patterns conditions
