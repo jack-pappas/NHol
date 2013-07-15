@@ -43,7 +43,7 @@ open System.Text.RegularExpressions
 //printfn "result as AST:  %A" result
 //printfn "result as term: %s" (NHol.printer.string_of_term result)
 
-
+/// Convert a path to a list of absolute file names.
 // A path can be absolute or relative, a directory or file, or empty.
 let getFiles (path : string) : string list =
     let toAbsolutePath path =
@@ -51,7 +51,7 @@ let getFiles (path : string) : string list =
         then __SOURCE_DIRECTORY__                                                            // empty path
         elif System.IO.Path.IsPathRooted path   
         then path                                                                            // absolute path
-        else  __SOURCE_DIRECTORY__ + System.IO.Path.DirectorySeparatorChar.ToString() + path // relative path
+        else __SOURCE_DIRECTORY__ + System.IO.Path.DirectorySeparatorChar.ToString() + path  // relative path
     let toFileList absolutePath =
         if (System.IO.Directory.Exists absolutePath)
         then Array.toList (System.IO.Directory.GetFiles absolutePath)
@@ -62,6 +62,7 @@ let getFiles (path : string) : string list =
     |> toAbsolutePath 
     |> toFileList
 
+/// Create a map with key as line number and value as line end offset from start of file.
 let lineEndingMap (fileName : string) = 
     // Don't add more match patterns as that will throw the line count off.
     // i.e. 2 match patterns will return 2x matches which will create 2x entries for line numbers 
@@ -84,9 +85,13 @@ let lineEndingMap (fileName : string) =
     |> processMatchList 1 [(0,0)] 
     |> Map.ofList
 
-let lineNumberLookup map offset : int =
+/// Given an offset in a file return the line number.
+// Note: This processes the map sequentially. 
+// Could probably be enhanced using a differnt data structure
+// or using a binary search algorithm.
+let lineNumberLookup lineNumberMap offset : int =
     let rec findLine offset checkLineNumber =
-        match Map.tryFind checkLineNumber map with
+        match Map.tryFind checkLineNumber lineNumberMap with
         | Some(lineEnd) ->
             if offset > lineEnd
             then findLine offset (checkLineNumber + 1)
@@ -94,13 +99,15 @@ let lineNumberLookup map offset : int =
         | None -> 0
     findLine offset 1
 
-let getMatches (fileNames : string list) (patterns : string list) : (string * int * Match) list =                
-    let rec processPattern (pattern : string) (fileNames : string list) acc =
-        match fileNames with
+/// Returns tuple of (filename, linenumber, Match) for all matches against all filesnames for all patterns.
+let getMatches (filenames : string list) (patterns : string list) : (string * int * Match) list =                
+    let rec processFiles (pattern : string) (filenames : string list) acc =
+        match filenames with
         | fileName :: tl ->
             let lineEndings = lineEndingMap fileName
             let fileText = (System.IO.File.ReadAllText fileName)
-            let matches = Regex.Matches(fileText, pattern)
+            let regex = new Regex(pattern, RegexOptions.Multiline)
+            let matches = regex.Matches(fileText)
             let matchesList = matches |> Seq.cast |> Seq.toList
             let rec addInfo list (acc : (string * int * Match) list) =
                 match list with
@@ -110,16 +117,17 @@ let getMatches (fileNames : string list) (patterns : string list) : (string * in
                     addInfo tl ((fileName, lineNumber, hd) :: acc)
                 | [] -> acc
             let newItems = addInfo matchesList []
-            processPattern pattern tl (acc @ (List.rev newItems))
+            processFiles pattern tl (acc @ (List.rev newItems))
         | [] -> acc
-    let rec processPatterns patterns fileNames acc =
+    let rec processPatterns patterns filenames acc =
         match patterns with
         | hd :: tl ->
-            let acc = processPattern hd fileNames acc
-            processPatterns tl fileNames acc
+            let acc = processFiles hd filenames acc
+            processPatterns tl filenames acc
         | [] -> acc
-    processPatterns patterns fileNames []
+    processPatterns patterns filenames []
 
+/// Prints the list of filename linenumber message and match string.
 let printInfo (info : (string * int * Match * string * string) list) =
     let printMatchCollection (item : (string * int * Match * string * string)) =
         let (fileName, lineNumber, regexMatch, matchString, msg) = item
@@ -132,6 +140,7 @@ let printInfo (info : (string * int * Match * string * string) list) =
         | [] -> ()
     printMatchInfoList info
 
+/// Adds a message to the list if there is no @ before the string for a parse_term or parse_type.
 let atSignCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
     let (fileName, lineNumber, regexMatch) = item
     let atSignString = regexMatch.Groups.["atSign"].Value
@@ -142,7 +151,8 @@ let atSignCondition (item : (string * int * Match)) acc : (string * int * Match 
         let msg = "Missing @ before string."
         (fileName, lineNumber, regexMatch, parseString, msg) :: acc
     else acc
-
+    
+/// Adds a message to the list if the substring occurs in the string for a parse_term or parse_type.
 let substringFoundCondtion (item : (string * int * Match)) (substring : string) acc : (string * int * Match * string * string) list =
     let (fileName, lineNumber, regexMatch) = item
     let parseString = regexMatch.Groups.["parseString"].Value
@@ -152,10 +162,24 @@ let substringFoundCondtion (item : (string * int * Match)) (substring : string) 
         let msg = "String contains: " + substring
         (fileName, lineNumber, regexMatch, parseString, msg) :: acc
     else acc
-
+    
+/// Adds a message to the list if "|>" occurs in the string for a parse_term or parse_type.
 let invalidTextCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
     substringFoundCondtion (item : (string * int * Match)) "|>" acc
 
+/// Adds a message to the list if linebreak occurs in the string for a parse_term or parse_type.
+let containsLinebreakCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
+    let substring = "\n"
+    let (fileName, lineNumber, regexMatch) = item
+    let parseString = regexMatch.Groups.["parseString"].Value
+    let parseStringCondition = parseString.Contains(substring)
+    if  parseStringCondition 
+    then
+        let msg = "String contains line break: " + substring
+        (fileName, lineNumber, regexMatch, parseString, msg) :: acc
+    else acc
+    
+/// Adds a message to the list if a parsing error occurs for a parse_term or parse_type.
 let parsingErrorCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
     let (fileName, lineNumber, regexMatch) = item
     let parseFunction = regexMatch.Groups.["parse_function"].Value
@@ -175,7 +199,8 @@ let parsingErrorCondition (item : (string * int * Match)) acc : (string * int * 
         elif parseFunction = "parse_type"
         then (fileName, lineNumber, regexMatch, parseString, msg) :: acc
         else failwith ("Unknow parse function: " + parseFunction)
-
+        
+/// Adds a message to the list if a successful parse occurs for a parse_term or parse_type.
 let parsingSuccessCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
     let (fileName, lineNumber, regexMatch) = item
     let parseFunction = regexMatch.Groups.["parse_function"].Value
@@ -191,46 +216,102 @@ let parsingSuccessCondition (item : (string * int * Match)) acc : (string * int 
     with
     | _ -> acc
         
-// Note: If any condition matches, a new item is added to the output.
-let filterInfo info filters  : (string * int * Match * string * string) list =
-    let rec filtersItem (item : (string * int * Match)) filters acc : (string * int * Match * string * string) list =
-        match filters with
-        | filter :: tl ->
-            let acc = filter item acc
-            filtersItem item tl acc
+/// Process the matches to build a list of messages based on the condtions.
+let processConditions conditions info  : (string * int * Match * string * string) list =
+    let rec processConditions (item : (string * int * Match)) conditions acc : (string * int * Match * string * string) list =
+        match conditions with
+        | condition :: tl ->
+            let acc = condition item acc
+            processConditions item tl acc
         | [] -> acc
-    let rec filterList (info : (string * int * Match) list) filters acc : (string * int * Match * string * string) list =
+    let rec prcessInfo (info : (string * int * Match) list) conditions acc : (string * int * Match * string * string) list =
         match info with
         | hd :: tl -> 
-            let acc = filtersItem hd filters acc
-            filterList tl filters acc
+            let acc = processConditions hd conditions acc
+            prcessInfo tl conditions acc
         | [] -> List.rev acc
-    filterList info filters []
+    prcessInfo info conditions []
    
-let identifyParseStringProblems fileNames patterns =
-    let info = (getMatches fileNames patterns)
-    let info = filterInfo info [atSignCondition; invalidTextCondition; parsingErrorCondition;parsingSuccessCondition]
-    printInfo info
+/// Prints a list of messages based on the filenames, patterns and condtions.
+let printMessages filenames patterns conditions =
+    getMatches filenames patterns
+    |> processConditions conditions
+    |> printInfo 
 
-let filters =
-    [atSignCondition; invalidTextCondition; parsingErrorCondition]
+// I made this list to correspond with the compilation order to see if the 
+// order mattered when parsing.
+/// List of absolute filenames for HOL Light source code files in this project.
+let projectFiles : string list = 
+    let projectCodeFiles =
+        [@"lib.fs";
+        @"fusion.fs";
+        @"basics.fs";
+        @"nets.fs";
+        @"printer.fs";
+        @"preterm.fs";
+        @"parser.fs";
+        @"equal.fs";
+        @"bool.fs";
+        @"drule.fs";
+        @"tactics.fs";
+        @"itab.fs";
+        @"simp.fs";
+        @"theorems.fs";
+        @"ind_defs.fs";
+        @"class.fs";
+        @"trivia.fs";
+        @"canon.fs";
+        @"meson.fs";
+        @"quot.fs";
+        @"pair.fs";
+        @"nums.fs";
+        @"recursion.fs";
+        @"arith.fs";
+        @"wf.fs";
+        @"calc_num.fs";
+        @"normalizer.fs";
+        @"grobner.fs";
+        @"ind_types.fs";
+        @"lists.fs";
+        @"realax.fs";
+        @"calc_int.fs";
+        @"realarith.fs";
+        @"real.fs";
+        @"calc_rat.fs";
+        @"int.fs";
+        @"sets.fs";
+        @"iterate.fs";
+        @"cart.fs";
+        @"define.fs";
+        @"help.fs";
+        @"database.fs"]
+    let rec convertFiles filenames acc =
+        match filenames with
+        | hd :: tl -> 
+            let absoluteFileName = __SOURCE_DIRECTORY__ + System.IO.Path.DirectorySeparatorChar.ToString() + hd
+            let acc = absoluteFileName :: acc
+            convertFiles tl acc
+        | [] -> List.rev acc
+    convertFiles projectCodeFiles []
 
-// "(?<parse_function>parse_term)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>.*?)(?:\x22)"
+// "(?<parse_function>parse_term)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
+// Regex options used: RegexOptions.Multiline
 // A parse_term in code should macth
 // (?<parse_function>parse_term) - the named group parse_function which is the function name parse_term
 // (?:[ ]?)                      - an optional space
 // (?<atSign>[@]?)               - the named group atSign which is an @ before opening ". It is optional here to match were we missed adding @.
 // (?:\x22)                      - a starting " here as \x22
-// (?<parseString>.*?)           - the named group parseString which is any non greedy characters upto the next "
+// (?<parseString>[^""]*)        - the named group parseString which is any characters upto the next "
 // (?:\x22)                      - a ending " here as \x22
 
-// "(?<parse_function>parse_type)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>.*?)(?:\x22)"
+// "(?<parse_function>parse_type)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
+// Regex options used: RegexOptions.Multiline
 // A parse_type in code should macth
 // (?<parse_function>parse_type) - the named group parse_function which is the function name parse_type
 // (?:[ ]?)                      - an optional space
 // (?<atSign>[@]?)               - the named group atSign which is an @ before opening ". It is optional here to match were we missed adding @.
 // (?:\x22)                      - a starting " here as \x22
-// (?<parseString>.*?)           - the named group parseString which is any non greedy characters upto the next "
+// (?<parseString>[^""]*)        - the named group parseString which is any characters upto the next "
 // (?:\x22)                      - a ending " here as \x22
 
 let test001 =
@@ -240,55 +321,12 @@ let test001 =
 //    let path = @"bool.fs"
 //    let fileList = getFiles path
 
-// I made this list to correspond with the compilation order to see if the 
-// order mattered when parsing.
-    let fileList : string list = 
-        [@"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\lib.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\fusion.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\basics.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\nets.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\printer.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\preterm.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\parser.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\equal.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\bool.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\drule.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\tactics.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\itab.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\simp.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\theorems.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\ind_defs.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\class.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\trivia.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\canon.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\meson.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\quot.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\pair.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\nums.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\recursion.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\arith.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\wf.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\calc_num.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\normalizer.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\grobner.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\ind_types.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\lists.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\realax.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\calc_int.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\realarith.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\real.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\calc_rat.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\int.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\sets.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\iterate.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\cart.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\define.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\util.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\help.fs";
-        @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\database.fs"]
-
-    let parseTermPattern = @"(?<parse_function>parse_term)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>.*?)(?:\x22)"
-    let parseTypePattern = @"(?<parse_function>parse_type)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>.*?)(?:\x22)"
+    let parseTermPattern = @"(?<parse_function>parse_term)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
+    let parseTypePattern = @"(?<parse_function>parse_type)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
     let patterns = [parseTermPattern; parseTypePattern]
 
-    identifyParseStringProblems fileList patterns
+    let conditions = [atSignCondition; invalidTextCondition; parsingErrorCondition; parsingSuccessCondition; containsLinebreakCondition]
+//    let conditions = [containsLinebreakCondition]
+//    let conditions = [parsingSuccessCondition]
+
+    printMessages projectFiles patterns conditions
