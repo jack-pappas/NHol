@@ -38,10 +38,7 @@ module NHol.util
 
 #endif
 
-open System.Text.RegularExpressions 
-
-//printfn "result as AST:  %A" result
-//printfn "result as term: %s" (NHol.printer.string_of_term result)
+open System.Text.RegularExpressions
 
 /// Convert a path to a list of absolute file names.
 // A path can be absolute or relative, a directory or file, or empty.
@@ -62,8 +59,34 @@ let getFiles (path : string) : string list =
     |> toAbsolutePath 
     |> toFileList
 
+let printGroup (g : Group) =
+    printfn "Group Index:        %d" g.Index 
+    printfn "Group Length:       %d" g.Length 
+    printfn "Group Success:      %b" g.Success 
+    printfn "Group Value length: %d" g.Value.Length
+    printfn "Group Value:        '%s'" g.Value 
+    printfn "Group Capute count: %d" g.Captures.Count
+
+let printCapture (c : Capture) =
+    printfn "Capture Index:        %d" c.Index 
+    printfn "Capture Length:       %d" c.Length 
+    printfn "Capture Value length: %d" c.Value.Length
+    printfn "Capture Value:        '%s'" c.Value 
+
+let printMatch (m : Match) =
+    printfn "Match Index:        %d" m.Index 
+    printfn "Match Length:       %d" m.Length 
+    printfn "Match Success:      %b" m.Success
+    printfn "Match Value length: %d" m.Value.Length
+    printfn "Match Value:        '%s'" m.Value 
+    printfn "Match Capute count: %d" m.Captures.Count
+    Seq.iter printCapture (Seq.cast m.Captures )
+    printfn "Match Groups count: %d" m.Groups.Count
+    Seq.iter printGroup (Seq.cast m.Groups)
+    printfn "-----------------------------------------"
+
 /// Create a map with key as line number and value as line end offset from start of file.
-let lineEndingMap (fileName : string) = 
+let lineEndingMap (fileName : string) : Map<int, (int * int)> = 
     // Don't add more match patterns as that will throw the line count off.
     // i.e. 2 match patterns will return 2x matches which will create 2x entries for line numbers 
     // and thus be incorrect.
@@ -75,32 +98,35 @@ let lineEndingMap (fileName : string) =
         regex.Matches(fileText)
         |> Seq.cast 
         |> Seq.toList 
-    let rec processMatchList lineNumber acc matches=
+    let rec processMatchList lineNumber start acc matches=
         match matches with
         | (hd : Match) :: tl ->
-            let acc = (lineNumber, hd.Captures.[0].Index) :: acc
-            processMatchList (lineNumber + 1) acc tl 
+            let lineEndOffset = hd.Captures.[0].Index
+            let acc = (lineNumber, (start, lineEndOffset)) :: acc
+            let start = lineEndOffset + hd.Length 
+            processMatchList (lineNumber + 1) start acc tl 
         | [] -> List.rev  acc
     getMatches fileName pattern
-    |> processMatchList 1 [(0,0)] 
+    |> processMatchList 1 0 [(0, (0, 0))] 
     |> Map.ofList
 
-/// Given an offset in a file return the line number.
+/// Given an offset in a file return the line number, start offset, end offset.
 // Note: This processes the map sequentially. 
 // Could probably be enhanced using a differnt data structure
 // or using a binary search algorithm.
-let lineNumberLookup lineNumberMap offset : int =
+let lineNumberLookup (lineNumberMap : Map<int, (int * int)>) (offset : int) : (int * int * int) =
     let rec findLine offset checkLineNumber =
         match Map.tryFind checkLineNumber lineNumberMap with
-        | Some(lineEnd) ->
-            if offset > lineEnd
+        | Some(lineStartOffset, lineEndOffset) ->
+            if offset > lineEndOffset
             then findLine offset (checkLineNumber + 1)
-            else checkLineNumber
-        | None -> 0
+            else 
+                (checkLineNumber, lineStartOffset, lineEndOffset)
+        | None -> (0, 0, 0)
     findLine offset 1
 
 /// Returns tuple of (filename, linenumber, Match) for all matches against all filesnames for all patterns.
-let getMatches (filenames : string list) (patterns : string list) : (string * int * Match) list =                
+let getMatches (filenames : string list) (patterns : string list) : (string * int * int * Match) list =                
     let rec processFiles (pattern : string) (filenames : string list) acc =
         match filenames with
         | fileName :: tl ->
@@ -109,12 +135,13 @@ let getMatches (filenames : string list) (patterns : string list) : (string * in
             let regex = new Regex(pattern, RegexOptions.Multiline)
             let matches = regex.Matches(fileText)
             let matchesList = matches |> Seq.cast |> Seq.toList
-            let rec addInfo list (acc : (string * int * Match) list) =
+            let rec addInfo list (acc : (string * int * int * Match) list) =
                 match list with
                 | (hd : Match) :: tl ->
-                    let offset = (hd.Captures.[0].Index)
-                    let lineNumber = lineNumberLookup lineEndings offset
-                    addInfo tl ((fileName, lineNumber, hd) :: acc)
+                    let offsetFromFileStart = (hd.Captures.[0].Index)
+                    let (lineNumber, lineStartOffset, lineEndOffset) = lineNumberLookup lineEndings offsetFromFileStart
+                    let offsetFromLineStart = offsetFromFileStart - lineStartOffset
+                    addInfo tl ((fileName, lineNumber, offsetFromLineStart, hd) :: acc)
                 | [] -> acc
             let newItems = addInfo matchesList []
             processFiles pattern tl (acc @ (List.rev newItems))
@@ -128,11 +155,11 @@ let getMatches (filenames : string list) (patterns : string list) : (string * in
     processPatterns patterns filenames []
 
 /// Prints the list of filename linenumber message and match string.
-let printInfo (info : (string * int * Match * string * string) list) =
-    let printMatchCollection (item : (string * int * Match * string * string)) =
-        let (fileName, lineNumber, regexMatch, matchString, msg) = item
-        printfn @"%s(%d): %s ""%s""" fileName lineNumber msg matchString 
-    let rec printMatchInfoList (list : (string * int * Match * string * string) list) =
+let printInfo (info : (string * int * int * Match * string * string) list) =
+    let printMatchCollection (item : (string * int * int * Match * string * string)) =
+        let (fileName, lineNumber, offset, regexMatch, matchString, msg) = item
+        printfn @"%s(%d,%d): %s ""%s""" fileName lineNumber offset msg matchString 
+    let rec printMatchInfoList (list : (string * int * int * Match * string * string) list) =
         match list with
         | hd :: tl -> 
             printMatchCollection hd
@@ -141,47 +168,47 @@ let printInfo (info : (string * int * Match * string * string) list) =
     printMatchInfoList info
 
 /// Adds a message to the list if there is no @ before the string for a parse_term or parse_type.
-let atSignCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
-    let (fileName, lineNumber, regexMatch) = item
+let atSignCondition (item : (string * int * int * Match)) acc : (string * int * int * Match * string * string) list =
+    let (fileName, lineNumber, offset, regexMatch) = item
     let atSignString = regexMatch.Groups.["atSign"].Value
     let atStringCondition = not (atSignString.Contains("@"))
     if atStringCondition 
     then 
         let parseString = regexMatch.Groups.["parseString"].Value
         let msg = "Missing @ before string."
-        (fileName, lineNumber, regexMatch, parseString, msg) :: acc
+        (fileName, lineNumber, offset, regexMatch, parseString, msg) :: acc
     else acc
     
 /// Adds a message to the list if the substring occurs in the string for a parse_term or parse_type.
-let substringFoundCondtion (item : (string * int * Match)) (substring : string) acc : (string * int * Match * string * string) list =
-    let (fileName, lineNumber, regexMatch) = item
+let substringFoundCondtion (item : (string * int * int * Match)) (substring : string) acc : (string * int * int * Match * string * string) list =
+    let (fileName, lineNumber, offset, regexMatch) = item
     let parseString = regexMatch.Groups.["parseString"].Value
     let parseStringCondition = parseString.Contains(substring)
     if  parseStringCondition 
     then
         let msg = "String contains: " + substring
-        (fileName, lineNumber, regexMatch, parseString, msg) :: acc
+        (fileName, lineNumber, offset, regexMatch, parseString, msg) :: acc
     else acc
     
 /// Adds a message to the list if "|>" occurs in the string for a parse_term or parse_type.
-let invalidTextCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
-    substringFoundCondtion (item : (string * int * Match)) "|>" acc
+let invalidTextCondition (item : (string * int * int * Match)) acc : (string * int * int * Match * string * string) list =
+    substringFoundCondtion (item : (string * int * int * Match)) "|>" acc
 
 /// Adds a message to the list if linebreak occurs in the string for a parse_term or parse_type.
-let containsLinebreakCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
+let containsLinebreakCondition (item : (string * int * int * Match)) acc : (string * int * int * Match * string * string) list =
     let substring = "\n"
-    let (fileName, lineNumber, regexMatch) = item
+    let (fileName, lineNumber, offset, regexMatch) = item
     let parseString = regexMatch.Groups.["parseString"].Value
     let parseStringCondition = parseString.Contains(substring)
     if  parseStringCondition 
     then
         let msg = "String contains line break: " + substring
-        (fileName, lineNumber, regexMatch, parseString, msg) :: acc
+        (fileName, lineNumber, offset, regexMatch, parseString, msg) :: acc
     else acc
     
 /// Adds a message to the list if a parsing error occurs for a parse_term or parse_type.
-let parsingErrorCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
-    let (fileName, lineNumber, regexMatch) = item
+let parsingErrorCondition (item : (string * int * int * Match)) acc : (string * int * int * Match * string * string) list =
+    let (fileName, lineNumber, offset, regexMatch) = item
     let parseFunction = regexMatch.Groups.["parse_function"].Value
     let parseString = regexMatch.Groups.["parseString"].Value
     try
@@ -195,14 +222,14 @@ let parsingErrorCondition (item : (string * int * Match)) acc : (string * int * 
     | _ ->        
         let msg = "Error during " + parseFunction + "."
         if parseFunction = "parse_term"
-        then (fileName, lineNumber, regexMatch, parseString, msg) :: acc
+        then (fileName, lineNumber, offset, regexMatch, parseString, msg) :: acc
         elif parseFunction = "parse_type"
-        then (fileName, lineNumber, regexMatch, parseString, msg) :: acc
+        then (fileName, lineNumber, offset, regexMatch, parseString, msg) :: acc
         else failwith ("Unknow parse function: " + parseFunction)
         
 /// Adds a message to the list if a successful parse occurs for a parse_term or parse_type.
-let parsingSuccessCondition (item : (string * int * Match)) acc : (string * int * Match * string * string) list =
-    let (fileName, lineNumber, regexMatch) = item
+let parsingSuccessCondition (item : (string * int * int * Match)) acc : (string * int * int * Match * string * string) list =
+    let (fileName, lineNumber, offset, regexMatch) = item
     let parseFunction = regexMatch.Groups.["parse_function"].Value
     let parseString = regexMatch.Groups.["parseString"].Value
     try
@@ -212,19 +239,37 @@ let parsingSuccessCondition (item : (string * int * Match)) acc : (string * int 
         then NHol.parser.parse_type parseString |> ignore
         else failwith ("Unknow parse function: " + parseFunction)
         let msg = parseFunction + " successful."
-        (fileName, lineNumber, regexMatch, parseString, msg) :: acc
+        (fileName, lineNumber, offset, regexMatch, parseString, msg) :: acc
     with
     | _ -> acc
-        
+
+/// Use to pass functionName with no condtions.
+let functionNameAlwaysCondition (item : (string * int * int * Match)) acc : (string * int * int * Match * string * string) list =
+    let (fileName, lineNumber, offset, regexMatch) = item
+    let functionName = regexMatch.Groups.["functionName"].Value
+    (fileName, lineNumber, offset, regexMatch, functionName, "") :: acc
+    
+/// Adds a message to the list if a HOL Light name is found.
+let holLightNameCondition (item : (string * int * int * Match)) acc : (string * int * int * Match * string * string) list =
+    let (fileName, lineNumber, offset, regexMatch) = item
+    let functionName = regexMatch.Groups.["functionName"].Value
+    let functionNameCondition = 
+//        functionName.ToUpper() = functionName &&
+        offset = 0 &&
+        Regex.IsMatch(functionName, @"^[A-Z0-9_]+$")
+    if functionNameCondition 
+    then (fileName, lineNumber, offset, regexMatch, functionName, "") :: acc
+    else acc
+
 /// Process the matches to build a list of messages based on the condtions.
-let processConditions conditions info  : (string * int * Match * string * string) list =
-    let rec processConditions (item : (string * int * Match)) conditions acc : (string * int * Match * string * string) list =
+let processConditions conditions info  : (string * int * int * Match * string * string) list =
+    let rec processConditions (item : (string * int * int * Match)) conditions acc : (string * int * int * Match * string * string) list =
         match conditions with
         | condition :: tl ->
             let acc = condition item acc
             processConditions item tl acc
         | [] -> acc
-    let rec prcessInfo (info : (string * int * Match) list) conditions acc : (string * int * Match * string * string) list =
+    let rec prcessInfo (info : (string * int * int * Match) list) conditions acc : (string * int * int * Match * string * string) list =
         match info with
         | hd :: tl -> 
             let acc = processConditions hd conditions acc
@@ -314,19 +359,25 @@ let projectFiles : string list =
 // (?<parseString>[^""]*)        - the named group parseString which is any characters upto the next "
 // (?:\x22)                      - a ending " here as \x22
 
-let test001 =
-//    let path = @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol"
-//    let path = @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\bool.fs"
-//    let path = ""
-//    let path = @"bool.fs"
-//    let fileList = getFiles path
+//let test001 =
+////    let path = @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol"
+////    let path = @"E:\Projects\Visual Studio 2012\Github\Harrison\NHol\NHol\bool.fs"
+////    let path = ""
+////    let path = @"theorems.fs"
+////    let fileList = getFiles path
+//
+//    let parseTermPattern = @"(?<parse_function>parse_term)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
+//    let parseTypePattern = @"(?<parse_function>parse_type)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
+//    let patterns = [parseTermPattern; parseTypePattern]
+//
+////    let conditions = [atSignCondition; invalidTextCondition; parsingErrorCondition; parsingSuccessCondition; containsLinebreakCondition]
+//    let conditions = [containsLinebreakCondition; parsingErrorCondition; parsingSuccessCondition]
+//
+//    printMessages projectFiles patterns conditions
 
-    let parseTermPattern = @"(?<parse_function>parse_term)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
-    let parseTypePattern = @"(?<parse_function>parse_type)(?:[ ]?)(?<atSign>[@]?)(?:\x22)(?<parseString>[^""]*)(?:\x22)"
-    let patterns = [parseTermPattern; parseTypePattern]
-
-    let conditions = [atSignCondition; invalidTextCondition; parsingErrorCondition; parsingSuccessCondition; containsLinebreakCondition]
-//    let conditions = [containsLinebreakCondition]
-//    let conditions = [parsingSuccessCondition]
+let test002 =
+    let letWithoutArgsPattern = @"(?:let)(?:( )+)(?<functionName>[^ ]*)(?:( )+)(?:=)"
+    let patterns = [letWithoutArgsPattern]
+    let conditions = [holLightNameCondition]
 
     printMessages projectFiles patterns conditions
