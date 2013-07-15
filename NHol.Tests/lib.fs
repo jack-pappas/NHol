@@ -24,6 +24,8 @@ open NHol.lib
 open NUnit.Framework
 open FsUnit
 open FsCheck
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
 
 // Almost all functions here have equivalences in FSharp.Core.
 // We use the core functions as models for testing.
@@ -297,3 +299,41 @@ let ``check func<'a, 'b> against Map<'a, 'b> model in F# core``() =
 [<Test>]
 let ``{can f x} evaluates to {false} if the application of {f} to {x} causes exception of type Failure _``() = 
     can hd [] |> should equal false
+
+(* gcd_num tests *)
+
+[<Test>]
+let ``{gcd_num m n} for two unlimited-precision, type {num}, integers {m} and {n} returns the positive greatest common divisor of {m} and {n}``() =
+
+    gcd_num (Int 35) (Int(-77))
+    |> should equal (Int 7)
+
+[<Test>]
+let ``{gcd_num m 0} returns {m}``() =
+
+    gcd_num (Int 11) (Int 0)
+    |> should equal (Int 11)
+
+[<Test>]
+let ``{gcd_num 0 n} returns {n}``() =
+
+    gcd_num (Int 0) (Int 11)
+    |> should equal (Int 11)
+
+[<Test>]
+let ``{gcd_num m n} returns zero if both {m} and {n} are zero``() =
+
+    gcd_num (Int 0) (Int 0)
+    |> should equal (Int 0)
+
+[<Test>]
+let ``{gcd_num m n} returns the positive greatest common divisor if {m} is a rational that can be normalized to an integer``() =
+
+    gcd_num (Int 20 / Int 2) (Int 5)
+    |> should equal (Int 5)
+
+[<Test>]
+let ``{gcd_num m n} returns the positive greatest common divisor if {n} is a rational that can be normalized to an integer``() =
+
+    gcd_num (Int 5) (Int 20 / Int 2) 
+    |> should equal (Int 5)
