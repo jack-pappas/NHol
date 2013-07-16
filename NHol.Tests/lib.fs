@@ -297,6 +297,8 @@ let ``check func<'a, 'b> against Map<'a, 'b> model in F# core``() =
 
 // Now we test case by case using FsUnit
 
+// Note: Many of the next test cases came from the HOL Light reference manual
+
 (* failtests *)
 
 [<Test>]
