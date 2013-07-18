@@ -618,7 +618,7 @@ module Big_int =
                 match numerator with
                 | Int i -> bigint i
                 | Big_int i -> i
-            else failwith "big_int_of_ratio" // TODO: substitute with an HolFail exception
+            else failwith "big_int_of_ratio"
 
 module Num =
 

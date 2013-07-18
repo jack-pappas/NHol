@@ -2774,16 +2774,17 @@ let SUM_COMBINE_L =
 (* Extend congruences to deal with sum. Note that we must have the eta       *)
 (* redex or we'll get a loop since f(x) will lambda-reduce recursively.      *)
 (* ------------------------------------------------------------------------- *)
-let th_001 = 
+let th_001 =
     prove((parse_term @"(!f g s.   (!x. x IN s ==> f(x) = g(x)) 
             ==> sum s (\i. f(i)) = sum s g) /\ 
         (!f g a b. (!i. a <= i /\ i <= b ==> f(i) = g(i)) 
             ==> sum(a..b) (\i. f(i)) = sum(a..b) g) /\ 
         (!f g p.   (!x. p x ==> f x = g x) 
-            ==> sum {y | p y} (\i. f(i)) = sum {y | p y} g)"), REPEAT STRIP_TAC 
-      |> THEN <| MATCH_MP_TAC NSUM_EQ 
-      |> THEN <| ASM_SIMP_TAC [IN_ELIM_THM; IN_NUMSEG]) |> ignore   // TODO: Added |> ignore to clear warning. Is this correct?
-    extend_basic_congs (map SPEC_ALL (CONJUNCTS th))
+            ==> sum {y | p y} (\i. f(i)) = sum {y | p y} g)"), 
+        REPEAT STRIP_TAC 
+        |> THEN <| MATCH_MP_TAC NSUM_EQ 
+        |> THEN <| ASM_SIMP_TAC [IN_ELIM_THM; IN_NUMSEG])
+extend_basic_congs (map SPEC_ALL (CONJUNCTS th_001))
 
 (* ------------------------------------------------------------------------- *)
 (* Some special algebraic rearrangements.                                    *)
