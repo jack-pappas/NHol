@@ -1,6 +1,6 @@
 (*
 
-Copyright 2013 Domenico D. D. Masini
+Copyright 2013 Anh-Dung Phan, Domenico Masini
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,36 +16,69 @@ limitations under the License.
 
 *)
 
-#load "hol.fsx"
+#I "./../packages"
 
-//open NHol.lib
-//open NHol.fusion
-//open NHol.basics
-//open NHol.nets
-//open NHol.printer
-//open NHol.preterm
-//open NHol.parser
-//open NHol.equal
-//open NHol.bool
-//open NHol.drule
-//open NHol.tactics
-//open NHol.itab
-//open NHol.simp
-//open NHol.theorems
-//open NHol.ind_defs
-//open NHol.``class``
-//open NHol.trivia
-//open NHol.canon
-//open NHol.meson
-//open NHol.quot
-//open NHol.pair
-//open NHol.nums
-//open NHol.recursion
-//open NHol.arith   
-//open NHol.wf
-//open NHol.calc_num
-//open NHol.normalizer
-//open NHol.grobner
+#r "FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
+#r "FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
+#r "FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
+#r "ExtCore.0.8.29/lib/net40/ExtCore.dll"
+
+#I "./../NHol"
+#r @"bin/Debug/NHol.dll"
+
+#nowarn "25"
+#nowarn "40"
+#nowarn "49"
+#nowarn "62"
+
+open FSharp.Compatibility.OCaml;;
+open FSharp.Compatibility.OCaml.Num;;
+
+open NHol
+open NHol.lib
+open NHol.fusion
+open NHol.basics
+open NHol.nets
+open NHol.printer
+open NHol.preterm
+open NHol.parser
+open NHol.equal
+open NHol.bool
+open NHol.drule
+open NHol.tactics
+open NHol.itab
+open NHol.simp
+open NHol.theorems
+open NHol.ind_defs
+open NHol.``class``
+open NHol.trivia
+open NHol.canon
+open NHol.meson
+open NHol.quot
+open NHol.pair //pair module has to be checked
+open NHol.nums
+open NHol.recursion
+open NHol.arith   
+open NHol.wf //
+open NHol.calc_num
+open NHol.normalizer
+open NHol.grobner
+open NHol.ind_types //
+open NHol.lists
+open NHol.realax   
+open NHol.calc_int 
+open NHol.realarith
+open NHol.real  //  
+//open NHol.calc_rat 
+//open NHol.int     
+//open NHol.sets     
+//open NHol.iterate
+//open NHol.cart     
+//open NHol.define   
+
+fsi.AddPrinter string_of_type;;
+fsi.AddPrinter string_of_term;;
+fsi.AddPrinter string_of_thm;;
 
 //* Initial databases status *//
 
@@ -56,6 +89,9 @@ constants();;                                                                   
 //val it : (string * hol_type) list =
 //  [("=",
 //    Tyapp ("fun",[Tyvar "A"; Tyapp ("fun",[Tyvar "A"; Tyapp ("bool",[])])]))]
+
+infixes();;
+//val it : (string * (int * string)) list = []
 
 axioms();;                                                                          // internal database the_axioms
 //val it : thm list = []
@@ -83,6 +119,10 @@ constants();;                                                                   
 //   ("\/", bool->bool->bool); ("?", (A->bool)->bool); ("!", (A->bool)->bool);
 //   ("==>", bool->bool->bool); ("/\", bool->bool->bool); ("T", bool);
 //   ("=", A->A->bool)]
+infixes();;
+//val it : (string * (int * string)) list =
+//  [("<=>", (2, "right")); ("==>", (4, "right")); ("\/", (6, "right"));
+//   ("/\", (8, "right")); ("=", (12, "right")); (",", (14, "right"))]
 axioms();;                                                                          // the_axioms database doesn't change
 definitions();;                                                                     // the_definitions doesn't change
 !the_implicit_types;;                                                               // no change
@@ -160,7 +200,7 @@ constants();;                                                                   
 //   ("F", bool); ("\/", bool->bool->bool); ("?", (A->bool)->bool);
 //   ("!", (A->bool)->bool); ("==>", bool->bool->bool); ("/\", bool->bool->bool);
 //   ("T", bool); ("=", A->A->bool)]
-axioms();;                                                                          // new axioms: ETA, SELECT
+axioms();;                                                                          // new axioms: SELECT, ETA
 //  [|- !P x. P x ==> P ((@) P); |- !t. (\x. t x) = t]
 definitions();;                                                                     // new COND definition
 //  [|- COND = (\t t1 t2. @x. ((t <=> T) ==> x = t1) /\ ((t <=> F) ==> x = t2));
