@@ -69,12 +69,14 @@ open NHol.realax
 open NHol.calc_int 
 open NHol.realarith
 open NHol.real  //  
-//open NHol.calc_rat 
-//open NHol.int     
+open NHol.calc_rat 
+
 //open NHol.sets     
 //open NHol.iterate
 //open NHol.cart     
 //open NHol.define   
+
+
 
 fsi.AddPrinter string_of_type;;
 fsi.AddPrinter string_of_term;;
@@ -108,11 +110,12 @@ mk_realintconst;;   //calc_int
 REAL_LTE_TOTAL;;    //realarith
 REAL_OF_NUM_LT;;    //real various
 
-#load "calc_rat.fs" 
-open NHol.calc_rat 
-
 DECIMAL;;           //calc_rat first issue at line 120
-//integer;;           //int
+
+#load "int.fs" 
+open NHol.int     
+
+integer;;           //int
 //IN;;                //sets
 //FINITE_NUMSEG;;     //iterate
 //dimindex;;          //cart
