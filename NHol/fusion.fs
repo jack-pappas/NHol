@@ -35,15 +35,30 @@ module Hol_kernel =
     type hol_type = 
         | Tyvar of string
         | Tyapp of string * hol_type list
+        override this.ToString() = 
+            match this with
+            | Tyvar s -> "Tyvar \"" + s + "\""
+            | Tyapp(s, htlist) -> "Tyapp (\"" + s + "\", " + htlist.ToString() + ")"
     
     type term = 
         | Var of string * hol_type
         | Const of string * hol_type
         | Comb of term * term
         | Abs of term * term
+        override this.ToString() = 
+            match this with
+            | Var(s, t) -> "Var (\"" + s + "\", " + t.ToString() + ")"
+            | Const(s, t) -> "Const (\"" + s + "\", " + t.ToString() + ")"
+            | Comb(t1, t2) -> "Comb (" + t1.ToString() + ", " + t2.ToString() + ")"
+            | Abs(t1, t2) -> 
+                "Abs (\"" + t1.ToString() + "\", " + t2.ToString() + ")"
     
     type thm = 
         | Sequent of (term list * term)
+        override this.ToString() = 
+            match this with
+            | Sequent(tlist, t) -> 
+                "Sequent (" + tlist.ToString() + ", " + t.ToString() + ")"
     
     (* ------------------------------------------------------------------------- *)
     (* List of current type constants with their arities.                        *)
