@@ -47,9 +47,19 @@ type term_label =
     | Lcnet of (string * int)   (* local constant            *)
     | Cnet of (string * int)    (* constant                  *)
     | Lnet of int               (* lambda term (abstraction) *)
+    override this.ToString() = 
+        match this with
+        | Vnet -> "Vnet"
+        | Lcnet(s, i) -> "Lcnet (\"" + s + "\", " + i.ToString() + ")"
+        | Cnet(s, i) -> "Cnet (\"" + s + "\", " + i.ToString() + ")"
+        | Lnet i -> "Lnet (" + i.ToString() + ")"
 
 type net<'a> = 
     | Netnode of (term_label * 'a net) list * 'a list
+    override this.ToString() = 
+        match this with
+        | Netnode(tlList, aList) -> 
+            "Netnode (" + tlList.ToString() + ", " + aList.ToString() + ")"
 
 (* ------------------------------------------------------------------------- *)
 (* The empty net.                                                            *)
