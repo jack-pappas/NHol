@@ -132,21 +132,27 @@ let INSERT_DEF =
 (* ------------------------------------------------------------------------- *)
 (* The other basic operations.                                               *)
 (* ------------------------------------------------------------------------- *)
-let UNIV = new_definition(parse_term @"UNIV = (\x:A. T)")
+let UNIV = new_definition(parse_term @"UNIV = (\x:A. T)");;
 
 let UNION = new_definition(parse_term @"s UNION t = {x:A | x IN s \/ x IN t}")
+
 let UNIONS = 
-    new_definition(parse_term @"UNIONS s = {x:A | ?u. u IN s /\ x IN u}")
-let INTER = new_definition(parse_term @"s INTER t = {x:A | x IN s /\ x IN t}")
+    new_definition(parse_term @"UNIONS s = {x:A | ?u. u IN s /\ x IN u}");;
+
+let INTER = new_definition(parse_term @"s INTER t = {x:A | x IN s /\ x IN t}");;
+
 let INTERS = 
-    new_definition(parse_term @"INTERS s = {x:A | !u. u IN s ==> x IN u}")
-let DIFF = new_definition(parse_term @"s DIFF t =  {x:A | x IN s /\ ~(x IN t)}")
+    new_definition(parse_term @"INTERS s = {x:A | !u. u IN s ==> x IN u}");;
+
+let DIFF = new_definition(parse_term @"s DIFF t =  {x:A | x IN s /\ ~(x IN t)}");;
+
 let INSERT = 
     prove
         ((parse_term @"x INSERT s = {y:A | y IN s \/ (y = x)}"), 
-         REWRITE_TAC [EXTENSION; INSERT_DEF; IN_ELIM_THM])
+         REWRITE_TAC [EXTENSION; INSERT_DEF; IN_ELIM_THM]);;
+
 let DELETE = 
-    new_definition(parse_term @"s DELETE x = {y:A | y IN s /\ ~(y = x)}")
+    new_definition(parse_term @"s DELETE x = {y:A | y IN s /\ ~(y = x)}");;
 
 (* ------------------------------------------------------------------------- *)
 (* Other basic predicates.                                                   *)
@@ -156,8 +162,10 @@ let SUBSET = new_definition(parse_term @"s SUBSET t <=> !x:A. x IN s ==> x IN t"
 let PSUBSET = 
     new_definition
         (parse_term @"(s:A->bool) PSUBSET t <=> s SUBSET t /\ ~(s = t)")
+
 let DISJOINT = 
     new_definition(parse_term @"DISJOINT (s:A->bool) t <=> (s INTER t = EMPTY)")
+
 let SING = new_definition(parse_term @"SING s = ?x:A. s = {x}")
 
 (* ------------------------------------------------------------------------- *)

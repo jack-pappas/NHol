@@ -74,7 +74,7 @@ prioritize_num();;
 (* ------------------------------------------------------------------------- *)
 parse_as_infix("..",(15,"right"));;
 
-let numseg = new_definition(parse_term @"m..n = {x:num | m <= x /\ x <= n}")
+let numseg = new_definition(parse_term @"m..n = {x:num | m <= x /\ x <= n}");;
 
 let FINITE_NUMSEG = 
     prove
@@ -83,39 +83,43 @@ let FINITE_NUMSEG =
          |> THEN <| MATCH_MP_TAC FINITE_SUBSET
          |> THEN <| EXISTS_TAC(parse_term @"{x:num | x <= n}")
          |> THEN <| REWRITE_TAC [FINITE_NUMSEG_LE]
-         |> THEN <| SIMP_TAC [SUBSET; IN_ELIM_THM; numseg])
+         |> THEN <| SIMP_TAC [SUBSET; IN_ELIM_THM; numseg]);;
 
 let NUMSEG_COMBINE_R = 
     prove
         ((parse_term @"!m p n. m <= p + 1 /\ p <= n ==> ((m..p) UNION ((p+1)..n) = m..n)"), 
          REWRITE_TAC [EXTENSION; IN_UNION; numseg; IN_ELIM_THM]
-         |> THEN <| ARITH_TAC)
+         |> THEN <| ARITH_TAC);;
+
 let NUMSEG_COMBINE_L = 
     prove
         ((parse_term @"!m p n. m <= p /\ p <= n + 1 ==> ((m..(p-1)) UNION (p..n) = m..n)"), 
          REWRITE_TAC [EXTENSION; IN_UNION; numseg; IN_ELIM_THM]
-         |> THEN <| ARITH_TAC)
+         |> THEN <| ARITH_TAC);;
+
 let NUMSEG_LREC = 
     prove
         ((parse_term @"!m n. m <= n ==> (m INSERT ((m+1)..n) = m..n)"), 
          REWRITE_TAC [EXTENSION; IN_INSERT; numseg; IN_ELIM_THM]
-         |> THEN <| ARITH_TAC)
+         |> THEN <| ARITH_TAC);;
+
 let NUMSEG_RREC = 
     prove
         ((parse_term @"!m n. m <= n ==> (n INSERT (m..(n-1)) = m..n)"), 
          REWRITE_TAC [EXTENSION; IN_INSERT; numseg; IN_ELIM_THM]
-         |> THEN <| ARITH_TAC)
+         |> THEN <| ARITH_TAC);;
 
 let NUMSEG_REC = 
     prove
         ((parse_term @"!m n. m <= SUC n ==> (m..SUC n = (SUC n) INSERT (m..n))"), 
          SIMP_TAC [GSYM NUMSEG_RREC
-                   SUC_SUB1])
+                   SUC_SUB1]);;
 
 let IN_NUMSEG = 
     prove
         ((parse_term @"!m n p. p IN (m..n) <=> m <= p /\ p <= n"), 
-         REWRITE_TAC [numseg; IN_ELIM_THM])
+         REWRITE_TAC [numseg; IN_ELIM_THM]);;
+
 let IN_NUMSEG_0 = 
     prove
         ((parse_term @"!m n. m IN (0..n) <=> m <= n"), 
@@ -123,12 +127,12 @@ let IN_NUMSEG_0 =
 let NUMSEG_SING = prove((parse_term @"!n. n..n = {n}"), REWRITE_TAC 
                                                            [EXTENSION; IN_SING; 
                                                             IN_NUMSEG]
-                                                       |> THEN <| ARITH_TAC)
+                                                       |> THEN <| ARITH_TAC);;
 let NUMSEG_EMPTY = 
     prove
         ((parse_term @"!m n. (m..n = {}) <=> n < m"), 
          REWRITE_TAC [EXTENSION; NOT_IN_EMPTY; IN_NUMSEG]
-         |> THEN <| MESON_TAC [NOT_LE; LE_TRANS; LE_REFL])
+         |> THEN <| MESON_TAC [NOT_LE; LE_TRANS; LE_REFL]);;
 
 let CARD_NUMSEG_LEMMA = 
     prove
@@ -145,7 +149,7 @@ let CARD_NUMSEG_LEMMA =
                                   NOT_IN_EMPTY
                                   ARITH
                                   IN_NUMSEG
-                                  ARITH_RULE(parse_term @"~(SUC n <= n)")])
+                                  ARITH_RULE(parse_term @"~(SUC n <= n)")]);;
 
 let CARD_NUMSEG = 
     prove
@@ -161,20 +165,22 @@ let CARD_NUMSEG =
                       SIMP_TAC 
                           [LE_EXISTS; LEFT_IMP_EXISTS_THM; CARD_NUMSEG_LEMMA]
                       |> THEN <| REPEAT STRIP_TAC
-                      |> THEN <| ARITH_TAC])
+                      |> THEN <| ARITH_TAC]);;
 
 let HAS_SIZE_NUMSEG = 
     prove
         ((parse_term @"!m n. (m..n) HAS_SIZE ((n + 1) - m)"), 
-         REWRITE_TAC [HAS_SIZE; FINITE_NUMSEG; CARD_NUMSEG])
+         REWRITE_TAC [HAS_SIZE; FINITE_NUMSEG; CARD_NUMSEG]);;
+
 let CARD_NUMSEG_1 = 
     prove((parse_term @"!n. CARD(1..n) = n"), REWRITE_TAC [CARD_NUMSEG]
-                                             |> THEN <| ARITH_TAC)
+                                             |> THEN <| ARITH_TAC);;
+
 let HAS_SIZE_NUMSEG_1 = 
     prove((parse_term @"!n. (1..n) HAS_SIZE n"), REWRITE_TAC 
                                                     [CARD_NUMSEG; HAS_SIZE; 
                                                      FINITE_NUMSEG]
-                                                |> THEN <| ARITH_TAC)
+                                                |> THEN <| ARITH_TAC);;
 
 let NUMSEG_CLAUSES = 
     prove
@@ -185,7 +191,7 @@ let NUMSEG_CLAUSES =
          |> THEN <| GEN_REWRITE_TAC I [EXTENSION]
          |> THEN <| REWRITE_TAC [IN_NUMSEG; NOT_IN_EMPTY; IN_INSERT]
          |> THEN <| POP_ASSUM MP_TAC
-         |> THEN <| ARITH_TAC)
+         |> THEN <| ARITH_TAC);;
 
 let FINITE_INDEX_NUMSEG = 
     prove
