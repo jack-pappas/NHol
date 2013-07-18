@@ -25,6 +25,9 @@ open NUnit.Framework
 open FsUnit
 open FsCheck
 open FSharp.Compatibility.OCaml
+
+#nowarn "62"
+
 open FSharp.Compatibility.OCaml.Big_int
 open FSharp.Compatibility.OCaml.Num
 
@@ -33,14 +36,14 @@ open FSharp.Compatibility.OCaml.Num
 
 [<Test>]
 let ``map is equivalent to List.map``() =
-    assertProp "map" <| fun xs ->
-        map (fun x -> 2 * x) xs = List.map (fun x -> 2 * x) xs
+    assertProp "map" <| fun (xs : int list) f ->
+        map f xs = List.map f xs
 
 [<Test>]
 let ``map2 is equivalent to List.map2``() =
-    assertProp "map2" <| fun zs ->
+    assertProp "map2" <| fun (zs : (int * int) list) f ->
         let (xs, ys) = List.unzip zs
-        map2 (fun x y -> x * y) xs ys = List.map2 (fun x y -> x * y) xs ys
+        map2 f xs ys = List.map2 f xs ys
 
 [<Test>]
 let ``el is equivalent to List.nth``() =
@@ -60,14 +63,14 @@ let ``rev_itlist is equivalent to List.fold``() =
 
 [<Test>]
 let ``end_itlist is equivalent to List.reduceBack on non-empty lists``() =
-    assertProp "end_itlist" <| fun xs ->
-        xs <> [] ==> lazy (end_itlist (fun x y -> x - y) xs = List.reduceBack (fun x y -> x - y) xs)
+    assertProp "end_itlist" <| fun (xs : int list) f ->
+        xs <> [] ==> lazy (end_itlist f xs = List.reduceBack f xs)
 
 [<Test>]
 let ``itlist2 is equivalent to List.foldBack2 on two same-length lists``() =
-    assertProp "itlist2" <| fun zs ->
+    assertProp "itlist2" <| fun zs f ->
         let (xs : int64 list), (ys : int16 list) = List.unzip zs
-        itlist2 (fun x y acc -> acc + ((int x) + (int y)).ToString()) xs ys "" = List.foldBack2 (fun x y acc -> acc + ((int x) + (int y)).ToString()) xs ys ""
+        itlist2 f xs ys "" = List.foldBack2 f xs ys ""
 
 [<Test>]
 let ``rev_itlist2 is equivalent to List.fold2 on two same-length lists``() =
@@ -87,19 +90,19 @@ let ``-- is equivalent to ..``() =
 
 [<Test>]
 let ``forall is equivalent to List.forall``() =
-    assertProp "forall" <| fun xs ->
-        forall (fun x -> x > 0) xs = List.forall (fun x -> x > 0) xs
+    assertProp "forall" <| fun (xs : int list) f ->
+        forall f xs = List.forall f xs
 
 [<Test>]
 let ``forall2 is equivalent to List.forall2``() =
-    assertProp "forall2" <| fun (zs : (int * int) list) ->
+    assertProp "forall2" <| fun (zs : (int * int) list) f ->
         let (xs, ys) = List.unzip zs
-        forall2 (fun x y -> x >= y) xs ys = List.forall2 (fun x y -> x >= y) xs ys
+        forall2 f xs ys = List.forall2 f xs ys
 
 [<Test>]
 let ``exists is equivalent to List.exists``() =
-    assertProp "exists" <| fun xs ->
-        exists (fun x -> x > 0) xs = List.exists (fun x -> x > 0) xs
+    assertProp "exists" <| fun (xs : int list) f ->
+        exists f xs = List.exists f xs
 
 [<Test>]
 let ``length is equivalent to List.length``() =
@@ -108,13 +111,13 @@ let ``length is equivalent to List.length``() =
 
 [<Test>]
 let ``filter is equivalent to List.filter``() =
-    assertProp "filter" <| fun xs ->
-        filter (fun x -> x > 0) xs = List.filter (fun x -> x > 0) xs
+    assertProp "filter" <| fun (xs : int list) f ->
+        filter f xs = List.filter f xs
 
 [<Test>]
 let ``partition is equivalent to List.partition``() =
-    assertProp "partition" <| fun xs ->
-        partition (fun x -> x > 0) xs = List.partition (fun x -> x > 0) xs
+    assertProp "partition" <| fun (xs : int list) f ->
+        partition f xs = List.partition f xs
 
 // The `lazy` keyword is important in order to avoid early evaluation
 [<Test>]
@@ -174,12 +177,12 @@ let ``reversing a list two times gives the list``() =
         rev (rev xs) = xs
 
 [<Test>]
-let ``intersect and subtract can build up the setify``() =
+let ``intersect and subtract can build up the set``() =
     assertProp "intersect-subtract" <| fun (xs : int list) ys ->
         setify (intersect xs ys @ subtract xs ys) = setify xs
 
 [<Test>]
-let ``union and subtract can build up the setify``() =
+let ``union and subtract can build up the set``() =
     assertProp "union-subtract" <| fun (xs : int list) ys ->
         setify (union xs ys) = setify (subtract xs ys @ ys)
 
@@ -292,7 +295,7 @@ let spec =
         member x.GenCommand _ = Gen.oneof [add; remove; map; foldl; foldr] }
 
 [<Test>]
-let ``check func<'a, 'b> against Map<'a, 'b> model in F# core``() =
+let ``check func<'a, 'b> against Map<'a, 'b> model in F# Core``() =
     Check.QuickThrowOnFailure (asProperty spec)
 
 // Now we test case by case using FsUnit

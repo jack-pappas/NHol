@@ -26,10 +26,6 @@ open NUnit.Framework
 open FsUnit
 
 [<Test>]
-let dummy () : unit =
-    Assert.Ignore "Test not yet implemented."
-
-[<Test>]
 let ``{enter} insert a new element into a net``() =
 
     let aTerm = Const ("a",Tyvar "bool")

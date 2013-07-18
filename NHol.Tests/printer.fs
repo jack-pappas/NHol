@@ -22,9 +22,6 @@ module Tests.NHol.printer
 open NUnit.Framework
 open FsUnit
 
-[<Test>]
-let dummy () : unit =
-    Assert.Ignore "Test not yet implemented."
 
 
 

@@ -24,10 +24,6 @@ open NHol.fusion
 open NUnit.Framework
 open FsUnit
 
-[<Test>]
-let dummy () : unit =
-    Assert.Ignore "Test not yet implemented."
-
 // Note: Many of the next test cases came from the HOL Light reference manual
 
 (* types tests *)
