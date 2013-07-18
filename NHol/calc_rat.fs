@@ -751,14 +751,25 @@ let ASM_REAL_ARITH_TAC =
 (* ------------------------------------------------------------------------- *)
 /// Prove basic 'field' facts over the reals.
 let REAL_FIELD =
-  let prenex_conv =
-    TOP_DEPTH_CONV BETA_CONV |>THENC<|
-    PURE_REWRITE_CONV[FORALL_SIMP; EXISTS_SIMP; real_div;
-                      REAL_INV_INV; REAL_INV_MUL; GSYM REAL_POW_INV] |>THENC<|
-    NNFC_CONV |>THENC<| DEPTH_BINOP_CONV (parse_term @"(/\)") CONDS_CELIM_CONV |>THENC<|
-    PRENEX_CONV |>THENC<|
-    ONCE_REWRITE_CONV[REAL_ARITH (parse_term @"x < y <=> x < y /\ ~(x = y)")]
-  let setup_conv = NNF_CONV |>THENC<| WEAK_CNF_CONV |>THENC<| CONJ_CANON_CONV
+  // CAUTION: change from value to function to delay its System.Exception
+  let prenex_conv() = 
+      TOP_DEPTH_CONV BETA_CONV
+      |> THENC <| PURE_REWRITE_CONV [FORALL_SIMP;
+                                     EXISTS_SIMP;
+                                     real_div;
+                                     REAL_INV_INV;
+                                     REAL_INV_MUL;
+                                     GSYM REAL_POW_INV]
+      |> THENC <| NNFC_CONV
+      |> THENC <| DEPTH_BINOP_CONV (parse_term @"(/\)") CONDS_CELIM_CONV
+      |> THENC <| PRENEX_CONV
+      |> THENC <| ONCE_REWRITE_CONV [REAL_ARITH(parse_term @"x < y <=> x < y /\ ~(x = y)")]
+
+  let setup_conv = 
+      NNF_CONV
+      |> THENC <| WEAK_CNF_CONV
+      |> THENC <| CONJ_CANON_CONV
+
   let core_rule t = 
     try 
       REAL_RING t 
@@ -780,7 +791,7 @@ let REAL_FIELD =
     let th2 = EQ_MP (SYM th1) (end_itlist CONJ ths)
     rev_itlist (C MP) hyps th2
   fun tm ->
-    let th0 = prenex_conv tm
+    let th0 = prenex_conv () tm
     let tm0 = rand(concl th0)
     let avs,bod = strip_forall tm0
     let th1 = setup_conv bod
