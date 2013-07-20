@@ -23,6 +23,8 @@ limitations under the License.
 /// Complete HOL kernel of types, terms and theorems.
 module NHol.fusion
 
+open System
+
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
@@ -59,6 +61,10 @@ module Hol_kernel =
             match this with
             | Sequent(tlist, t) -> 
                 "Sequent (" + tlist.ToString() + ", " + t.ToString() + ")"
+
+    type HolType = Choice<hol_type, exn>
+    type Term = Choice<term, exn>
+    type Thm = Choice<thm, exn>
     
     (* ------------------------------------------------------------------------- *)
     (* List of current type constants with their arities.                        *)
@@ -543,54 +549,64 @@ module Hol_kernel =
 
     /// Breaks a theorem into assumption list and conclusion.
     let dest_thm(Sequent(asl, c)) = (asl, c)
+
     /// Returns the hypotheses of a theorem.
     let hyp(Sequent(asl, c)) = asl
+    
     /// Returns the conclusion of a theorem.
     let concl(Sequent(asl, c)) = c
+    
     (* ------------------------------------------------------------------------- *)
     (* Basic equality properties; TRANS is derivable but included for efficiency *)
     (* ------------------------------------------------------------------------- *)
 
     /// Returns theorem expressing reflexivity of equality.
-    let REFL tm = Sequent([], safe_mk_eq tm tm)
+    let REFL tm = Choice1Of2 <| Sequent([], safe_mk_eq tm tm)
     
     /// Uses transitivity of equality on two equational theorems.
-    let TRANS (Sequent(asl1, c1)) (Sequent(asl2, c2)) = 
-        match (c1, c2) with
-        | Comb((Comb(Const("=", _), _) as eql), m1), Comb(Comb(Const("=", _), m2), r) when alphaorder m1 m2 = 0 -> 
-            Sequent(term_union asl1 asl2, Comb(eql, r))
-        | _ -> failwith "TRANS"
+    let TRANS thm1 thm2 = 
+        let TRANS (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
+            match (c1, c2) with
+            | Comb((Comb(Const("=", _), _) as eql), m1), Comb(Comb(Const("=", _), m2), r) when alphaorder m1 m2 = 0 -> 
+                Choice1Of2 <| Sequent(term_union asl1 asl2, Comb(eql, r))
+            | _ -> Choice2Of2 <| Exception "TRANS"
+        Choice.bind2 TRANS thm1 thm2
     
     (* ------------------------------------------------------------------------- *)
     (* Congruence properties of equality.                                        *)
     (* ------------------------------------------------------------------------- *)
 
     /// Proves equality of combinations constructed from equal functions and operands.
-    let MK_COMB(Sequent(asl1, c1), Sequent(asl2, c2)) = 
-        match (c1, c2) with
-        | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) -> 
-            (match type_of l1 with
-             | Tyapp("fun", [ty; _]) when compare ty (type_of l2) = 0 -> 
-                 Sequent(term_union asl1 asl2, safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2)))
-             | _ -> failwith "MK_COMB: types do not agree")
-        | _ -> failwith "MK_COMB: not both equations"
+    let MK_COMB(thm1, thm2) =
+        let MK_COMB(Sequent(asl1, c1), Sequent(asl2, c2)) = 
+            match (c1, c2) with
+            | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) -> 
+                match type_of l1 with
+                | Tyapp("fun", [ty; _]) when compare ty (type_of l2) = 0 -> 
+                     Choice1Of2 <| Sequent(term_union asl1 asl2, safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2)))
+                | _ -> Choice2Of2 <| Exception "MK_COMB: types do not agree"
+            | _ -> Choice2Of2 <| Exception "MK_COMB: not both equations"
+        Choice.bind2 (curry MK_COMB) thm1 thm2
     
     /// Abstracts both sides of an equation.
-    let ABS v (Sequent(asl, c)) = 
-        match (v, c) with
-        | Var(_, _), Comb(Comb(Const("=", _), l), r) when not(exists (vfree_in v) asl) -> 
-            Sequent(asl, safe_mk_eq (Abs(v, l)) (Abs(v, r)))
-        | _ -> failwith "ABS"
+    let ABS v thm =
+        let ABS v (Sequent(asl, c)) = 
+            match (v, c) with
+            | Var(_, _), Comb(Comb(Const("=", _), l), r) when not(exists (vfree_in v) asl) -> 
+                Choice1Of2 <| Sequent(asl, safe_mk_eq (Abs(v, l)) (Abs(v, r)))
+            | _ -> Choice2Of2 <| Exception "ABS"
+        Choice.bind (ABS v) thm
     
     (* ------------------------------------------------------------------------- *)
     (* Trivial case of lambda calculus beta-conversion.                          *)
     (* ------------------------------------------------------------------------- *)
 
     /// Special primitive case of beta-reduction.
-    let BETA tm = 
+    let BETA tm =
         match tm with
-        | Comb(Abs(v, bod), arg) when compare arg v = 0 -> Sequent([], safe_mk_eq tm bod)
-        | _ -> failwith "BETA: not a trivial beta-redex"
+        | Comb(Abs(v, bod), arg) when compare arg v = 0 -> 
+            Choice1Of2 <| Sequent([], safe_mk_eq tm bod)
+        | _ -> Choice2Of2 <| Exception "BETA: not a trivial beta-redex"
     
     (* ------------------------------------------------------------------------- *)
     (* Rules connected with deduction.                                           *)
@@ -598,40 +614,50 @@ module Hol_kernel =
 
     /// Introduces an assumption.
     let ASSUME tm = 
-        if compare (type_of tm) bool_ty = 0 then Sequent([tm], tm)
-        else failwith "ASSUME: not a proposition"
+        if compare (type_of tm) bool_ty = 0 then Choice1Of2 <| Sequent([tm], tm)
+        else Choice2Of2 <| Exception "ASSUME: not a proposition"
     
     /// Equality version of the Modus Ponens rule.
-    let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) = 
-        match eq with
-        | Comb(Comb(Const("=", _), l), r) when alphaorder l c = 0 -> Sequent(term_union asl1 asl2, r)
-        | _ -> failwith "EQ_MP"
+    let EQ_MP thm1 thm2 =
+        let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) = 
+            match eq with
+            | Comb(Comb(Const("=", _), l), r) when alphaorder l c = 0 -> 
+                Choice1Of2 <| Sequent(term_union asl1 asl2, r)
+            | _ -> Choice2Of2 <| Exception "EQ_MP"
+        Choice.bind2 EQ_MP thm1 thm2
     
     /// Deduces logical equivalence from deduction in both directions.
-    let DEDUCT_ANTISYM_RULE (Sequent(asl1, c1)) (Sequent(asl2, c2)) = 
-        let asl1' = term_remove c2 asl1
-        let asl2' = term_remove c1 asl2
-        Sequent(term_union asl1' asl2', safe_mk_eq c1 c2)
+    let DEDUCT_ANTISYM_RULE thm1 thm2 =
+        let DEDUCT_ANTISYM_RULE (Sequent(asl1, c1)) (Sequent(asl2, c2)) = 
+            let asl1' = term_remove c2 asl1
+            let asl2' = term_remove c1 asl2
+            Choice1Of2 <| Sequent(term_union asl1' asl2', safe_mk_eq c1 c2)
+        Choice.bind2 DEDUCT_ANTISYM_RULE thm1 thm2
     
     (* ------------------------------------------------------------------------- *)
     (* Type and term instantiation.                                              *)
     (* ------------------------------------------------------------------------- *)
 
     /// Instantiates types in a theorem.
-    let INST_TYPE theta (Sequent(asl, c)) = 
-        let inst_fn = inst theta
-        Sequent(term_image inst_fn asl, inst_fn c)
+    let INST_TYPE theta thm =
+        let INST_TYPE theta (Sequent(asl, c)) = 
+            let inst_fn = inst theta
+            Choice1Of2 <| Sequent(term_image inst_fn asl, inst_fn c)
+        Choice.bind (INST_TYPE theta) thm
     
     /// Instantiates free variables in a theorem.
-    let INST theta (Sequent(asl, c)) = 
-        let inst_fun = vsubst theta
-        Sequent(term_image inst_fun asl, inst_fun c)
+    let INST theta thm =
+        let INST theta (Sequent(asl, c)) = 
+            let inst_fun = vsubst theta
+            Choice1Of2 <| Sequent(term_image inst_fun asl, inst_fun c)
+        Choice.bind (INST theta) thm
     
     (* ------------------------------------------------------------------------- *)
     (* Handling of axioms.                                                       *)
     (* ------------------------------------------------------------------------- *)
 
     let the_axioms = ref([] : thm list)
+
     /// Returns the current set of axioms.
     let axioms() = !the_axioms
     
@@ -640,8 +666,8 @@ module Hol_kernel =
         if compare (type_of tm) bool_ty = 0 then 
             let th = Sequent([], tm)
             (the_axioms := th :: (!the_axioms)
-             th)
-        else failwith "new_axiom: Not a proposition"
+             Choice1Of2 th)
+        else Choice2Of2 <| Exception "new_axiom: Not a proposition"
     
     (* ------------------------------------------------------------------------- *)
     (* Handling of (term) definitions.                                           *)
@@ -649,6 +675,7 @@ module Hol_kernel =
 
     /// List of all definitions introduced so far.
     let the_definitions = ref([] : thm list)
+
     /// Returns the current set of primitive definitions.
     let definitions() = !the_definitions
     
@@ -656,17 +683,17 @@ module Hol_kernel =
     let new_basic_definition tm = 
         match tm with
         | Comb(Comb(Const("=", _), Var(cname, ty)), r) -> 
-            if not(freesin [] r) then failwith "new_definition: term not closed"
+            if not(freesin [] r) then Choice2Of2 <| Exception "new_definition: term not closed"
             elif not(subset (type_vars_in_term r) (tyvars ty)) then 
-                failwith "new_definition: Type variables not reflected in constant"
+                Choice2Of2 <| Exception "new_definition: Type variables not reflected in constant"
             else 
                 let c = 
                     new_constant(cname, ty)
                     Const(cname, ty)
                 let dth = Sequent([], safe_mk_eq c r)
                 the_definitions := dth :: (!the_definitions)
-                dth
-        | _ -> failwith "new_basic_definition"
+                Choice1Of2 <| dth
+        | _ -> Choice2Of2 <| Exception "new_basic_definition"
     
     (* ------------------------------------------------------------------------- *)
     (* Handling of type definitions.                                             *)

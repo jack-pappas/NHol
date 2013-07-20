@@ -23,6 +23,7 @@ limitations under the License.
 /// Basic equality reasoning including conversionals.
 module NHol.equal
 
+open System
 open FSharp.Compatibility.OCaml
 
 open NHol
@@ -40,7 +41,7 @@ open parser
 (* Type abbreviation for conversions.                                        *)
 (* ------------------------------------------------------------------------- *)
 
-type conv = term -> thm
+type conv = term -> Thm
 
 (* ------------------------------------------------------------------------- *)
 (* A bit more syntax.                                                        *)
@@ -73,48 +74,42 @@ let mk_primed_var =
 
 /// General case of beta-conversion.
 let BETA_CONV tm = 
-    try 
-        BETA tm
-    with
-    | Failure _ -> 
-        try 
-            let f, arg = dest_comb tm
-            let v = bndvar f
-            INST [arg, v] (BETA(mk_comb(f, v)))
-        with
-        | Failure _ -> failwith "BETA_CONV: Not a beta-redex"
+    BETA tm
+    |> Choice.bindError (fun _ -> 
+        let f, arg = dest_comb tm
+        let v = bndvar f
+        INST [arg, v] (BETA(mk_comb(f, v))))
+    |> Choice.mapError (fun _ -> Exception "BETA_CONV: Not a beta-redex")
 
 (* ------------------------------------------------------------------------- *)
 (* A few very basic derived equality rules.                                  *)
 (* ------------------------------------------------------------------------- *)
 
+/// This function is currently unsafe
+let concl thm =
+    concl (Choice.get thm)
+
 /// Applies a function to both sides of an equational theorem.
 let AP_TERM tm th = 
-    try 
-        MK_COMB(REFL tm, th)
-    with
-    | Failure _ -> failwith "AP_TERM"
+    MK_COMB (REFL tm, th)
+    |> Choice.mapError (fun _ -> Exception "AP_TERM")
 
 /// Proves equality of equal functions applied to a term.
 let AP_THM th tm = 
-    try 
-        MK_COMB(th, REFL tm)
-    with
-    | Failure _ -> failwith "AP_THM"
+    MK_COMB (th, REFL tm)
+    |> Choice.mapError (fun _ -> Exception "AP_THM")
 
 /// Swaps left-hand and right-hand sides of an equation.
 let SYM th = 
     let tm = concl th
     let l, r = dest_eq tm
     let lth = REFL l
-    EQ_MP (MK_COMB(AP_TERM (rator(rator tm)) th, lth)) lth
+    EQ_MP (MK_COMB(AP_TERM (rator(rator tm)) <| Choice1Of2 th, lth)) lth
 
 /// Proves equality of alpha-equivalent terms.
 let ALPHA tm1 tm2 = 
-    try 
-        TRANS (REFL tm1) (REFL tm2)
-    with
-    | Failure _ -> failwith "ALPHA"
+    TRANS (REFL tm1) (REFL tm2)
+    |> Choice.mapError (fun _ -> Exception "ALPHA")
 
 /// Renames the bound variable of a lambda-abstraction.
 let ALPHA_CONV v tm = 
@@ -130,12 +125,14 @@ let GEN_ALPHA_CONV v tm =
 
 /// Compose equational theorems with binary operator.
 let MK_BINOP op (lth, rth) = MK_COMB(AP_TERM op lth, rth)
+
 (* ------------------------------------------------------------------------- *)
 (* Terminal conversion combinators.                                          *)
 (* ------------------------------------------------------------------------- *)
 
 /// Conversion that always fails.
-let NO_CONV : conv = fun tm -> failwith "NO_CONV"
+let NO_CONV : conv = fun tm -> Choice2Of2 <| Exception "NO_CONV"
+
 /// Conversion that always succeeds and leaves a term unchanged.
 let ALL_CONV : conv = REFL
 
@@ -144,35 +141,36 @@ let ALL_CONV : conv = REFL
 (* ------------------------------------------------------------------------- *)
 
 /// Applies two conversions in sequence.
-let (THENC : conv -> conv -> conv) = 
+let THENC : conv -> conv -> conv = 
     fun conv1 conv2 t -> 
         let th1 = conv1 t
-        let th2 = conv2(rand(concl th1))
+        let th2 = conv2 (rand(concl th1))
         TRANS th1 th2
 
 /// Applies the first of two conversions that succeeds.
-let (ORELSEC : conv -> conv -> conv) = 
+let ORELSEC : conv -> conv -> conv = 
     fun conv1 conv2 t -> 
-        try 
-            conv1 t
-        with
-        | Failure _ -> conv2 t
+        conv1 t
+        |> Choice.bindError (fun _ -> conv2 t)
 
 /// Apply the first of the conversions in a given list that succeeds.
-let (FIRST_CONV : conv list -> conv) = end_itlist(fun c1 c2 -> ORELSEC c1 c2)
+let FIRST_CONV : conv list -> conv = end_itlist (fun c1 c2 -> ORELSEC c1 c2)
+
 /// Applies in sequence all the conversions in a given list of conversions.
-let (EVERY_CONV : conv list -> conv) = fun l -> itlist THENC l ALL_CONV
+let EVERY_CONV : conv list -> conv = fun l -> itlist THENC l ALL_CONV
+
 /// Repeatedly apply a conversion (zero or more times) until it fails.
 let REPEATC : conv -> conv = 
-    let rec REPEATC conv t = (ORELSEC (THENC conv (REPEATC conv)) ALL_CONV) t
+    let rec REPEATC conv t = 
+        (ORELSEC (THENC conv (REPEATC conv)) ALL_CONV) t
     REPEATC
 
 /// Makes a conversion fail if applying it leaves a term unchanged.
-let (CHANGED_CONV : conv -> conv) = 
+let CHANGED_CONV : conv -> conv = 
     fun conv tm -> 
         let th = conv tm
         let l, r = dest_eq(concl th)
-        if aconv l r then failwith "CHANGED_CONV"
+        if aconv l r then Choice2Of2 <| Exception "CHANGED_CONV"
         else th
 
 /// Attempts to apply a conversion; applies identity conversion in case of failure.
@@ -183,13 +181,13 @@ let TRY_CONV conv = ORELSEC conv ALL_CONV
 (* ------------------------------------------------------------------------- *)
 
 /// Applies a conversion to the operator of an application.
-let (RATOR_CONV : conv -> conv) = 
+let RATOR_CONV : conv -> conv = 
     fun conv tm -> 
         let l, r = dest_comb tm
         AP_THM (conv l) r
 
 /// Applies a conversion to the operand of an application.
-let (RAND_CONV : conv -> conv) = 
+let RAND_CONV : conv -> conv = 
     fun conv tm -> 
         let l, r = dest_comb tm
         AP_TERM l (conv r)
@@ -198,7 +196,7 @@ let (RAND_CONV : conv -> conv) =
 let LAND_CONV = RATOR_CONV << RAND_CONV
 
 /// Applies two conversions to the two sides of an application.
-let (COMB2_CONV : conv -> conv -> conv) = 
+let COMB2_CONV : conv -> conv -> conv = 
     fun lconv rconv tm -> 
         let l, r = dest_comb tm
         MK_COMB(lconv l, rconv r)
@@ -207,14 +205,12 @@ let (COMB2_CONV : conv -> conv -> conv) =
 let COMB_CONV = W COMB2_CONV
 
 /// Applies a conversion to the body of an abstraction.
-let (ABS_CONV : conv -> conv) = 
+let ABS_CONV : conv -> conv = 
     fun conv tm -> 
         let v, bod = dest_abs tm
         let th = conv bod
-        try 
-            ABS v th
-        with
-        | Failure _ -> 
+        ABS v th
+        |> Choice.bindError(fun _ ->
             let gv = genvar(type_of v)
             let gbod = vsubst [gv, v] bod
             let gth = ABS gv (conv gbod)
@@ -223,7 +219,7 @@ let (ABS_CONV : conv -> conv) =
             let v' = variant (frees gtm) v
             let l' = alpha v' l
             let r' = alpha v' r
-            EQ_MP (ALPHA gtm (mk_eq(l', r'))) gth
+            EQ_MP (ALPHA gtm (mk_eq(l', r'))) gth)
 
 /// Applies conversion to the body of a binder.
 let BINDER_CONV conv tm = 
@@ -285,28 +281,36 @@ let private SUB_QCONV conv tm =
     if is_abs tm then ABS_CONV conv tm
     else COMB_QCONV conv tm
 
-let rec private ONCE_DEPTH_QCONV conv tm = (ORELSEC conv (SUB_QCONV(ONCE_DEPTH_QCONV conv))) tm
+let rec private ONCE_DEPTH_QCONV conv tm = 
+    (ORELSEC conv (SUB_QCONV(ONCE_DEPTH_QCONV conv))) tm
 
-and private DEPTH_QCONV conv tm = THENQC (SUB_QCONV(DEPTH_QCONV conv)) (REPEATQC conv) tm
+and private DEPTH_QCONV conv tm = 
+    THENQC (SUB_QCONV(DEPTH_QCONV conv)) (REPEATQC conv) tm
 
-and private REDEPTH_QCONV conv tm = THENQC (SUB_QCONV(REDEPTH_QCONV conv)) (THENCQC conv (REDEPTH_QCONV conv)) tm
+and private REDEPTH_QCONV conv tm = 
+    THENQC (SUB_QCONV(REDEPTH_QCONV conv)) (THENCQC conv (REDEPTH_QCONV conv)) tm
 
 and private TOP_DEPTH_QCONV conv tm = 
     THENQC (REPEATQC conv) (THENCQC (SUB_QCONV(TOP_DEPTH_QCONV conv)) (THENCQC conv (TOP_DEPTH_QCONV conv))) tm
 
-and private TOP_SWEEP_QCONV conv tm = THENQC (REPEATQC conv) (SUB_QCONV(TOP_SWEEP_QCONV conv)) tm
+and private TOP_SWEEP_QCONV conv tm = 
+    THENQC (REPEATQC conv) (SUB_QCONV(TOP_SWEEP_QCONV conv)) tm
 
 /// Applies a conversion once to the first suitable sub-term(s) encountered in top-down order.
-let ONCE_DEPTH_CONV(c : conv) : conv = TRY_CONV(ONCE_DEPTH_QCONV c)
+let ONCE_DEPTH_CONV (c : conv) : conv = TRY_CONV (ONCE_DEPTH_QCONV c)
+
 /// Applies a conversion repeatedly to all the sub-terms of a term, in bottom-up order.
-let DEPTH_CONV(c : conv) : conv = TRY_CONV(DEPTH_QCONV c)
+let DEPTH_CONV (c : conv) : conv = TRY_CONV (DEPTH_QCONV c)
+
 /// Applies a conversion bottom-up to all subterms, retraversing changed ones.
-let REDEPTH_CONV(c : conv) : conv = TRY_CONV(REDEPTH_QCONV c)
+let REDEPTH_CONV (c : conv) : conv = TRY_CONV (REDEPTH_QCONV c)
+
 /// Applies a conversion top-down to all subterms, retraversing changed ones.
-let TOP_DEPTH_CONV(c : conv) : conv = TRY_CONV(TOP_DEPTH_QCONV c)
+let TOP_DEPTH_CONV (c : conv) : conv = TRY_CONV (TOP_DEPTH_QCONV c)
+
 /// Repeatedly applies a conversion top-down at all levels,
 /// but after descending to subterms, does not return to higher ones.
-let TOP_SWEEP_CONV(c : conv) : conv = TRY_CONV(TOP_SWEEP_QCONV c)
+let TOP_SWEEP_CONV (c : conv) : conv = TRY_CONV (TOP_SWEEP_QCONV c)
 
 (* ------------------------------------------------------------------------- *)
 (* Apply at leaves of op-tree; NB any failures at leaves cause failure.      *)
@@ -357,13 +361,11 @@ let PAT_CONV =
 
 /// Symmetry conversion.
 let SYM_CONV tm = 
-    try 
-        let th1 = SYM(ASSUME tm)
-        let tm' = concl th1
-        let th2 = SYM(ASSUME tm')
-        DEDUCT_ANTISYM_RULE th2 th1
-    with
-    | Failure _ -> failwith "SYM_CONV"
+    let th1 = SYM(ASSUME tm)
+    let tm' = concl th1
+    let th2 = SYM(ASSUME tm')
+    DEDUCT_ANTISYM_RULE th2 th1
+    |> Choice.mapError (fun _ -> Exception "SYM_CONV")
 
 (* ------------------------------------------------------------------------- *)
 (* Conversion to a rule.                                                     *)
@@ -378,7 +380,7 @@ let CONV_RULE (conv : conv) th = EQ_MP (conv(concl th)) th
 
 /// Substitution conversion.
 let SUBS_CONV ths tm = 
-    try 
+    let tm = 
         if ths = [] then REFL tm
         else 
             let lefts = map (lhand << concl) ths
@@ -390,8 +392,7 @@ let SUBS_CONV ths tm =
                     ths (REFL abs)
             if rand(concl th) = tm then REFL tm
             else th
-    with
-    | Failure _ -> failwith "SUBS_CONV"
+    tm |> Choice.mapError (fun _ -> Exception "SUBS_CONV")
 
 (* ------------------------------------------------------------------------- *)
 (* Get a few rules.                                                          *)
@@ -415,7 +416,7 @@ let private ALPHA_HACK th =
         else TRANS (ALPHA tm tm') th
 
 /// A cacher for conversions.
-let CACHE_CONV(conv : conv) : conv = 
+let CACHE_CONV (conv : conv) : conv = 
     // NOTE : This is not thread-safe!
     let net = ref empty_net
     fun tm -> 
@@ -423,6 +424,6 @@ let CACHE_CONV(conv : conv) : conv =
             tryfind (fun f -> f tm) (lookup tm (!net))
         with
         | Failure _ -> 
-            let th : thm = conv tm
+            let th = conv tm
             net := enter [] (tm, ALPHA_HACK th) (!net)
             th
