@@ -26,6 +26,7 @@ module NHol.tactics
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+open FSharp.Compatibility.OCaml.Format
 
 open NHol
 open lib
@@ -72,6 +73,20 @@ let equals_goal ((a, w) : goal) ((a', w') : goal) =
 
 type justification = instantiation -> thm list -> thm
 
+/// Prints a justification signature to formatter.
+let pp_print_justification fmt (just : justification) =
+    pp_print_string fmt "instantiation -> thm list -> thm = <fun>" 
+
+/// Prints a justification signature to the standard output.
+let print_justification = pp_print_justification std_formatter
+
+/// Converts a justification signature to a string representation.
+let string_of_justification = print_to_string pp_print_justification
+
+#if INTERACTIVE
+fsi.AddPrinter string_of_justification
+#endif
+
 (* ------------------------------------------------------------------------- *)
 (* The goalstate stores the subgoals, justification, current instantiation,  *)
 (* and a list of metavariables.                                              *)
@@ -93,6 +108,20 @@ type goalstack = goalstate list
 
 type refinement = goalstate -> goalstate
 
+/// Prints a refinement signature to formatter.
+let pp_print_refinement fmt (r : refinement) =
+    pp_print_string fmt "goalstate -> goalstate = <fun>"
+
+/// Prints a refinement signature to the standard output.
+let print_refinement = pp_print_refinement std_formatter
+
+/// Converts a refinement signature to a string representation.
+let string_of_refinement = print_to_string pp_print_refinement
+
+#if INTERACTIVE
+fsi.AddPrinter string_of_refinement
+#endif
+
 (* ------------------------------------------------------------------------- *)
 (* A tactic, applied to a goal A ?- g, returns:                              *)
 (*                                                                           *)
@@ -105,9 +134,51 @@ type refinement = goalstate -> goalstate
 
 type tactic = goal -> goalstate
 
+/// Prints a tactic signature to formatter.
+let pp_print_tactic fmt (t : tactic) =
+    pp_print_string fmt "goal -> goalstate = <fun>"
+
+/// Prints a tactic signature to the standard output.
+let print_tactic = pp_print_tactic std_formatter
+
+/// Converts a tactic signature to a string representation.
+let string_of_tactic = print_to_string pp_print_tactic
+
+#if INTERACTIVE
+fsi.AddPrinter string_of_tactic
+#endif
+
 type thm_tactic = thm -> tactic
 
+/// Prints a thm_tactic signature to formatter.
+let pp_print_thm_tactic fmt (tt : tactic) =
+    pp_print_string fmt "thm -> tactic = <fun>"
+
+/// Prints a thm_tactic signature to the standard output.
+let print_thm_tactic = pp_print_thm_tactic std_formatter
+
+/// Converts a thm_tactic signature to a string representation.
+let string_of_thm_tactic = print_to_string pp_print_thm_tactic
+
+#if INTERACTIVE
+fsi.AddPrinter string_of_thm_tactic
+#endif
+
 type thm_tactical = thm_tactic -> thm_tactic
+
+/// Prints a thm_tactical signature to formatter.
+let pp_print_thm_tactical fmt (tt : thm_tactical) =
+    pp_print_string fmt "thm_tactic -> thm_tactic = <fun>"
+
+/// Prints a thm_tactical signature to the standard output.
+let print_thm_tactical = pp_print_thm_tactical std_formatter
+
+/// Converts a thm_tactical signature to a string representation.
+let string_of_thm_tactical = print_to_string pp_print_thm_tactical
+
+#if INTERACTIVE
+fsi.AddPrinter string_of_thm_tactical
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Apply instantiation to a goal.                                            *)
@@ -1060,46 +1131,57 @@ let ANTS_TAC =
 (* A printer for goals etc.                                                  *)
 (* ------------------------------------------------------------------------- *)
 
-/// Print a goal to standard output, with no following newline.
-let (print_goal : goal -> unit) = 
+/// Prints a goal to formatter.
+let pp_print_goal fmt gl = 
     let string3 n = 
         if n < 10
         then "  " + string n
         elif n < 100
         then " " + string n
         else string n
-    let print_hyp n (s, th) = 
-        Format.open_hbox()
-        Format.print_string(string3 n)
-        Format.print_string " ["
-        Format.open_hvbox 0
-        print_qterm(concl th)
-        Format.close_box()
-        Format.print_string "]"
+    let pp_print_hyp fmt n (s, th) = 
+        Format.pp_open_hbox fmt ()
+        Format.pp_print_string fmt (string3 n)
+        Format.pp_print_string fmt  " ["
+        Format.pp_open_hbox fmt ()
+        pp_print_qterm fmt (concl th)
+        Format.pp_close_box fmt ()
+        Format.pp_print_string fmt  "]"
         (if not(s = "")
-         then (Format.print_string(" (" + s + ")"))
+         then (Format.pp_print_string fmt (" (" + s + ")"))
          else ())
-        Format.close_box()
+        Format.pp_close_box fmt ()
         Format.print_newline()
-    let rec print_hyps n asl = 
+    let rec pp_print_hyps fmt n asl = 
         if asl = []
         then ()
         else 
-            (print_hyp n (hd asl)
-             print_hyps (n + 1) (tl asl))
-    fun (asl, w) -> 
-        Format.print_newline()
-        if asl <> []
-        then 
-            (print_hyps 0 (rev asl)
-             Format.print_newline())
-        else ()
-        print_qterm w
-        Format.print_newline()
+            (pp_print_hyp fmt n (hd asl)
+             pp_print_hyps fmt (n + 1) (tl asl))
+    let pp_print_asl_term fmt (asl, w) =
+            Format.pp_print_newline fmt ()
+            if asl <> []
+            then 
+                (pp_print_hyps fmt 0 (rev asl)
+                 Format.pp_print_newline fmt ())
+            else ()
+            pp_print_qterm fmt w
+            Format.pp_print_newline fmt ()
+    pp_print_asl_term fmt gl
 
-/// Print a goalstack to standard output, with no following newline.
-let (print_goalstack : goalstack -> unit) = 
-    let print_goalstate k gs = 
+/// Print a goal to standard output, with no following newline.
+let print_goal = pp_print_goal std_formatter
+
+/// Converts a goal to a string representation.
+let string_of_goal = print_to_string pp_print_goal
+
+#if INTERACTIVE
+fsi.AddPrinter string_of_goal
+#endif
+
+/// Prints a goalstack to formatter.
+let pp_print_goalstack fmt gs = 
+    let pp_print_goalstate fmt k gs = 
         let (_, gl, _) = gs
         let n = length gl
         let s = 
@@ -1115,12 +1197,12 @@ let (print_goalstack : goalstack -> unit) =
         if gl = []
         then ()
         else do_list (print_goal << C el gl) (rev(0 -- (k - 1)))
-    fun l -> 
+    let pp_print_goalstates fmt (l : goalstate list) =
         match l.Length with
         | 0 -> Format.print_string "Empty goalstack"
         | 1 -> 
             let (_, gl, _ as gs) = hd l
-            print_goalstate 1 gs
+            pp_print_goalstate fmt 1 gs
         | _ -> 
             let (_, gl, _ as gs) = hd l
             let (_, gl0, _) = hd(tl l)
@@ -1129,7 +1211,50 @@ let (print_goalstack : goalstack -> unit) =
                 if p < 1
                 then 1
                 else p + 1
-            print_goalstate p' gs
+            pp_print_goalstate fmt p' gs
+    pp_print_goalstates fmt gs
+
+/// Print a goalstack to standard output, with no following newline.
+let print_goalstack = pp_print_goalstack std_formatter
+
+/// Converts a goalstack to a string representation.
+let string_of_goalstack = print_to_string pp_print_goalstack
+
+#if INTERACTIVE
+fsi.AddPrinter string_of_goalstack
+#endif
+
+/// Prints a goalstate to formatter.
+let pp_print_goalstate fmt gs =
+    let ((trml,inst),gl,j) = gs
+    let rec pp_print_trml fmt trml =
+        match trml with
+        | trm :: tl ->
+            pp_print_term fmt trm
+            pp_print_break fmt 0 0
+            pp_print_trml fmt tl
+        | [] -> ()
+    pp_print_trml fmt trml
+    pp_print_instantiation fmt inst
+    let rec pp_print_gl fmt gl =
+        match gl with
+        | g :: tl ->
+            pp_print_goal fmt g
+            pp_print_break fmt 0 0
+            pp_print_gl fmt tl
+        | [] -> ()
+    pp_print_gl fmt gl
+    pp_print_justification fmt j
+
+/// Prints a goalstate (without quotes) to the standard output.
+let print_goalstate = pp_print_goalstate std_formatter
+
+/// Converts a goalstate to a string representation.
+let string_of_goalstate = print_to_string pp_print_goalstate
+
+#if INTERACTIVE
+fsi.AddPrinter string_of_goalstate
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Convert a tactic into a refinement on head subgoal in current state.      *)
