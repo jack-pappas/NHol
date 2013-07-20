@@ -364,30 +364,43 @@ let binops op = striplist(dest_binop op)
 
 /// Tests a term to see if it is a conjunction.
 let is_conj = is_binary "/\\"
+
 /// Term destructor for conjunctions.
 let dest_conj = dest_binary "/\\"
+
 /// Iteratively breaks apart a conjunction.
 let conjuncts = striplist dest_conj
+
 /// Tests if a term is an application of implication.
 let is_imp = is_binary "==>"
+
 /// Breaks apart an implication into antecedent and consequent.
 let dest_imp = dest_binary "==>"
+
 /// Tests a term to see if it is a universal quantification.
 let is_forall = is_binder "!"
+
 /// Breaks apart a universally quantified term into quantified variable and body.
 let dest_forall = dest_binder "!"
+
 /// Iteratively breaks apart universal quantifications.
 let strip_forall = splitlist dest_forall
+
 /// Tests a term to see if it as an existential quantification.
 let is_exists = is_binder "?"
+
 /// Breaks apart an existentially quantified term into quantified variable and body.
 let dest_exists = dest_binder "?"
+
 /// Iteratively breaks apart existential quantifications.
 let strip_exists = splitlist dest_exists
+
 /// Tests a term to see if it is a disjunction.
 let is_disj = is_binary "\\/"
+
 /// Breaks apart a disjunction into the two disjuncts.
 let dest_disj = dest_binary "\\/"
+
 /// Iteratively breaks apart a disjunction.
 let disjuncts = striplist dest_disj
 
