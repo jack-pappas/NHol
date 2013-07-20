@@ -33,6 +33,39 @@ open FSharp.Compatibility.OCaml.Num
 (* A few missing functions to convert OCaml code to F#.                      *)
 (* ------------------------------------------------------------------------- *)
 
+module Choice =
+    let inline mapBoth f1 f2 c =
+        match c with
+        | Choice1Of2 x -> Choice1Of2 (f1 x)
+        | Choice2Of2 y -> Choice2Of2 (f2 y)
+
+    let inline mapError2 f c1 c2 =
+        match c1, c2 with
+        | Choice1Of2 x1, Choice1Of2 x2 -> Choice1Of2 x1, Choice1Of2 x2
+        | Choice1Of2 _, Choice2Of2 x2 -> f()
+        | Choice2Of2 x1, _ -> f()
+
+    let inline bind f c =
+        match c with
+        | Choice1Of2 x -> f x
+        | Choice2Of2 y -> Choice2Of2 y
+
+    let inline bindError f c =
+        match c with
+        | Choice1Of2 x -> Choice1Of2 x
+        | Choice2Of2 y -> f y
+
+    let inline bind2 f c1 c2 =
+        match c1, c2 with
+        | Choice1Of2 x1, Choice1Of2 x2 -> f x1 x2
+        | Choice1Of2 _, Choice2Of2 x2 -> Choice2Of2 x2
+        | Choice2Of2 x1, _ -> Choice2Of2 x1
+
+    /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
+    let get = function
+        | Choice1Of2 a -> a
+        | Choice2Of2 e -> invalidArg "choice" (sprintf "The choice value was Choice2Of2 '%A'" e)
+
 // TODO : Move this into FSharp.Compatibility.OCaml
 module Ratio =
     open FSharp.Compatibility.OCaml
