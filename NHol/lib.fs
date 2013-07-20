@@ -33,33 +33,26 @@ open FSharp.Compatibility.OCaml.Num
 (* A few missing functions to convert OCaml code to F#.                      *)
 (* ------------------------------------------------------------------------- *)
 
+let inline tuple x = (x, x)
+
+// Follow the naming convention of ExtCore
 module Choice =
-    let inline mapBoth f1 f2 c =
-        match c with
-        | Choice1Of2 x -> Choice1Of2 (f1 x)
-        | Choice2Of2 y -> Choice2Of2 (f2 y)
+    /// Applies the specified binding function to a choice value representing an error value
+    /// (Choice2Of2). If the choice value represents a result value (Choice1Of2), the result value
+    /// is passed through without modification.
+    let bindError (binding : 'Error -> Choice<'T, 'Failure>) value =
+        match value with
+        | Choice1Of2 result -> Choice1Of2 result
+        | Choice2Of2 error -> binding error
 
-    let inline mapError2 f c1 c2 =
-        match c1, c2 with
-        | Choice1Of2 x1, Choice1Of2 x2 -> Choice1Of2 x1, Choice1Of2 x2
-        | Choice1Of2 _, Choice2Of2 x2 -> f()
-        | Choice2Of2 x1, _ -> f()
-
-    let inline bind f c =
-        match c with
-        | Choice1Of2 x -> f x
-        | Choice2Of2 y -> Choice2Of2 y
-
-    let inline bindError f c =
-        match c with
-        | Choice1Of2 x -> Choice1Of2 x
-        | Choice2Of2 y -> f y
-
-    let inline bind2 f c1 c2 =
-        match c1, c2 with
-        | Choice1Of2 x1, Choice1Of2 x2 -> f x1 x2
-        | Choice1Of2 _, Choice2Of2 x2 -> Choice2Of2 x2
-        | Choice2Of2 x1, _ -> Choice2Of2 x1
+    /// Applies the specified binding function to a choice value representing a pair of result values
+    /// (Choice1Of2). If one of choice values represents an error value (Choice2Of2), the error value
+    /// is passed through without modification.
+    let bind2 (binding : 'T -> 'U -> Choice<'V, 'Error>) value1 value2 =
+        match value1, value2 with
+        | Choice1Of2 result1, Choice1Of2 result2 -> binding result1 result2
+        | Choice1Of2 _, Choice2Of2 error
+        | Choice2Of2 error, _ -> Choice2Of2 error
 
     /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
     let get = function
