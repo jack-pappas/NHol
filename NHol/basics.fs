@@ -286,7 +286,7 @@ let rec free_in tm1 tm2 =
 (* Searching for terms.                                                      *)
 (* ------------------------------------------------------------------------- *)
 
-/// Searches a term for a subterm that satises a given predicate.
+/// Searches a term for a subterm that satisfies a given predicate.
 let rec find_term p tm = 
     if p tm then tm
     elif is_abs tm then find_term p (body tm)

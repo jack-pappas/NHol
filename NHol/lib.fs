@@ -149,14 +149,14 @@ let rec map2 f l1 l2 =
 
 /// Tests for failure.
 let can f x = 
-    try 
+    try
         (f x |> ignore
          true)
     with
     | Failure _ -> false
 
 /// Checks that a value satisfies a predicate.
-let check p x = 
+let check p x =
     if p x then x
     else failwith "check"
 
@@ -360,7 +360,7 @@ let rec mapfilter f l =
         with
         | Failure _ -> rest
 
-/// Returns the first element of a list which satises a predicate.
+/// Returns the first element of a list which satisfies a predicate.
 // OPTIMIZE : Make this an alias for List.find.
 let rec find p l = 
     match l with
@@ -395,7 +395,7 @@ let rec remove p l =
             let y, n = remove p t
             y, h :: n
 
-/// Chops a list into two parts at a specied point.
+/// Chops a list into two parts at a specified point.
 // OPTIMIZE : Make this an alias for List.take.
 let rec chop_list n l = 
     if n = 0 then [], l
