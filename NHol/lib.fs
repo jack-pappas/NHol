@@ -189,14 +189,14 @@ exception Unchanged
 (* ------------------------------------------------------------------------- *)
 
 /// List iteration function. Applies a binary function between adjacent elements of a list.
-// OPTIMIZE : Make this an alias for List.fold.
+// OPTIMIZE : Make this an alias for List.foldBack.
 let rec itlist f l b = 
     match l with
     | [] -> b
     | (h :: t) -> f h (itlist f t b)
 
 /// Applies a binary function between adjacent elements of the reverse of a list.
-// OPTIMIZE : Make this an alias for List.foldBack.
+// OPTIMIZE : Make this an alias for List.fold.
 let rec rev_itlist f l b = 
     match l with
     | [] -> b
@@ -211,7 +211,7 @@ let rec end_itlist f l =
     | (h :: t) -> f h (end_itlist f t)
 
 /// Applies a paired function between adjacent elements of 2 lists.
-// OPTIMIZE : Make this an alias for List.fold2.
+// OPTIMIZE : Make this an alias for List.foldBack2.
 let rec itlist2 f l1 l2 b = 
     match (l1, l2) with
     | ([], []) -> b
@@ -219,7 +219,7 @@ let rec itlist2 f l1 l2 b =
     | _ -> failwith "itlist2"
 
 /// Applies a paired function between adjacent elements of 2 lists.
-// OPTIMIZE : Make this an alias for List.foldBack2.
+// OPTIMIZE : Make this an alias for List.fold2.
 let rec rev_itlist2 f l1 l2 b = 
     match (l1, l2) with
     | ([], []) -> b
