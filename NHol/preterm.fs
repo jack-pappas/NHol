@@ -519,12 +519,16 @@ let type_of_pretype, term_of_preterm, retypecheck =
             try 
                 typify ty (ptm, venv, undefined)
             with
-            | Failure e -> failwith("typechecking error (initial type assignment):" + e)
+            | Failure msg as e ->
+                let msg = "typechecking error (initial type assignment): " + msg
+                nestedFailwith e msg
+
         let env' = 
             try 
-                resolve_interface ptm' (fun e -> e) env
+                resolve_interface ptm' id env
             with
-            | Failure _ -> failwith "typechecking error (overload resolution)"
+            | Failure _ as e ->
+                nestedFailwith e "typechecking error (overload resolution)"
         let ptm'' = solve_preterm env' ptm'
         ptm''
     type_of_pretype, term_of_preterm, retypecheck

@@ -691,7 +691,8 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
                     let th' = NUM_EXP_CONV l r in
                     let tm' = rand(concl th') in
                     TRANS (TRANS th th') (INST [tm',x] fth)
-                with Failure _ -> failwith "NUM_EXP_CONV" in
+                with Failure _ as e ->
+                    nestedFailwith e "NUM_EXP_CONV" in
     NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV;;
 
 /// Proves what the cutoff predecessor of a natural number numeral is.
@@ -715,7 +716,7 @@ let NUM_PRE_CONV =
                   let tm' = mk_numeral (x - Int 1) in
                   let th1 = NUM_SUC_CONV (mk_comb(suc,tm')) in
                   MP (INST [tm',m; r,n] pth) th1
-              with Failure _ -> failwith "NUM_PRE_CONV";;
+              with Failure _ as e -> nestedFailwith e "NUM_PRE_CONV";;
 
 /// Proves what the cutoff difference of two natural number numerals is.
 let NUM_SUB_CONV =
@@ -747,7 +748,7 @@ let NUM_SUB_CONV =
                     let pth = INST [k,m; l,p; r,n] pth1
                     let th0 = NUM_ADD_CONV (mk_binop plus k r) in
                     MP pth th0
-              with Failure _ -> failwith "NUM_SUB_CONV";;
+              with Failure _ as e -> nestedFailwith e "NUM_SUB_CONV";;
 
 // NUM_DIV_CONV: Proves what the truncated quotient of two natural number numerals is.
 // NUM_MOD_CONV: Proves what the remainder on dividing one natural number numeral by another is.
@@ -774,10 +775,10 @@ let NUM_DIV_CONV,NUM_MOD_CONV =
       MP th2 (EQT_ELIM(NUM_LT_CONV tm2)) in
     (fun tm -> try let xt,yt = dest_binop dtm tm in
                    CONJUNCT1(NUM_DIVMOD_CONV (dest_numeral xt) (dest_numeral yt))
-               with Failure _ -> failwith "NUM_DIV_CONV"),
+               with Failure _ as e -> nestedFailwith e "NUM_DIV_CONV"),
     (fun tm -> try let xt,yt = dest_binop mtm tm in
                    CONJUNCT2(NUM_DIVMOD_CONV (dest_numeral xt) (dest_numeral yt))
-               with Failure _ -> failwith "NUM_MOD_CONV");;
+               with Failure _ as e -> nestedFailwith e "NUM_MOD_CONV");;
 
 /// Proves what the factorial of a natural number numeral is.
 let NUM_FACT_CONV =
@@ -815,7 +816,7 @@ let NUM_FACT_CONV =
           if fst(dest_const l) = "FACT"
           then NUM_FACT_CONV (dest_numeral r)
           else fail()
-      with Failure _ -> failwith "NUM_FACT_CONV";;
+      with Failure _ as e -> nestedFailwith e "NUM_FACT_CONV";;
 
 /// Proves what the maximum of two natural number numerals is.
 let NUM_MAX_CONV =

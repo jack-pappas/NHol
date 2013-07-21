@@ -39,7 +39,11 @@ open FSharp.Compatibility.OCaml.Num
 (* ------------------------------------------------------------------------- *)
 
 /// Fail with empty string.
-let fail () : 'T = failwith ""
+let inline fail () : 'T = failwith ""
+
+/// Like failwith, but nests the specified exception within the failure exception.
+let inline nestedFailwith innerException message =
+    raise <| exn (message, innerException)
 
 // Follow the naming convention of ExtCore
 [<RequireQualifiedAccess>]
@@ -804,12 +808,11 @@ let time f x =
             let finish_time = Sys.time()
             report("CPU time (user): " + (string_of_float(finish_time -. start_time)))
             result
-        with
-        | e -> 
+        with _ -> 
             let finish_time = Sys.time()
             Format.print_string
                 ("Failed after (user) CPU time of " + (string_of_float(finish_time -. start_time)) + ": ")
-            raise e
+            reraise ()
 
 (* ------------------------------------------------------------------------- *)
 (* Versions of assoc and rev_assoc with default rather than failure.         *)
@@ -1279,8 +1282,8 @@ let strings_of_file filename =
         try
             Pervasives.open_in filename
         with
-        | Sys_error _ ->
-            failwith("strings_of_file: can't open " + filename)
+        | Sys_error _ as e ->
+            nestedFailwith e ("strings_of_file: can't open " + filename)
     let rec suck_lines acc = 
         try 
             let l = Pervasives.input_line fd

@@ -738,7 +738,7 @@ let mk_cons h t =
         let cons = mk_const("CONS", [type_of h, aty])
         mk_comb(mk_comb(cons, h), t)
     with
-    | Failure _ -> failwith "mk_cons"
+    | Failure _ as e -> nestedFailwith e "mk_cons"
 
 /// Constructs object-level list from list of terms.
 let mk_list(tms, ty) = 
@@ -750,14 +750,14 @@ let mk_list(tms, ty) =
             let cons = mk_const("CONS", [ty, aty])
             itlist (mk_binop cons) tms nil
     with
-    | Failure _ -> failwith "mk_list"
+    | Failure _ as e -> nestedFailwith e "mk_list"
 
 /// Constructs object-level list from nonempty list of terms.
 let mk_flist tms = 
     try 
         mk_list(tms, type_of(hd tms))
     with
-    | Failure _ -> failwith "mk_flist"
+    | Failure _ as e -> nestedFailwith e "mk_flist"
 
 (* ------------------------------------------------------------------------- *)
 (* Extra monotonicity theorems for inductive definitions.                    *)

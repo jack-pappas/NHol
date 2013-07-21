@@ -65,7 +65,8 @@ let ETA_CONV =
                                         type_of bod, bty] [l, t] pth)
             else fail()
         with
-        | Failure _ -> failwith "ETA_CONV"
+        | Failure _ as e ->
+            nestedFailwith e "ETA_CONV"
 
 let EQ_EXT = 
     prove
@@ -133,7 +134,8 @@ let SELECT_RULE =
             let ty = type_of(bndvar abs)
             CONV_RULE BETA_CONV (MP (PINST [ty, aty] [abs, P] pth) th)
         with
-        | Failure _ -> failwith "SELECT_RULE"
+        | Failure _ as e ->
+            nestedFailwith e "SELECT_RULE"
 
 /// Eliminates an epsilon term by introducing an existential quantifier.
 let SELECT_CONV = 
@@ -154,7 +156,8 @@ let SELECT_CONV =
             let ty = type_of(bndvar abs)
             CONV_RULE (LAND_CONV BETA_CONV) (PINST [ty, aty] [abs, P] pth)
         with
-        | Failure _ -> failwith "SELECT_CONV"
+        | Failure _ as e ->
+            nestedFailwith e "SELECT_CONV"
 
 (* ------------------------------------------------------------------------- *)
 (* Some basic theorems.                                                      *)
@@ -287,7 +290,8 @@ let CCONTR =
             let tm' = mk_neg tm
             MP (INST [tm, P] pth) (DISCH tm' th)
         with
-        | Failure _ -> failwith "CCONTR"
+        | Failure _ as e ->
+            nestedFailwith e "CCONTR"
 
 /// Proves the equivalence of an implication and its contrapositive.
 let CONTRAPOS_CONV = 
@@ -300,7 +304,8 @@ let CONTRAPOS_CONV =
             INST [P, a
                   Q, b] pth
         with
-        | Failure _ -> failwith "CONTRAPOS_CONV"
+        | Failure _ as e ->
+            nestedFailwith e "CONTRAPOS_CONV"
 
 (* ------------------------------------------------------------------------- *)
 (* A classical "refutation" tactic.                                        *)
@@ -441,7 +446,8 @@ let mk_cond(b, x, y) =
         let c = mk_const("COND", [type_of x, aty])
         mk_comb(mk_comb(mk_comb(c, b), x), y)
     with
-    | Failure _ -> failwith "mk_cond"
+    | Failure _ as e ->
+        nestedFailwith e "mk_cond"
 
 /// Breaks apart a conditional into the three terms involved.
 let dest_cond tm = 
@@ -453,7 +459,8 @@ let dest_cond tm =
         then (b, (x, y))
         else fail()
     with
-    | Failure _ -> failwith "dest_cond"
+    | Failure _ as e ->
+        nestedFailwith e "dest_cond"
 
 extend_basic_rewrites [COND_CLAUSES]
 

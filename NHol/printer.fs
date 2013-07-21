@@ -289,7 +289,8 @@ let pp_print_term =
                 l, r
             else fail()
         with
-        | Failure _ -> failwith "DEST_BINARY"
+        | Failure _ as e ->
+            nestedFailwith e "DEST_BINARY"
     and ARIGHT s = 
         match snd(get_infix_status s) with
         | "right" -> true
@@ -326,7 +327,9 @@ let pp_print_term =
         if name_of s = "_SEQPATTERN" && length args = 2 then dest_clause(hd args) :: dest_clauses(hd(tl args))
         else [dest_clause tm]
     fun fmt -> 
-        let rec print_term prec tm = 
+        let rec print_term prec tm =
+            (* OPTIMIZE: Modify these functions to use option -- these heavily-nested
+                         try-catch blocks are extremely slow. *)
             try 
                 try_user_printer tm
             with

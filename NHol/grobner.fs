@@ -160,7 +160,7 @@ let RING_AND_IDEAL_CONV =
     | cm1::cms -> try let (c,m) = mdiv cm cm1 in
                       (grob_cmul (minus_num c,m) cms,
                        Mmul((minus_num c,m),hpol))
-                  with Failure _ -> failwith "reduce1"
+                  with Failure _ as e -> nestedFailwith e "reduce1"
   
   (* ----------------------------------------------------------------------- *)
   (* Try this for all polynomials in a basis.                                *)
@@ -503,8 +503,8 @@ let RING_AND_IDEAL_CONV =
           let l,r = ring_dest_pow tm in
           grob_pow vars (grobify_term vars l) (dest_small_numeral r)
       with 
-      | Failure _ ->
-            failwith "grobify_term: unknown or invalid term" in
+      | Failure _ as e ->
+            nestedFailwith e "grobify_term: unknown or invalid term" in
   
     let grobify_equation vars tm =
       let l,r = dest_eq tm in

@@ -111,7 +111,8 @@ module Hol_kernel =
             try 
                 get_type_arity tyop
             with
-            | Failure _ -> failwith("mk_type: type " + tyop + " has not been defined")
+            | Failure _ as e ->
+                nestedFailwith e ("mk_type: type " + tyop + " has not been defined")
         if arity = length args then Tyapp(tyop, args)
         else failwith("mk_type: wrong number of arguments to " + tyop)
     
@@ -263,7 +264,8 @@ module Hol_kernel =
             try 
                 get_const_type name
             with
-            | Failure _ -> failwith "mk_const: not a constant name"
+            | Failure _ as e ->
+                nestedFailwith e "mk_const: not a constant name"
         Const(name, type_subst theta uty)
     
     /// Constructs an abstraction.
@@ -722,7 +724,8 @@ module Hol_kernel =
                     try 
                         dest_comb c
                     with
-                    | Failure _ -> failwith "new_basic_type_definition: Not a combination"
+                    | Failure _ as e ->
+                        nestedFailwith e "new_basic_type_definition: Not a combination"
                 if not(freesin [] P) then tuple (Choice2Of2 <| Exception "new_basic_type_definition: Predicate is not closed")
                 else 
                     let tyvars = sort (<=) (type_vars_in_term P)
@@ -730,7 +733,8 @@ module Hol_kernel =
                         try 
                             new_type(tyname, length tyvars)
                         with
-                        | Failure _ -> failwith "new_basic_type_definition: Type already defined"
+                        | Failure _ as e ->
+                            nestedFailwith e "new_basic_type_definition: Type already defined"
                     let aty = Tyapp(tyname, tyvars)
                     let rty = type_of x
                     let absty = Tyapp("fun", [rty; aty])
@@ -772,7 +776,8 @@ let mk_eq =
             let eq_tm = inst [ty, aty] eq
             mk_comb(mk_comb(eq_tm, l), r)
         with
-        | Failure _ -> failwith "mk_eq"
+        | Failure _ as e ->
+            nestedFailwith e "mk_eq"
 
 (* ------------------------------------------------------------------------- *)
 (* Tests for alpha-convertibility (equality ignoring names in abstractions). *)

@@ -673,7 +673,8 @@ let X_GEN_TAC x' =
                 try 
                     dest_forall w
                 with
-                | Failure _ -> failwith "X_GEN_TAC: Not universally quantified"
+                | Failure _ as e ->
+                    nestedFailwith e "X_GEN_TAC: Not universally quantified"
             let _ = tactic_type_compatibility_check "X_GEN_TAC" x x'
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
             if mem x' avoids
@@ -694,7 +695,8 @@ let X_CHOOSE_TAC x' xth =
         try 
             dest_exists xtm
         with
-        | Failure _ -> failwith "X_CHOOSE_TAC: not existential"
+        | Failure _ as e ->
+            nestedFailwith e "X_CHOOSE_TAC: not existential"
     let _ = tactic_type_compatibility_check "X_CHOOSE_TAC" x x'
     let pat = vsubst [x', x] bod
     let xth' = ASSUME pat
@@ -718,7 +720,8 @@ let EXISTS_TAC t (asl, w) =
         try 
             dest_exists w
         with
-        | Failure _ -> failwith "EXISTS_TAC: Goal not existentially quantified"
+        | Failure _ as e ->
+            nestedFailwith e "EXISTS_TAC: Goal not existentially quantified"
     let _ = tactic_type_compatibility_check "EXISTS_TAC" v t
     let fun1 l =
         match l with

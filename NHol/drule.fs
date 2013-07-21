@@ -685,13 +685,15 @@ let new_definition tm =
         try 
             dest_eq bod
         with
-        | Failure _ -> failwith "new_definition: Not an equation"
+        | Failure _ as e ->
+            nestedFailwith e "new_definition: Not an equation"
     let lv, largs = strip_comb l
     let rtm = 
         try 
             list_mk_abs(largs, r)
         with
-        | Failure _ -> failwith "new_definition: Non-variable in LHS pattern"
+        | Failure _ as e ->
+            nestedFailwith e "new_definition: Non-variable in LHS pattern"
     let def = mk_eq(lv, rtm)
     let th1 = new_basic_definition def
     let th2 = 

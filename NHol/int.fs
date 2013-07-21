@@ -1268,7 +1268,7 @@ let INT_ADD_CONV =
                 let th2 = AP_TERM amp_tm (NUM_ADD_CONV tm1)
                 TRANS th1 th2
         with
-        | Failure _ -> failwith "INT_ADD_CONV");;
+        | Failure _ as e -> nestedFailwith e "INT_ADD_CONV");;
 
 /// Conversion to perform subtraction on two integer literals of type :int.
 let INT_SUB_CONV = 
@@ -1459,12 +1459,12 @@ let INT_DIV_CONV, INT_REM_CONV =
             let l, r = dest_binop dtm tm
             CONJUNCT1(INT_DIVMOD_CONV (dest_intconst l) (dest_intconst r))
         with
-        | Failure _ -> failwith "INT_DIV_CONV"), (fun tm -> 
+        | Failure _ as e -> nestedFailwith e "INT_DIV_CONV"), (fun tm -> 
         try 
             let l, r = dest_binop mtm tm
             CONJUNCT2(INT_DIVMOD_CONV (dest_intconst l) (dest_intconst r))
         with
-        | Failure _ -> failwith "INT_MOD_CONV");;
+        | Failure _ as e -> nestedFailwith e "INT_MOD_CONV");;
 
 /// Performs one arithmetic or relational operation on integer literals of type :int.
 let INT_RED_CONV = 

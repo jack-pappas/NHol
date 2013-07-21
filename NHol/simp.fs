@@ -242,7 +242,8 @@ let REWRITES_CONV net tm =
     try 
         tryfind (fun (_, cnv) -> cnv tm) pconvs
     with
-    | Failure _ -> failwith "REWRITES_CONV"
+    | Failure _ as e ->
+        nestedFailwith e "REWRITES_CONV"
 
 (* ------------------------------------------------------------------------- *)
 (* Decision procedures may accumulate their state in different ways (e.g.    *)

@@ -473,15 +473,18 @@ let GEN_MESON_TAC =
                     |> Option.getOrFailWith "find"
                 meson_expand_cont 0 arules newstate cont
         with
-        | Cut -> failwith "meson_expand"
+        | Cut as e ->
+            nestedFailwith e "meson_expand"
         | Failure _ -> 
             try 
                 let crules = 
                     filter (fun ((h, _), _) -> length h <= size) (assoc pr rules |> Option.getOrFailWith "find")
                 meson_expand_cont offset crules newstate cont
             with
-            | Cut -> failwith "meson_expand"
-            | Failure _ -> failwith "meson_expand"
+            | Cut as e ->
+                nestedFailwith e "meson_expand"
+            | Failure _ as e ->
+                nestedFailwith e "meson_expand"
     (* ----------------------------------------------------------------------- *)
     (* Simple Prolog engine organizing search and backtracking.                *)
     (* ----------------------------------------------------------------------- *)
@@ -518,9 +521,9 @@ let GEN_MESON_TAC =
                                                           (globin, newoffset, 
                                                            newsize))
                                                  with
-                                                 | Cut -> failwith "expand_goal"
-                                                 | Failure _ -> 
-                                                     failwith "expand_goal")))
+                                                 | Cut as e -> nestedFailwith e "expand_goal"
+                                                 | Failure _ as e -> 
+                                                     nestedFailwith e "expand_goal")))
         and expand_goals depth (gl, (insts, offset, size as tup)) cont = 
             match gl with
             | [] -> cont([], tup)
@@ -748,6 +751,8 @@ let GEN_MESON_TAC =
             if args = []
             then acc
             else itlist tm_consts args (insert (fn, length args) acc)
+
+        (* OPTIMIZE :   Modify the code below to use option instead of try/catch. *)
         let rec fm_consts tm ((preds, funs) as acc) = 
             try 
                 fm_consts (snd(dest_forall tm)) acc

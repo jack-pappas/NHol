@@ -318,7 +318,7 @@ let REAL_RAT_NEG_CONV =
                 then REFL tm
                 else fail()
             with
-            | Failure _ -> failwith "REAL_RAT_NEG_CONV"
+            | Failure _ as e -> nestedFailwith e "REAL_RAT_NEG_CONV"
 
 /// Conversion to produce absolute value of a rational literal of type :real.
 let REAL_RAT_ABS_CONV = 

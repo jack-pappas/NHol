@@ -92,7 +92,8 @@ let PINST tyin tmin =
         try 
             iterm_fn(itype_fn th)
         with
-        | Failure _ -> failwith "PINST"
+        | Failure _ as e ->
+            nestedFailwith e "PINST"
 
 (* ------------------------------------------------------------------------- *)
 (* Useful derived deductive rule.                                            *)
@@ -331,12 +332,14 @@ let ISPEC t th =
         try 
             dest_forall(concl th)
         with
-        | Failure _ -> failwith "ISPEC: input theorem not universally quantified"
+        | Failure _ as e ->
+            nestedFailwith e "ISPEC: input theorem not universally quantified"
     let tyins = 
         try 
             type_match (snd(dest_var x)) (type_of t) []
         with
-        | Failure _ -> failwith "ISPEC can't type-instantiate input theorem"
+        | Failure _ as e ->
+            nestedFailwith e "ISPEC can't type-instantiate input theorem"
     SPEC t (INST_TYPE tyins th)
     |> Choice.mapError (fun _ -> Exception "ISPEC: type variable(s) free in assumptions")
 
@@ -507,7 +510,8 @@ let mk_neg =
         try 
             mk_comb(neg_tm, tm)
         with
-        | Failure _ -> failwith "mk_neg"
+        | Failure _ as e ->
+            nestedFailwith e "mk_neg"
 
 /// <summary>
 /// Transforms <c>|- ~t</c> into <c>|- t ==> F</c>.

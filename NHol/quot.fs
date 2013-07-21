@@ -135,9 +135,11 @@ let lift_function =
                         try 
                             lhs e
                         with
-                        | Failure _ ->
-                            assoc (lhand e) (zip rvs evs)
-                            |> Option.getOrFailWith "find") hyps
+                        | Failure _ as ex ->
+                            match assoc (lhand e) (zip rvs evs) with
+                            | Some x -> x
+                            | None ->
+                                nestedFailwith ex "find") hyps
             let rdef = list_mk_abs(newargs, def)
             let ldef = mk_var(fname, type_of rdef)
             let dth = new_definition(mk_eq(ldef, rdef))

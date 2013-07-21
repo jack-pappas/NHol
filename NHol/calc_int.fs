@@ -491,7 +491,7 @@ let REAL_INT_ADD_CONV =
                 let th2 = AP_TERM amp_tm (NUM_ADD_CONV tm1)
                 TRANS th1 th2
         with
-        | Failure _ -> failwith "REAL_INT_ADD_CONV")
+        | Failure _ as e -> nestedFailwith e "REAL_INT_ADD_CONV")
 
 /// Conversion to perform subtraction on two integer literals of type :real.
 let REAL_INT_SUB_CONV = 

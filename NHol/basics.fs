@@ -81,14 +81,16 @@ let bndvar tm =
     try 
         fst(dest_abs tm)
     with
-    | Failure _ -> failwith "bndvar: Not an abstraction"
+    | Failure _ as e ->
+        nestedFailwith e "bndvar: Not an abstraction"
 
 /// Returns the body of an abstraction.
 let body tm = 
     try 
         snd(dest_abs tm)
     with
-    | Failure _ -> failwith "body: Not an abstraction"
+    | Failure _ as e ->
+        nestedFailwith e "body: Not an abstraction"
 
 /// Iteratively constructs combinations (function applications).
 let list_mk_comb(h, t) = rev_itlist (C(curry mk_comb)) t h
@@ -124,7 +126,8 @@ let mk_binary s =
         try 
             mk_comb(mk_comb(c, l), r)
         with
-        | Failure _ -> failwith "mk_binary"
+        | Failure _ as e ->
+            nestedFailwith e "mk_binary"
 
 (* ------------------------------------------------------------------------- *)
 (* Produces a sequence of variants, considering previous inventions.         *)
@@ -198,7 +201,8 @@ let alpha v tm =
         try 
             dest_abs tm
         with
-        | Failure _ -> failwith "alpha: Not an abstraction"
+        | Failure _ as e ->
+            nestedFailwith e "alpha: Not an abstraction"
     if v = v0 then tm
     elif type_of v = type_of v0 && not(vfree_in v bod) then mk_abs(v, vsubst [v, v0] bod)
     else failwith "alpha: Invalid new variable"
@@ -235,7 +239,8 @@ let mk_mconst(c, ty) =
         if type_of con = ty then con
         else fail()
     with
-    | Failure _ -> failwith "mk_const: generic type cannot be instantiated"
+    | Failure _ as e ->
+        nestedFailwith e "mk_const: generic type cannot be instantiated"
 
 (* ------------------------------------------------------------------------- *)
 (* Like mk_comb, but instantiates type variables in rator if necessary.      *)
@@ -296,6 +301,8 @@ let rec find_term p tm =
         try 
             find_term p l
         with
+        // TODO : If this should only catch failures from this function,
+        // change the wildcard _ to "find_term".
         | Failure _ -> find_term p r
     else failwith "find_term"
 
@@ -419,7 +426,8 @@ let dest_neg tm =
         if fst(dest_const n) = "~" then p
         else fail()
     with
-    | Failure _ -> failwith "dest_neg"
+    | Failure _ as e ->
+        nestedFailwith e "dest_neg"
 
 /// Tests if a term is of the form `there exists a unique ...'
 let is_uexists = is_binder "?!"
@@ -437,7 +445,8 @@ let dest_list tm =
         if fst(dest_const nil) = "NIL" then tms
         else fail()
     with
-    | Failure _ -> failwith "dest_list"
+    | Failure _ as e ->
+        nestedFailwith e "dest_list"
 
 /// Tests a term to see if it is a list.
 let is_list = can dest_list
@@ -467,7 +476,8 @@ let dest_numeral =
             if fst(dest_const l) = "NUMERAL" then dest_num r
             else fail()
         with
-        | Failure _ -> failwith "dest_numeral"
+        | Failure _ as e ->
+            nestedFailwith e "dest_numeral"
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for generalized abstractions.                                      *)
@@ -491,7 +501,8 @@ let dest_gabs =
                     let ltm, rtm = dest_geq(snd(strip_forall(body r)))
                     rand ltm, rtm
         with
-        | Failure _ -> failwith "dest_gabs: Not a generalized abstraction"
+        | Failure _ as e ->
+            nestedFailwith e "dest_gabs: Not a generalized abstraction"
 
 /// Tests if a term is a basic or generalized abstraction.
 let is_gabs = can dest_gabs
@@ -535,7 +546,8 @@ let dest_let tm =
             if fst(dest_const le) = "LET_END" then eqs, bod
             else fail()
     with
-    | Failure _ -> failwith "dest_let: not a let-term"
+    | Failure _ as e ->
+        nestedFailwith e "dest_let: not a let-term"
 
 /// Tests a term to see if it is a let-expression.
 let is_let = can dest_let
