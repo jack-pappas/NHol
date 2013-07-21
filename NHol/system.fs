@@ -25,9 +25,6 @@ limitations under the License.
 
 module NHol.system
 
-//open FSharp.Compatibility.OCaml
-//open FSharp.Compatibility.OCaml.Num
-
 let configureNLog () =
   printfn "entering configureNLog"
   let projectPath = __SOURCE_DIRECTORY__
@@ -62,12 +59,10 @@ let printNLogConfig () =
   Printf.printfn "%s" (NLogConfigToString ())
 
 configureNLog ()
-//Support.NLog.configureNLogPrgramatically ()
 printNLogConfig ()
 
 // Setup logger
 let logger = NLog.LogManager.GetLogger("file")
-//let evalTracer = NLog.LogManager.GetLogger("console")
 
 logger.Trace("NLog message from system.fs")
 
