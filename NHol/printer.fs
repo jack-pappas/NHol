@@ -235,10 +235,10 @@ let pp_print_type, pp_print_qtype =
             else s
     let rec sot pr ty = 
         try 
-            dest_vartype ty
+            Choice.get <| dest_vartype ty
         with
         | Failure _ -> 
-            match dest_type ty with
+            match Choice.get <| dest_type ty with
             | con, [] -> con
             | "fun", [ty1; ty2] -> 
                 soc "->" (pr > 0) [sot 1 ty1;
@@ -273,8 +273,13 @@ let install_user_printer, delete_user_printer, try_user_printer =
 (* ------------------------------------------------------------------------- *)
 
 /// Prints a term (without quotes) to formatter.
-let pp_print_term = 
-    let reverse_interface(s0, ty0) = 
+let pp_print_term =
+    let reverse_interface(s0, ty0) =
+        /// Tests for failure.
+        let can f x = 
+            try f x |> ignore; true
+            with Failure _ -> false
+
         if not(!reverse_interface_mapping) then s0
         else 
             try 
@@ -341,7 +346,7 @@ let pp_print_term =
                     try 
                         (let tms = dest_list tm
                          try 
-                             if fst(dest_type(hd(snd(dest_type(type_of tm))))) <> "char" then fail()
+                             if fst(Choice.get <| dest_type(hd(snd(Choice.get <| dest_type(type_of tm))))) <> "char" then fail()
                              else 
                                  let ccs = map (String.make 1 << Char.chr << code_of_term) tms
                                  let s = "\"" + String.escaped(implode ccs) + "\""
@@ -478,7 +483,12 @@ let pp_print_term =
                                                                  if prec = 0 then ()
                                                                  else pp_print_string fmt ")")
                                                         with
-                                                        | Failure _ -> 
+                                                        | Failure _ ->
+                                                            /// Tests for failure.
+                                                            let can f x = 
+                                                                try f x |> ignore; true
+                                                                with Failure _ -> false
+
                                                             if s = "COND" && length args = 3 then 
                                                                 (if prec = 0 then ()
                                                                  else pp_print_string fmt "("

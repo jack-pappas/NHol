@@ -1760,7 +1760,12 @@ let INTEGER_TAC =
       if l = gcd_tm then dest_pair r else failwith "dest_gcd" in
     REPEAT GEN_TAC |> THEN <|
     W(fun (asl,w) ->
-          let gts = find_terms (can dest_gcd) w in
+          let gts =
+            /// Tests for failure.
+            let can f x = 
+                try f x |> ignore; true
+                with Failure _ -> false
+            find_terms (can dest_gcd) w in
           let ths = map (fun tm -> let a,b = dest_gcd tm in SPECL [a;b] int_gcd) gts
           MAP_EVERY MP_TAC ths |> THEN <|
           MAP_EVERY SPEC_TAC (zip gts (map (genvar << type_of) gts))) in

@@ -62,7 +62,7 @@ open meson
 /// Defines a quotient type based on given equivalence relation.
 let define_quotient_type = 
     fun tyname (absname, repname) eqv -> 
-        let ty = hd(snd(dest_type(type_of eqv)))
+        let ty = hd(snd(Choice.get <| dest_type(type_of eqv)))
         let pty = mk_fun_ty ty bool_ty
         let s = mk_var("s", pty)
         let x = mk_var("x", ty)

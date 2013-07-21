@@ -97,7 +97,12 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Declares a new type or type constructor.
-    let new_type(name, arity) = 
+    let new_type(name, arity) =
+        /// Tests for failure.
+        let can f x = 
+            try f x |> ignore; true
+            with Failure _ -> false
+
         if can get_type_arity name then failwith("new_type: type " + name + " has already been declared")
         else the_type_constants := (name, arity) :: (!the_type_constants)
     
@@ -125,22 +130,27 @@ module Hol_kernel =
 
     /// Breaks apart a type (other than a variable type).
     let dest_type = function 
-        | (Tyapp(s, ty)) -> s, ty
-        | (Tyvar _) -> failwith "dest_type: type variable not a constructor"
+        | (Tyapp(s, ty)) ->
+            Choice1Of2 (s, ty)
+        | (Tyvar _) ->
+            Choice2Of2 "dest_type: type variable not a constructor"
     
     /// Breaks a type variable down to its name.
     let dest_vartype = function 
-        | (Tyapp(_, _)) -> failwith "dest_vartype: type constructor not a variable"
-        | (Tyvar s) -> s
+        | (Tyvar s) ->
+            Choice1Of2 s
+        | (Tyapp(_, _)) ->
+            Choice2Of2 "dest_vartype: type constructor not a variable"
+        
     
     (* ------------------------------------------------------------------------- *)
     (* Basic type discriminators.                                                *)
     (* ------------------------------------------------------------------------- *)
 
     /// Tests whether a type is an instance of a type constructor.
-    let is_type = can dest_type
+    let is_type = Choice.isResult << dest_type
     /// Tests a type to see if it is a type variable.
-    let is_vartype = can dest_vartype
+    let is_vartype = Choice.isResult << dest_vartype
     
     (* ------------------------------------------------------------------------- *)
     (* Return the type variables in a type and in a list of types.               *)
@@ -204,8 +214,11 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Declares a new constant.
-    let new_constant(name, ty) = 
-        if can get_const_type name then failwith("new_constant: constant " + name + " has already been declared")
+    let new_constant(name, ty) =
+        let can_get_const_type =
+            try get_const_type name |> ignore; true
+            with Failure _ -> false
+        if can_get_const_type then failwith("new_constant: constant " + name + " has already been declared")
         else the_term_constants := (name, ty) :: (!the_term_constants)
     
     (* ------------------------------------------------------------------------- *)
@@ -217,7 +230,7 @@ module Hol_kernel =
         match tm with
         | Var(_, ty) -> ty
         | Const(_, ty) -> ty
-        | Comb(s, _) -> hd(tl(snd(dest_type(type_of s))))
+        | Comb(s, _) -> hd(tl(snd(Choice.get <| dest_type(type_of s))))
         | Abs(Var(_, ty), t) -> 
             Tyapp("fun", [ty;
                           type_of t])
@@ -716,6 +729,11 @@ module Hol_kernel =
     let new_basic_type_definition tyname (absname, repname) thm =
         match thm with
         | Success (Sequent(asl, c)) ->
+            /// Tests for failure.
+            let can f x = 
+                try f x |> ignore; true
+                with Failure _ -> false
+
             if exists (can get_const_type) [absname; repname] then 
                 tuple (Choice2Of2 <| Exception "new_basic_type_definition: Constant(s) already in use")
             elif not(asl = []) then tuple (Choice2Of2 <| Exception "new_basic_type_definition: Assumptions in theorem")

@@ -250,7 +250,12 @@ let ASM_CASES_TAC t = DISJ_CASES_TAC(SPEC t EXCLUDED_MIDDLE)
 (* ------------------------------------------------------------------------- *)
 (* Set up a reasonable tautology checker for classical logic.                *)
 (* ------------------------------------------------------------------------- *)
-let TAUT_001 = 
+let TAUT_001 =
+    /// Tests for failure.
+    let can f x = 
+        try f x |> ignore; true
+        with Failure _ -> false
+
     let PROP_REWRITE_TAC = REWRITE_TAC []
     let RTAUT_001_TAC(asl, w) = 
         let ok t = 
@@ -503,10 +508,15 @@ let COND_ABS =
 (* Redefine TAUT_001 to freeze in the rewrites including COND.                   *)
 (* ------------------------------------------------------------------------- *)
 /// Proves a propositional tautology.
-let TAUT = 
+let TAUT =
+    /// Tests for failure.
+    let can f x = 
+        try f x |> ignore; true
+        with Failure _ -> false
+
     let PROP_REWRITE_TAC = REWRITE_TAC []
     let RTAUT_TAC(asl, w) = 
-        let ok t = 
+        let ok t =
             type_of t = bool_ty && can (find_term is_var) t && free_in t w
         (PROP_REWRITE_TAC
          |> THEN <| W

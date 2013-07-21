@@ -3134,7 +3134,11 @@ let dest_setenum =
         else failwith "dest_setenum: not a finite set enumeration"
 
 /// Tests if a term is a set enumeration.
-let is_setenum = can dest_setenum
+let is_setenum x =
+    try
+        dest_setenum x |> ignore
+        true
+    with Failure _ -> false
 
 /// Constructs an explicit set enumeration from a list of elements.
 let mk_setenum = 

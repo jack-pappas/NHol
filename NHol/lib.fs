@@ -255,13 +255,10 @@ let rec map2 f l1 l2 =
 (* Attempting function or predicate applications.                            *)
 (* ------------------------------------------------------------------------- *)
 
-/// Tests for failure.
-let can f x = 
-    try 
-        (f x |> ignore
-         true)
-    with
-    | Failure _ -> false
+///// Tests for failure.
+//let can f x = 
+//    try f x |> ignore; true
+//    with Failure _ -> false
 
 /// Checks that a value satisfies a predicate.
 let check p x = 

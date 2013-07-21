@@ -59,7 +59,11 @@ let rhs = snd << dest_eq
 (* ------------------------------------------------------------------------- *)
 
 /// Rename variable to avoid specied names and constant names.
-let mk_primed_var = 
+let mk_primed_var =
+    /// Tests for failure.
+    let can f x = 
+        try f x |> ignore; true
+        with Failure _ -> false
     let rec svariant avoid s = 
         if mem s avoid || (can get_const_type s && not(is_hidden s)) then svariant avoid (s + "'")
         else s

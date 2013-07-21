@@ -950,7 +950,7 @@ let instantiate_casewise_recursion,
         prove_recursive_functions_exist sth (list_mk_conj def)
     let INDUCTIVE_MEASURE_THEN tac (asl,w) =
       let ev,bod = dest_exists w
-      let ty = fst(dest_type(fst(dest_fun_ty(type_of ev))))
+      let ty = fst(Choice.get <| dest_type(fst(dest_fun_ty(type_of ev))))
       let th = prove_depth_measure_exists ty
       let ev',bod' = dest_exists(concl th)
       let th' = INST_TYPE(type_match (type_of ev') (type_of ev) []) th
@@ -1043,6 +1043,10 @@ let define =
     let th = ASSUME(list_mk_conj ajs)
     f,itlist GEN avs (itlist PROVE_HYP (CONJUNCTS th) (end_itlist CONJ ths))
   fun tm ->
+    /// Tests for failure.
+    let can f x = 
+        try f x |> ignore; true
+        with Failure _ -> false
     let tm' = snd(strip_forall tm)
     try let th,th' = tryfind (fun th -> th,PART_MATCH I th tm')
                              (!the_definitions)

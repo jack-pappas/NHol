@@ -797,7 +797,7 @@ let GEN_MESON_TAC =
         let create_congruence_axiom pflag (tm, len) = 
             let atys, rty = 
                 splitlist (fun ty -> 
-                        let op, l = dest_type ty
+                        let op, l = Choice.get <| dest_type ty
                         if op = "fun"
                         then hd l, hd(tl l)
                         else fail()) (type_of tm)
@@ -926,10 +926,14 @@ let GEN_MESON_TAC =
                     | Failure _ -> false)
         let REFLEXATE ths = 
             let eqs = itlist (union << find_eqs << concl) ths []
-            let tys = map (hd << snd << dest_type << snd << dest_const) eqs
+            let tys = map (hd << snd << Choice.get << dest_type << snd << dest_const) eqs
             let gvs = map genvar tys
             itlist (fun v acc -> (REFL v) :: acc) gvs ths
-        fun ths -> 
+        fun ths ->
+            /// Tests for failure.
+            let can f x = 
+                try f x |> ignore; true
+                with Failure _ -> false
             if exists (can(find_term is_eq << concl)) ths
             then 
                 let ths' = map BRAND_CONGS ths

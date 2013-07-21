@@ -133,7 +133,13 @@ let term_order =
 let net_of_thm rep th = 
     let tm = concl th
     let lconsts = freesl(hyp th)
-    let matchable = can << term_match lconsts
+    let matchable =
+        /// Tests for failure.
+        let can f x = 
+            try f x |> ignore; true
+            with Failure _ -> false
+        
+        can << term_match lconsts
     match tm with
     | Comb(Comb(Const("=", _), (Abs(x, Comb(Var(s, ty) as v, x')) as l)), v') when x' = x 
                                                                                    && v' = v 

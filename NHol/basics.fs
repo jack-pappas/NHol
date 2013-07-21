@@ -56,7 +56,7 @@ let dest_fun_ty ty =
 
 /// Tests if one type occurs in another.
 let rec occurs_in ty bigty =
-    bigty = ty || is_type bigty && exists (occurs_in ty) (snd(dest_type bigty))
+    bigty = ty || is_type bigty && exists (occurs_in ty) (snd(Choice.get <| dest_type bigty))
 
 /// The call tysubst [ty1',ty1; ... ; tyn',tyn] ty will systematically traverse the type ty
 /// and replace the topmost instances of any tyi encountered with the corresponding tyi'.
@@ -69,7 +69,7 @@ let rec tysubst alist ty =
     | None ->
         if is_vartype ty then ty
         else 
-            let tycon, tyvars = dest_type ty
+            let tycon, tyvars = Choice.get <| dest_type ty
             mk_type(tycon, map (tysubst alist) tyvars)
 
 (* ------------------------------------------------------------------------- *)
@@ -221,8 +221,8 @@ let rec type_match vty cty sofar =
         | None ->
             (cty, vty) :: sofar
     else 
-        let vop, vargs = dest_type vty
-        let cop, cargs = dest_type cty
+        let vop, vargs = Choice.get <| dest_type vty
+        let cop, cargs = Choice.get <| dest_type cty
         if vop = cop then itlist2 type_match vargs cargs sofar
         else failwith "type_match"
 
@@ -248,7 +248,7 @@ let mk_mconst(c, ty) =
 
 /// Makes a combination, instantiating types in rator if necessary.
 let mk_icomb(tm1, tm2) = 
-    match dest_type(type_of tm1) with
+    match Choice.get <| dest_type(type_of tm1) with
     | "fun", [ty; _] ->
         let tyins = type_match ty (type_of tm2) []
         mk_comb(inst tyins tm1, tm2)
@@ -449,7 +449,11 @@ let dest_list tm =
         nestedFailwith e "dest_list"
 
 /// Tests a term to see if it is a list.
-let is_list = can dest_list
+let is_list x =
+    try
+        dest_list x |> ignore
+        true
+    with Failure _ -> false
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for numerals.                                                      *)
@@ -505,7 +509,11 @@ let dest_gabs =
             nestedFailwith e "dest_gabs: Not a generalized abstraction"
 
 /// Tests if a term is a basic or generalized abstraction.
-let is_gabs = can dest_gabs
+let is_gabs x =
+    try
+        dest_gabs x |> ignore
+        true
+    with Failure _ -> false
 
 /// Constructs a generalized abstraction.
 let mk_gabs = 
@@ -550,7 +558,11 @@ let dest_let tm =
         nestedFailwith e "dest_let: not a let-term"
 
 /// Tests a term to see if it is a let-expression.
-let is_let = can dest_let
+let is_let x =
+    try
+        dest_let x |> ignore
+        true
+    with Failure _ -> false
 
 /// Constructs a let-expression.
 let mk_let(assigs, bod) = 

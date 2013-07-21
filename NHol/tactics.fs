@@ -137,8 +137,8 @@ let compose_insts : instantiation -> instantiation -> instantiation =
     fun (pats1, tmin1, tyin1) ((pats2, tmin2, tyin2) as i2) -> 
         let tmin = map (instantiate i2 ||>> inst tyin2) tmin1
         let tyin = map (type_subst tyin2 ||>> I) tyin1
-        let tmin' = filter (fun (_, x) -> not(can (rev_assoc x) tmin)) tmin2
-        let tyin' = filter (fun (_, a) -> not(can (rev_assoc a) tyin)) tyin2
+        let tmin' = filter (fun (_, x) -> Option.isNone <| rev_assoc x tmin) tmin2
+        let tyin' = filter (fun (_, a) -> Option.isNone <| rev_assoc a tyin) tyin2
         pats1 @ pats2, tmin @ tmin', tyin @ tyin'
 
 (* ------------------------------------------------------------------------- *)

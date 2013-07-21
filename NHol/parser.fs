@@ -356,6 +356,11 @@ let parse_preterm =
       [] -> true
     | h::t -> forall (r h) t && pairwise r t
   let rec pfrees ptm acc =
+    /// Tests for failure.
+    let can f x = 
+        try f x |> ignore; true
+        with Failure _ -> false
+
     match ptm with
       Varp(v,pty) ->
         if v = "" && pty = dpty then acc
@@ -483,12 +488,16 @@ let parse_preterm =
       | ((Ident s) :: rest) -> s, rest
       | _ -> raise Noparse
   
-  and identifier = 
-      function 
-      | ((Ident s) :: rest) -> 
+  and identifier x = 
+    /// Tests for failure.
+    let can f x = 
+        try f x |> ignore; true
+        with Failure _ -> false
+    match x with
+    | ((Ident s) :: rest) -> 
           if can get_infix_status s || is_prefix s || parses_as_binder s then raise Noparse
           else s, rest
-      | _ -> raise Noparse
+    | _ -> raise Noparse
   
   and binder = 
       function 

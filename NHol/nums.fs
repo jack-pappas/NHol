@@ -296,7 +296,13 @@ let mk_small_numeral n = mk_numeral(Int n)
 /// Converts a HOL numeral term to machine integer.
 let dest_small_numeral t = Num.int_of_num(dest_numeral t)
 /// Tests if a term is a natural number numeral.
-let is_numeral = can dest_numeral
+let is_numeral =
+    /// Tests for failure.
+    let can f x = 
+        try f x |> ignore; true
+        with Failure _ -> false
+    
+    can dest_numeral
 /// List of all constant specifications introduced so far.
 let the_specifications = ref []
 

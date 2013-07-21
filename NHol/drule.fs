@@ -312,7 +312,7 @@ let term_match : term list -> term -> term -> instantiation =
         | _ -> 
             let vhop = repeat rator vtm
             if is_var vhop && not(mem vhop lconsts) 
-               && not(can (rev_assoc vhop) env)
+               && (Option.isNone <| rev_assoc vhop env)
             then 
                 let vty = type_of vtm
                 let cty = type_of ctm
@@ -653,7 +653,11 @@ let HIGHER_REWRITE_CONV =
         let beta_fns = map2 BETA_VAR preds concs
         let ass_list = zip pats (zip preds (zip thl beta_fns))
         let mnet = itlist (fun p n -> enter [] (p, p) n) pats empty_net
-        let look_fn t = 
+        let look_fn t =
+            /// Tests for failure.
+            let can f x = 
+                try f x |> ignore; true
+                with Failure _ -> false
             mapfilter (fun p -> 
                     if can (term_match [] p) t
                     then p

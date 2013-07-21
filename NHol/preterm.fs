@@ -110,6 +110,10 @@ let overload_interface(sym, tm) =
             dest_const tm
         with
         | Failure _ -> dest_var tm
+    /// Tests for failure.
+    let can f x = 
+        try f x |> ignore; true
+        with Failure _ -> false
     if not(can (type_match gty ty) []) then failwith "Not an instance of type skeleton"
     else 
         let ``interface`` = filter ((<>)(sym, namty)) (!the_interface)
@@ -178,10 +182,10 @@ let dpty = Ptycon("", [])
 /// Converts a type into a pretype.
 let rec pretype_of_type ty = 
     try 
-        let con, args = dest_type ty
+        let con, args = Choice.get <| dest_type ty
         Ptycon(con, map pretype_of_type args)
     with
-    | Failure _ -> Utv(dest_vartype ty)
+    | Failure _ -> Utv(Choice.get <| dest_vartype ty)
 
 (* ------------------------------------------------------------------------- *)
 (* Preterm syntax.                                                           *)
@@ -231,9 +235,12 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let n = !tyv_num
         (tyv_num := n + 1
          Stv(n))
-    let pmk_cv(s, pty) = 
-        if can get_const_type s then Constp(s, pty)
-        else Varp(s, pty)
+    let pmk_cv(s, pty) =
+        try
+            get_const_type s |> ignore
+            Constp(s, pty)
+        with _ ->
+            Varp(s, pty)
     let pmk_numeral = 
         let num_pty = Ptycon("num", [])
         let NUMERAL = Constp("NUMERAL", Ptycon("fun", [num_pty; num_pty]))
@@ -385,9 +392,14 @@ let type_of_pretype, term_of_preterm, retypecheck =
     (* ----------------------------------------------------------------------- *)
 
     let rec typify ty (ptm, venv, uenv) =
+        /// Tests for failure.
+        let can f x = 
+            try f x |> ignore; true
+            with Failure _ -> false
+
         //printfn "typify --> %A:%A:%A:%A" ty ptm venv uenv 
         match ptm with
-        | Varp(s, _) when can (assoc s) venv -> 
+        | Varp(s, _) when (Option.isSome <| assoc s venv) -> 
             let ty' =
                 assoc s venv
                 |> Option.getOrFailWith "find"
@@ -460,7 +472,11 @@ let type_of_pretype, term_of_preterm, retypecheck =
         | Constp(s, ty) -> 
             let tys = solve env ty
             try 
-                let _, (c', _) = 
+                let _, (c', _) =
+                    /// Tests for failure.
+                    let can f x = 
+                        try f x |> ignore; true
+                        with Failure _ -> false
                     find (fun (s', (c', ty')) -> s = s' && can (unify None env (pretype_instance ty')) ty) 
                         (!the_interface)
                 pmk_cv(c', tys)

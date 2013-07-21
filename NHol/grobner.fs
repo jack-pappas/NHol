@@ -245,6 +245,11 @@ let RING_AND_IDEAL_CONV =
   (* ----------------------------------------------------------------------- *)
   
   let criterion2 basis (lcm,((p1,h1),(p2,h2))) opairs =
+    /// Tests for failure.
+    let can f x = 
+        try f x |> ignore; true
+        with Failure _ -> false
+
     exists (fun g -> not(poly_eq (fst g) p1) && not(poly_eq (fst g) p2) &&
                      can (mdiv lcm) (hd(fst g)) &&
                      not(memx (align(g,(p1,h1))) (map snd opairs)) &&
@@ -440,7 +445,11 @@ let RING_AND_IDEAL_CONV =
     let ring_dest_div = dest_binop ring_div_tm
     let ring_dest_pow = dest_binop ring_pow_tm
     let ring_mk_pow = mk_binop ring_pow_tm in 
-    let rec grobvars tm acc =                 
+    let rec grobvars tm acc =
+      /// Tests for failure.
+      let can f x = 
+          try f x |> ignore; true
+          with Failure _ -> false
       if can ring_dest_const tm then acc                            
       else if can ring_dest_neg tm then grobvars (rand tm) acc      
       else if can ring_dest_pow tm && is_numeral (rand tm)          
@@ -667,7 +676,13 @@ let NUM_SIMPLIFY_CONV =
     let is_div = is_binop div_tm 
     let is_mod = is_binop mod_tm in
     fun tm -> is_div tm || is_mod tm
-  let contains_quantifier = can (find_term (fun t -> is_forall t || is_exists t || is_uexists t))
+  let contains_quantifier =
+    /// Tests for failure.
+    let can f x = 
+        try f x |> ignore; true
+        with Failure _ -> false
+    
+    can (find_term (fun t -> is_forall t || is_exists t || is_uexists t))
   let BETA2_CONV = RATOR_CONV BETA_CONV |>THENC<| BETA_CONV
   let PRE_ELIM_THM'' = CONV_RULE (RAND_CONV NNF_CONV) PRE_ELIM_THM
   let SUB_ELIM_THM'' = CONV_RULE (RAND_CONV NNF_CONV) SUB_ELIM_THM
