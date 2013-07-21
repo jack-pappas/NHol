@@ -27,6 +27,9 @@ module NHol.lib
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
+open NHol
+open system
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -149,14 +152,14 @@ let rec map2 f l1 l2 =
 
 /// Tests for failure.
 let can f x = 
-    try 
+    try
         (f x |> ignore
          true)
     with
     | Failure _ -> false
 
 /// Checks that a value satisfies a predicate.
-let check p x = 
+let check p x =
     if p x then x
     else failwith "check"
 
@@ -189,14 +192,14 @@ exception Unchanged
 (* ------------------------------------------------------------------------- *)
 
 /// List iteration function. Applies a binary function between adjacent elements of a list.
-// OPTIMIZE : Make this an alias for List.fold.
+// OPTIMIZE : Make this an alias for List.foldBack.
 let rec itlist f l b = 
     match l with
     | [] -> b
     | (h :: t) -> f h (itlist f t b)
 
 /// Applies a binary function between adjacent elements of the reverse of a list.
-// OPTIMIZE : Make this an alias for List.foldBack.
+// OPTIMIZE : Make this an alias for List.fold.
 let rec rev_itlist f l b = 
     match l with
     | [] -> b
@@ -211,7 +214,7 @@ let rec end_itlist f l =
     | (h :: t) -> f h (end_itlist f t)
 
 /// Applies a paired function between adjacent elements of 2 lists.
-// OPTIMIZE : Make this an alias for List.fold2.
+// OPTIMIZE : Make this an alias for List.foldBack2.
 let rec itlist2 f l1 l2 b = 
     match (l1, l2) with
     | ([], []) -> b
@@ -219,7 +222,7 @@ let rec itlist2 f l1 l2 b =
     | _ -> failwith "itlist2"
 
 /// Applies a paired function between adjacent elements of 2 lists.
-// OPTIMIZE : Make this an alias for List.foldBack2.
+// OPTIMIZE : Make this an alias for List.fold2.
 let rec rev_itlist2 f l1 l2 b = 
     match (l1, l2) with
     | ([], []) -> b
@@ -360,7 +363,7 @@ let rec mapfilter f l =
         with
         | Failure _ -> rest
 
-/// Returns the first element of a list which satises a predicate.
+/// Returns the first element of a list which satisfies a predicate.
 // OPTIMIZE : Make this an alias for List.find.
 let rec find p l = 
     match l with
@@ -395,7 +398,7 @@ let rec remove p l =
             let y, n = remove p t
             y, h :: n
 
-/// Chops a list into two parts at a specied point.
+/// Chops a list into two parts at a specified point.
 // OPTIMIZE : Make this an alias for List.take.
 let rec chop_list n l = 
     if n = 0 then [], l

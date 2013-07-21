@@ -25,8 +25,10 @@ module NHol.drule
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+open FSharp.Compatibility.OCaml.Format
 
 open NHol
+open system
 open lib
 open fusion
 open fusion.Hol_kernel
@@ -42,7 +44,52 @@ open bool
 (* ------------------------------------------------------------------------- *)
 (* Type of instantiations, with terms, types and higher-order data.          *)
 (* ------------------------------------------------------------------------- *)
+
 type instantiation = (int * term) list * (term * term) list * (hol_type * hol_type) list
+
+/// Prints a instantiation to formatter.
+let pp_print_instantiation fmt inst =
+    let (al,bl,cl) = inst
+    let rec pp_print_al fmt al =
+        match al with
+        | (n,trm) :: tl ->
+            pp_print_string fmt (string_of_int n)
+            pp_print_string fmt ", "
+            pp_print_term fmt trm
+            pp_print_break fmt 0 0
+            pp_print_al fmt tl
+        | [] -> ()
+    pp_print_al fmt al
+    let rec pp_print_bl fmt al =
+        match al with
+        | (trma,trmb) :: tl ->
+            pp_print_term fmt trma
+            pp_print_string fmt ", "
+            pp_print_term fmt trmb
+            pp_print_break fmt 0 0
+            pp_print_bl fmt tl
+        | [] -> ()
+    pp_print_bl fmt bl
+    let rec pp_print_cl fmt al =
+        match al with
+        | (typa,typb) :: tl ->
+            pp_print_term fmt typa
+            pp_print_string fmt ", "
+            pp_print_term fmt typb
+            pp_print_break fmt 0 0
+            pp_print_cl fmt tl
+        | [] -> ()
+    pp_print_cl fmt cl
+
+/// Prints a instantiation (without quotes) to the standard output.
+let print_instantiation = pp_print_instantiation std_formatter
+
+/// Converts a instantiation to a string representation.
+let string_of_instantiation = print_to_string pp_print_instantiation
+
+#if INTERACTIVE
+fsi.AddPrinter string_of_instantiation
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* The last recourse when all else fails!                                    *)

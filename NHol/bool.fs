@@ -26,6 +26,7 @@ module NHol.bool
 open FSharp.Compatibility.OCaml
 
 open NHol
+open system
 open lib
 open fusion
 open fusion.Hol_kernel
