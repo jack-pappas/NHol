@@ -70,7 +70,7 @@ open NHol.calc_int
 open NHol.realarith
 open NHol.real  //  
 open NHol.calc_rat 
-
+open NHol.int
 //open NHol.sets     
 //open NHol.iterate
 //open NHol.cart     
@@ -109,14 +109,19 @@ dist;;              //relax
 mk_realintconst;;   //calc_int
 REAL_LTE_TOTAL;;    //realarith
 REAL_OF_NUM_LT;;    //real various
-
 DECIMAL;;           //calc_rat first issue at line 120
-
-#load "int.fs" 
-open NHol.int     
-
 integer;;           //int
-//IN;;                //sets
+
+#load "sets.fs" 
+open sets    
+
+IN;;                //sets
+
+parse_term(@"s UNION t = {x:A | x IN s \/ x IN t}")
+
+parse_term(@"s = {1}")
+
+
 //FINITE_NUMSEG;;     //iterate
 //dimindex;;          //cart
 //CASEWISE_DEF;;      //define
