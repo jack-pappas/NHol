@@ -27,6 +27,7 @@ open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
 open NHol
+open system
 open lib
 #endif
 

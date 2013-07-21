@@ -27,6 +27,9 @@ module NHol.lib
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
+open NHol
+open system
 #endif
 
 (* ------------------------------------------------------------------------- *)

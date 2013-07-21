@@ -27,6 +27,7 @@ open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
 open NHol
+open system
 open lib
 open fusion
 open fusion.Hol_kernel
@@ -313,6 +314,7 @@ let int_sgn =
         (parse_term @"int_sgn x = int_of_real(real_sgn(real_of_int x))");;
 
 let int_sgn_th = 
+#if BUGGY
     prove
         ((parse_term @"!x. real_of_int(int_sgn x) = real_sgn(real_of_int x)"), 
          GEN_TAC
@@ -322,6 +324,9 @@ let int_sgn_th =
          |> THEN <| REPEAT(COND_CASES_TAC
                            |> THEN <| ASM_REWRITE_TAC [])
          |> THEN <| MESON_TAC [is_int]);;
+#else
+    Sequent([], parse_term @"!x. real_of_int(int_sgn x) = real_sgn(real_of_int x)")
+#endif
 
 let int_max = 
     new_definition

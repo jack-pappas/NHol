@@ -22,6 +22,8 @@ limitations under the License.
 #r "FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
 #r "FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
 #r "ExtCore.0.8.29/lib/net40/ExtCore.dll"
+#r "NLog.2.0.1.2/lib/net40/NLog.dll"
+
 
 #I "./../NHol"
 #r @"bin/Debug/NHol.dll"
@@ -35,6 +37,7 @@ open FSharp.Compatibility.OCaml;;
 open FSharp.Compatibility.OCaml.Num;;
 
 open NHol
+open NHol.system
 open NHol.lib
 open NHol.fusion
 open NHol.basics
@@ -70,17 +73,22 @@ open NHol.calc_int
 open NHol.realarith
 open NHol.real  //  
 open NHol.calc_rat 
-
+open NHol.int
 //open NHol.sets     
 //open NHol.iterate
 //open NHol.cart     
 //open NHol.define   
 
-
-
 fsi.AddPrinter string_of_type;;
 fsi.AddPrinter string_of_term;;
 fsi.AddPrinter string_of_thm;;
+
+configureNLogPrgramatically ()
+printNLogConfig ()
+
+// Setup logger
+let logger = NLog.LogManager.GetLogger("file")
+logger.Trace("NLog set up from exploration.fsx")
 
 BETA_RULE;;                 // forces equal module evaluation: maybe not needed
 mk_iff;;                    // forces bool module evaluation
@@ -109,14 +117,19 @@ dist;;              //relax
 mk_realintconst;;   //calc_int
 REAL_LTE_TOTAL;;    //realarith
 REAL_OF_NUM_LT;;    //real various
-
 DECIMAL;;           //calc_rat first issue at line 120
-
-#load "int.fs" 
-open NHol.int     
-
 integer;;           //int
-//IN;;                //sets
+
+#load "sets.fs" 
+open sets    
+
+IN;;                //sets
+
+parse_term(@"s UNION t = {x:A | x IN s \/ x IN t}")
+
+parse_term(@"s = {1}")
+
+
 //FINITE_NUMSEG;;     //iterate
 //dimindex;;          //cart
 //CASEWISE_DEF;;      //define
