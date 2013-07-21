@@ -147,7 +147,10 @@ let unparse_as_infix, parse_as_infix, get_infix_status, infixes =
     let infix_list = ref([] : (string * (int * string)) list)
     (fun n -> infix_list := filter (((<>) n) << fst) (!infix_list)), 
     (fun (n, d) -> infix_list := sort cmp ((n, d) :: (filter (((<>) n) << fst) (!infix_list)))), 
-    (fun n -> assoc n (!infix_list)), (fun () -> !infix_list)
+    (fun n ->
+        assoc n !infix_list
+        |> Option.getOrFailWith "find"),
+    (fun () -> !infix_list)
 
 (* ------------------------------------------------------------------------- *)
 (* Interface mapping.                                                        *)

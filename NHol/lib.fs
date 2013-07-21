@@ -38,6 +38,9 @@ open FSharp.Compatibility.OCaml.Num
 (* Some ExtCore-related functions used within NHol.                          *)
 (* ------------------------------------------------------------------------- *)
 
+/// Fail with empty string.
+let fail () : 'T = failwith ""
+
 // Follow the naming convention of ExtCore
 [<RequireQualifiedAccess>]
 module Choice =
@@ -105,15 +108,10 @@ module Choice =
 (* these may be included in a future release of FSharp.Compatibility.OCaml.  *)
 (* ------------------------------------------------------------------------- *)
 
-let inline tuple x = (x, x)
-
 // TEMP : This can be removed after upgrading to ExtCore 0.8.30 or newer.
 // It will also be defined in a future version of FSharp.Compatibility.OCaml.
 let inline (==) (x : 'T) (y : 'T) =
     System.Object.ReferenceEquals(x, y)
-
-/// Fail with empty string.
-let fail () : 'T = failwith ""
 
 // The exception fired by failwith is used as a control flow.
 // KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
@@ -150,6 +148,22 @@ module Ratio =
 
 
 (* ------------------------------------------------------------------------- *)
+(* NHol-specific helper functions which don't belong in ExtCore or           *)
+(* FSharp.Compatibility.OCaml.                                               *)
+(* ------------------------------------------------------------------------- *)
+
+let inline tuple x = (x, x)
+
+module Option =
+    /// Gets the value associated with an option; if the option is None,
+    /// fails with the specified error message.
+    let getOrFailWith msg value =
+        match value with
+        | Some x -> x
+        | None -> failwith msg
+
+
+(* ------------------------------------------------------------------------- *)
 (* Combinators.                                                              *)
 (* ------------------------------------------------------------------------- *)
 
@@ -169,7 +183,7 @@ let (||>>) = fun f g (x, y) -> (f x, g y)
 
 /// Computes the first element (the head) of a list.
 // OPTIMIZE : Make this an alias for List.head.
-let hd l = 
+let hd l =
     match l with
     | h :: t -> h
     | _ -> failwith "hd"
@@ -542,18 +556,18 @@ let set_eq l1 l2 = subset l1 l2 && subset l2 l1
 /// Searches a list of pairs for a pair whose first component equals a specified value.
 let rec assoc a l = 
     match l with
+    | [] -> None
     | (x, y) :: t -> 
-        if compare x a = 0 then y
+        if compare x a = 0 then Some y
         else assoc a t
-    | [] -> failwith "find"
 
 /// Searches a list of pairs for a pair whose second component equals a specified value.
-let rec rev_assoc a l = 
+let rec rev_assoc a l =
     match l with
-    | (x, y) :: t -> 
-        if compare y a = 0 then x
+    | [] -> None
+    | (x, y) :: t ->
+        if compare y a = 0 then Some x
         else rev_assoc a t
-    | [] -> failwith "find"
 
 (* ------------------------------------------------------------------------- *)
 (* Zipping, unzipping etc.                                                   *)
@@ -569,10 +583,10 @@ let rec zip l1 l2 =
 
 /// Converts a list of pairs into a pair of lists.
 // OPTIMIZE : Make this an alias for List.unzip.
-let rec unzip = 
-    function 
-    | [] -> [], []
-    | ((a, b) :: rest) -> 
+let rec unzip = function 
+    | [] ->
+        [], []
+    | (a, b) :: rest ->
         let alist, blist = unzip rest
         (a :: alist, b :: blist)
 
@@ -581,7 +595,7 @@ let rec unzip =
 (* ------------------------------------------------------------------------- *)
 
 /// Shares out the elements of the second list according to pattern in first.
-let rec shareout pat all = 
+let rec shareout pat all =
     if pat = [] then []
     else 
         let l, r = chop_list (length(hd pat)) all
@@ -1233,7 +1247,10 @@ let num_of_string =
          "f", 15;
          "F", 15]
     let rec valof b s = 
-        let v = Int(assoc s values)
+        let v =
+            match assoc s values with
+            | Some x -> Int x
+            | None -> failwith "find"
         if v </ b then v
         else failwith "num_of_string: invalid digit for base"
     and two = num_2

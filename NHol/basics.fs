@@ -62,11 +62,11 @@ let rec occurs_in ty bigty =
 /// and replace the topmost instances of any tyi encountered with the corresponding tyi'.
 /// In the (usual) case where all the tyi are type variables, this is the same as type_subst,
 /// but also works when they are not.
-let rec tysubst alist ty = 
-    try 
-        rev_assoc ty alist
-    with
-    | Failure _ -> 
+let rec tysubst alist ty =
+    // OPTIMIZE : Use Option.fillWith from ExtCore.
+    match rev_assoc ty alist with
+    | Some x -> x
+    | None ->
         if is_vartype ty then ty
         else 
             let tycon, tyvars = dest_type ty
@@ -209,12 +209,13 @@ let alpha v tm =
 
 /// Computes a type instantiation to match one type to another.
 let rec type_match vty cty sofar = 
-    if is_vartype vty then 
-        try 
-            if rev_assoc vty sofar = cty then sofar
+    if is_vartype vty then
+        match rev_assoc vty sofar with
+        | Some x ->
+            if x = cty then sofar
             else failwith "type_match"
-        with
-        | Failure "find" -> (cty, vty) :: sofar
+        | None ->
+            (cty, vty) :: sofar
     else 
         let vop, vargs = dest_type vty
         let cop, cargs = dest_type cty

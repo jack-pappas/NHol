@@ -137,18 +137,21 @@ let lookup =
         | [] -> tips
         | (tm :: rtms) -> 
             let label, ntms = label_for_lookup tm
-            let collection = 
-                try 
-                    let child = assoc label edges
+            let collection =
+                // OPTIMIZE : Use Option.map and Option.fill to replace the 'match' statement.
+                match assoc label edges with
+                | None -> []
+                | Some child ->
                     follow(ntms @ rtms, child)
-                with
-                | Failure _ -> []
+
             if label = Vnet then collection
-            else 
-                try 
-                    collection @ follow(rtms, assoc Vnet edges)
-                with
-                | Failure _ -> collection
+            else
+                // OPTIMIZE : Use Option.map and Option.fill to replace the 'match' statement.
+                match assoc Vnet edges with
+                | None -> collection
+                | Some x ->
+                    collection @ follow(rtms, x)
+
     fun tm net -> follow([tm], net)
 
 (* ------------------------------------------------------------------------- *)

@@ -929,7 +929,9 @@ let instantiate_casewise_recursion,
     let prove_depth_measure_exists =
       let num_ty = (parse_type @"num")
       fun tyname ->
-        let _,_,sth = assoc tyname (!inductive_type_store)
+        let _,_,sth =
+            assoc tyname (!inductive_type_store)
+            |> Option.getOrFailWith "find"
         let ty,zty = dest_fun_ty (type_of(fst(dest_exists(snd(strip_forall(concl sth))))))
         let rth = INST_TYPE [num_ty,zty] sth
         let avs,bod = strip_forall(concl rth)

@@ -124,7 +124,9 @@ let instantiate : instantiation -> term -> term =
             | Failure _ -> 
                 let hop, args = strip_comb pat
                 try 
-                    let n = rev_assoc hop bcs
+                    let n =
+                        rev_assoc hop bcs
+                        |> Option.getOrFailWith "find"
                     if length args = n
                     then betas n tm
                     else fail()
@@ -175,7 +177,9 @@ let INSTANTIATE : instantiation -> thm -> thm =
             |> Choice.bindError (fun _ ->
                 let hop, args = strip_comb pat
                 let v = 
-                    let n = rev_assoc hop bcs
+                    let n =
+                        rev_assoc hop bcs
+                        |> Option.getOrFailWith "find"
                     if length args = n
                     then BETAS_CONV n tm
                     else Choice2Of2 <| Exception ""
@@ -252,7 +256,9 @@ let INSTANTIATE_ALL : instantiation -> thm -> thm =
 let term_match : term list -> term -> term -> instantiation = 
     let safe_inserta ((y, x) as n) l = 
         try 
-            let z = rev_assoc x l
+            let z =
+                rev_assoc x l
+                |> Option.getOrFailWith "find"
             if aconv y z
             then l
             else failwith "safe_inserta"
@@ -260,7 +266,9 @@ let term_match : term list -> term -> term -> instantiation =
         | Failure "find" -> n :: l
     let safe_insert ((y, x) as n) l = 
         try 
-            let z = rev_assoc x l
+            let z =
+                rev_assoc x l
+                |> Option.getOrFailWith "find"
             if compare y z = 0
             then l
             else failwith "safe_insert"
@@ -273,7 +281,9 @@ let term_match : term list -> term -> term -> instantiation =
         match (vtm, ctm) with
         | Var(_, _), _ -> 
             try 
-                let ctm' = rev_assoc vtm env
+                let ctm' =
+                    rev_assoc vtm env
+                    |> Option.getOrFailWith "find"
                 if compare ctm' ctm = 0
                 then sofar
                 else failwith "term_pmatch"
@@ -361,15 +371,13 @@ let term_match : term list -> term -> term -> instantiation =
                 let inst_fn = inst tyins
                 try 
                     let tmins = 
-                        map (fun a -> 
-                                (try 
-                                     rev_assoc a env
-                                 with
-                                 | Failure _ -> 
-                                     try 
-                                         rev_assoc a insts
-                                     with
-                                     | Failure _ -> 
+                        map (fun a ->
+                               (match rev_assoc a env with
+                                | Some x -> x
+                                | None ->
+                                    match rev_assoc a insts with
+                                    | Some x -> x
+                                    | None -> 
                                          if mem a lconsts
                                          then a
                                          else fail()), inst_fn a) afvs
@@ -436,14 +444,18 @@ let term_unify : term list -> term -> term -> instantiation =
         elif is_var tm1 && mem tm1 vars
         then 
             try 
-                let tm1' = rev_assoc tm1 sofar
+                let tm1' =
+                    rev_assoc tm1 sofar
+                    |> Option.getOrFailWith "find"
                 unify vars tm1' tm2 sofar
             with
             | Failure "find" -> augment_insts (tm2, tm1) sofar
         elif is_var tm2 && mem tm2 vars
         then 
             try 
-                let tm2' = rev_assoc tm2 sofar
+                let tm2' =
+                    rev_assoc tm2 sofar
+                    |> Option.getOrFailWith "find"
                 unify vars tm1 tm2' sofar
             with
             | Failure "find" -> augment_insts (tm1, tm2) sofar
@@ -654,7 +666,9 @@ let HIGHER_REWRITE_CONV =
                 else hd(sort free_in (find_terms pred tm))
             let pat = hd(look_fn stm)
             let _, tmin, tyin = term_match [] pat stm
-            let pred, (th, beta_fn) = assoc pat ass_list
+            let pred, (th, beta_fn) =
+                assoc pat ass_list
+                |> Option.getOrFailWith "find"
             let gv = genvar(type_of stm)
             let abs = mk_abs(gv, subst [gv, stm] tm)
             let _, tmin0, tyin0 = term_match [] pred abs

@@ -70,7 +70,9 @@ let prove_recursive_functions_exist =
         let f = 
             fst << dest_const << repeat rator << rand << lhand << snd 
             << strip_forall
-        let findax = C assoc (map (fun t -> f t, t) axcls)
+        let findax s =
+            assoc s (map (fun t -> f t, t) axcls)
+            |> Option.getOrFailWith "find"
         let raxs = 
             map (findax << fst << dest_const << repeat rator << hd << snd) lpats
         let axfns = map (repeat rator << lhand << snd << strip_forall) raxs
@@ -111,7 +113,11 @@ let prove_recursive_functions_exist =
         then acc
         else 
             let gvs = map (genvar << type_of) args
-            let gvs' = map (C assoc (zip args gvs)) args'
+            let gvs' =
+                args'
+                |> map (fun x ->
+                    assoc x (zip args gvs)
+                    |> Option.getOrFailWith "find")
             let lty = 
                 itlist (mk_fun_ty << type_of) gvs' (funpow (length gvs) (hd << tl << snd << dest_type) (type_of fn))
             let fn' = genvar lty
@@ -125,7 +131,7 @@ let prove_recursive_functions_exist =
         let spcls = map (snd << strip_forall) rawcls
         let lpats = map (strip_comb << lhand) spcls
         let ufns = itlist (insert << fst) lpats []
-        let uxargs = map (C assoc lpats) ufns
+        let uxargs = map (fun x -> assoc x lpats |> Option.getOrFailWith "find") ufns
         let trths = itlist2 reshuffle ufns uxargs []
         let tth = GEN_REWRITE_CONV REDEPTH_CONV (BETA_THM :: trths) tm
         let eth = prove_canon_recursive_functions_exist ax (rand(concl tth))

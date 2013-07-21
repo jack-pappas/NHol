@@ -88,7 +88,9 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the arity of a type constructor.
-    let get_type_arity s = assoc s (!the_type_constants)
+    let get_type_arity s =
+        assoc s !the_type_constants
+        |> Option.getOrFailWith "find"
     
     (* ------------------------------------------------------------------------- *)
     (* Declare a new type.                                                       *)
@@ -192,7 +194,9 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Gets the generic type of a constant from the name of the constant.
-    let get_const_type s = assoc s (!the_term_constants)
+    let get_const_type s =
+        assoc s !the_term_constants
+        |> Option.getOrFailWith "find"
     
     (* ------------------------------------------------------------------------- *)
     (* Declare a new constant.                                                   *)

@@ -66,11 +66,13 @@ let the_implicit_types = ref([] : (string * hol_type) list)
 (* ------------------------------------------------------------------------- *)
 
 /// Makes a symbol overloadable within the specified type skeleton.
-let make_overloadable s gty = 
-    if can (assoc s) (!the_overload_skeletons) then 
-        if assoc s (!the_overload_skeletons) = gty then ()
+let make_overloadable s gty =
+    match assoc s !the_overload_skeletons with
+    | Some x ->
+        if x = gty then ()
         else failwith "make_overloadable: differs from existing skeleton"
-    else the_overload_skeletons := (s, gty) :: (!the_overload_skeletons)
+    | None ->
+        the_overload_skeletons := (s, gty) :: (!the_overload_skeletons)
 
 /// Remove all overload/interface mappings for an identifier.
 let remove_interface sym = 
@@ -98,11 +100,11 @@ let override_interface(sym, tm) =
 
 /// Overload a symbol so it may denote a particular underlying constant.
 let overload_interface(sym, tm) = 
-    let gty = 
-        try 
-            assoc sym (!the_overload_skeletons)
-        with
-        | Failure _ -> failwith("symbol \"" + sym + "\" is not overloadable")
+    let gty =
+        match assoc sym (!the_overload_skeletons) with
+        | Some x -> x
+        | None ->
+            failwith("symbol \"" + sym + "\" is not overloadable")
     let (name, ty) as namty = 
         try 
             dest_const tm
@@ -276,14 +278,18 @@ let type_of_pretype, term_of_preterm, retypecheck =
     let get_generic_type cname = 
         match filter ((=) cname << fst) (!the_interface) with
         | [_, (c, ty)] -> ty
-        | _ :: _ :: _ -> assoc cname (!the_overload_skeletons)
+        | _ :: _ :: _ ->
+            assoc cname (!the_overload_skeletons)
+            |> Option.getOrFailWith "find"
         | [] -> get_const_type cname
 
     (* ----------------------------------------------------------------------- *)
     (* Get the implicit generic type of a variable.                            *)
     (* ----------------------------------------------------------------------- *)
 
-    let get_var_type vname = assoc vname !the_implicit_types
+    let get_var_type vname =
+        assoc vname !the_implicit_types
+        |> Option.getOrFailWith "find"
 
     (* ----------------------------------------------------------------------- *)
     (* Unravel unifications and apply them to a type.                          *)
@@ -382,7 +388,9 @@ let type_of_pretype, term_of_preterm, retypecheck =
         //printfn "typify --> %A:%A:%A:%A" ty ptm venv uenv 
         match ptm with
         | Varp(s, _) when can (assoc s) venv -> 
-            let ty' = assoc s venv
+            let ty' =
+                assoc s venv
+                |> Option.getOrFailWith "find"
             Varp(s, ty'), [], unify (Some ptm) uenv ty' ty
         | Varp(s, _) when can num_of_string s -> 
             let t = pmk_numeral(num_of_string s)

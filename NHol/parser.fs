@@ -257,9 +257,11 @@ let parse_pretype =
     let type_atom input = 
         match input with
         | (Ident s) :: rest -> 
-            let result = 
-                try 
-                    pretype_of_type(assoc s (type_abbrevs()))
+            let result =
+                try
+                    assoc s (type_abbrevs())
+                    |> Option.getOrFailWith "find"
+                    |> pretype_of_type
                 with
                 | Failure _ -> 
                     if (try 

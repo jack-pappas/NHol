@@ -397,21 +397,18 @@ let RULE_ASSUM_TAC : (thm -> thm) -> tactic =
 /// Apply a theorem tactic to named assumption.
 let USE_THEN : string -> thm_tactic -> tactic = 
     fun s ttac (asl, w as gl) -> 
-        let th = 
-            try 
-                assoc s asl
-            with
-            | Failure _ -> Choice2Of2 <| Exception ("USE_TAC: didn't find assumption " + s)
+        let th =            
+            assoc s asl
+            |> Option.getOrFailWith ("USE_TAC: didn't find assumption " + s)
+
         ttac th gl
 
 /// Apply a theorem tactic to named assumption, removing the assumption.
 let REMOVE_THEN : string -> thm_tactic -> tactic = 
     fun s ttac (asl, w) -> 
-        let th = 
-            try 
-                assoc s asl
-            with
-            | Failure _ -> Choice2Of2 <| Exception ("USE_TAC: didn't find assumption " + s)
+        let th =
+            assoc s asl
+            |> Option.getOrFailWith ("USE_TAC: didn't find assumption " + s)
         let asl1, asl2 = chop_list (index s (map fst asl)) asl
         let asl' = asl1 @ tl asl2
         ttac th (asl', w)

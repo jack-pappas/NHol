@@ -311,14 +311,15 @@ let GABS_CONV conv tm =
 /// Beta-reduces general beta-redexes (e.g. paired ones).
 let GEN_BETA_CONV = 
     let projection_cache = ref []
-    let create_projections conname = 
-        try 
-            assoc conname (!projection_cache)
-        with
-        | Failure _ -> 
+    let create_projections conname =
+        match assoc conname !projection_cache with
+        | Some x -> x
+        | None ->
             let genty = get_const_type conname
             let conty = fst(dest_type(repeat (snd << dest_fun_ty) genty))
-            let _, _, rth = assoc conty (!inductive_type_store)
+            let _, _, rth =
+                assoc conty (!inductive_type_store)
+                |> Option.getOrFailWith "find"
             let sth = SPEC_ALL rth
             let evs, bod = strip_exists(concl sth)
             let cjs = conjuncts bod

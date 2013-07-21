@@ -909,11 +909,15 @@ let ASM_FOL_TAC =
                 rev_itlist (C(curry MK_COMB)) (map (FOL_CONV hddata) args) 
                     (REFL op)
             let tm' = rand(concl th)
-            let n = 
-                try 
-                    length args - assoc op hddata
-                with
-                | Failure _ -> 0
+            let n =
+                // OPTIMIZE : Replace the entire 'match' statement below with:
+                //assoc op hddata
+                //|> Option.map (fun x -> length args - x)
+                //|> Option.fill 0
+                match assoc op hddata with
+                | None -> 0
+                | Some x ->
+                    length args - x
             if n = 0
             then th
             else TRANS th (APP_N_CONV n tm')

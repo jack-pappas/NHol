@@ -719,14 +719,24 @@ let define_type_raw_001 =
         let oldcon, oldargs = strip_comb cterm
         let modify_arg v = 
             try 
-                let dest = snd(assoc (rev_assoc v asmlist) consindex)
+                let dest =
+                    // TODO : Give this variable a better name.
+                    let x =
+                        rev_assoc v asmlist
+                        |> Option.getOrFailWith "find"
+                    assoc x consindex
+                    |> Option.getOrFailWith "find"
+                    |> snd
                 let ty' = hd(snd(dest_type(type_of dest)))
                 let v' = mk_var(fst(dest_var v), ty')
                 mk_comb(dest, v'), v'
             with
             | Failure _ -> v, v
         let newrights, newargs = unzip(map modify_arg oldargs)
-        let retmk = fst(assoc cpred consindex)
+        let retmk =
+            assoc cpred consindex
+            |> Option.getOrFailWith "find"
+            |> fst
         let defbod = mk_comb(retmk, list_mk_comb(oldcon, newrights))
         let defrt = list_mk_abs(newargs, defbod)
         let expth = find (fun th -> lhand(concl th) = oldcon) defs
@@ -747,8 +757,14 @@ let define_type_raw_001 =
                 (conjuncts(rand bod))
         let consindex' = 
             map (fun v -> 
-                    let w = rev_assoc v corlist
-                    w, assoc w consindex) avs
+                    let w =
+                        rev_assoc v corlist
+                        |> Option.getOrFailWith "find"
+                    // TODO : Give this variable a better name.
+                    let x =
+                        assoc w consindex
+                        |> Option.getOrFailWith "find"
+                    w, x) avs
         let recty = 
             (hd << snd << dest_type << type_of << fst << snd << hd) consindex
         let newtys = 
@@ -828,7 +844,7 @@ let define_type_raw_001 =
             let av, bimp = dest_forall(concl th)
             let pv = lhand(body(rator(rand bimp)))
             let p, v = dest_comb pv
-            let mk, dest = assoc p consindex
+            let mk, dest = assoc p consindex |> Option.getOrFailWith "find"
             let ty = hd(snd(dest_type(type_of dest)))
             let v' = mk_var(fst(dest_var v), ty)
             let dv = mk_comb(dest, v')
@@ -956,7 +972,7 @@ let define_type_raw_001 =
                 let indices = map sucivate (0 -- (length rargs - 1))
                 let rindexed = map (curry mk_comb r) indices
                 let rargs' = 
-                    map2 (fun a rx -> mk_comb(assoc a mkindex, rx)) artys 
+                    map2 (fun a rx -> mk_comb(Option.getOrFailWith "find" <| assoc a mkindex, rx)) artys 
                         rindexed
                 let sargs' = map (curry mk_comb s) indices
                 let allargs = cargs' @ rargs' @ sargs'
@@ -1192,10 +1208,10 @@ let define_type_raw_002 =
                                 if is_var a
                                 then g, g
                                 else 
-                                    let outl = assoc (rator a) outlalist
+                                    let outl = assoc (rator a) outlalist |> Option.getOrFailWith "find"
                                     mk_comb(outl, g), g) args
                     let args', args'' = unzip pargs
-                    let inl = assoc (rator l) inlalist
+                    let inl = assoc (rator l) inlalist |> Option.getOrFailWith "find"
                     let rty = hd(snd(dest_type(type_of inl)))
                     let nty = itlist (mk_fun_ty << type_of) args' rty
                     let fn' = mk_var(fst(dest_var fn), nty)
@@ -1208,7 +1224,7 @@ let define_type_raw_002 =
                 let bth = ASSUME(snd(strip_exists(concl jth)))
                 let finish_clause th = 
                     let avs, bod = strip_forall(concl th)
-                    let outl = assoc (rator(lhand bod)) outlalist
+                    let outl = assoc (rator(lhand bod)) outlalist |> Option.getOrFailWith "find"
                     GENL avs (BETA_RULE(AP_TERM outl (SPECL avs th)))
                 let cth = end_itlist CONJ (map finish_clause (CONJUNCTS bth))
                 let dth = ELIM_OUTCOMBS cth
@@ -1410,8 +1426,7 @@ let extend_rectype_net(tyname, (_, _, rth)) =
         with
         | Failure _ -> []
     let canon_thl = itlist (mk_rewrites false) (ths1 @ ths2) []
-    distinctness_store 
-    := map (fun th -> tyname, th) ths1 @ (!distinctness_store)
+    distinctness_store := map (fun th -> tyname, th) ths1 @ (!distinctness_store)
     injectivity_store := map (fun th -> tyname, th) ths2 @ (!injectivity_store)
     basic_rectype_net := itlist (net_of_thm true) canon_thl (!basic_rectype_net)
 
@@ -1422,17 +1437,23 @@ do_list extend_rectype_net (!inductive_type_store);;
 (* ------------------------------------------------------------------------- *)
 
 /// Produce distinctness theorem for an inductive type.
-let distinctness ty = assoc ty (!distinctness_store)
+let distinctness ty =
+    assoc ty (!distinctness_store)
+    |> Option.getOrFailWith "find"
 
 /// Produce injectivity theorem for an inductive type.
-let injectivity ty = assoc ty (!injectivity_store)
+let injectivity ty =
+    assoc ty (!injectivity_store)
+    |> Option.getOrFailWith "find"
 
 /// Produce cases theorem for an inductive type.
 let cases ty = 
     if ty = "num"
     then num_CASES
     else 
-        let _, ith, _ = assoc ty (!inductive_type_store)
+        let _, ith, _ =
+            assoc ty (!inductive_type_store)
+            |> Option.getOrFailWith "find"
         prove_cases_thm ith
 
 (* ------------------------------------------------------------------------- *)
@@ -1499,10 +1520,10 @@ let define_type_raw =
     let rec lift_type_bijections iths cty = 
         let itys = 
             map (hd << snd << dest_type << type_of << lhand << concl) iths
-        try 
-            assoc cty (zip itys iths)
-        with
-        | Failure _ -> 
+
+        match assoc cty (zip itys iths) with
+        | Some x -> x
+        | None ->
             if not(exists (C occurs_in cty) itys)
             then INST_TYPE [cty, aty] ISO_REFL
             else 
@@ -1597,7 +1618,11 @@ let define_type_raw =
                         then find (fun t -> is_comb t && rand t = a) wargs0
                         else a) vargs0 nestf0
             let gvlist0 = zip wargs0 gargs0
-            let xargs = map (fun v -> assoc v gvlist0) targs0
+            let xargs =
+                targs0
+                |> map (fun v ->
+                    assoc v gvlist0
+                    |> Option.getOrFailWith "find")
             let inst0 = 
                 list_mk_abs
                     (gargs0, list_mk_comb(fst(strip_comb(rand l1)), xargs)), vc0
@@ -1610,7 +1635,11 @@ let define_type_raw =
                         then find (fun t -> is_comb t && rand t = a) wargs1
                         else a) vargs1 nestf0
             let gvlist1 = zip wargs1 gargs1
-            let xargs = map (fun v -> assoc v gvlist1) targs1
+            let xargs =
+                targs1
+                |> map (fun v ->
+                    assoc v gvlist1
+                    |> Option.getOrFailWith "find")
             let inst1 = 
                 list_mk_abs
                     (gargs1, list_mk_comb(fst(strip_comb(rand l0)), xargs)), vc1
@@ -1701,11 +1730,10 @@ let define_type_raw =
         CONV_RULE << GENERAL_REWRITE_CONV true TOP_DEPTH_CONV net
     let is_nested vs ty = 
         not(is_vartype ty) && not(intersect (tyvars ty) vs = [])
-    let rec modify_type alist ty = 
-        try 
-            rev_assoc ty alist
-        with
-        | Failure _ -> 
+    let rec modify_type alist ty =
+        match rev_assoc ty alist with
+        | Some x -> x
+        | None ->
             try 
                 let tycon, tyargs = dest_type ty
                 mk_type(tycon, map (modify_type alist) tyargs)
@@ -1719,11 +1747,10 @@ let define_type_raw =
     let rec create_auxiliary_clauses nty = 
         let id = fst(dest_var(genvar bool_ty))
         let tycon, tyargs = dest_type nty
-        let k, ith, rth = 
-            try 
-                assoc tycon (!inductive_type_store)
-            with
-            | Failure _ -> 
+        let k, ith, rth =
+            match assoc tycon !inductive_type_store with
+            | Some x -> x
+            | None ->
                 failwith("Can't find definition for nested type: " + tycon)
         let evs, bod = strip_exists(snd(strip_forall(concl rth)))
         let cjs = map (lhand << snd << strip_forall) (conjuncts bod)
@@ -1838,13 +1865,12 @@ let the_inductive_types =
          "sum = INL A | INR B", (sum_INDUCT, sum_RECURSION)];;
 
 /// Automatically define user-specified inductive data types.
-let define_type s = 
-    try 
-        let retval = assoc s (!the_inductive_types)
-        (warn true "Benign redefinition of inductive type"
-         retval)
-    with
-    | Failure _ -> 
+let define_type s =
+    match assoc s !the_inductive_types with
+    | Some retval ->
+        warn true "Benign redefinition of inductive type"
+        retval
+    | None ->
         let defspec = parse_inductive_type_specification s
         let newtypes = map fst defspec
         let constructors = itlist ((@) << map fst) (map snd defspec) []

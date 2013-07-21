@@ -183,7 +183,9 @@ let the_type_definitions = ref([] : ((string * string * string) * (thm * thm)) l
 /// Introduces a new type in bijection with a nonempty subset of an existing type.
 let new_type_definition tyname (absname, repname) th = 
     try 
-        let th', tth' = assoc (tyname, absname, repname) (!the_type_definitions)
+        let th', tth' =
+            assoc (tyname, absname, repname) (!the_type_definitions)
+            |> Option.getOrFailWith "find"
         if concl th' <> concl th
         then failwith ""
         else 

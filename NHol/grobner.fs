@@ -330,9 +330,10 @@ let RING_AND_IDEAL_CONV =
           let lis1 = resolve_proof vars lin1
           let lis2 = resolve_proof vars lin2
           let dom = setify(union (map fst lis1) (map fst lis2))
-          map (fun n -> let a = try assoc n lis1 with Failure _ -> []
-                        let b = try assoc n lis2 with Failure _ -> []
-                        n,grob_add a b) dom
+          map (fun n ->
+            let a = defaultArg (assoc n lis1) []
+            let b = defaultArg (assoc n lis2) []
+            n,grob_add a b) dom
   
   (* ----------------------------------------------------------------------- *)
   (* Run the procedure and produce Weak Nullstellensatz certificate.         *)

@@ -148,24 +148,24 @@ let GEN_MESON_TAC =
             vcounter := 0
         let fol_of_var v = 
             let currentvars = !vstore
-            try 
-                assoc v currentvars
-            with
-            | Failure _ -> 
+            match assoc v currentvars with
+            | Some x -> x
+            | None ->
                 let n = inc_vcounter()
                 vstore := (v, n) :: currentvars
                 n
-        let hol_of_var v = 
-            try 
-                rev_assoc v (!vstore)
-            with
-            | Failure _ -> rev_assoc v (!gstore)
+        let hol_of_var v =
+            match rev_assoc v !vstore with
+            | Some x -> x
+            | None ->
+                rev_assoc v (!gstore)
+                |> Option.getOrFailWith "find"
         let hol_of_bumped_var v = 
             try 
                 hol_of_var v
             with
             | Failure _ -> 
-                let v' = v mod offinc
+                let v' = v % offinc
                 let hv' = hol_of_var v'
                 let gv = genvar(type_of hv')
                 gstore := (gv, v) :: (!gstore)
@@ -180,15 +180,16 @@ let GEN_MESON_TAC =
             ccounter := 2
         let fol_of_const c = 
             let currentconsts = !cstore
-            try 
-                assoc c currentconsts
-            with
-            | Failure _ -> 
+            match assoc c currentconsts with
+            | Some x -> x
+            | None ->
                 let n = !ccounter
                 ccounter := n + 1
                 cstore := (c, n) :: currentconsts
                 n
-        let hol_of_const c = rev_assoc c (!cstore)
+        let hol_of_const c =
+            rev_assoc c (!cstore)
+            |> Option.getOrFailWith "find"
         reset_consts, fol_of_const, hol_of_const
     let rec fol_of_term env consts tm = 
         if is_var tm && not(mem tm consts)
@@ -296,7 +297,9 @@ let GEN_MESON_TAC =
         match t with
         | Fvar y -> 
             y = x || (try 
-                          let t' = rev_assoc y env
+                          let t' =
+                            rev_assoc y env
+                            |> Option.getOrFailWith "find"
                           istriv env x t'
                       with
                       | Failure "find" -> false)
@@ -310,7 +313,9 @@ let GEN_MESON_TAC =
         | _, Fvar(x) -> 
             (let x' = x + offset
              try 
-                 let tm2' = rev_assoc x' sofar
+                 let tm2' =
+                    rev_assoc x' sofar
+                    |> Option.getOrFailWith "find"
                  fol_unify 0 tm1 tm2' sofar
              with
              | Failure "find" -> 
@@ -319,7 +324,9 @@ let GEN_MESON_TAC =
                  else (tm1, x') :: sofar)
         | Fvar(x), _ -> 
             (try 
-                 let tm1' = rev_assoc x sofar
+                 let tm1' =
+                    rev_assoc x sofar
+                    |> Option.getOrFailWith "find"
                  fol_unify offset tm1' tm2 sofar
              with
              | Failure "find" -> 
@@ -336,24 +343,28 @@ let GEN_MESON_TAC =
                           f = g && forall2 (fol_eq insts) fargs gargs
                       | _, Fvar(x) -> 
                           (try 
-                               let tm2' = rev_assoc x insts
-                               fol_eq insts tm1 tm2'
+                              let tm2' =
+                                rev_assoc x insts
+                                |> Option.getOrFailWith "find"
+                              fol_eq insts tm1 tm2'
                            with
                            | Failure "find" -> 
-                               try 
+                              try 
                                    istriv insts x tm1
-                               with
-                               | Failure _ -> false)
+                              with
+                              | Failure _ -> false)
                       | Fvar(x), _ -> 
                           (try 
-                               let tm1' = rev_assoc x insts
-                               fol_eq insts tm1' tm2
+                              let tm1' =
+                                rev_assoc x insts
+                                |> Option.getOrFailWith "find"
+                              fol_eq insts tm1' tm2
                            with
                            | Failure "find" -> 
-                               try 
+                              try 
                                    istriv insts x tm2
-                               with
-                               | Failure _ -> false)
+                              with
+                              | Failure _ -> false)
     let fol_atom_eq insts (p1, args1) (p2, args2) = 
         p1 = p2 && forall2 (fol_eq insts) args1 args2
     (* ----------------------------------------------------------------------- *)
@@ -377,7 +388,9 @@ let GEN_MESON_TAC =
         let p' = -p
         let t' = (p', a)
         try 
-            let ours = assoc p' ancestors
+            let ours =
+                assoc p' ancestors
+                |> Option.getOrFailWith "find"
             if exists (fun u -> fol_atom_eq insts t' (snd(fst u))) ours
             then failwith "checkan"
             else ancestors
@@ -405,7 +418,9 @@ let GEN_MESON_TAC =
         match tm with
         | Fvar(v) -> 
             (try 
-                 let t = rev_assoc v insts
+                 let t =
+                    rev_assoc v insts
+                    |> Option.getOrFailWith "find"
                  fol_subst_partial insts t
              with
              | Failure "find" -> tm)
@@ -453,14 +468,16 @@ let GEN_MESON_TAC =
             if !meson_prefine && pr > 0
             then failwith "meson_expand"
             else 
-                let arules = assoc pr ancestors
+                let arules =
+                    assoc pr ancestors
+                    |> Option.getOrFailWith "find"
                 meson_expand_cont 0 arules newstate cont
         with
         | Cut -> failwith "meson_expand"
         | Failure _ -> 
             try 
                 let crules = 
-                    filter (fun ((h, _), _) -> length h <= size) (assoc pr rules)
+                    filter (fun ((h, _), _) -> length h <= size) (assoc pr rules |> Option.getOrFailWith "find")
                 meson_expand_cont offset crules newstate cont
             with
             | Cut -> failwith "meson_expand"
@@ -654,10 +671,9 @@ let GEN_MESON_TAC =
         let make_hol_contrapos(n, th) = 
             let tm = concl th
             let key = (n, tm)
-            try 
-                assoc key (!memory)
-            with
-            | Failure _ -> 
+            match assoc key !memory with
+            | Some x -> x
+            | None ->
                 if n < 0
                 then CONV_RULE (pull_CONV
                                 |> THENC <| imf_CONV) th
