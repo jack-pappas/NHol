@@ -80,7 +80,7 @@ let is_int =
          |> THEN <| ABS_TAC
          |> THEN <| REAL_ARITH_TAC)
 #else
-    Sequent([], parse_term @"!x. is_int x <=> (?n. x = &n \/ x = -- &n)")
+    Choice1Of2 <| Sequent([], parse_term @"!x. is_int x <=> (?n. x = &n \/ x = -- &n)") : thm
 #endif
 ;;
 
@@ -98,7 +98,7 @@ let int_tybij =
                                       EXISTS_OR_THM;
                                       GSYM EXISTS_REFL]))
 #else
-        (Sequent([], parse_term @"?x. integer x"))
+        (Choice1Of2 <| Sequent([], parse_term @"?x. integer x") : thm)
 #endif
 ;;
 
@@ -112,7 +112,7 @@ let dest_int_rep =
          REWRITE_TAC [GSYM is_int
                       int_rep; int_abstr])
 #else
-    Sequent([], parse_term @"!i. ?n. real_of_int i = &n \/ real_of_int i = -- &n")
+    Choice1Of2 <| Sequent([], parse_term @"!i. ?n. real_of_int i = &n \/ real_of_int i = -- &n") : thm
 #endif
 ;;
 
@@ -130,7 +130,7 @@ let int_eq =
          |> THEN <| POP_ASSUM(MP_TAC << AP_TERM(parse_term @"int_of_real"))
          |> THEN <| REWRITE_TAC [int_abstr])
 #else
-    Sequent([], parse_term @"!x y. x = y <=> real_of_int x = real_of_int y")
+    Choice1Of2 <| Sequent([], parse_term @"!x y. x = y <=> real_of_int x = real_of_int y") : thm
 #endif
  ;;
 
@@ -184,7 +184,7 @@ let int_of_num_th =
                                  EXISTS_OR_THM
                                  GSYM EXISTS_REFL])
 #else
-    Sequent([], parse_term @"!n. real_of_int (&n) = &n")
+    Choice1Of2 <| Sequent([], parse_term @"!n. real_of_int (&n) = &n") : thm
 #endif
 ;;
 
@@ -205,7 +205,7 @@ let int_neg_th =
                                      REAL_OF_NUM_EQ
                                      GSYM EXISTS_REFL])
 #else
-    Sequent([], parse_term @"!x. real_of_int (--x) = --real_of_int x")
+    Choice1Of2 <| Sequent([], parse_term @"!x. real_of_int (--x) = --real_of_int x") : thm
 #endif
 ;;
 
@@ -246,7 +246,7 @@ let int_add_th =
                                  REAL_OF_NUM_EQ
                                  GSYM EXISTS_REFL])
 #else
-    Sequent([], parse_term @"!x y. real_of_int (x + y) = real_of_int x + real_of_int y")
+    Choice1Of2 <| Sequent([], parse_term @"!x y. real_of_int (x + y) = real_of_int x + real_of_int y") : thm
 #endif
 
 let int_sub = 
@@ -263,7 +263,7 @@ let int_sub_th =
                       GSYM int_add_th]
          |> THEN <| REWRITE_TAC [int_abstr])
 #else
-    Sequent([], parse_term @"!x y. real_of_int (x - y) = real_of_int x - real_of_int y")
+    Choice1Of2 <| Sequent([], parse_term @"!x y. real_of_int (x - y) = real_of_int x - real_of_int y") : thm
 #endif
 
 let int_mul = 
@@ -293,7 +293,7 @@ let int_mul_th =
                                  REAL_OF_NUM_EQ
                                  GSYM EXISTS_REFL])
 #else
-    Sequent([], parse_term @"!x y. real_of_int (x * y) = real_of_int x * real_of_int y")
+    Choice1Of2 <| Sequent([], parse_term @"!x y. real_of_int (x * y) = real_of_int x * real_of_int y") : thm
 #endif
 
 let int_abs = 
@@ -899,7 +899,7 @@ let INT_MAX =
 #if BUGGY
     INT_ARITH(parse_term @"!x y. max x y = if x <= y then y else x")
 #else
-    Sequent([], parse_term @"!x y. max x y = (if x <= y then y else x)")
+    Choice1Of2 <| Sequent([], parse_term @"!x y. max x y = (if x <= y then y else x)") : thm
 #endif
 ;;
 
@@ -907,7 +907,7 @@ let INT_MIN =
 #if BUGGY
     INT_ARITH(parse_term @"!x y. min x y = if x <= y then x else y")
 #else
-    Sequent([], parse_term @"!x y. min x y = (if x <= y then x else y)")
+    Choice1Of2 <| Sequent([], parse_term @"!x y. min x y = (if x <= y then x else y)") : thm
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -950,7 +950,7 @@ let INT_ARCH =
                 [INT_ARITH(parse_term @"--x * y = x * --y")
                  INT_ARITH(parse_term @"~(d = &0) ==> &0 < d \/ &0 < --d")]);;
 #else
-    Sequent([], parse_term @"!x d. ~(d = &0) ==> (?c. x < c * d)")
+    Choice1Of2 <| Sequent([], parse_term @"!x d. ~(d = &0) ==> (?c. x < c * d)") : thm
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -1002,11 +1002,11 @@ let INT_DIVMOD_EXIST_0 =
                                                (parse_term @"if &0 <= n then q + &1 else q - &1"))
                                 |> THEN <| ASM_INT_ARITH_TAC])
 #else
-    Sequent([], parse_term @"!m n.
+    Choice1Of2 <| Sequent([], parse_term @"!m n.
          ?q r.
              if n = &0
              then q = &0 /\ r = m
-             else &0 <= r /\ r < abs n /\ m = q * n + r")
+             else &0 <= r /\ r < abs n /\ m = q * n + r") : thm
 #endif
 
 parse_as_infix("div", (22, "left"));;
@@ -1364,9 +1364,9 @@ let INT_RING, int_ideal_cofactors =
              |> THEN <| REWRITE_TAC [GSYM INT_ENTIRE]
              |> THEN <| INT_ARITH_TAC)
 #else
-        Sequent([], parse_term @"(!x. &0 * x = &0) /\
+        Choice1Of2 <| Sequent([], parse_term @"(!x. &0 * x = &0) /\
        (!x y z. (x + y = x + z) <=> (y = z)) /\
-       (!w x y z. (w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))")
+       (!w x y z. (w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))") : thm
 #endif
     let int_ty = (parse_type @"int")
     let ``pure``, ideal = 
@@ -1415,8 +1415,8 @@ let INT_DIVMOD_UNIQ =
                                |> THEN <| REPEAT(POP_ASSUM MP_TAC)
                                |> THEN <| CONV_TAC INT_RING])
 #else
-        Sequent([], parse_term @"!m n q r.
-         m = q * n + r /\ &0 <= r /\ r < abs n ==> m div n = q /\ m rem n = r")
+        Choice1Of2 <| Sequent([], parse_term @"!m n q r.
+         m = q * n + r /\ &0 <= r /\ r < abs n ==> m div n = q /\ m rem n = r") : thm
 #endif
 ;;
 
@@ -1731,7 +1731,7 @@ let INT_GCD_EXISTS =
                |> THEN <| MATCH_MP_TAC MONO_EXISTS
                |> THEN <| INTEGER_TAC_001])
 #else
-    Sequent([], parse_term @"!a b. ?d. d divides a /\ d divides b /\ (?x y. d = a * x + b * y)")
+    Choice1Of2 <| Sequent([], parse_term @"!a b. ?d. d divides a /\ d divides b /\ (?x y. d = a * x + b * y)") : thm
 #endif
 ;;
 

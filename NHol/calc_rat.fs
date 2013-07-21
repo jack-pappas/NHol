@@ -160,7 +160,7 @@ let RAT_LEMMA4 =
          |> THEN <| MATCH_MP_TAC REAL_LT_INV
          |> THEN <| ASM_REWRITE_TAC [])
 #else
-    Sequent([],parse_term @"&0 < y1 /\ &0 < y2 ==> (x1 / y1 <= x2 / y2 <=> x1 * y2 <= x2 * y1)")
+    Choice1Of2 <| Sequent([],parse_term @"&0 < y1 /\ &0 < y2 ==> (x1 / y1 <= x2 / y2 <=> x1 * y2 <= x2 * y1)") : thm
 #endif
 
 let RAT_LEMMA5 = 
@@ -680,7 +680,7 @@ let REAL_RING,real_ideal_cofactors =
        ONCE_REWRITE_TAC[GSYM REAL_SUB_0] |>THEN<|
        REWRITE_TAC[GSYM REAL_ENTIRE] |>THEN<| REAL_ARITH_TAC)
    #else
-     Sequent([],parse_term @"(!x. &0 * x = &0) /\
+     Choice1Of2 <| Sequent([],parse_term @"(!x. &0 * x = &0) /\
        (!x y z. (x + y = x + z) <=> (y = z)) /\
        (!w x y z. (w * y + x * z = w * z + x * y) <=> (w = x) \/ (y = z))")
    #endif

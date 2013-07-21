@@ -330,7 +330,8 @@ let WF_LEX_DEPENDENT =
          |> THEN <| REWRITE_TAC [FORALL_PAIR_THM]
          |> THEN <| ASM_MESON_TAC [])
 #else
-    Sequent([], parse_term @"!R:A->A->bool S:A->B->B->bool. WF(R) /\ (!a. WF(S a)) ==> WF(\(r1,s1) (r2,s2). R r1 r2 \/ (r1 = r2) /\ S r1 s1 s2)")
+    Choice1Of2 <| Sequent([], parse_term @"!R:A->A->bool S:A->B->B->bool. WF(R) /\ (!a. WF(S a)) 
+        ==> WF(\(r1,s1) (r2,s2). R r1 r2 \/ (r1 = r2) /\ S r1 s1 s2)") : thm
 #endif
 
 let WF_LEX = prove((parse_term @"!R:A->A->bool S:B->B->bool. WF(R) /\ WF(S)
