@@ -33,72 +33,87 @@ open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 #endif
 
-(* ------------------------------------------------------------------------- *)
-(* A few missing functions to convert OCaml code to F#.                      *)
-(* ------------------------------------------------------------------------- *)
 
-let inline tuple x = (x, x)
+(* ------------------------------------------------------------------------- *)
+(* Some ExtCore-related functions used within NHol.                          *)
+(* ------------------------------------------------------------------------- *)
 
 // Follow the naming convention of ExtCore
 [<RequireQualifiedAccess>]
 module Choice =
-    /// Applies the specified binding function to a choice value representing an error value
-    /// (Choice2Of2). If the choice value represents a result value (Choice1Of2), the result value
-    /// is passed through without modification.
-    let bindError (binding : 'Error -> Choice<'T, 'Failure>) value =
-        match value with
-        | Choice1Of2 result -> Choice1Of2 result
-        | Choice2Of2 error -> binding error
+    (* Functions which will be included in a future version of ExtCore. *)
+
+    let inline succeed x =
+        Choice1Of2 x
+
+    let inline failwith msg =
+        Choice2Of2 <| exn msg
+
+    /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
+    let get = function
+        | Choice1Of2 a -> a
+        | Choice2Of2 e ->
+            invalidArg "choice" (sprintf "The choice value was Choice2Of2 '%A'" e)
 
     /// Applies the specified binding function to a choice value representing a pair of result values
     /// (Choice1Of2). If one of choice values represents an error value (Choice2Of2), the error value
     /// is passed through without modification.
     let bind2 (binding : 'T -> 'U -> Choice<'V, 'Error>) value1 value2 =
         match value1, value2 with
-        | Choice1Of2 result1, Choice1Of2 result2 -> binding result1 result2
+        | Choice1Of2 result1, Choice1Of2 result2 ->
+            binding result1 result2
         | Choice1Of2 _, Choice2Of2 error
-        | Choice2Of2 error, _ -> Choice2Of2 error
+        | Choice2Of2 error, _ ->
+            Choice2Of2 error
 
-    let rec tryFind f xs = 
-        match xs with
-        | [] -> Choice2Of2 <| Exception "tryfind"
-        | h :: t -> 
-            match f h with
-            | Choice1Of2 result -> Choice1Of2 result
-            | Choice2Of2 _ -> tryFind f t
 
-    let tuple (x, y) =
-        (Choice1Of2 x, Choice1Of2 y)
+    (* These functions are fairly specific to this project,
+       and so probably won't be included in ExtCore. *)
 
-    let succeed x =
-        Choice1Of2 x
-
-    let failwith s =
-        Choice2Of2 <| Exception s
-
-    let fail() =
+    let inline fail () =
         failwith ""
 
     let inline failwithDouble s =
         (failwith s, failwith s)
 
-    /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
-    let get = function
-        | Choice1Of2 a -> a
-        | Choice2Of2 e -> invalidArg "choice" (sprintf "The choice value was Choice2Of2 '%A'" e)
+    let inline tuple (x, y) =
+        (Choice1Of2 x, Choice1Of2 y)
 
-// TODO : Move this into FSharp.Compatibility.OCaml
-module Ratio =
-    open FSharp.Compatibility.OCaml
-    open FSharp.Compatibility.OCaml.Num
+    /// Applies the specified binding function to a choice value representing an error value
+    /// (Choice2Of2). If the choice value represents a result value (Choice1Of2), the result value
+    /// is passed through without modification.
+    let bindError (binding : 'Error -> Choice<'T, 'Failure>) value =
+        match value with
+        | Choice1Of2 result ->
+            Choice1Of2 result
+        | Choice2Of2 error ->
+            binding error
 
-    // NOTE : not sure what kind of normalization should be done here
-    let normalize_ratio x = x
-    let numerator_ratio(r : Ratio.ratio) = r.Numerator
-    let denominator_ratio(r : Ratio.ratio) = r.Denominator
+    let rec tryFind f xs = 
+        match xs with
+        | [] -> Choice2Of2 <| exn "tryfind"
+        | h :: t -> 
+            match f h with
+            | Choice1Of2 result ->
+                Choice1Of2 result
+            | Choice2Of2 _ -> tryFind f t
 
+
+(* ------------------------------------------------------------------------- *)
+(* Functions needed for OCaml compatibility. These augment or supercede      *)
+(* the functionality of the FSharp.Compatibility.OCaml library. Some of      *)
+(* these may be included in a future release of FSharp.Compatibility.OCaml.  *)
+(* ------------------------------------------------------------------------- *)
+
+let inline tuple x = (x, x)
+
+// TEMP : This can be removed after upgrading to ExtCore 0.8.30 or newer.
+// It will also be defined in a future version of FSharp.Compatibility.OCaml.
 let inline (==) (x : 'T) (y : 'T) =
     System.Object.ReferenceEquals(x, y)
+
+/// Fail with empty string.
+let fail () : 'T = failwith ""
 
 // The exception fired by failwith is used as a control flow.
 // KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
@@ -110,8 +125,29 @@ let (|Failure|_|)(exn : exn) =
     | Microsoft.FSharp.Core.Operators.Failure s -> Some s
     | _ -> None
 
-/// Fail with empty string.
-let fail () = failwith ""
+module Ratio =
+    open System.Diagnostics
+    open FSharp.Compatibility.OCaml
+    open FSharp.Compatibility.OCaml.Num
+
+    let inline numerator_ratio(r : Ratio.ratio) = r.Numerator
+    let inline denominator_ratio(r : Ratio.ratio) = r.Denominator
+
+    //
+    let [<Literal>] private normalize_ratio_warning =
+        "Ratio.normalize_ratio does not actually normalize the value \
+         (the functionality has not yet been implemented), so other functions \
+         which rely on that invariant will not work properly."
+
+    // NOTE : not sure what kind of normalization should be done here
+    // TODO : Implement this function correctly in the next version of
+    // FSharp.Compatibility.OCaml, then upgrade to that version ASAP.
+    [<Experimental(normalize_ratio_warning)>]
+    let normalize_ratio x =
+        Debug.Write "Warning: "
+        Debug.WriteLine normalize_ratio_warning
+        x
+
 
 (* ------------------------------------------------------------------------- *)
 (* Combinators.                                                              *)
@@ -603,7 +639,8 @@ let setify s = uniq(sort (fun x y -> compare x y <= 0) s)
 (* ------------------------------------------------------------------------- *)
 
 /// Concatenates a list of strings into one string.
-// OPTIMIZE : Make this an alias for List.sortWith.
+// OPTIMIZE : Make this an alias for the String.concat function; a type annotation
+// will be necessary on the argument to keep the types the same.
 let implode l = itlist (+) l ""
 
 /// Converts a string into a list of single-character strings.
@@ -652,7 +689,7 @@ let pow10 (n:int) =
         else power_num num_10 (Int n)
 
 /// Returns numerator and denominator of normalized fraction.
-let numdom r = 
+let numdom r =
     let r' = Ratio.normalize_ratio(ratio_of_num r)
     num_of_big_int(Ratio.numerator_ratio r'), num_of_big_int(Ratio.denominator_ratio r')
 
@@ -666,16 +703,16 @@ module Big_int =
         System.Numerics.BigInteger.GreatestCommonDivisor(a,b) 
 
     let big_int_of_ratio r =
-        let numerator,denominator = numdom r
-        if denominator = num_of_big_int System.Numerics.BigInteger.One 
-            then 
-                match numerator with
-                | Int i -> bigint i
-                | Big_int i -> i
-            else failwith "big_int_of_ratio"
+        let numerator, denominator = numdom r
+        if denominator = num_of_big_int System.Numerics.BigInteger.One then
+            match numerator with
+            | Int i -> bigint i
+            | Big_int i -> i
+            | Ratio _ ->
+                failwith "big_int_of_ratio"
+        else failwith "big_int_of_ratio"
 
 module Num =
-
     let big_int_of_num (n : num) : bigint =
         match n with
         | Int i ->
@@ -1146,7 +1183,7 @@ fsi.AddPrinter print_fpf
 (* ------------------------------------------------------------------------- *)
 
 /// Tests if an element is equivalent to a member of a list w.r.t. some relation.
-let rec mem' eq = 
+let rec mem' eq =
     let rec mem x lis = 
         match lis with
         | [] -> false
@@ -1219,12 +1256,14 @@ let num_of_string =
 (* ------------------------------------------------------------------------- *)
 
 /// Read file and convert content into a list of strings.
+// OPTIMIZE : Use a StreamReader here instead of the OCaml-compatibility stuff.
 let strings_of_file filename = 
     let fd = 
-        try 
+        try
             Pervasives.open_in filename
         with
-        | Sys_error _ -> failwith("strings_of_file: can't open " + filename)
+        | Sys_error _ ->
+            failwith("strings_of_file: can't open " + filename)
     let rec suck_lines acc = 
         try 
             let l = Pervasives.input_line fd
@@ -1236,9 +1275,13 @@ let strings_of_file filename =
      data)
 
 /// Read file and convert content into a string.
+// OPTIMIZE : Use a StringBuilder and iterate over the file to avoid creating
+// intermediate values all at once when we can stream them instead.
+// Initialize the StringBuilder's capacity to the file size to avoid re-allocation.
 let string_of_file filename = end_itlist (fun s t -> s + "\n" + t) (strings_of_file filename)
 
 /// Write out a string to a named file.
+// OPTIMIZE : Make this an alias for System.IO.File.WriteAllText().
 let file_of_string filename s = 
     let fd = Pervasives.open_out filename
     output_string fd s
