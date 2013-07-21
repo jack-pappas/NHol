@@ -23,6 +23,8 @@ limitations under the License.
 /// Basic rewriting and simplification tools.
 module NHol.simp
 
+open System
+
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
@@ -287,16 +289,12 @@ and strategy = simpset -> int -> term -> thm
 /// The basic prover use function used in the simplifier.
 let basic_prover strat (Simpset(net, prover, provers, rewmaker) as ss) lev tm = 
     let sth = 
-        try 
-            strat ss lev tm
-        with
-        | Failure _ -> REFL tm
-    try 
-        EQT_ELIM sth
-    with
-    | Failure _ -> 
-        let tth = tryfind (fun pr -> apply_prover pr (rand(concl sth))) provers
-        EQ_MP (SYM sth) tth
+        strat ss lev tm
+        |> Choice.bindError (fun _ -> REFL tm)
+    EQT_ELIM sth
+    |> Choice.bindError (fun _ ->
+        let tth = Choice.tryFind (fun pr -> apply_prover pr (rand(concl sth))) provers
+        EQ_MP (SYM sth) tth)
 
 (* ------------------------------------------------------------------------- *)
 (* Functions for changing or augmenting components of simpsets.              *)
@@ -348,16 +346,16 @@ let AUGMENT_SIMPSET cth (Simpset(net, prover, provers, rewmaker)) =
 let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP_SQCONV = 
     let IMP_REWRITES_CONV strat (Simpset(net, prover, provers, rewmaker) as ss) 
         lev pconvs tm = 
-        tryfind (fun (n, cnv) -> 
+        Choice.tryFind (fun (n, cnv) -> 
                 if n >= 4
-                then fail()
+                then Choice2Of2 <| Exception ""
                 else 
                     let th = cnv tm
                     let etm = concl th
                     if is_eq etm
                     then th
                     elif lev <= 0
-                    then failwith "IMP_REWRITES_CONV: Too deep"
+                    then Choice2Of2 <| Exception "IMP_REWRITES_CONV: Too deep"
                     else 
                         let cth = prover strat ss (lev - 1) (lhand etm)
                         MP th cth) pconvs
@@ -390,45 +388,42 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         then fail()
         else th
     let GEN_SUB_CONV strat ss lev pconvs tm = 
-        try 
-            tryfind (fun (n, cnv) -> 
+        let v = 
+            Choice.tryFind (fun (n, cnv) -> 
                     if n < 4
-                    then fail()
+                    then Choice2Of2 <| Exception ""
                     else 
                         let th = cnv tm
                         RUN_SUB_CONV strat ss lev true th) pconvs
-        with
-        | Failure _ -> 
-            if is_comb tm
-            then 
-                let l, r = dest_comb tm
-                try 
-                    let th1 = strat ss lev l
-                    try 
-                        let th2 = strat ss lev r
-                        MK_COMB(th1, th2)
-                    with
-                    | Failure _ -> AP_THM th1 r
-                with
-                | Failure _ -> AP_TERM l (strat ss lev r)
-            elif is_abs tm
-            then 
-                let v, bod = dest_abs tm
-                let th = strat ss lev bod
-                try 
-                    ABS v th
-                with
-                | Failure _ -> 
-                    let gv = genvar(type_of v)
-                    let gbod = vsubst [gv, v] bod
-                    let gth = ABS gv (strat ss lev gbod)
-                    let gtm = concl gth
-                    let l, r = dest_eq gtm
-                    let v' = variant (frees gtm) v
-                    let l' = alpha v' l
-                    let r' = alpha v' r
-                    EQ_MP (ALPHA gtm (mk_eq(l', r'))) gth
-            else failwith "GEN_SUB_CONV"
+        v |> Choice.bindError (fun _ ->
+                if is_comb tm
+                then 
+                    let l, r = dest_comb tm
+                    let v = 
+                        let th1 = strat ss lev l
+                        let v = 
+                            let th2 = strat ss lev r
+                            MK_COMB(th1, th2)
+                        v |> Choice.bindError (fun _ -> AP_THM th1 r)
+                    v |> Choice.bindError (fun _ -> AP_TERM l (strat ss lev r))
+                elif is_abs tm
+                then 
+                    let v, bod = dest_abs tm
+                    let th = strat ss lev bod
+                    let v' = 
+                        ABS v th
+                    v' |> Choice.bindError (fun _ ->
+                            let gv = genvar(type_of v)
+                            let gbod = vsubst [gv, v] bod
+                            let gth = ABS gv (strat ss lev gbod)
+                            let gtm = concl gth
+                            let l, r = dest_eq gtm
+                            let v' = variant (frees gtm) v
+                            let l' = alpha v' l
+                            let r' = alpha v' r
+                            EQ_MP (ALPHA gtm (mk_eq(l', r'))) gth)
+                else Choice2Of2 <| Exception "GEN_SUB_CONV")
+
     let rec ONCE_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) 
             lev tm = 
         let pconvs = lookup tm net

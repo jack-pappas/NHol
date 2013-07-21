@@ -834,7 +834,7 @@ let NUM_MIN_CONV =
 (* ------------------------------------------------------------------------- *)
 
 /// Performs relational operation on natural number numerals by proof.
-let NUM_REL_CONV =
+let NUM_REL_CONV : conv =
     let gconv_net = 
      itlist (uncurry net_of_conv)
       [(parse_term @"NUMERAL m < NUMERAL n"),NUM_LT_CONV;

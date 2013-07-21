@@ -881,7 +881,7 @@ let define_type_raw_001 =
         let eqs = map2 (curry mk_eq) fns rights
         let fdefs = map ASSUME eqs
         let fxths1 = 
-            map (fun th1 -> tryfind (fun th2 -> MK_COMB(th2, th1)) fdefs) 
+            map (fun th1 -> Choice.tryFind (fun th2 -> MK_COMB(th2, th1)) fdefs) 
                 conthms
         let fxths2 = map (fun th -> TRANS th (BETA_CONV(rand(concl th)))) fxths1
         let mk_tybijcons(th1, th2) = 

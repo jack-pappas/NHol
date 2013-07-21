@@ -377,10 +377,10 @@ let MONO_TAC =
                     fst(dest_const(repeat rator c))
                 with
                 | Failure _ -> ""
-            tryfind (fun (k, t) -> 
+            Choice.tryFind (fun (k, t) -> 
                     if k = cn
                     then t(asl, w)
-                    else fail()) tacs
+                    else Choice2Of2 <| Exception "") tacs
     fun gl -> 
         let tacs = 
             itlist (fun th l -> 

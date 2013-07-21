@@ -23,6 +23,8 @@ limitations under the License.
 /// Intuitionistic theorem prover (complete for propositional fragment).
 module NHol.itab
 
+open System
+
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
@@ -67,7 +69,7 @@ let ITAUT_TAC =
                (fun gl -> CONV_TAC (K(IMPLICATE(snd gl))) gl)           (* not     *)
                EQ_TAC]                                                  (* iff     *)
     let LEFT_REVERSIBLE_TAC th gl = 
-        tryfind (fun ttac -> ttac th gl)        
+        Choice.tryFind (fun ttac -> ttac th gl)        
             [CONJUNCTS_THEN' ASSUME_TAC                                 (* and    *)
              DISJ_CASES_TAC                                             (* or     *)
              CHOOSE_TAC                                                 (* exists *)
@@ -75,7 +77,7 @@ let ITAUT_TAC =
              (CONJUNCTS_THEN' MP_TAC << uncurry CONJ << EQ_IMP_RULE)]   (* iff    *)
     let rec ITAUT_TAC mvs n gl = 
         if n <= 0
-        then failwith "ITAUT_TAC: Too deep"
+        then Choice2Of2 <| Exception "ITAUT_TAC: Too deep"
         else 
             ((FIRST_ASSUM(UNIFY_ACCEPT_TAC mvs))
              |> ORELSE <| (ACCEPT_TAC TRUTH)

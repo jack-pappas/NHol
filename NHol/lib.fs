@@ -19,11 +19,15 @@ limitations under the License.
 *)
 
 #if INTERACTIVE
+open System
+
 open FSharp.Compatibility.OCaml;;
 open FSharp.Compatibility.OCaml.Num;;
 #else
 /// Various useful general library functions.
 module NHol.lib
+
+open System
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
@@ -36,6 +40,7 @@ open FSharp.Compatibility.OCaml.Num
 let inline tuple x = (x, x)
 
 // Follow the naming convention of ExtCore
+[<RequireQualifiedAccess>]
 module Choice =
     /// Applies the specified binding function to a choice value representing an error value
     /// (Choice2Of2). If the choice value represents a result value (Choice1Of2), the result value
@@ -53,6 +58,29 @@ module Choice =
         | Choice1Of2 result1, Choice1Of2 result2 -> binding result1 result2
         | Choice1Of2 _, Choice2Of2 error
         | Choice2Of2 error, _ -> Choice2Of2 error
+
+    let rec tryFind f xs = 
+        match xs with
+        | [] -> Choice2Of2 <| Exception "tryfind"
+        | h :: t -> 
+            match f h with
+            | Choice1Of2 result -> Choice1Of2 result
+            | Choice2Of2 _ -> tryFind f t
+
+    let tuple (x, y) =
+        (Choice1Of2 x, Choice1Of2 y)
+
+    let succeed x =
+        Choice1Of2 x
+
+    let failwith s =
+        Choice2Of2 <| Exception s
+
+    let fail() =
+        failwith ""
+
+    let inline failwithDouble s =
+        (failwith s, failwith s)
 
     /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
     let get = function

@@ -233,8 +233,11 @@ let DISCH =
 
 /// Discharges all hypotheses of a theorem.
 let rec DISCH_ALL th = 
-    DISCH_ALL(DISCH (hd(hyp th)) th)
-    |> Choice.bindError (fun _ -> th)
+    match hyp th with
+    | t :: _ ->
+        DISCH_ALL(DISCH t th)
+        |> Choice.bindError (fun _ -> th)
+    | _ -> th
 
 /// Undischarges the antecedent of an implicative theorem.
 let UNDISCH th = 
