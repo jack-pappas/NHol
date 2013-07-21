@@ -23,6 +23,8 @@ limitations under the License.
 /// Derived rules for inductive definitions.
 module NHol.ind_defs
 
+open System
+
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
@@ -351,8 +353,10 @@ let MONO_TAC =
             let fun1 l =
                 match l with
                 | [a] -> a
-                | _ -> failwith "MONO_TAC.fun1: Unhandled case."       
-            null_meta, [asl, ant], fun i tl -> MATCH_MP (INSTANTIATE i th1) (fun1 tl)
+                | _ -> Choice2Of2 <| Exception "MONO_TAC.fun1: Unhandled case."       
+            (null_meta, [asl, ant], fun i tl -> MATCH_MP (INSTANTIATE i th1) (fun1 tl))
+            |> Choice1Of2
+
     let MONO_ABS_TAC(asl, w) = 
         let ant, con = dest_imp w
         let vars = snd(strip_comb con)

@@ -59,13 +59,17 @@ let null_meta = (([] : term list), null_inst)
 
 type goal = (string * thm) list * term
 
+/// Redefine equals_thm
+let equals_thm th th' =
+    match th, th' with
+    | Success th, Success th' ->
+        equals_thm th th'
+    | _ -> false
+
 /// Equality test on goals.
 let equals_goal ((a, w) : goal) ((a', w') : goal) = 
     forall2 (fun (s, th) (s', th') -> 
-                match th, th' with
-                | Success th, Success th' ->
-                    s = s' && equals_thm th th'
-                | _ -> false) a a' 
+                s = s' && equals_thm th th') a a' 
     && w = w'
 
 (* ------------------------------------------------------------------------- *)

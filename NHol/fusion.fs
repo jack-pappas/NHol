@@ -707,38 +707,42 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Introduces a new type in bijection with a nonempty subset of an existing type.
-    let new_basic_type_definition tyname (absname, repname) (Sequent(asl, c)) = 
-        if exists (can get_const_type) [absname; repname] then 
-            failwith "new_basic_type_definition: Constant(s) already in use"
-        elif not(asl = []) then failwith "new_basic_type_definition: Assumptions in theorem"
-        else 
-            let P, x = 
-                try 
-                    dest_comb c
-                with
-                | Failure _ -> failwith "new_basic_type_definition: Not a combination"
-            if not(freesin [] P) then failwith "new_basic_type_definition: Predicate is not closed"
+    let new_basic_type_definition tyname (absname, repname) thm =
+        match thm with
+        | Success (Sequent(asl, c)) ->
+            if exists (can get_const_type) [absname; repname] then 
+                tuple (Choice2Of2 <| Exception "new_basic_type_definition: Constant(s) already in use")
+            elif not(asl = []) then tuple (Choice2Of2 <| Exception "new_basic_type_definition: Assumptions in theorem")
             else 
-                let tyvars = sort (<=) (type_vars_in_term P)
-                let _ = 
+                let P, x = 
                     try 
-                        new_type(tyname, length tyvars)
+                        dest_comb c
                     with
-                    | Failure _ -> failwith "new_basic_type_definition: Type already defined"
-                let aty = Tyapp(tyname, tyvars)
-                let rty = type_of x
-                let absty = Tyapp("fun", [rty; aty])
-                let repty = Tyapp("fun", [aty; rty])
-                let abs = 
-                    (new_constant(absname, absty)
-                     Const(absname, absty))
-                let rep = 
-                    (new_constant(repname, repty)
-                     Const(repname, repty))
-                let a = Var("a", aty)
-                let r = Var("r", rty)
-                Sequent([], safe_mk_eq (Comb(abs, mk_comb(rep, a))) a), 
-                Sequent([], safe_mk_eq (Comb(P, r)) (safe_mk_eq (mk_comb(rep, mk_comb(abs, r))) r))
+                    | Failure _ -> failwith "new_basic_type_definition: Not a combination"
+                if not(freesin [] P) then tuple (Choice2Of2 <| Exception "new_basic_type_definition: Predicate is not closed")
+                else 
+                    let tyvars = sort (<=) (type_vars_in_term P)
+                    let _ = 
+                        try 
+                            new_type(tyname, length tyvars)
+                        with
+                        | Failure _ -> failwith "new_basic_type_definition: Type already defined"
+                    let aty = Tyapp(tyname, tyvars)
+                    let rty = type_of x
+                    let absty = Tyapp("fun", [rty; aty])
+                    let repty = Tyapp("fun", [aty; rty])
+                    let abs = 
+                        (new_constant(absname, absty)
+                         Const(absname, absty))
+                    let rep = 
+                        (new_constant(repname, repty)
+                         Const(repname, repty))
+                    let a = Var("a", aty)
+                    let r = Var("r", rty)
+                    Choice1Of2 <| Sequent([], safe_mk_eq (Comb(abs, mk_comb(rep, a))) a), 
+                    Choice1Of2 <| Sequent([], safe_mk_eq (Comb(P, r)) (safe_mk_eq (mk_comb(rep, mk_comb(abs, r))) r))
+        | Error _ ->
+            tuple (Choice2Of2 <| Exception "new_basic_type_definition: Erroneous theorem")
 
 (* ------------------------------------------------------------------------- *)
 (* Stuff that didn't seem worth putting in.                                  *)

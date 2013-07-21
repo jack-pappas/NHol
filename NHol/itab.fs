@@ -47,9 +47,8 @@ open tactics
 /// Unify free variables in theorem and metavariables in goal to accept theorem.
 let UNIFY_ACCEPT_TAC mvs th (asl, w) = 
     let insts = term_unify mvs (concl th) w
-    ([], insts), [], 
-    let th' = INSTANTIATE insts th
-    fun i [] -> INSTANTIATE i th'
+    (([], insts), [], let th' = INSTANTIATE insts th in fun i [] -> INSTANTIATE i th')
+    |> Choice1Of2
 
 (* ------------------------------------------------------------------------- *)
 (* The actual prover, as a tactic.                                           *)
