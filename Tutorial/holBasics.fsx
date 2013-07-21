@@ -138,6 +138,7 @@ MK_CONJ;; // forces drule module evaluation
 
 types();;                                                                           // the_type_constants database doesn't change
 constants();;                                                                       // the_term_constants database doesn't change
+infixes();;                                                                         // no change
 axioms();;                                                                          // the_axioms database doesn't change
 definitions();;                                                                     // new boolean definitions
 //  [|- (?!) = (\P. (?) P /\ (!x y. P x /\ P y ==> x = y));
@@ -146,6 +147,7 @@ definitions();;                                                                 
 //   |- (?) = (\P. !q. (!x. P x ==> q) ==> q); |- (!) = (\P. P = (\x. T));
 //   |- (==>) = (\p q. p /\ q <=> p);
 //   |- (/\) = (\p q. (\f. f p q) = (\f. f T T)); |- T <=> (\p. p) = (\p. p)]
+
 !the_implicit_types;;                                                               // no change
 type_abbrevs();;                                                                    // no change
 
@@ -160,6 +162,7 @@ constants();;                                                                   
 //   ("F", bool); ("\/", bool->bool->bool); ("?", (A->bool)->bool);
 //   ("!", (A->bool)->bool); ("==>", bool->bool->bool); ("/\", bool->bool->bool);
 //   ("T", bool); ("=", A->A->bool)]
+infixes();;                                                                         // no change
 axioms();;                                                                          // the_axioms database doesn't change
 definitions();;                                                                     // new _FALSITY_ definition
 //  [|- _FALSITY_ <=> F; |- (?!) = (\P. (?) P /\ (!x y. P x /\ P y ==> x = y));
@@ -234,6 +237,12 @@ constants();;                                                                   
 //   ("F", `:bool`); ("\\/", `:bool->bool->bool`); ("?", `:(A->bool)->bool`);
 //   ("!", `:(A->bool)->bool`); ("==>", `:bool->bool->bool`);
 //   ("/\\", `:bool->bool->bool`); ("T", `:bool`); ("=", `:A->A->bool`)]
+
+infixes();;
+//val it : (string * (int * string)) list =
+//  [("<=>", (2, "right")); ("==>", (4, "right")); ("\/", (6, "right"));
+//   ("/\", (8, "right")); ("=", (12, "right")); (",", (14, "right"));
+//   ("o", (26, "right"))]
 
 
 axioms();;                                                                          // the_axioms database doesn't change
