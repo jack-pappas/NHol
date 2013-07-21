@@ -55,16 +55,14 @@ module Hol_kernel =
             | Abs(t1, t2) -> 
                 "Abs (\"" + t1.ToString() + "\", " + t2.ToString() + ")"
     
-    type thm = 
+    type thm0 = 
         | Sequent of (term list * term)
         override this.ToString() = 
             match this with
             | Sequent(tlist, t) -> 
                 "Sequent (" + tlist.ToString() + ", " + t.ToString() + ")"
 
-    type HolType = Choice<hol_type, exn>
-    type Term = Choice<term, exn>
-    type Thm = Choice<thm, exn>
+    type thm = Choice<thm0, exn>
     
     (* ------------------------------------------------------------------------- *)
     (* List of current type constants with their arities.                        *)
@@ -664,9 +662,9 @@ module Hol_kernel =
     /// Sets up a new axiom.
     let new_axiom tm = 
         if compare (type_of tm) bool_ty = 0 then 
-            let th = Sequent([], tm)
-            (the_axioms := th :: (!the_axioms)
-             Choice1Of2 th)
+            let th = Choice1Of2 <| Sequent([], tm)
+            the_axioms := th :: (!the_axioms)
+            th
         else Choice2Of2 <| Exception "new_axiom: Not a proposition"
     
     (* ------------------------------------------------------------------------- *)
@@ -690,9 +688,9 @@ module Hol_kernel =
                 let c = 
                     new_constant(cname, ty)
                     Const(cname, ty)
-                let dth = Sequent([], safe_mk_eq c r)
+                let dth = Choice1Of2 <| Sequent([], safe_mk_eq c r)
                 the_definitions := dth :: (!the_definitions)
-                Choice1Of2 <| dth
+                dth
         | _ -> Choice2Of2 <| Exception "new_basic_definition"
     
     (* ------------------------------------------------------------------------- *)

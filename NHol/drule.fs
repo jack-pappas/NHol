@@ -23,6 +23,8 @@ limitations under the License.
 /// More sophisticated derived rules including definitions and rewriting.
 module NHol.drule
 
+open System
+
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
@@ -42,11 +44,13 @@ open bool
 (* ------------------------------------------------------------------------- *)
 (* Type of instantiations, with terms, types and higher-order data.          *)
 (* ------------------------------------------------------------------------- *)
+
 type instantiation = (int * term) list * (term * term) list * (hol_type * hol_type) list
 
 (* ------------------------------------------------------------------------- *)
 (* The last recourse when all else fails!                                    *)
 (* ------------------------------------------------------------------------- *)
+
 /// Creates an arbitrary theorem as an axiom (dangerous!)
 let mk_thm(asl, c) = 
     let ax = new_axiom(itlist (curry mk_imp) (rev asl) c)
@@ -55,6 +59,7 @@ let mk_thm(asl, c) =
 (* ------------------------------------------------------------------------- *)
 (* Derived congruence rules; very useful things!                             *)
 (* ------------------------------------------------------------------------- *)
+
 /// Conjoin both sides of two equational theorems.
 let MK_CONJ = 
     let andtm = parse_term @"(/\)"
@@ -78,14 +83,14 @@ let MK_EXISTS =
 (* ------------------------------------------------------------------------- *)
 (* Eliminate the antecedent of a theorem using a conversion/proof rule.      *)
 (* ------------------------------------------------------------------------- *)
+
 /// Removes antecedent of implication theorem by solving it with a conversion.
 let MP_CONV (cnv : conv) th = 
     let l, r = dest_imp(concl th)
     let ath = cnv l
-    try 
-        MP th (EQT_ELIM ath)
-    with
-    | Failure _ -> MP th ath
+
+    MP th (EQT_ELIM ath)
+    |> Choice.bindError (fun _ -> MP th ath)
 
 (* ------------------------------------------------------------------------- *)
 (* Multiple beta-reduction (we use a slight variant below).                  *)
@@ -95,13 +100,14 @@ let rec BETAS_CONV tm =
     match tm with
     | Comb(Abs(_, _), _) -> BETA_CONV tm
     | Comb(Comb(_, _), _) -> (RATOR_CONV(THENC BETAS_CONV BETA_CONV)) tm
-    | _ -> failwith "BETAS_CONV"
+    | _ -> Choice2Of2 <| Exception "BETAS_CONV"
 
 (* ------------------------------------------------------------------------- *)
 (* Instantiators.                                                            *)
 (* ------------------------------------------------------------------------- *)
+
 /// Apply a higher-order instantiation to a term.
-let (instantiate : instantiation -> term -> term) = 
+let instantiate : instantiation -> term -> term = 
     let betas n tm = 
         let args, lam = funpow n (fun (l, t) -> (rand t) :: l, rator t) ([], tm)
         rev_itlist (fun a l -> 
@@ -155,41 +161,37 @@ let (instantiate : instantiation -> term -> term) =
                 | Failure _ -> ttm
 
 /// Apply a higher-order instantiation to conclusion of a theorem.
-let (INSTANTIATE : instantiation -> thm -> thm) = 
+let INSTANTIATE : instantiation -> thm -> thm = 
     let rec BETAS_CONV n tm = 
         if n = 1
         then TRY_CONV BETA_CONV tm
         else THENC (RATOR_CONV(BETAS_CONV(n - 1))) (TRY_CONV BETA_CONV) tm
     let rec HO_BETAS bcs pat tm = 
         if is_var pat || is_const pat
-        then fail()
+        then Choice2Of2 <| Exception ""
         else 
-            try 
-                let bv, bod = dest_abs tm
-                ABS bv (HO_BETAS bcs (body pat) bod)
-            with
-            | Failure _ -> 
+            let bv, bod = dest_abs tm
+            ABS bv (HO_BETAS bcs (body pat) bod)
+            |> Choice.bindError (fun _ ->
                 let hop, args = strip_comb pat
-                try 
+                let v = 
                     let n = rev_assoc hop bcs
                     if length args = n
                     then BETAS_CONV n tm
-                    else fail()
-                with
-                | Failure _ -> 
+                    else Choice2Of2 <| Exception ""
+                v |> Choice.bindError (fun _ -> 
                     let lpat, rpat = dest_comb pat
                     let ltm, rtm = dest_comb tm
-                    try 
+                    let v = 
                         let lth = HO_BETAS bcs lpat ltm
-                        try 
+                        let v' = 
                             let rth = HO_BETAS bcs rpat rtm
                             MK_COMB(lth, rth)
-                        with
-                        | Failure _ -> AP_THM lth rtm
-                    with
-                    | Failure _ -> 
+                        v' |> Choice.bindError (fun _ -> AP_THM lth rtm)
+                    v |> Choice.bindError (fun _ -> 
                         let rth = HO_BETAS bcs rpat rtm
-                        AP_TERM ltm rth
+                        AP_TERM ltm rth)))
+
     fun (bcs, tmin, tyin) th -> 
         let ith = 
             if tyin = []
@@ -204,15 +206,14 @@ let (INSTANTIATE : instantiation -> thm -> thm) =
                 if bcs = []
                 then tth
                 else 
-                    try 
+                    let v = 
                         let eth = HO_BETAS bcs (concl ith) (concl tth)
                         EQ_MP eth tth
-                    with
-                    | Failure _ -> tth
-            else failwith "INSTANTIATE: term or type var free in assumptions"
+                    v |> Choice.bindError ( fun _ -> tth)
+            else Choice2Of2 <| Exception "INSTANTIATE: term or type var free in assumptions"
 
 /// Apply a higher-order instantiation to assumptions and conclusion of a theorem.
-let (INSTANTIATE_ALL : instantiation -> thm -> thm) = 
+let INSTANTIATE_ALL : instantiation -> thm -> thm = 
     fun ((_, tmin, tyin) as i) th -> 
         if tmin = [] && tyin = [] then th
         else 
@@ -246,8 +247,9 @@ let (INSTANTIATE_ALL : instantiation -> thm -> thm) =
 (* anyway. A test could be put in (see if any "env" variables are left in    *)
 (* the term after abstracting out the pattern instances) but it'd be slower. *)
 (* ------------------------------------------------------------------------- *)
+
 /// Match one term against another.
-let (term_match : term list -> term -> term -> instantiation) = 
+let term_match : term list -> term -> term -> instantiation = 
     let safe_inserta ((y, x) as n) l = 
         try 
             let z = rev_assoc x l
@@ -412,8 +414,9 @@ let (term_match : term list -> term -> term -> instantiation) =
 (* ------------------------------------------------------------------------- *)
 (* First order unification (no type instantiation -- yet).                   *)
 (* ------------------------------------------------------------------------- *)
+
 /// Unify two terms.
-let (term_unify : term list -> term -> term -> instantiation) = 
+let term_unify : term list -> term -> term -> instantiation = 
     let augment1 sofar (s, x) = 
         let s' = subst sofar s
         if vfree_in x s && not(s = x)
@@ -458,6 +461,7 @@ let (term_unify : term list -> term -> term -> instantiation) =
 (* ------------------------------------------------------------------------- *)
 (* Modify bound variable names at depth. (Not very efficient...)             *)
 (* ------------------------------------------------------------------------- *)
+
 /// Modify bound variable according to renaming scheme.
 let deep_alpha = 
     let tryalpha v tm = 
@@ -498,6 +502,7 @@ let deep_alpha =
 (* Instantiate theorem by matching part of it to a term.                     *)
 (* The GEN_PART_MATCH version renames free vars to avoid clashes.            *)
 (* ------------------------------------------------------------------------- *)
+
 // PART_MATCH: Instantiates a theorem by matching part of it to a term.
 // GEN_PART_MATCH: Instantiates a theorem by matching part of it to a term.
 let PART_MATCH, GEN_PART_MATCH = 
@@ -532,16 +537,14 @@ let PART_MATCH, GEN_PART_MATCH =
             let insts = term_match lconsts (partfn abod) tm
             let fth = INSTANTIATE insts ath
             if hyp fth <> hyp ath
-            then failwith "PART_MATCH: instantiated hyps"
+            then Choice2Of2 <| Exception "PART_MATCH: instantiated hyps"
             else 
                 let tm' = partfn(concl fth)
                 if compare tm' tm = 0
                 then fth
                 else 
-                    try 
-                        SUBS [ALPHA tm' tm] fth
-                    with
-                    | Failure _ -> failwith "PART_MATCH: Sanity check failure"
+                    SUBS [ALPHA tm' tm] fth
+                    |> Choice.mapError (fun _ -> Exception "PART_MATCH: Sanity check failure")
     let GEN_PART_MATCH partfn th = 
         let sth = SPEC_ALL th
         let bod = concl sth
@@ -556,25 +559,24 @@ let PART_MATCH, GEN_PART_MATCH =
             let eth = INSTANTIATE insts (GENL fvs ath)
             let fth = itlist (fun v th -> snd(SPEC_VAR th)) fvs eth
             if hyp fth <> hyp ath
-            then failwith "PART_MATCH: instantiated hyps"
+            then Choice2Of2 <| Exception "PART_MATCH: instantiated hyps"
             else 
                 let tm' = partfn(concl fth)
                 if compare tm' tm = 0
                 then fth
                 else 
-                    try 
-                        SUBS [ALPHA tm' tm] fth
-                    with
-                    | Failure _ -> failwith "PART_MATCH: Sanity check failure"
+                    SUBS [ALPHA tm' tm] fth
+                    |> Choice.mapError (fun _ -> Exception "PART_MATCH: Sanity check failure")
     PART_MATCH, GEN_PART_MATCH
 
 (* ------------------------------------------------------------------------- *)
 (* Matching modus ponens.                                                    *)
 (* ------------------------------------------------------------------------- *)
+
 /// Modus Ponens inference rule with automatic matching.
 let MATCH_MP ith = 
     let sth = 
-        try 
+        let v = 
             let tm = concl ith
             let avs, bod = strip_forall tm
             let ant, con = dest_imp bod
@@ -585,18 +587,16 @@ let MATCH_MP ith =
                 let th1 = SPECL avs (ASSUME tm)
                 let th2 = GENL svs (DISCH ant (GENL pvs (UNDISCH th1)))
                 MP (DISCH tm th2) ith
-        with
-        | Failure _ -> failwith "MATCH_MP: Not an implication"
+        v |> Choice.mapError (fun _ -> Exception "MATCH_MP: Not an implication")
     let match_fun = PART_MATCH (fst << dest_imp) sth
     fun th -> 
-        try 
-            MP (match_fun(concl th)) th
-        with
-        | Failure _ -> failwith "MATCH_MP: No match"
+        MP (match_fun(concl th)) th
+        |> Choice.mapError (fun _ -> Exception "MATCH_MP: No match")
 
 (* ------------------------------------------------------------------------- *)
 (* Useful instance of more general higher order matching.                    *)
 (* ------------------------------------------------------------------------- *)
+
 /// Rewrite once using more general higher order matching.
 let HIGHER_REWRITE_CONV = 
     let BETA_VAR = 
@@ -663,6 +663,7 @@ let HIGHER_REWRITE_CONV =
 (* ------------------------------------------------------------------------- *)
 (* Derived principle of definition justifying |- c x1 .. xn = t[x1,..,xn]    *)
 (* ------------------------------------------------------------------------- *)
+
 /// Declare a new constant and a definitional axiom.
 let new_definition tm = 
     let avs, bod = strip_forall tm

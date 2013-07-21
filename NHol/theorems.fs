@@ -192,22 +192,18 @@ let EXISTS_UNIQUE_THM =
 (* Trivial instances of existence.                                           *)
 (* ------------------------------------------------------------------------- *)
 let EXISTS_REFL = 
-    prove((parse_term @"!a:A. ?x. x = a"), GEN_TAC
-                                          |> THEN 
-                                          <| EXISTS_TAC(parse_term @"a:A")
-                                          |> THEN <| REFL_TAC)
+    prove((parse_term @"!a:A. ?x. x = a"), 
+          GEN_TAC
+          |> THEN <| EXISTS_TAC(parse_term @"a:A")
+          |> THEN <| REFL_TAC)
 
 let EXISTS_UNIQUE_REFL = 
-    prove((parse_term @"!a:A. ?!x. x = a"), GEN_TAC
-                                           |> THEN 
-                                           <| REWRITE_TAC [EXISTS_UNIQUE_THM]
-                                           |> THEN 
-                                           <| REPEAT(EQ_TAC
-                                                     |> ORELSE <| STRIP_TAC)
-                                           |> THENL <| [EXISTS_TAC
-                                                            (parse_term @"a:A")
-                                                        ASM_REWRITE_TAC []]
-                                           |> THEN <| REFL_TAC)
+    prove((parse_term @"!a:A. ?!x. x = a"), 
+          GEN_TAC
+          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_THM]
+          |> THEN <| REPEAT(EQ_TAC |> ORELSE <| STRIP_TAC)
+          |> THENL <| [EXISTS_TAC (parse_term @"a:A"); ASM_REWRITE_TAC []]
+          |> THEN <| REFL_TAC)
 
 (* ------------------------------------------------------------------------- *)
 (* Unwinding.                                                                *)

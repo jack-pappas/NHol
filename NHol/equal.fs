@@ -41,7 +41,7 @@ open parser
 (* Type abbreviation for conversions.                                        *)
 (* ------------------------------------------------------------------------- *)
 
-type conv = term -> Thm
+type conv = term -> thm
 
 (* ------------------------------------------------------------------------- *)
 (* A bit more syntax.                                                        *)
@@ -104,7 +104,7 @@ let SYM th =
     let tm = concl th
     let l, r = dest_eq tm
     let lth = REFL l
-    EQ_MP (MK_COMB(AP_TERM (rator(rator tm)) <| Choice1Of2 th, lth)) lth
+    EQ_MP (MK_COMB(AP_TERM (rator(rator tm)) th, lth)) lth
 
 /// Proves equality of alpha-equivalent terms.
 let ALPHA tm1 tm2 = 

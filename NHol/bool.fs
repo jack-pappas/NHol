@@ -397,7 +397,7 @@ let EXISTS =
         let cth = 
             PINST [type_of stm, aty] [abs, P; stm, x] <| pth()
         PROVE_HYP (EQ_MP (SYM bth) th) cth
-        |> Choice.mapError (fun _ -> "EXISTS")
+        |> Choice.mapError (fun _ -> Exception "EXISTS")
 
 /// Introduces an existential quantifier over a variable in a theorem.
 let SIMPLE_EXISTS v th = EXISTS (mk_exists(v, concl th), v) th
@@ -420,7 +420,7 @@ let CHOOSE =
         let th5 = 
             PINST [snd(dest_var v), aty] [abs, P; concl th2, Q] <| pth()
         MP (MP th5 th4) th1
-        |> Choice.mapError (fun _ -> "CHOOSE")
+        |> Choice.mapError (fun _ -> Exception "CHOOSE")
 
 /// Existentially quantifies a hypothesis of a theorem.
 let SIMPLE_CHOOSE v th = CHOOSE (v, ASSUME(mk_exists(v, hd(hyp th)))) th
@@ -449,7 +449,7 @@ let DISJ1 =
         EQ_MP (SYM th2) th4
     fun th tm -> 
         PROVE_HYP th (INST [concl th, P; tm, Q] <| pth())
-        |> Choice.mapError (fun _ -> "DISJ1")
+        |> Choice.mapError (fun _ -> Exception "DISJ1")
 
 /// Introduces a left disjunct into the conclusion of a theorem.
 let DISJ2 = 
@@ -463,7 +463,7 @@ let DISJ2 =
         EQ_MP (SYM th2) th4
     fun tm th -> 
         PROVE_HYP th (INST [tm, P; concl th, Q] <| pth())
-        |> Choice.mapError (fun _ -> "DISJ1")
+        |> Choice.mapError (fun _ -> Exception "DISJ2")
 
 /// Eliminates disjunction by cases.
 let DISJ_CASES = 
