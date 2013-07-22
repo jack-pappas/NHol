@@ -34,5 +34,5 @@ printNLogConfig ()
 
 // Setup logger
 let logger = NLog.LogManager.GetLogger("file")
-logger.Trace("NLog seet up from NLogExample.fsx")
+logger.Trace("NLog set up from NLogExample.fsx")
 

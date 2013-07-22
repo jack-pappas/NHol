@@ -267,6 +267,7 @@ let striplist dest =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies a destructor in right-associative mode a specified number of times.
+// OPTIMIZE : It seems like this could be simplified by using one of the State.List functions from ExtCore.
 let rec nsplit dest clist x = 
     if clist = [] then [], x
     else 

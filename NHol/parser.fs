@@ -153,8 +153,10 @@ let finished input =
 (* The basic lexical classes: identifiers, strings and reserved words.       *)
 (* ------------------------------------------------------------------------- *)
 
-type lexcode = 
+type lexcode =
+    /// Identifier.
     | Ident of string
+    /// Reserved keyword.
     | Resword of string
 
 (* ------------------------------------------------------------------------- *)

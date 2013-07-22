@@ -84,7 +84,6 @@ fsi.AddPrinter string_of_term;;
 fsi.AddPrinter string_of_thm;;
 
 configureNLogPrgramatically ()
-printNLogConfig ()
 
 // Setup logger
 let logger = NLog.LogManager.GetLogger("file")
