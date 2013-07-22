@@ -1869,11 +1869,6 @@ let define_type s =
         warn true "Benign redefinition of inductive type"
         retval
     | None ->
-        /// Tests for failure.
-        let can f x = 
-            try f x |> ignore; true
-            with Failure _ -> false
-
         let defspec = parse_inductive_type_specification s
         let newtypes = map fst defspec
         let constructors = itlist ((@) << map fst) (map snd defspec) []
@@ -1881,13 +1876,13 @@ let define_type s =
         then failwith "define_type: multiple definitions of a type"
         elif not(length(setify constructors) = length constructors)
         then failwith "define_type: multiple instances of a constructor"
-        elif exists (can get_type_arity << Choice.get << dest_vartype) newtypes
+        elif exists (Choice.isResult << get_type_arity << Choice.get << dest_vartype) newtypes
         then 
-            let t = find (can get_type_arity) (map (Choice.get << dest_vartype) newtypes)
+            let t = find (Choice.isResult << get_type_arity) (map (Choice.get << dest_vartype) newtypes)
             failwith("define_type: type :" + t + " already defined")
-        elif exists (can get_const_type) constructors
+        elif exists (Choice.isResult << get_const_type) constructors
         then 
-            let t = find (can get_const_type) constructors
+            let t = find (Choice.isResult << get_const_type) constructors
             failwith("define_type: constant " + t + " already defined")
         else 
             let retval = define_type_raw_002 defspec

@@ -89,8 +89,9 @@ module Hol_kernel =
 
     /// Returns the arity of a type constructor.
     let get_type_arity s =
-        assoc s !the_type_constants
-        |> Option.getOrFailWith "find"
+        match assoc s !the_type_constants with
+        | Some result -> Choice.succeed result
+        | None -> Choice.failwith "find"
     
     (* ------------------------------------------------------------------------- *)
     (* Declare a new type.                                                       *)
@@ -98,12 +99,7 @@ module Hol_kernel =
 
     /// Declares a new type or type constructor.
     let new_type(name, arity) =
-        /// Tests for failure.
-        let can f x = 
-            try f x |> ignore; true
-            with Failure _ -> false
-
-        if can get_type_arity name then failwith("new_type: type " + name + " has already been declared")
+        if Choice.isResult <| get_type_arity name then failwith("new_type: type " + name + " has already been declared")
         else the_type_constants := (name, arity) :: (!the_type_constants)
     
     (* ------------------------------------------------------------------------- *)
@@ -112,13 +108,12 @@ module Hol_kernel =
 
     /// Constructs a type (other than a variable type).
     let mk_type(tyop, args) =  
-        try 
-            let arity = get_type_arity tyop
+        let arity = get_type_arity tyop
+        arity 
+        |> Choice.bind (fun arity ->      
             if arity = length args then Choice.succeed <| Tyapp(tyop, args)
-            else Choice.failwith("mk_type: wrong number of arguments to " + tyop)
-        with
-        | Failure _ as e ->
-            Choice.nestedFailwith e ("mk_type: type " + tyop + " has not been defined")
+            else Choice.failwith ("mk_type: wrong number of arguments to " + tyop))
+        |> Choice.bindError (fun e -> Choice.nestedFailwith e ("mk_type: type " + tyop + " has not been defined"))
     
     /// Constructs a type variable of the given name.
     let mk_vartype v = Tyvar(v)
@@ -130,18 +125,17 @@ module Hol_kernel =
     /// Breaks apart a type (other than a variable type).
     let dest_type = function 
         | (Tyapp(s, ty)) ->
-            Choice1Of2 (s, ty)
+            Choice.succeed (s, ty)
         | (Tyvar _) ->
-            Choice2Of2 "dest_type: type variable not a constructor"
+            Choice.failwith "dest_type: type variable not a constructor"
     
     /// Breaks a type variable down to its name.
     let dest_vartype = function 
         | (Tyvar s) ->
-            Choice1Of2 s
+            Choice.succeed s
         | (Tyapp(_, _)) ->
-            Choice2Of2 "dest_vartype: type constructor not a variable"
-        
-    
+            Choice.failwith "dest_vartype: type constructor not a variable"
+            
     (* ------------------------------------------------------------------------- *)
     (* Basic type discriminators.                                                *)
     (* ------------------------------------------------------------------------- *)
@@ -206,8 +200,9 @@ module Hol_kernel =
 
     /// Gets the generic type of a constant from the name of the constant.
     let get_const_type s =
-        assoc s !the_term_constants
-        |> Option.getOrFailWith "find"
+        match assoc s !the_term_constants with
+        | Some result -> Choice.succeed result
+        | None -> Choice.failwith "find"
     
     (* ------------------------------------------------------------------------- *)
     (* Declare a new constant.                                                   *)
@@ -215,10 +210,7 @@ module Hol_kernel =
 
     /// Declares a new constant.
     let new_constant(name, ty) =
-        let can_get_const_type =
-            try get_const_type name |> ignore; true
-            with Failure _ -> false
-        if can_get_const_type then failwith("new_constant: constant " + name + " has already been declared")
+        if Choice.isResult <| get_const_type name then failwith("new_constant: constant " + name + " has already been declared")
         else the_term_constants := (name, ty) :: (!the_term_constants)
     
     (* ------------------------------------------------------------------------- *)
@@ -277,12 +269,12 @@ module Hol_kernel =
     
     /// Produce constant term by applying an instantiation to its generic type.
     let mk_const(name, theta) = 
-        try 
-            let uty = get_const_type name
-            Choice.succeed <| Const(name, type_subst theta uty)
-        with
-        | Failure _ as e ->
-            Choice.nestedFailwith e "mk_const: not a constant name"    
+        let uty = get_const_type name
+        uty
+        |> Choice.bind (fun uty -> 
+            Choice.succeed <| Const(name, type_subst theta uty))
+        |> Choice.bindError (fun e -> 
+            Choice.nestedFailwith e "mk_const: not a constant name")
     
     /// Constructs an abstraction.
     let mk_abs(bvar, bod) = 

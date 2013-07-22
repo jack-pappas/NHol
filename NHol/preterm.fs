@@ -237,7 +237,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
          Stv(n))
     let pmk_cv(s, pty) =
         try
-            get_const_type s |> ignore
+            Choice.get <| get_const_type s |> ignore
             Constp(s, pty)
         with _ ->
             Varp(s, pty)
@@ -288,7 +288,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         | _ :: _ :: _ ->
             assoc cname (!the_overload_skeletons)
             |> Option.getOrFailWith "find"
-        | [] -> get_const_type cname
+        | [] -> Choice.get <| get_const_type cname
 
     (* ----------------------------------------------------------------------- *)
     (* Get the implicit generic type of a variable.                            *)
@@ -337,7 +337,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let rec untyped_t_of_pt = 
             function 
             | Varp(s, pty) -> mk_var(s, aty)
-            | Constp(s, pty) -> mk_mconst(s, get_const_type s)
+            | Constp(s, pty) -> mk_mconst(s, Choice.get <| get_const_type s)
             | Combp(l, r) -> mk_comb(untyped_t_of_pt l, untyped_t_of_pt r)
             | Absp(v, bod) -> mk_gabs(untyped_t_of_pt v, untyped_t_of_pt bod)
             | Typing(ptm, pty) -> untyped_t_of_pt ptm
@@ -354,7 +354,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             let default_msg s = " " + s + " cannot have type " + sty1 + " and " + sty2 + " simultaneously"
             match t with
             | Constp(s, _) -> 
-                " " + s + " has type " + string_of_type(get_const_type s) + ", " + "it cannot be used with type " + sty2
+                " " + s + " has type " + string_of_type(Choice.get <| get_const_type s) + ", " + "it cannot be used with type " + sty2
             | Varp(s, _) -> default_msg s
             | t -> default_msg(string_of_preterm t)
 

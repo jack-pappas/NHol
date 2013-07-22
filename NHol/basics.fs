@@ -233,14 +233,14 @@ let rec type_match vty cty sofar =
 /// Constructs a constant with type matching.
 let mk_mconst(c, ty) = 
     try 
-        let uty = get_const_type c
+        let uty = Choice.get <| get_const_type c
         let mat = type_match uty ty []
         let con = Choice.get <| mk_const(c, mat)
         if Choice.get <| type_of con = ty then con
         else fail()
     with
     | Failure _ as e ->
-        nestedFailwith e "Choice.get <| mk_const: generic type cannot be instantiated"
+        nestedFailwith e "mk_const: generic type cannot be instantiated"
 
 (* ------------------------------------------------------------------------- *)
 (* Like mk_comb, but instantiates type variables in rator if necessary.      *)
@@ -260,7 +260,7 @@ let mk_icomb(tm1, tm2) =
 
 /// Applies constant to list of arguments, instantiating constant type as needed.
 let list_mk_icomb cname args = 
-    let atys, _ = nsplit dest_fun_ty args (get_const_type cname)
+    let atys, _ = nsplit dest_fun_ty args (Choice.get <| get_const_type cname)
     let tyin = itlist2 (fun g a -> type_match g (Choice.get <| type_of a)) atys args []
     list_mk_comb(Choice.get <| mk_const(cname, tyin), args)
 

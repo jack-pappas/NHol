@@ -63,7 +63,8 @@ module Choice =
     let get = function
         | Choice1Of2 a -> a
         | Choice2Of2 e ->
-            invalidArg "choice" (sprintf "The choice value was Choice2Of2 '%A'" e)
+            // NOTE: This is a more specialized version of get to deal with Exception
+            raise e
 
     /// Applies the specified binding function to a choice value representing a pair of result values
     /// (Choice1Of2). If one of choice values represents an error value (Choice2Of2), the error value

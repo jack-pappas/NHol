@@ -264,10 +264,9 @@ let parse_pretype =
                     |> pretype_of_type
                 with
                 | Failure _ -> 
-                    if (try 
-                            get_type_arity s = 0
-                        with
-                        | Failure _ -> false)
+                    if (match get_type_arity s with
+                        | Success 0 -> true
+                        | _ -> false)
                     then Ptycon(s, [])
                     else Utv(s)
             result, rest
@@ -275,10 +274,9 @@ let parse_pretype =
     let type_constructor input = 
         match input with
         | (Ident s) :: rest -> 
-            if (try 
-                    get_type_arity s > 0
-                with
-                | Failure _ -> false)
+            if (match get_type_arity s with
+                | Success i -> i > 0
+                | Error _ -> false)
             then s, rest
             else raise Noparse
         | _ -> raise Noparse
@@ -364,7 +362,7 @@ let parse_preterm =
     match ptm with
       Varp(v,pty) ->
         if v = "" && pty = dpty then acc
-        elif can get_const_type v || can num_of_string v || exists (fun (w,_) -> v = w) (!the_interface) then acc
+        elif Choice.isResult <| get_const_type v || can num_of_string v || exists (fun (w,_) -> v = w) (!the_interface) then acc
         else insert ptm acc
     | Constp(_,_) -> acc
     | Combp(p1,p2) -> pfrees p1 (pfrees p2 acc)
