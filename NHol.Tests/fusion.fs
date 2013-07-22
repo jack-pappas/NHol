@@ -40,6 +40,7 @@ let ``{types} returns a list of all the type constructors declared``() =
 let ``{get_type_arity} when applied to the name of a type constructor returns its arity``() =
 
     get_type_arity "bool"
+    |> evaluate
     |> should equal 0
 
 [<Test>]
@@ -47,6 +48,7 @@ let ``{get_type_arity} when applied to the name of a type constructor returns it
 let ``{get_type_arity} fails if there is no type constructor of that name``() =
 
     get_type_arity "nocon"
+    |> evaluate
     |> should equal 0
 
 (* new_type tests *)
@@ -70,6 +72,7 @@ let ``{new_type {"t",n}} declares a new {n}-ary type constructor called {t}``() 
 let ``{new_type {"t",n}} fails if HOL is there is already a type operator of that name in the current theory``() =
 
     new_type ("bool",0) 
+    |> evaluate
     |> ignore
 
 (* mk_type tests *)
@@ -78,6 +81,7 @@ let ``{new_type {"t",n}} fails if HOL is there is already a type operator of tha
 let ``{mk_type} constructs a type, other than a variable type``() =
 
     mk_type ("bool",[])
+    |> evaluate
     |> should equal (Tyapp ("bool", []))
 
 [<Test>]
@@ -85,6 +89,7 @@ let ``{mk_type} constructs a type, other than a variable type``() =
 let ``{mk_type} fails if the string is not the name of a known type``() =
 
     mk_type ("set",[])
+    |> evaluate
     |> ignore
 
 [<Test>]
@@ -92,6 +97,7 @@ let ``{mk_type} fails if the string is not the name of a known type``() =
 let ``{mk_type} fails if if the type is known but the length of the list of argument types is not equal to the arity of the type constructor``() =
 
     mk_type ("fun",[])
+    |> evaluate
     |> ignore
 
 (* mk_vartype tests *)
@@ -108,6 +114,7 @@ let ``{mk_vartype "A"} returns a type variable {:A}``() =
 let ``{dest_type} breaks apart a type``() =
 
     dest_type (Tyapp ("fun", [Tyvar "A"; Tyvar "B"]))
+    |> evaluate
     |> should equal ("fun", [Tyvar "A"; Tyvar "B"])
 
 [<Test>]
@@ -115,6 +122,7 @@ let ``{dest_type} breaks apart a type``() =
 let ``{dest_type} fails if the type is a type variable``() =
 
     dest_type (Tyvar "Test")
+    |> evaluate
     |> ignore
 
 (* dest_vartype tests *)
@@ -123,6 +131,7 @@ let ``{dest_type} fails if the type is a type variable``() =
 let ``{dest_vartype} breaks a type variable down to its name``() =
 
     dest_vartype (Tyvar "A")
+    |> evaluate
     |> should equal "A"
 
 [<Test>]
@@ -130,6 +139,7 @@ let ``{dest_vartype} breaks a type variable down to its name``() =
 let ``{dest_vartype} fails if the type is not a type variable``() =
 
     dest_vartype (Tyapp ("bool", []))
+    |> evaluate
     |> ignore
 
 (* is_type tests *)
@@ -182,6 +192,7 @@ let ``{constants} returns a list of all the constants that have been defined so 
 let ``{get_const_type "c"} returns the generic type of {c}, if {c} is a constant``() =
 
     get_const_type "="
+    |> evaluate
     |> should equal (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
 
 [<Test>]
@@ -189,6 +200,7 @@ let ``{get_const_type "c"} returns the generic type of {c}, if {c} is a constant
 let ``{get_const_type st} fails if {st} is not the name of a constant``() =
 
     get_const_type "xx"
+    |> evaluate
     |> ignore
 
 (* new_constant tests *)
@@ -210,7 +222,8 @@ let ``{new_constant {"c",:ty}} makes {c} a constant with most general type {ty}`
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "new_constant: constant = has already been declared")>]
 let ``{new_constant {"c",:ty}} fails if there is already a constant of that name in the current theory``() =
 
-    new_constant ("=", Tyvar "num") 
+    new_constant ("=", Tyvar "num")
+    |> evaluate 
     |> ignore
 
 (* type_of tests *)
@@ -219,6 +232,7 @@ let ``{new_constant {"c",:ty}} fails if there is already a constant of that name
 let ``{type_of} returns the type of a term``() =
 
     type_of (Const ("=",Tyapp("fun",[aty;Tyapp("fun",[aty;bool_ty])])))
+    |> evaluate
     |> should equal (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
 
 (* inst tests *)
@@ -247,6 +261,7 @@ let ``{inst [ty1,tv1; _ ; tyn,tvn] t} will systematically replace each type vari
 
 
     actual
+    |> evaluate
     |> should equal expected
 
 (* REFL tests *)
@@ -279,6 +294,7 @@ let ``{REFL} maps any term {t} to the corresponding theorem {|- t = t}``() =
             )
 
     REFL input
+    |> evaluate
     |> should equal expected
 
 

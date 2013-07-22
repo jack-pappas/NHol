@@ -1107,6 +1107,7 @@ let ``{set_eq l1 l2} returns {false} if some element of {l1} do not appear in {l
 let ``{assoc x [{x1,y1};_;{xn,yn}]} searches a list of pairs for a pair whose first component equals a specified value``() =
     
     assoc 2 [(1,4); (3,2); (2,5); (2,6)]
+    |> Option.getOrFailWith "find"
     |> should equal 5
 
 [<Test>]
@@ -1114,6 +1115,7 @@ let ``{assoc x [{x1,y1};_;{xn,yn}]} searches a list of pairs for a pair whose fi
 let ``{assoc x [{x1,y1};_;{xn,yn}]} fails if no matching pair is found``() =
     
     assoc 10 [(1,4); (3,2); (2,5); (2,6)]
+    |> Option.getOrFailWith "find"
     |> ignore
 
 [<Test>]
@@ -1121,6 +1123,7 @@ let ``{assoc x [{x1,y1};_;{xn,yn}]} fails if no matching pair is found``() =
 let ``{assoc x []} fails for any {x}``() =
     
     assoc 10 []
+    |> Option.getOrFailWith "find"
     |> ignore
 
 (* rev_assoc tests *)
@@ -1129,6 +1132,7 @@ let ``{assoc x []} fails for any {x}``() =
 let ``rev_assoc x [{x1,y1};_;{xn,yn}]} searches a list of pairs for a pair whose second component equals a specified value``() =
     
     rev_assoc 2 [(1,4);(3,2);(2,5);(2,6)]
+    |> Option.getOrFailWith "find"
     |> should equal 3
 
 [<Test>]
@@ -1136,6 +1140,7 @@ let ``rev_assoc x [{x1,y1};_;{xn,yn}]} searches a list of pairs for a pair whose
 let ``{rev_assoc x [{x1,y1};_;{xn,yn}]} fails if no matching pair is found``() =
     
     rev_assoc 10 [(1,4); (3,2); (2,5); (2,6)]
+    |> Option.getOrFailWith "find"
     |> ignore
 
 [<Test>]
@@ -1143,6 +1148,7 @@ let ``{rev_assoc x [{x1,y1};_;{xn,yn}]} fails if no matching pair is found``() =
 let ``{rev_assoc x []} fails for any {x}``() =
     
     rev_assoc 10 []
+    |> Option.getOrFailWith "find"
     |> ignore
 
 (* zip tests *)

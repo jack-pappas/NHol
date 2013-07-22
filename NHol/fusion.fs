@@ -110,10 +110,10 @@ module Hol_kernel =
     let mk_type(tyop, args) =  
         let arity = get_type_arity tyop
         arity 
-        |> Choice.bind (fun arity ->      
+        |> Choice.bindBoth (fun arity ->      
             if arity = length args then Choice.succeed <| Tyapp(tyop, args)
             else Choice.failwith ("mk_type: wrong number of arguments to " + tyop))
-        |> Choice.bindError (fun e -> Choice.nestedFailwith e ("mk_type: type " + tyop + " has not been defined"))
+            (fun e -> Choice.nestedFailwith e ("mk_type: type " + tyop + " has not been defined"))
     
     /// Constructs a type variable of the given name.
     let mk_vartype v = Tyvar(v)
@@ -820,7 +820,9 @@ module Hol_kernel =
 (* ------------------------------------------------------------------------- *)
 
 /// Construct a function type.
-let mk_fun_ty ty1 ty2 = Choice.get <| mk_type ("fun", [ty1; ty2])
+let mk_fun_ty ty1 ty2 = mk_type ("fun", [ty1; ty2])
+
+let mk_fun_ty2 = fun ty -> Choice.get << mk_fun_ty ty
 
 /// The type variable ':B'.
 let bty = mk_vartype "B"

@@ -100,6 +100,13 @@ module Choice =
         | Choice2Of2 error ->
             binding error
 
+    let bindBoth (resultBinding : 'T -> Choice<'U, _>) (errorBinding : 'Error -> Choice<_, 'Failure>) value =
+        match value with
+        | Choice1Of2 result ->
+            resultBinding result
+        | Choice2Of2 error ->
+            errorBinding error
+
     let rec tryFind f xs = 
         match xs with
         | [] -> Choice2Of2 <| exn "tryfind"
