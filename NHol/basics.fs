@@ -70,7 +70,7 @@ let rec tysubst alist ty =
         if is_vartype ty then ty
         else 
             let tycon, tyvars = Choice.get <| dest_type ty
-            mk_type(tycon, map (tysubst alist) tyvars)
+            Choice.get <| mk_type(tycon, map (tysubst alist) tyvars)
 
 (* ------------------------------------------------------------------------- *)
 (* A bit more syntax.                                                        *)
@@ -121,7 +121,7 @@ let dest_binary s tm =
 
 /// Constructs an instance of a named monomorphic binary operator.
 let mk_binary s = 
-    let c = mk_const(s, [])
+    let c = Choice.get <| mk_const(s, [])
     fun (l, r) -> 
         try 
             mk_comb(mk_comb(c, l), r)
@@ -235,12 +235,12 @@ let mk_mconst(c, ty) =
     try 
         let uty = get_const_type c
         let mat = type_match uty ty []
-        let con = mk_const(c, mat)
+        let con = Choice.get <| mk_const(c, mat)
         if Choice.get <| type_of con = ty then con
         else fail()
     with
     | Failure _ as e ->
-        nestedFailwith e "mk_const: generic type cannot be instantiated"
+        nestedFailwith e "Choice.get <| mk_const: generic type cannot be instantiated"
 
 (* ------------------------------------------------------------------------- *)
 (* Like mk_comb, but instantiates type variables in rator if necessary.      *)
@@ -262,7 +262,7 @@ let mk_icomb(tm1, tm2) =
 let list_mk_icomb cname args = 
     let atys, _ = nsplit dest_fun_ty args (get_const_type cname)
     let tyin = itlist2 (fun g a -> type_match g (Choice.get <| type_of a)) atys args []
-    list_mk_comb(mk_const(cname, tyin), args)
+    list_mk_comb(Choice.get <| mk_const(cname, tyin), args)
 
 (* ------------------------------------------------------------------------- *)
 (* Free variables in assumption list and conclusion of a theorem.            *)
@@ -337,7 +337,7 @@ let dest_binder s tm =
 
 /// Constructs a term with a named constant applied to an abstraction.
 let mk_binder op = 
-    let c = mk_const(op, [])
+    let c = Choice.get <| mk_const(op, [])
     fun (v, tm) -> mk_comb(inst [Choice.get <| type_of v, aty] c, mk_abs(v, tm))
 
 (* ------------------------------------------------------------------------- *)
@@ -518,11 +518,11 @@ let is_gabs x =
 /// Constructs a generalized abstraction.
 let mk_gabs = 
     let mk_forall(v, t) = 
-        let cop = mk_const("!", [Choice.get <| type_of v, aty])
+        let cop = Choice.get <| mk_const("!", [Choice.get <| type_of v, aty])
         mk_comb(cop, mk_abs(v, t))
     let list_mk_forall(vars, bod) = itlist (curry mk_forall) vars bod
     let mk_geq(t1, t2) = 
-        let p = mk_const("GEQ", [Choice.get <| type_of t1, aty])
+        let p = Choice.get <| mk_const("GEQ", [Choice.get <| type_of t1, aty])
         mk_comb(mk_comb(p, t1), t2)
     fun (tm1, tm2) -> 
         if is_var tm1 then mk_abs(tm1, tm2)
@@ -531,7 +531,7 @@ let mk_gabs =
             let fty = mk_fun_ty (Choice.get <| type_of tm1) (Choice.get <| type_of tm2)
             let f = variant (frees tm1 @ frees tm2) (mk_var("f", fty))
             let bod = mk_abs(f, list_mk_forall(fvs, mk_geq(mk_comb(f, tm1), tm2)))
-            mk_comb(mk_const("GABS", [fty, aty]), bod)
+            mk_comb(Choice.get <| mk_const("GABS", [fty, aty]), bod)
 
 /// Iteratively makes a generalized abstraction.
 let list_mk_gabs(vs, bod) = itlist (curry mk_gabs) vs bod
@@ -567,11 +567,11 @@ let is_let x =
 /// Constructs a let-expression.
 let mk_let(assigs, bod) = 
     let lefts, rights = unzip assigs
-    let lend = mk_comb(mk_const("LET_END", [Choice.get <| type_of bod, aty]), bod)
+    let lend = mk_comb(Choice.get <| mk_const("LET_END", [Choice.get <| type_of bod, aty]), bod)
     let lbod = list_mk_gabs(lefts, lend)
     let ty1, ty2 = dest_fun_ty(Choice.get <| type_of lbod)
     let ltm = 
-        mk_const("LET", [ty1, aty;
+        Choice.get <| mk_const("LET", [ty1, aty;
                          ty2, bty])
     list_mk_comb(ltm, lbod :: rights)
 

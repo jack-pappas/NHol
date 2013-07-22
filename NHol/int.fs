@@ -153,7 +153,7 @@ do_list overload_interface ["+", (parse_term @"int_add:int->int->int")
                             "&", (parse_term @"int_of_num:num->int")];;
 
 /// Give integer type 'int' priority in operator overloading.
-let prioritize_int() = prioritize_overload(mk_type("int", []));;
+let prioritize_int() = prioritize_overload(Choice.get <| mk_type("int", []));;
 
 (* ------------------------------------------------------------------------- *)
 (* Definitions and closure derivations of all operations but "inv" and "/".  *)

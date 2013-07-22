@@ -219,7 +219,7 @@ let dest_pair = dest_binary ","
 
 /// Constructs object-level pair from a pair of terms.
 let mk_pair = 
-    let ptm = mk_const(",", [])
+    let ptm = Choice.get <| mk_const(",", [])
     fun (l, r) -> 
         mk_comb(mk_comb(inst [Choice.get <| type_of l, aty
                               Choice.get <| type_of r, bty] ptm, l), r)

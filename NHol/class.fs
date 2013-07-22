@@ -448,7 +448,7 @@ let is_cond tm =
 /// Constructs a conditional term.
 let mk_cond(b, x, y) = 
     try 
-        let c = mk_const("COND", [Choice.get <| type_of x, aty])
+        let c = Choice.get <| mk_const("COND", [Choice.get <| type_of x, aty])
         mk_comb(mk_comb(mk_comb(c, b), x), y)
     with
     | Failure _ as e ->

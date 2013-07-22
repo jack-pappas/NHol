@@ -640,7 +640,7 @@ let instantiate_casewise_recursion,
     let HACK_PROFORMA n th =
       if n <= 1 then th else
       let mkname i = "_P"+string i
-      let ty = end_itlist (fun s t -> mk_type("prod",[s;t]))
+      let ty = end_itlist (fun s t -> Choice.get <| mk_type("prod",[s;t]))
                           (map (mk_vartype << mkname) (1--n))
       let conv i =
         let name = "x"+string i
@@ -655,7 +655,7 @@ let instantiate_casewise_recursion,
     let EACK_PROFORMA n th =
       if n <= 1 then th else
       let mkname i = "_Q"+string i
-      let ty = end_itlist (fun s t -> mk_type("prod",[s;t]))
+      let ty = end_itlist (fun s t -> Choice.get <| mk_type("prod",[s;t]))
                           (map (mk_vartype << mkname) (1--n))
       let conv i =
         let name = "t"+string i
@@ -818,7 +818,7 @@ let instantiate_casewise_recursion,
       let domtys,midtys = chop_list nargs domtys0
       let ranty = itlist mk_fun_ty midtys ranty0
       if length domtys <= 1 then ASSUME tm else
-      let dty = end_itlist (fun ty1 ty2 -> mk_type("prod",[ty1;ty2])) domtys
+      let dty = end_itlist (fun ty1 ty2 -> Choice.get <| mk_type("prod",[ty1;ty2])) domtys
       let f' = variant (frees tm)
                        (mk_var(fst(dest_var f),mk_fun_ty dty ranty))
       let gvs = map genvar domtys

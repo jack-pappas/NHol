@@ -572,14 +572,14 @@ let define_type_raw_001 =
             let epstms = map (fun ty -> mk_select(mk_var("v", ty), t_tm)) alltys
             let pty = 
                 try 
-                    end_itlist (fun ty1 ty2 -> mk_type("prod", [ty1; ty2])) 
+                    end_itlist (fun ty1 ty2 -> Choice.get <| mk_type("prod", [ty1; ty2])) 
                         alltys
                 with
                 | Failure _ -> bool_ty
-            let recty = mk_type("recspace", [pty])
-            let constr = mk_const("CONSTR", [pty, aty])
-            let fcons = mk_const("FCONS", [recty, aty])
-            let bot = mk_const("BOTTOM", [pty, aty])
+            let recty = Choice.get <| mk_type("recspace", [pty])
+            let constr = Choice.get <| mk_const("CONSTR", [pty, aty])
+            let fcons = Choice.get <| mk_const("FCONS", [recty, aty])
+            let bot = Choice.get <| mk_const("BOTTOM", [pty, aty])
             let bottail = mk_abs(n_tm, bot)
             let mk_constructor n (cname, cargs) = 
                 let ttys = 
@@ -992,8 +992,8 @@ let define_type_raw_001 =
             let isocons = 
                 map (create_recursion_iso_constructor consindex) conthms
             let ty = Choice.get <| type_of(hd isocons)
-            let fcons = mk_const("FCONS", [ty, aty])
-            let fnil = mk_const("FNIL", [ty, aty])
+            let fcons = Choice.get <| mk_const("FCONS", [ty, aty])
+            let fnil = Choice.get <| mk_const("FNIL", [ty, aty])
             let bigfun = itlist (mk_binop fcons) isocons fnil
             let eth = ISPEC bigfun CONSTR_REC
             let fn = rator(rand(hd(conjuncts(concl rath))))
@@ -1126,8 +1126,7 @@ let define_type_raw_002 =
             then hd tys
             else 
                 let tys1, tys2 = chop_list (k / 2) tys
-                mk_type("sum", [mk_sum tys1
-                                mk_sum tys2])
+                Choice.get <| mk_type("sum", [mk_sum tys1; mk_sum tys2])
         let mk_inls = 
             let rec mk_inls ty = 
                 if is_vartype ty
@@ -1138,11 +1137,9 @@ let define_type_raw_002 =
                         let inls1 = mk_inls ty1
                         let inls2 = mk_inls ty2
                         let inl = 
-                            mk_const("INL", [ty1, aty
-                                             ty2, bty])
+                            Choice.get <| mk_const("INL", [ty1, aty; ty2, bty])
                         let inr = 
-                            mk_const("INR", [ty1, aty
-                                             ty2, bty])
+                            Choice.get <| mk_const("INR", [ty1, aty; ty2, bty])
                         map (curry mk_comb inl) inls1 
                         @ map (curry mk_comb inr) inls2
                     | _ -> failwith "mk_inls: Unhnadled case."
@@ -1157,11 +1154,9 @@ let define_type_raw_002 =
                     match Choice.get <| dest_type ty with
                     | _, [ty1; ty2] ->
                         let outl = 
-                            mk_const("OUTL", [ty1, aty
-                                              ty2, bty])
+                            Choice.get <| mk_const("OUTL", [ty1, aty; ty2, bty])
                         let outr = 
-                            mk_const("OUTR", [ty1, aty
-                                              ty2, bty])
+                            Choice.get <| mk_const("OUTR", [ty1, aty; ty2, bty])
                         mk_inls (mk_comb(outl, sof)) ty1 
                         @ mk_inls (mk_comb(outr, sof)) ty2
                     | _ -> failwith "mk_outls: Unhandled case."
@@ -1300,8 +1295,7 @@ let prove_constructors_distinct =
     let prove_distinct ax pat = 
         let nums = map mk_small_numeral (0 -- (length pat - 1))
         let fn = 
-            genvar(mk_type("fun", [Choice.get <| type_of(hd pat)
-                                   num_ty]))
+            genvar(Choice.get <| mk_type("fun", [Choice.get <| type_of(hd pat); num_ty]))
         let ls = map (curry mk_comb fn) pat
         let defs = 
             map2 (fun l r -> list_mk_forall(frees(rand l), mk_eq(l, r))) ls nums
@@ -1740,7 +1734,7 @@ let define_type_raw =
         | None ->
             try 
                 let tycon, tyargs = Choice.get <| dest_type ty
-                mk_type(tycon, map (modify_type alist) tyargs)
+                Choice.get <| mk_type(tycon, map (modify_type alist) tyargs)
             with
             | Failure _ -> ty
     let modify_item alist (s, l) = s, map (modify_type alist) l

@@ -473,9 +473,9 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
         SIMP_TAC[EQ_ADD_RCANCEL] |>THEN<| REWRITE_TAC[ADD_AC]) in
       let dest_mul = dest_binop (parse_term @"(* )") in
       let mk_raw_numeral =
-        let Z = mk_const("_0",[])
-        let BIT0 = mk_const("BIT0",[])
-        let BIT1 = mk_const("BIT1",[]) in
+        let Z = Choice.get <| mk_const("_0",[])
+        let BIT0 = Choice.get <| mk_const("BIT0",[])
+        let BIT1 = Choice.get <| mk_const("BIT1",[]) in
         let rec mk_num n =
           if n = Int 0 then Z else
           mk_comb((if mod_num n (Int 2) = Int 0 then BIT0 else BIT1),

@@ -56,6 +56,9 @@ module Choice =
     let inline failwith msg =
         Choice2Of2 <| exn msg
 
+    let inline nestedFailwith innerException message =
+        Choice2Of2 <| exn (message, innerException)
+
     /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
     let get = function
         | Choice1Of2 a -> a

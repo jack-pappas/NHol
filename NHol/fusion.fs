@@ -111,15 +111,14 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Constructs a type (other than a variable type).
-    let mk_type(tyop, args) = 
-        let arity = 
-            try 
-                get_type_arity tyop
-            with
-            | Failure _ as e ->
-                nestedFailwith e ("mk_type: type " + tyop + " has not been defined")
-        if arity = length args then Tyapp(tyop, args)
-        else failwith("mk_type: wrong number of arguments to " + tyop)
+    let mk_type(tyop, args) =  
+        try 
+            let arity = get_type_arity tyop
+            if arity = length args then Choice.succeed <| Tyapp(tyop, args)
+            else Choice.failwith("mk_type: wrong number of arguments to " + tyop)
+        with
+        | Failure _ as e ->
+            Choice.nestedFailwith e ("mk_type: type " + tyop + " has not been defined")
     
     /// Constructs a type variable of the given name.
     let mk_vartype v = Tyvar(v)
@@ -278,13 +277,12 @@ module Hol_kernel =
     
     /// Produce constant term by applying an instantiation to its generic type.
     let mk_const(name, theta) = 
-        let uty = 
-            try 
-                get_const_type name
-            with
-            | Failure _ as e ->
-                nestedFailwith e "mk_const: not a constant name"
-        Const(name, type_subst theta uty)
+        try 
+            let uty = get_const_type name
+            Choice.succeed <| Const(name, type_subst theta uty)
+        with
+        | Failure _ as e ->
+            Choice.nestedFailwith e "mk_const: not a constant name"    
     
     /// Constructs an abstraction.
     let mk_abs(bvar, bod) = 
@@ -779,7 +777,8 @@ module Hol_kernel =
 (* ------------------------------------------------------------------------- *)
 
 /// Construct a function type.
-let mk_fun_ty ty1 ty2 = mk_type("fun", [ty1; ty2])
+let mk_fun_ty ty1 ty2 = Choice.get <| mk_type ("fun", [ty1; ty2])
+
 /// The type variable ':B'.
 let bty = mk_vartype "B"
 
@@ -791,7 +790,7 @@ let is_eq tm =
 
 /// Constructs an equation.
 let mk_eq = 
-    let eq = mk_const("=", [])
+    let eq = Choice.get <| mk_const("=", [])
     fun (l, r) -> 
         try 
             let ty = Choice.get <| type_of l

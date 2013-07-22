@@ -330,7 +330,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 mk_vartype(if mem n ns then "?" + string n
                            else "_")
             | Utv v -> mk_vartype v
-            | Ptycon(con, args) -> mk_type(con, map (type_of_pretype' ns) args)
+            | Ptycon(con, args) -> Choice.get <| mk_type(con, map (type_of_pretype' ns) args)
         string_of_type << type_of_pretype' stvs
 
     let string_of_preterm = 
@@ -501,7 +501,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             let s = "?" + (string n)
             mk_vartype(s)
         | Utv(v) -> mk_vartype(v)
-        | Ptycon(con, args) -> mk_type(con, map type_of_pretype args)
+        | Ptycon(con, args) -> Choice.get <| mk_type(con, map type_of_pretype args)
 
     (* ----------------------------------------------------------------------- *)
     (* Maps preterms to terms.                                                 *)

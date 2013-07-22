@@ -274,10 +274,10 @@ let BIT1_DEF = new_definition(parse_term @"BIT1 n = SUC (BIT0 n)")
 
 /// Maps a nonnegative integer to corresponding numeral term.
 let mk_numeral = 
-    let Z = mk_const("_0", [])
-    let BIT0 = mk_const("BIT0", [])
-    let BIT1 = mk_const("BIT1", [])
-    let NUMERAL = mk_const("NUMERAL", [])
+    let Z = Choice.get <| mk_const("_0", [])
+    let BIT0 = Choice.get <| mk_const("BIT0", [])
+    let BIT1 = Choice.get <| mk_const("BIT1", [])
+    let NUMERAL = Choice.get <| mk_const("NUMERAL", [])
     let zero = num_0
     let rec mk_num n = 
         if n =/ num_0

@@ -72,12 +72,12 @@ let MK_DISJ =
 
 /// Universally quantifies both sides of equational theorem.
 let MK_FORALL = 
-    let atm = mk_const("!", [])
+    let atm = Choice.get <| mk_const("!", [])
     fun v th -> AP_TERM (inst [Choice.get <| type_of v, aty] atm) (ABS v th)
 
 /// Existentially quantifies both sides of equational theorem.
 let MK_EXISTS = 
-    let atm = mk_const("?", [])
+    let atm = Choice.get <| mk_const("?", [])
     fun v th -> AP_TERM (inst [Choice.get <| type_of v, aty] atm) (ABS v th)
 
 (* ------------------------------------------------------------------------- *)
