@@ -691,7 +691,7 @@ let define_type_raw_001 =
     let define_inductive_type cdefs exth = 
         let extm = concl exth
         let epred = fst(strip_comb extm)
-        let ename = fst(dest_var epred)
+        let ename = fst(Choice.get <| dest_var epred)
         let th1 = ASSUME(find (fun eq -> lhand eq = epred) (hyp exth))
         let th2 = TRANS th1 (SUBS_CONV cdefs (rand(concl th1)))
         let th3 = EQ_MP (AP_THM th2 (rand extm)) exth
@@ -727,7 +727,7 @@ let define_type_raw_001 =
                     |> Option.getOrFailWith "find"
                     |> snd
                 let ty' = hd(snd(Choice.get <| dest_type(Choice.get <| type_of dest)))
-                let v' = mk_var(fst(dest_var v), ty')
+                let v' = mk_var(fst(Choice.get <| dest_var v), ty')
                 Choice.get <| mk_comb(dest, v'), v'
             with
             | Failure _ -> v, v
@@ -740,7 +740,7 @@ let define_type_raw_001 =
         let defrt = list_mk_abs(newargs, defbod)
         let expth = find (fun th -> lhand(concl th) = oldcon) defs
         let rexpth = SUBS_CONV [expth] defrt
-        let deflf = mk_var(fst(dest_var oldcon), Choice.get <| type_of defrt)
+        let deflf = mk_var(fst(Choice.get <| dest_var oldcon), Choice.get <| type_of defrt)
         let defth = new_definition(mk_eq(deflf, rand(concl rexpth)))
         TRANS defth (SYM rexpth)
 
@@ -808,7 +808,7 @@ let define_type_raw_001 =
                 let asmin = mk_imp(list_mk_conj lctms, rand(rand(concl conth3)))
                 let argsin = map rand (conjuncts(lhand asmin))
                 let argsgen = 
-                    map (fun tm -> mk_var(fst(dest_var(rand tm)), Choice.get <| type_of tm)) 
+                    map (fun tm -> mk_var(fst(Choice.get <| dest_var(rand tm)), Choice.get <| type_of tm)) 
                         argsin
                 let asmgen = subst (zip argsgen argsin) asmin
                 let asmquant = 
@@ -845,7 +845,7 @@ let define_type_raw_001 =
             let p, v = dest_comb pv
             let mk, dest = assoc p consindex |> Option.getOrFailWith "find"
             let ty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of dest)))
-            let v' = mk_var(fst(dest_var v), ty)
+            let v' = mk_var(fst(Choice.get <| dest_var v), ty)
             let dv = Choice.get <| mk_comb(dest, v')
             let th1 = PRERULE(SPEC dv th)
             let th2 = MP th1 (REFL(rand(lhand(concl th1))))
@@ -977,7 +977,7 @@ let define_type_raw_001 =
                 let allargs = cargs' @ rargs' @ sargs'
                 let funty = itlist (mk_fun_ty << Choice.get << type_of) allargs zty
                 let funname = 
-                    fst(dest_const(repeat rator (lhand(concl cth)))) + "'"
+                    fst(Choice.get <| dest_const(repeat rator (lhand(concl cth)))) + "'"
                 let funarg = mk_var(funname, funty)
                 list_mk_abs([i; r; s], list_mk_comb(funarg, allargs))
 
@@ -1163,7 +1163,7 @@ let define_type_raw_002 =
                 let x = mk_var("x", ty)
                 map (curry (Choice.get << mk_abs) x) (mk_inls x ty)
         let mk_newfun fn outl = 
-            let s, ty = dest_var fn
+            let s, ty = Choice.get <| dest_var fn
             let dty = hd(snd(Choice.get <| dest_type ty))
             let x = mk_var("x", dty)
             let y, bod = dest_abs outl
@@ -1208,7 +1208,7 @@ let define_type_raw_002 =
                     let inl = assoc (rator l) inlalist |> Option.getOrFailWith "find"
                     let rty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of inl)))
                     let nty = itlist (mk_fun_ty << Choice.get << type_of) args' rty
-                    let fn' = mk_var(fst(dest_var fn), nty)
+                    let fn' = mk_var(fst(Choice.get <| dest_var fn), nty)
                     let r' = 
                         list_mk_abs
                             (args'', Choice.get <| mk_comb(inl, list_mk_comb(fn', args')))
@@ -1559,11 +1559,11 @@ let define_type_raw =
     let grab_type = Choice.get << type_of << rand << lhand << snd << strip_forall
     let clause_corresponds cl0 = 
         let f0, ctm0 = dest_comb(lhs cl0)
-        let c0 = fst(dest_const(fst(strip_comb ctm0)))
+        let c0 = fst(Choice.get <| dest_const(fst(strip_comb ctm0)))
         let dty0, rty0 = dest_fun_ty(Choice.get <| type_of f0)
         fun cl1 -> 
             let f1, ctm1 = dest_comb(lhs cl1)
-            let c1 = fst(dest_const(fst(strip_comb ctm1)))
+            let c1 = fst(Choice.get <| dest_const(fst(strip_comb ctm1)))
             let dty1, rty1 = dest_fun_ty(Choice.get <| type_of f1)
             c0 = c1 && dty0 = rty1 && rty0 = dty1
     let prove_inductive_types_isomorphic n k (ith0, rth0) (ith1, rth1) = 
@@ -1715,7 +1715,7 @@ let define_type_raw =
         let l, r = dest_eq eqn
         MP (INST [r, l] (DISCH eqn th)) (REFL r)
     let define_type_basecase def = 
-        let add_id s = fst(dest_var(genvar bool_ty))
+        let add_id s = fst(Choice.get <| dest_var(genvar bool_ty))
         let def' = map (I ||>> (map(add_id ||>> I))) def
         define_type_raw_002 def'
     let SIMPLE_BETA_RULE = GSYM << PURE_REWRITE_RULE [BETA_THM; FUN_EQ_THM]
@@ -1740,9 +1740,9 @@ let define_type_raw =
     let modify_clause alist (l, lis) = l, map (modify_item alist) lis
     let recover_clause id tm = 
         let con, args = strip_comb tm
-        fst(dest_const con) + id, map (Choice.get << type_of) args
+        fst(Choice.get <| dest_const con) + id, map (Choice.get << type_of) args
     let rec create_auxiliary_clauses nty = 
-        let id = fst(dest_var(genvar bool_ty))
+        let id = fst(Choice.get <| dest_var(genvar bool_ty))
         let tycon, tyargs = Choice.get <| dest_type nty
         let k, ith, rth =
             match assoc tycon !inductive_type_store with
@@ -1822,7 +1822,7 @@ let define_type_raw =
                 let vs, bod = strip_forall tm
                 let rdeb = rand(lhs bod)
                 let rdef = list_mk_abs(vs, rdeb)
-                let newname = fst(dest_var(genvar bool_ty))
+                let newname = fst(Choice.get <| dest_var(genvar bool_ty))
                 let def = mk_eq(mk_var(newname, Choice.get <| type_of rdef), rdef)
                 let dth = new_definition def
                 SIMPLE_BETA_RULE dth

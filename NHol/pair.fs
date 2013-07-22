@@ -324,7 +324,7 @@ let GEN_BETA_CONV =
             let cjs = conjuncts bod
             let ourcj = 
                 find 
-                    ((=) conname << fst << dest_const << fst << strip_comb //check (=) conname, check all better
+                    ((=) conname << fst << Choice.get << dest_const << fst << strip_comb //check (=) conname, check all better
                      << rand << lhand << snd << strip_forall) cjs
             let n = index ourcj cjs
             let avs, eqn = strip_forall ourcj
@@ -368,7 +368,7 @@ let GEN_BETA_CONV =
         then [REFL tm]
         else 
             let con, args = strip_comb tm
-            let prjths = create_projections(fst(dest_const con))
+            let prjths = create_projections(fst(Choice.get <| dest_const con))
             let atm = rand(rand(concl(hd prjths)))
             let instn = term_match [] atm tm
             let arths = map (INSTANTIATE instn) prjths
@@ -554,7 +554,7 @@ let let_CONV =
             TRANS th1 th2
     fun tm -> 
         let ltm, pargs = strip_comb tm
-        if fst(dest_const ltm) <> "LET" || pargs = []
+        if fst(Choice.get <| dest_const ltm) <> "LET" || pargs = []
         then failwith "let_CONV"
         else 
             let abstm = hd pargs

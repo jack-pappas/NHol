@@ -793,7 +793,7 @@ monotonicity_theorems := [MONO_ALL; MONO_ALL2] @ !monotonicity_theorems
 let rec LIST_CONV conv tm = 
     if is_cons tm
     then COMB2_CONV (RAND_CONV conv) (LIST_CONV conv) tm
-    elif fst(dest_const tm) = "NIL"
+    elif fst(Choice.get <| dest_const tm) = "NIL"
     then REFL tm
     else failwith "LIST_CONV"
 

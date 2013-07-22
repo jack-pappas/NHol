@@ -374,7 +374,7 @@ let MONO_TAC =
         else 
             let cn = 
                 try 
-                    fst(dest_const(repeat rator c))
+                    fst(Choice.get <| dest_const(repeat rator c))
                 with
                 | Failure _ -> ""
             Choice.tryFind (fun (k, t) -> 
@@ -387,7 +387,7 @@ let MONO_TAC =
                     let ft = repeat rator (funpow 2 rand (concl th))
                     let c = 
                         try 
-                            fst(dest_const ft)
+                            fst(Choice.get <| dest_const ft)
                         with
                         | Failure _ -> ""
                     (c, BACKCHAIN_TAC th
@@ -429,7 +429,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
     let generalize_schematic_variables gflag vs = 
         let generalize_def tm th = 
             let l, r = dest_eq tm
-            let lname, lty = dest_var l
+            let lname, lty = Choice.get <| dest_var l
             let l' = mk_var(lname, itlist (mk_fun_ty << Choice.get << type_of) vs lty)
             let r' = list_mk_abs(vs, r)
             let tm' = mk_eq(l', r')
@@ -470,7 +470,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
         then failwith "Schematic variables not used consistently"
         else 
             let avoids = variables(list_mk_conj clauses)
-            let hack_fn tm = mk_var(fst(dest_var(repeat rator tm)), Choice.get <| type_of tm)
+            let hack_fn tm = mk_var(fst(Choice.get <| dest_var(repeat rator tm)), Choice.get <| type_of tm)
             let grels = variants avoids (map hack_fn schems)
             let crels = zip grels schems
             let clauses' = map (subst crels) clauses

@@ -68,13 +68,13 @@ let prove_recursive_functions_exist =
         let exvs, axbody = strip_exists(concl axth)
         let axcls = conjuncts axbody
         let f = 
-            fst << dest_const << repeat rator << rand << lhand << snd 
+            fst << Choice.get << dest_const << repeat rator << rand << lhand << snd 
             << strip_forall
         let findax s =
             assoc s (map (fun t -> f t, t) axcls)
             |> Option.getOrFailWith "find"
         let raxs = 
-            map (findax << fst << dest_const << repeat rator << hd << snd) lpats
+            map (findax << fst << Choice.get << dest_const << repeat rator << hd << snd) lpats
         let axfns = map (repeat rator << lhand << snd << strip_forall) raxs
         let urfns = 
             map (fun v -> assocd v (setify(zip axfns (map fst lpats))) v) exvs
@@ -165,7 +165,7 @@ let new_recursive_definition =
             let gcls = map2 (curry list_mk_forall) fvs rawcls
             let eth = prove_recursive_functions_exist ax (list_mk_conj gcls)
             let evs, bod = strip_exists(concl eth)
-            let dth = new_specification (map (fst << dest_var) evs) eth
+            let dth = new_specification (map (fst << Choice.get << dest_var) evs) eth
             let dths = map2 SPECL fvs (CONJUNCTS dth)
             let th = end_itlist CONJ dths
             the_recursive_definitions := th :: (!the_recursive_definitions)

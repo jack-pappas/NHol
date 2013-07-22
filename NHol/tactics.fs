@@ -1288,7 +1288,7 @@ let set_goal(asl, w) =
 
 /// Initializes the subgoal package with a new goal which has no assumptions.
 let g t = 
-    let fvs = sort (<) (map (fst << dest_var) (frees t))
+    let fvs = sort (<) (map (fst << Choice.get << dest_var) (frees t))
     (if fvs <> []
      then 
          let errmsg = end_itlist (fun s t -> s + ", " + t) fvs

@@ -484,14 +484,14 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
       let rec dest_raw_numeral tm =
         if 
          try 
-          fst(dest_const tm) = "_0" 
+          fst(Choice.get <| dest_const tm) = "_0" 
           with 
           | Failure _ -> false 
         then Int 0 
         else
           let l,r = dest_comb tm in
           let n = Int 2 * dest_raw_numeral r in
-          let cn = fst(dest_const l) in
+          let cn = fst(Choice.get <| dest_const l) in
           if cn = "BIT0" then n
           elif cn = "BIT1" then n + Int 1
           else failwith "dest_raw_numeral" in
@@ -813,7 +813,7 @@ let NUM_FACT_CONV =
       MP (MP (MP pth th0) th1) th2 in
     fun tm ->
       try let l,r = dest_comb tm in
-          if fst(dest_const l) = "FACT"
+          if fst(Choice.get <| dest_const l) = "FACT"
           then NUM_FACT_CONV (dest_numeral r)
           else fail()
       with Failure _ as e -> nestedFailwith e "NUM_FACT_CONV";;

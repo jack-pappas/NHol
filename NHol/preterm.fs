@@ -83,18 +83,18 @@ let remove_interface sym =
 let reduce_interface(sym, tm) = 
     let namty = 
         try 
-            dest_const tm
+            Choice.get <| dest_const tm
         with
-        | Failure _ -> dest_var tm
+        | Failure _ -> Choice.get <| dest_var tm
     the_interface := filter ((<>)(sym, namty)) (!the_interface)
 
 /// Map identifier to specific underlying constant.
 let override_interface(sym, tm) = 
     let namty = 
         try 
-            dest_const tm
+            Choice.get <| dest_const tm
         with
-        | Failure _ -> dest_var tm
+        | Failure _ -> Choice.get <| dest_var tm
     let ``interface`` = filter ((<>) sym << fst) (!the_interface)
     the_interface := (sym, namty) :: ``interface``
 
@@ -107,9 +107,9 @@ let overload_interface(sym, tm) =
             failwith("symbol \"" + sym + "\" is not overloadable")
     let (name, ty) as namty = 
         try 
-            dest_const tm
+            Choice.get <| dest_const tm
         with
-        | Failure _ -> dest_var tm
+        | Failure _ -> Choice.get <| dest_var tm
     /// Tests for failure.
     let can f x = 
         try f x |> ignore; true
@@ -205,12 +205,12 @@ type preterm =
 /// Converts a term into a preterm.
 let rec preterm_of_term tm = 
     try 
-        let n, ty = dest_var tm
+        let n, ty = Choice.get <| dest_var tm
         Varp(n, pretype_of_type ty)
     with
     | Failure _ -> 
         try 
-            let n, ty = dest_const tm
+            let n, ty = Choice.get <| dest_const tm
             Constp(n, pretype_of_type ty)
         with
         | Failure _ -> 

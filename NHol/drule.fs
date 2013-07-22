@@ -275,7 +275,7 @@ let term_match : term list -> term -> term -> instantiation =
         with
         | Failure "find" -> n :: l
     let mk_dummy = 
-        let name = fst(dest_var(genvar aty))
+        let name = fst(Choice.get <| dest_var(genvar aty))
         fun ty -> mk_var(name, ty)
     let rec term_pmatch lconsts env vtm ctm ((insts, homs) as sofar) = 
         match (vtm, ctm) with
@@ -306,7 +306,7 @@ let term_match : term list -> term -> term -> instantiation =
         | Abs(vv, vbod), Abs(cv, cbod) -> 
             let sofar' = 
                 safe_insert 
-                    (mk_dummy(snd(dest_var cv)), mk_dummy(snd(dest_var vv))) 
+                    (mk_dummy(snd(Choice.get <| dest_var cv)), mk_dummy(snd(Choice.get <| dest_var vv))) 
                     insts, homs
             term_pmatch lconsts ((cv, vv) :: env) vbod cbod sofar'
         | _ -> 
@@ -327,7 +327,7 @@ let term_match : term list -> term -> term -> instantiation =
                 let sofar' = term_pmatch lconsts env lv lc sofar
                 term_pmatch lconsts env rv rc sofar'
     let get_type_insts insts = 
-        itlist (fun (t, x) -> type_match (snd(dest_var x)) (Choice.get <| type_of t)) insts
+        itlist (fun (t, x) -> type_match (snd(Choice.get <| dest_var x)) (Choice.get <| type_of t)) insts
     let separate_insts insts = 
         let realinsts, patterns = partition (is_var << snd) insts
         let betacounts = 
@@ -346,7 +346,7 @@ let term_match : term list -> term -> term -> instantiation =
         let tyins = get_type_insts realinsts []
         betacounts, mapfilter (fun (t, x) -> 
                             let x' = 
-                                let xn, xty = dest_var x
+                                let xn, xty = Choice.get <| dest_var x
                                 mk_var(xn, type_subst tyins xty)
                             if compare t x' = 0
                             then fail()
@@ -362,7 +362,7 @@ let term_match : term list -> term -> term -> instantiation =
                 then term_homatch lconsts tyins (insts, tl homs)
                 else 
                     let newtyins = 
-                        safe_insert (Choice.get <| type_of ctm, snd(dest_var vtm)) tyins
+                        safe_insert (Choice.get <| type_of ctm, snd(Choice.get <| dest_var vtm)) tyins
                     let newinsts = (ctm, vtm) :: insts
                     term_homatch lconsts newtyins (newinsts, tl homs)
             else 
@@ -492,7 +492,7 @@ let deep_alpha =
         else 
             try 
                 let v, bod = dest_abs tm
-                let vn, vty = dest_var v
+                let vn, vty = Choice.get <| dest_var v
                 try 
                     let (vn', _), newenv = remove (fun (_, x) -> x = vn) env
                     let v' = mk_var(vn', vty)
@@ -522,8 +522,8 @@ let PART_MATCH, GEN_PART_MATCH =
         try 
             let v1, b1 = dest_abs t1
             let v2, b2 = dest_abs t2
-            let n1 = fst(dest_var v1)
-            let n2 = fst(dest_var v2)
+            let n1 = fst(Choice.get <| dest_var v1)
+            let n2 = fst(Choice.get <| dest_var v2)
             let newacc = 
                 if n1 = n2
                 then acc

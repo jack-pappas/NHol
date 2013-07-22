@@ -820,7 +820,7 @@ let instantiate_casewise_recursion,
       if length domtys <= 1 then ASSUME tm else
       let dty = end_itlist (fun ty1 ty2 -> Choice.get <| mk_type("prod",[ty1;ty2])) domtys
       let f' = variant (frees tm)
-                       (mk_var(fst(dest_var f),mk_fun_ty dty ranty))
+                       (mk_var(fst(Choice.get <| dest_var f),mk_fun_ty dty ranty))
       let gvs = map genvar domtys
       let f'' = list_mk_abs(gvs,Choice.get <| mk_comb(f',end_itlist (curry mk_pair) gvs))
       let def' = subst [f'',f] def
@@ -1057,7 +1057,7 @@ let define =
       let f,th = close_definition_clauses tm
       let etm = mk_exists(f,hd(hyp th))
       let th1 = prove_general_recursive_function_exists etm
-      let th2 = new_specification[fst(dest_var f)] th1
-      let g = mk_mconst(dest_var f)
+      let th2 = new_specification[fst(Choice.get <| dest_var f)] th1
+      let g = mk_mconst(Choice.get <| dest_var f)
       let th3 = PROVE_HYP th2 (INST [g,f] th)
       the_definitions := th3::(!the_definitions); th3

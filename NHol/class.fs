@@ -441,7 +441,7 @@ let COND_CLAUSES = prove((parse_term @"!(t1:A) t2. ((if T then t1 else t2) = t1)
 /// Tests a term to see if it is a conditional.
 let is_cond tm = 
     try 
-        fst(dest_const(rator(rator(rator tm)))) = "COND"
+        fst(Choice.get <| dest_const(rator(rator(rator tm)))) = "COND"
     with
     | Failure _ -> false
 
@@ -460,7 +460,7 @@ let dest_cond tm =
         let tm1, y = dest_comb tm
         let tm2, x = dest_comb tm1
         let c, b = dest_comb tm2
-        if fst(dest_const c) = "COND"
+        if fst(Choice.get <| dest_const c) = "COND"
         then (b, (x, y))
         else fail()
     with

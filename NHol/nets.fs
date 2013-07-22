@@ -76,14 +76,14 @@ let empty_net = Netnode([], [])
 let enter = 
     let label_to_store lconsts tm = 
         let op, args = strip_comb tm
-        if is_const op then Cnet(fst(dest_const op), length args), args
+        if is_const op then Cnet(fst(Choice.get <| dest_const op), length args), args
         elif is_abs op then 
             let bv, bod = dest_abs op
             let bod' = 
                 if mem bv lconsts then vsubst [genvar(Choice.get <| type_of bv), bv] bod
                 else bod
             Lnet(length args), bod' :: args
-        elif mem op lconsts then Lcnet(fst(dest_var op), length args), args
+        elif mem op lconsts then Lcnet(fst(Choice.get <| dest_var op), length args), args
         else Vnet, []
     let rec canon_eq x y = 
         try 
@@ -129,9 +129,9 @@ let enter =
 let lookup = 
     let label_for_lookup tm = 
         let op, args = strip_comb tm
-        if is_const op then Cnet(fst(dest_const op), length args), args
+        if is_const op then Cnet(fst(Choice.get <| dest_const op), length args), args
         elif is_abs op then Lnet(length args), (body op) :: args
-        else Lcnet(fst(dest_var op), length args), args
+        else Lcnet(fst(Choice.get <| dest_var op), length args), args
     let rec follow(tms, Netnode(edges, tips)) = 
         match tms with
         | [] -> tips

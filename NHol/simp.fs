@@ -698,5 +698,5 @@ let ABBREV_TAC tm =
 /// Expand an abbreviation in the hypotheses.
 let EXPAND_TAC s = FIRST_ASSUM
                        (SUBST1_TAC << SYM 
-                        << check((=) s << fst << dest_var << rhs << concl))
+                        << check((=) s << fst << Choice.get << dest_var << rhs << concl))
                    |> THEN <| BETA_TAC

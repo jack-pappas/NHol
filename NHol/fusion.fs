@@ -239,25 +239,25 @@ module Hol_kernel =
     /// Tests a term to see if it is a variable.
     let is_var = 
         function 
-        | (Var(_, _)) -> true
+        | Var(_, _) -> true
         | _ -> false
     
     /// Tests a term to see if it is a constant.
     let is_const = 
         function 
-        | (Const(_, _)) -> true
+        | Const(_, _) -> true
         | _ -> false
     
     /// Tests a term to see if it is an abstraction.
     let is_abs = 
         function 
-        | (Abs(_, _)) -> true
+        | Abs(_, _) -> true
         | _ -> false
     
     /// Tests a term to see if it is a combination (function application).
     let is_comb = 
         function 
-        | (Comb(_, _)) -> true
+        | Comb(_, _) -> true
         | _ -> false
     
     (* ------------------------------------------------------------------------- *)
@@ -300,14 +300,14 @@ module Hol_kernel =
     /// Breaks apart a variable into name and type.
     let dest_var = 
         function 
-        | (Var(s, ty)) -> s, ty
-        | _ -> failwith "dest_var: not a variable"
+        | Var(s, ty) -> Choice.succeed (s, ty)
+        | _ -> Choice.failwith "dest_var: not a variable"
     
     /// Breaks apart a constant into name and type.
     let dest_const = 
         function 
-        | (Const(s, ty)) -> s, ty
-        | _ -> failwith "dest_const: not a constant"
+        | Const(s, ty) -> Choice.succeed (s, ty)
+        | _ -> Choice.failwith "dest_const: not a constant"
     
     /// Breaks apart a combination (function application) into rator and rand.
     let dest_comb = 
@@ -410,7 +410,7 @@ module Hol_kernel =
                     else Abs(v, s')
         fun theta -> 
             if theta = [] then (fun tm -> tm)
-            elif forall (fun (t, x) -> Choice.get <| type_of t = snd(dest_var x)) theta then vsubst theta
+            elif forall (fun (t, x) -> Choice.get <| type_of t = snd(Choice.get <| dest_var x)) theta then vsubst theta
             else failwith "vsubst: Bad substitution list"
     
     (* ------------------------------------------------------------------------- *)
@@ -452,7 +452,7 @@ module Hol_kernel =
                     else 
                         let ifrees = map (inst [] tyin) (frees t)
                         let y'' = variant ifrees y'
-                        let z = Var(fst(dest_var y''), snd(dest_var y))
+                        let z = Var(fst(Choice.get <| dest_var y''), snd(Choice.get <| dest_var y))
                         inst env tyin (Abs(z, vsubst [z, y] t))
         fun tyin -> 
             if tyin = [] then fun tm -> tm

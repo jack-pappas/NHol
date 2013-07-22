@@ -64,8 +64,8 @@ let mk_primed_var =
         if mem s avoid || (Choice.isResult <| get_const_type s && not(is_hidden s)) then svariant avoid (s + "'")
         else s
     fun avoid v -> 
-        let s, ty = dest_var v
-        let s' = svariant (mapfilter (fst << dest_var) avoid) s
+        let s, ty = Choice.get <| dest_var v
+        let s' = svariant (mapfilter (fst << Choice.get << dest_var) avoid) s
         mk_var(s', ty)
 
 (* ------------------------------------------------------------------------- *)

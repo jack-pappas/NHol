@@ -816,7 +816,7 @@ let GEN_MESON_TAC =
         fun tms -> 
             let preds, funs = itlist fm_consts tms ([], [])
             let eqs0, noneqs = 
-                partition (fun (t, _) -> is_const t && fst(dest_const t) = "=") 
+                partition (fun (t, _) -> is_const t && fst(Choice.get <| dest_const t) = "=") 
                     preds
             if eqs0 = []
             then []
@@ -826,7 +826,7 @@ let GEN_MESON_TAC =
                 let preds1, _ = 
                     itlist fm_consts (map concl (pcongs @ fcongs)) ([], [])
                 let eqs1 = 
-                    filter (fun (t, _) -> is_const t && fst(dest_const t) = "=") 
+                    filter (fun (t, _) -> is_const t && fst(Choice.get <| dest_const t) = "=") 
                         preds1
                 let eqs = union eqs0 eqs1
                 let equivs = 
@@ -878,7 +878,7 @@ let GEN_MESON_TAC =
             let eqs, noneqs = 
                 partition (fun t -> 
                         try 
-                            fst(dest_const(fst(strip_comb t))) = "="
+                            fst(Choice.get <| dest_const(fst(strip_comb t))) = "="
                         with
                         | Failure _ -> false) atoms
             let acc = itlist (subterms_irrefl lconsts) noneqs []
@@ -921,12 +921,12 @@ let GEN_MESON_TAC =
         let find_eqs = 
             find_terms(fun t -> 
                     try 
-                        fst(dest_const t) = "="
+                        fst(Choice.get <| dest_const t) = "="
                     with
                     | Failure _ -> false)
         let REFLEXATE ths = 
             let eqs = itlist (union << find_eqs << concl) ths []
-            let tys = map (hd << snd << Choice.get << dest_type << snd << dest_const) eqs
+            let tys = map (hd << snd << Choice.get << dest_type << snd << Choice.get << dest_const) eqs
             let gvs = map genvar tys
             itlist (fun v acc -> (REFL v) :: acc) gvs ths
         fun ths ->
@@ -965,8 +965,8 @@ let GEN_MESON_TAC =
             then grab_constants (rand tm) acc
             else union (find_terms is_const tm) acc
         let match_consts(tm1, tm2) = 
-            let s1, ty1 = dest_const tm1
-            let s2, ty2 = dest_const tm2
+            let s1, ty1 = Choice.get <| dest_const tm1
+            let s2, ty2 = Choice.get <| dest_const tm2
             if s1 = s2
             then type_match ty1 ty2 []
             else failwith "match_consts"

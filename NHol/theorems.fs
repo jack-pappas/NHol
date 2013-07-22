@@ -402,10 +402,10 @@ let EXISTS_UNIQUE =
 // INTRO_TAC: Breaks down outer quantifiers in goal, introducing variables and named hypotheses.
 let DESTRUCT_TAC, FIX_TAC, INTRO_TAC = 
     let NAME_GEN_TAC s gl = 
-        let ty = (snd << dest_var << fst << dest_forall << snd) gl
+        let ty = (snd << Choice.get << dest_var << fst << dest_forall << snd) gl
         X_GEN_TAC (mk_var(s, ty)) gl
     let OBTAIN_THEN v ttac th = 
-        let ty = (snd << dest_var << fst << dest_exists << concl) th
+        let ty = (snd << Choice.get << dest_var << fst << dest_exists << concl) th
         X_CHOOSE_THEN (mk_var(v, ty)) ttac th
     let CONJ_LIST_TAC = end_itlist(fun t1 t2 -> CONJ_TAC
                                                 |> THENL <| [t1; t2])

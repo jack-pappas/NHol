@@ -415,7 +415,7 @@ let disjuncts = striplist dest_disj
 /// Tests a term to see if it is a logical negation.
 let is_neg tm = 
     try 
-        fst(dest_const(rator tm)) = "~"
+        fst(Choice.get <| dest_const(rator tm)) = "~"
     with
     | Failure _ -> false
 
@@ -423,7 +423,7 @@ let is_neg tm =
 let dest_neg tm = 
     try 
         let n, p = dest_comb tm
-        if fst(dest_const n) = "~" then p
+        if fst(Choice.get <| dest_const n) = "~" then p
         else fail()
     with
     | Failure _ as e ->
@@ -442,7 +442,7 @@ let is_cons = is_binary "CONS"
 let dest_list tm = 
     try 
         let tms, nil = splitlist dest_cons tm
-        if fst(dest_const nil) = "NIL" then tms
+        if fst(Choice.get <| dest_const nil) = "NIL" then tms
         else fail()
     with
     | Failure _ as e ->
@@ -463,21 +463,21 @@ let is_list x =
 let dest_numeral = 
     let rec dest_num tm = 
         if try 
-               fst(dest_const tm) = "_0"
+               fst(Choice.get <| dest_const tm) = "_0"
            with
            | Failure _ -> false
         then num_0
         else 
             let l, r = dest_comb tm
             let n = num_2 * dest_num r
-            let cn = fst(dest_const l)
+            let cn = fst(Choice.get <| dest_const l)
             if cn = "BIT0" then n
             elif cn = "BIT1" then n + num_1
             else fail()
     fun tm -> 
         try 
             let l, r = dest_comb tm
-            if fst(dest_const l) = "NUMERAL" then dest_num r
+            if fst(Choice.get <| dest_const l) = "NUMERAL" then dest_num r
             else fail()
         with
         | Failure _ as e ->
@@ -500,7 +500,7 @@ let dest_gabs =
             if is_abs tm then dest_abs tm
             else 
                 let l, r = dest_comb tm
-                if not(fst(dest_const l) = "GABS") then fail()
+                if not(fst(Choice.get <| dest_const l) = "GABS") then fail()
                 else 
                     let ltm, rtm = dest_geq(snd(strip_forall(body r)))
                     rand ltm, rtm
@@ -546,12 +546,12 @@ let strip_gabs = splitlist dest_gabs
 let dest_let tm = 
     try 
         let l, aargs = strip_comb tm
-        if fst(dest_const l) <> "LET" then fail()
+        if fst(Choice.get <| dest_const l) <> "LET" then fail()
         else 
             let vars, lebod = strip_gabs(hd aargs)
             let eqs = zip vars (tl aargs)
             let le, bod = dest_comb lebod
-            if fst(dest_const le) = "LET_END" then eqs, bod
+            if fst(Choice.get <| dest_const le) = "LET_END" then eqs, bod
             else fail()
     with
     | Failure _ as e ->

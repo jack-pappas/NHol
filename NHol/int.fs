@@ -475,12 +475,12 @@ let INT_OF_REAL_THM =
              int_max_th; int_min_th; int_pow_th; cond_th]
     let REW_RULE = GEN_REWRITE_RULE DEPTH_CONV thlist
     let int_tm_of_real_var v = 
-        let s, ty = dest_var v
+        let s, ty = Choice.get <| dest_var v
         if ty = real_ty
         then Choice.get <| mk_comb(dest, mk_var(s, int_ty))
         else v
     let int_of_real_var v = 
-        let s, ty = dest_var v
+        let s, ty = Choice.get <| dest_var v
         if ty = real_ty
         then mk_var(s, int_ty)
         else v

@@ -290,7 +290,7 @@ let pp_print_term =
         try 
             let il, r = dest_comb tm
             let i, l = dest_comb il
-            if i = c || (is_const i && is_const c && reverse_interface(dest_const i) = reverse_interface(dest_const c)) then 
+            if i = c || (is_const i && is_const c && reverse_interface(Choice.get <| dest_const i) = reverse_interface(Choice.get <| dest_const c)) then 
                 l, r
             else fail()
         with
@@ -311,7 +311,7 @@ let pp_print_term =
         | _ -> failwith "bool_of_term"
     let code_of_term t = 
         let f, tms = strip_comb t
-        if not(is_const f && fst(dest_const f) = "ASCII") || not(length tms = 8) then failwith "code_of_term"
+        if not(is_const f && fst(Choice.get <| dest_const f) = "ASCII") || not(length tms = 8) then failwith "code_of_term"
         else 
             itlist (fun b f -> 
                     if b then 1 + 2 * f
@@ -382,7 +382,7 @@ let pp_print_term =
                                         if s <> "INSERT" then fail()
                                         else 
                                             let mems, oth = splitlist (dest_binary "INSERT") tm
-                                            if is_const oth && fst(dest_const oth) = "EMPTY" then 
+                                            if is_const oth && fst(Choice.get <| dest_const oth) = "EMPTY" then 
                                                 (pp_print_string fmt "{"
                                                  print_term_sequence ", " 14 mems
                                                  pp_print_string fmt "}")
@@ -396,7 +396,7 @@ let pp_print_term =
                                                 let bod1, fabs = dest_comb bod
                                                 let bod2, babs = dest_comb bod1
                                                 let c = rator bod2
-                                                if fst(dest_const c) <> "SETSPEC" then fail()
+                                                if fst(Choice.get <| dest_const c) <> "SETSPEC" then fail()
                                                 else 
                                                     pp_print_string fmt "{"
                                                     print_term 0 fabs
@@ -515,7 +515,7 @@ let pp_print_term =
                                                                                 let s0 = name_of l
                                                                                 let ty0 = Choice.get <| type_of l
                                                                                 reverse_interface(s0, ty0) = "--" 
-                                                                                || mem (fst(dest_const l)) 
+                                                                                || mem (fst(Choice.get <| dest_const l)) 
                                                                                        ["real_of_num";
                                                                                         "int_of_num"]
                                                                             with
@@ -571,7 +571,7 @@ let pp_print_term =
                                                                  else ()
                                                                  print_term 999 l
                                                                  (if try 
-                                                                         mem (fst(dest_const l)) ["real_of_num";
+                                                                         mem (fst(Choice.get <| dest_const l)) ["real_of_num";
                                                                                                   "int_of_num"]
                                                                      with
                                                                      | Failure _ -> false

@@ -657,7 +657,7 @@ let SELECT_ELIM_TAC =
             let ptm = (parse_term @"P:A->bool")
             fun tm -> 
                 let stm, atm = dest_comb tm
-                if is_const stm && fst(dest_const stm) = "@"
+                if is_const stm && fst(Choice.get <| dest_const stm) = "@"
                 then 
                     CONV_RULE (LAND_CONV BETA_CONV) 
                         (PINST [Choice.get <| type_of(bndvar atm), aty] [atm, ptm] pth)
@@ -670,7 +670,7 @@ let SELECT_ELIM_TAC =
             let ptm = (parse_term @"P:A->bool")
             fun tm -> 
                 let stm, atm = dest_comb tm
-                if is_const stm && fst(dest_const stm) = "@"
+                if is_const stm && fst(Choice.get <| dest_const stm) = "@"
                 then 
                     let fvs = frees atm
                     let th1 = PINST [Choice.get <| type_of(bndvar atm), aty] [atm, ptm] pth
@@ -938,7 +938,7 @@ let ASM_FOL_TAC =
                 mapfilter getmin hops
             else 
                 map (fun t -> 
-                        if is_const t && fst(dest_const t) = "="
+                        if is_const t && fst(Choice.get <| dest_const t) = "="
                         then t, 2
                         else t, 0) (setify(map fst (vheads @ cheads)))
         FOL_CONV hddata
