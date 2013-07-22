@@ -357,7 +357,7 @@ let GEN_REAL_ARITH_001 =
                                     let REAL_NOT_EQ_CONV = 
                                         let pth = last(CONJUNCTS pth)
                                         fun tm -> 
-                                            let l, r = dest_eq tm
+                                            let l, r = Choice.get <| dest_eq tm
                                             let th = 
                                                 INST [l, x_tm
                                                       r, y_tm] pth

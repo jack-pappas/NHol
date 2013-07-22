@@ -833,7 +833,7 @@ let instantiate_casewise_recursion,
       let f,bod = dest_exists def
       let cjs = conjuncts bod
       let eqs = map (snd << strip_forall) cjs
-      let lefts,rights = unzip(map dest_eq eqs)
+      let lefts,rights = unzip(map (Choice.get << dest_eq) eqs)
       let arglists = map (snd << strip_comb) lefts
       let parms0 = freesl(unions arglists)
       let parms = if parms0 <> [] then parms0 else [genvar aty]
@@ -888,7 +888,7 @@ let instantiate_casewise_recursion,
       let f,bod = dest_exists def
       let cjs = conjuncts bod
       let eqs = map (snd << strip_forall) cjs
-      let lefts,rights = unzip(map dest_eq eqs)
+      let lefts,rights = unzip(map (Choice.get << dest_eq) eqs)
       let arglists = map (snd << strip_comb) lefts
       let parms0 = freesl(unions arglists)
       let parms = if parms0 <> [] then parms0 else [genvar aty]
@@ -938,7 +938,7 @@ let instantiate_casewise_recursion,
         let ev,cbod = dest_exists bod
         let process_clause k t =
           let avs,eq = strip_forall t
-          let l,r = dest_eq eq
+          let l,r = Choice.get <| dest_eq eq
           let fn,cargs = Choice.get <| dest_comb l
           let con,args = strip_comb cargs
           let bargs = filter (fun t -> Choice.get <| type_of t = ty) args

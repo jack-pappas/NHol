@@ -84,7 +84,7 @@ let EXISTS_EQUATION =
              |> THEN <| FIRST_ASSUM MATCH_MP_TAC
              |> THEN <| REFL_TAC)
     fun tm th -> 
-        let l, r = dest_eq tm
+        let l, r = Choice.get <| dest_eq tm
         let P = Choice.get <| mk_abs(l, concl th)
         let th1 = BETA_CONV(Choice.get <| mk_comb(P, l))
         let th2 = ISPECL [P; r] pth
@@ -428,7 +428,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
         else pare_comb qvs (Choice.get <| rator tm)
     let generalize_schematic_variables gflag vs = 
         let generalize_def tm th = 
-            let l, r = dest_eq tm
+            let l, r = Choice.get <| dest_eq tm
             let lname, lty = Choice.get <| dest_var l
             let l' = mk_var(lname, itlist (mk_fun_ty << Choice.get << type_of) vs lty)
             let r' = list_mk_abs(vs, r)

@@ -90,7 +90,7 @@ let prove_recursive_functions_exist =
         PROVE_HYP ixth (itlist SIMPLE_CHOOSE urfns rixth)
     let canonize t = 
         let avs, bod = strip_forall t
-        let l, r = dest_eq bod
+        let l, r = Choice.get <| dest_eq bod
         let fn, args = strip_comb l
         let rarg = hd args
         let vargs = tl args
@@ -124,7 +124,7 @@ let prove_recursive_functions_exist =
             let def = mk_eq(fn, list_mk_abs(gvs, list_mk_comb(fn', gvs')))
             (ASSUME def) :: acc
     let scrub_def t th = 
-        let l, r = dest_eq t
+        let l, r = Choice.get <| dest_eq t
         MP (INST [r, l] (DISCH t th)) (REFL r)
     fun ax tm -> 
         let rawcls = conjuncts tm

@@ -50,9 +50,9 @@ type conv = term -> thm
 /// Take left-hand argument of a binary operator.
 let lhand = Choice.get << rand << Choice.get << rator
 /// Returns the left-hand side of an equation.
-let lhs = fst << dest_eq
+let lhs = fst << Choice.get << dest_eq
 /// Returns the right-hand side of an equation.
-let rhs = snd << dest_eq
+let rhs = snd << Choice.get << dest_eq
 
 (* ------------------------------------------------------------------------- *)
 (* Similar to Choice.get <| variant, but even avoids constants, and ignores types.         *)
@@ -102,7 +102,7 @@ let AP_THM th tm =
 /// Swaps left-hand and right-hand sides of an equation.
 let SYM th = 
     let tm = concl th
-    let l, r = dest_eq tm
+    let l, r = Choice.get <| dest_eq tm
     let lth = REFL l
     EQ_MP (MK_COMB(AP_TERM (Choice.get <| rator(Choice.get <| rator tm)) th, lth)) lth
 
@@ -169,7 +169,7 @@ let REPEATC : conv -> conv =
 let CHANGED_CONV : conv -> conv = 
     fun conv tm -> 
         let th = conv tm
-        let l, r = dest_eq(concl th)
+        let l, r = Choice.get <| dest_eq(concl th)
         if aconv l r then Choice2Of2 <| Exception "CHANGED_CONV"
         else th
 
@@ -215,7 +215,7 @@ let ABS_CONV : conv -> conv =
             let gbod = Choice.get <| vsubst [gv, v] bod
             let gth = ABS gv (conv gbod)
             let gtm = concl gth
-            let l, r = dest_eq gtm
+            let l, r = Choice.get <| dest_eq gtm
             let v' = Choice.get <| variant (frees gtm) v
             let l' = alpha v' l
             let r' = alpha v' r

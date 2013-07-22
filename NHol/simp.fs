@@ -66,7 +66,7 @@ let ORDERED_REWR_CONV ord th =
     let basic_conv = REWR_CONV th
     fun tm -> 
         let thm = basic_conv tm
-        let l, r = dest_eq(concl thm)
+        let l, r = Choice.get <| dest_eq(concl thm)
         if ord l r
         then thm
         else failwith "ORDERED_REWR_CONV: wrong orientation"
@@ -76,7 +76,7 @@ let ORDERED_IMP_REWR_CONV ord th =
     let basic_conv = IMP_REWR_CONV th
     fun tm -> 
         let thm = basic_conv tm
-        let l, r = dest_eq(Choice.get <| rand(concl thm))
+        let l, r = Choice.get <| dest_eq(Choice.get <| rand(concl thm))
         if ord l r
         then thm
         else failwith "ORDERED_IMP_REWR_CONV: wrong orientation"
@@ -374,11 +374,11 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             let avs, bod = strip_forall subtm
             let (t, t'), ss', mk_fun = 
                 try 
-                    dest_eq bod, ss, I
+                    Choice.get <| dest_eq bod, ss, I
                 with
                 | Failure _ -> 
                     let cxt, deq = dest_imp bod
-                    dest_eq deq, AUGMENT_SIMPSET (ASSUME cxt) ss, DISCH cxt
+                    Choice.get <| dest_eq deq, AUGMENT_SIMPSET (ASSUME cxt) ss, DISCH cxt
             let eth, triv' = 
                 try 
                     strat ss' lev t, false
@@ -424,7 +424,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                             let gbod = Choice.get <| vsubst [gv, v] bod
                             let gth = ABS gv (strat ss lev gbod)
                             let gtm = concl gth
-                            let l, r = dest_eq gtm
+                            let l, r = Choice.get <| dest_eq gtm
                             let v' = Choice.get <| variant (frees gtm) v
                             let l' = alpha v' l
                             let r' = alpha v' r
@@ -676,7 +676,7 @@ let ONCE_ASM_SIMP_TAC = ASM ONCE_SIMP_TAC
 (* ------------------------------------------------------------------------- *)
 /// Tactic to introduce an abbreviation.
 let ABBREV_TAC tm = 
-    let cvs, t = dest_eq tm
+    let cvs, t = Choice.get <| dest_eq tm
     let v, vs = strip_comb cvs
     let rs = list_mk_abs(vs, t)
     let eq = mk_eq(rs, v)

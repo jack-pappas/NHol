@@ -264,7 +264,7 @@ let new_definition =
             GEN_ALL(GENL avs th')
         with
         | Failure _ -> 
-            let l, r = dest_eq def
+            let l, r = Choice.get <| dest_eq def
             let fn, args = strip_comb l
             let gargs, reps = (I ||>> unions)(unzip(map depair args))
             let l' = list_mk_comb(fn, gargs)
@@ -611,7 +611,7 @@ let (LET_TAC : tactic) =
             let rename = Choice.get << vsubst(zip (variants avoids lvars) lvars)
             let abbrevs' = 
                 map (fun eq -> 
-                        let l, r = dest_eq eq
+                        let l, r = Choice.get <| dest_eq eq
                         mk_eq(rename l, r)) abbrevs
             let deprths = map PROVE_DEPAIRING_EXISTS abbrevs'
             (MAP_EVERY (REPEAT_TCL CHOOSE_THEN (fun th -> 

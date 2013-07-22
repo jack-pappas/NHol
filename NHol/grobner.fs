@@ -516,7 +516,7 @@ let RING_AND_IDEAL_CONV =
             nestedFailwith e "grobify_term: unknown or invalid term" in
   
     let grobify_equation vars tm =
-      let l,r = dest_eq tm in
+      let l,r = Choice.get <| dest_eq tm in
       grob_sub (grobify_term vars l) (grobify_term vars r) in
     let grobify_equations tm =
       let cjs = conjuncts tm in
@@ -580,7 +580,7 @@ let RING_AND_IDEAL_CONV =
       if eths = [] then
         let th1 = end_itlist (fun th1 th2 -> IDOM_RULE(CONJ th1 th2)) nths in
         let th2 = CONV_RULE(RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) th1 in
-        let l,r = dest_eq(Choice.get <| rand(concl th2)) in
+        let l,r = Choice.get <| dest_eq(Choice.get <| rand(concl th2)) in
         EQ_MP (EQF_INTRO th2) (REFL l)
       else if nths = [] && not(is_var ring_neg_tm) then
         let vars,pols = grobify_equations(list_mk_conj(map concl eths)) in
@@ -615,7 +615,7 @@ let RING_AND_IDEAL_CONV =
       let th2 = thm_fn herts_neg in
       let th3 = CONJ(MK_ADD (SYM th1) th2) noteqth in
       let th4 = CONV_RULE (RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) (INE_RULE l th3) in
-      let l,r = dest_eq(Choice.get <| rand(concl th4)) in
+      let l,r = Choice.get <| dest_eq(Choice.get <| rand(concl th4)) in
       EQ_MP (EQF_INTRO th4) (REFL l) in
   
     let RING tm =

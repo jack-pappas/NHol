@@ -78,7 +78,7 @@ let CONJ_ACI_RULE =
             CONJ (use_fun fn l) (use_fun fn r)
         else apply fn tm
     fun fm -> 
-        let p, p' = dest_eq fm
+        let p, p' = Choice.get <| dest_eq fm
         if p = p'
         then REFL p
         else 
@@ -119,7 +119,7 @@ let DISJ_ACI_RULE =
             NOT_DISJ (use_fun fn l) (use_fun fn r)
         else apply fn tm
     fun fm -> 
-        let p, p' = dest_eq fm
+        let p, p' = Choice.get <| dest_eq fm
         if p = p'
         then REFL p
         else 

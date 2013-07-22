@@ -540,7 +540,7 @@ let define_type_raw_001 =
     let SCRUB_EQUATION eq (th, insts) = 
         (*HA*)
         let eq' = itlist subst (map (fun t -> [t]) insts) eq
-        let l, r = dest_eq eq'
+        let l, r = Choice.get <| dest_eq eq'
         (MP (INST [r, l] (DISCH eq' th)) (REFL r), (r, l) :: insts)
 
     (* ----------------------------------------------------------------------- *)
@@ -628,7 +628,7 @@ let define_type_raw_001 =
             let idefs = 
                 map2 (fun (r, (_, atys)) def -> (r, atys), def) edefs condefs
             let mk_rule((r, a), condef) = 
-                let left, right = dest_eq condef
+                let left, right = Choice.get <| dest_eq condef
                 let args, bod = strip_abs right
                 let lapp = list_mk_comb(left, args)
                 let conds = 
@@ -1008,7 +1008,7 @@ let define_type_raw_001 =
                     (map SYM fnths 
                      @ map fst tybijpairs @ [FST; SND; FCONS; BETA_THM])
             let hackdown_rath th = 
-                let ltm, rtm = dest_eq(concl th)
+                let ltm, rtm = Choice.get <| dest_eq(concl th)
                 let wargs = snd(strip_comb(Choice.get <| rand ltm))
                 let th1 = TRANS th (LCONV rtm)
                 let th2 = TRANS th1 (CCONV(Choice.get <| rand(concl th1)))
@@ -1194,7 +1194,7 @@ let define_type_raw_002 =
                 let outlalist = zip evs outls
                 let hack_clause tm = 
                     let avs, bod = strip_forall tm
-                    let l, r = dest_eq bod
+                    let l, r = Choice.get <| dest_eq bod
                     let fn, args = strip_comb r
                     let pargs = 
                         map (fun a -> 
@@ -1227,7 +1227,7 @@ let define_type_raw_002 =
                 let dtms = map (hd << hyp) fns'
                 let gth = 
                     itlist (fun e th -> 
-                            let l, r = dest_eq e
+                            let l, r = Choice.get <| dest_eq e
                             MP (INST [r, l] (DISCH e th)) (REFL r)) dtms fth
                 let hth = PROVE_HYP jth (itlist SIMPLE_CHOOSE evs gth)
                 let xvs = 
@@ -1332,7 +1332,7 @@ let prove_cases_thm =
         Choice.get <| mk_abs(x, list_mk_disj xts)
     let prove_triv tm = 
         let evs, bod = strip_exists tm
-        let l, r = dest_eq bod
+        let l, r = Choice.get <| dest_eq bod
         if l = r
         then REFL l
         else 
@@ -1595,8 +1595,8 @@ let define_type_raw =
                 (map (snd << strip_forall) (snd(chop_list n (conjuncts bod1))))
         let rcjs1 = map (fun t -> find (clause_corresponds t) rcjsx) rcjs0
         let proc_clause tm0 tm1 = 
-            let l0, r0 = dest_eq tm0
-            let l1, r1 = dest_eq tm1
+            let l0, r0 = Choice.get <| dest_eq tm0
+            let l1, r1 = Choice.get <| dest_eq tm1
             let vc0, wargs0 = strip_comb r0
             let con0, vargs0 = strip_comb(Choice.get <| rand l0)
             let gargs0 = map (genvar << Choice.get << type_of) wargs0
@@ -1712,7 +1712,7 @@ let define_type_raw =
             find (fun t -> 
                     let x = lhs t
                     forall (fun u -> not(free_in x (Choice.get <| rand u))) hyps) hyps
-        let l, r = dest_eq eqn
+        let l, r = Choice.get <| dest_eq eqn
         MP (INST [r, l] (DISCH eqn th)) (REFL r)
     let define_type_basecase def = 
         let add_id s = fst(Choice.get <| dest_var(genvar bool_ty))
@@ -1965,10 +1965,10 @@ let UNWIND_CONV, MATCH_CONV =
             try 
                 let eq = find (fun tm -> 
                     is_eq tm &&
-                    let l, r = dest_eq tm
+                    let l, r = Choice.get <| dest_eq tm
                     (mem l evs && not(free_in l r)) || 
                     (mem r evs && not(free_in r l))) eqs
-                let l, r = dest_eq eq
+                let l, r = Choice.get <| dest_eq eq
                 let v = 
                     if mem l evs && not(free_in l r)
                     then l
@@ -2068,10 +2068,10 @@ let FORALL_UNWIND_CONV =
             let eq = 
                 find (fun tm -> 
                     is_eq tm && 
-                    let l, r = dest_eq tm
+                    let l, r = Choice.get <| dest_eq tm
                     (mem l avs && not(free_in l r)) || 
                     (mem r avs && not(free_in r l))) eqs
-            let l, r = dest_eq eq
+            let l, r = Choice.get <| dest_eq eq
             let v = 
                 if mem l avs && not(free_in l r)
                 then l

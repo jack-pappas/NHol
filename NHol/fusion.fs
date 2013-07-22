@@ -502,14 +502,15 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     let safe_mk_eq l r = 
-        let ty = Choice.get <| type_of l
-        Comb(Comb(Const("=", Tyapp("fun", [ty; Tyapp("fun", [ty; bool_ty])])), l), r)
+        type_of l
+        |> Choice.map (fun ty ->
+            Comb(Comb(Const("=", Tyapp("fun", [ty; Tyapp("fun", [ty; bool_ty])])), l), r))
     
     /// Term destructor for equality.
     let dest_eq tm = 
         match tm with
-        | Comb(Comb(Const("=", _), l), r) -> l, r
-        | _ -> failwith "dest_eq"
+        | Comb(Comb(Const("=", _), l), r) -> Choice.succeed (l, r)
+        | _ -> Choice.failwith "dest_eq"
     
     (* ------------------------------------------------------------------------- *)
     (* Useful to have term union modulo alpha-conversion for assumption lists.   *)
@@ -545,7 +546,7 @@ module Hol_kernel =
             | _, Var(_, _) -> 1
             | Comb(_, _), _ -> -1
             | _, Comb(_, _) -> 1
-            | _ -> failwith "orda: unexpacted pattern"
+            | _ -> failwith "orda: unexpected pattern"
     
     /// Total ordering on terms respecting alpha-equivalence.
     let alphaorder = orda []
@@ -600,15 +601,17 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns theorem expressing reflexivity of equality.
-    let REFL tm = Choice1Of2 <| Sequent([], safe_mk_eq tm tm)
-    
+    let REFL tm = 
+        safe_mk_eq tm tm
+        |> Choice.map (fun tm' -> Sequent([], tm'))
+
     /// Uses transitivity of equality on two equational theorems.
     let TRANS thm1 thm2 = 
         let TRANS (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
             match (c1, c2) with
             | Comb((Comb(Const("=", _), _) as eql), m1), Comb(Comb(Const("=", _), m2), r) when alphaorder m1 m2 = 0 -> 
-                Choice1Of2 <| Sequent(term_union asl1 asl2, Comb(eql, r))
-            | _ -> Choice2Of2 <| Exception "TRANS"
+                Choice.succeed <| Sequent(term_union asl1 asl2, Comb(eql, r))
+            | _ -> Choice.failwith "TRANS"
         Choice.bind2 TRANS thm1 thm2
     
     (* ------------------------------------------------------------------------- *)
@@ -622,18 +625,20 @@ module Hol_kernel =
             | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) -> 
                 match Choice.get <| type_of l1 with
                 | Tyapp("fun", [ty; _]) when compare ty (Choice.get <| type_of l2) = 0 -> 
-                     Choice1Of2 <| Sequent(term_union asl1 asl2, safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2)))
-                | _ -> Choice2Of2 <| Exception "MK_COMB: types do not agree"
-            | _ -> Choice2Of2 <| Exception "MK_COMB: not both equations"
+                    safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2))
+                    |> Choice.map (fun tm -> Sequent(term_union asl1 asl2, tm))
+                | _ -> Choice.failwith "MK_COMB: types do not agree"
+            | _ -> Choice.failwith "MK_COMB: not both equations"
         Choice.bind2 (curry MK_COMB) thm1 thm2
     
     /// Abstracts both sides of an equation.
     let ABS v thm =
         let ABS v (Sequent(asl, c)) = 
             match (v, c) with
-            | Var(_, _), Comb(Comb(Const("=", _), l), r) when not(exists (vfree_in v) asl) -> 
-                Choice1Of2 <| Sequent(asl, safe_mk_eq (Abs(v, l)) (Abs(v, r)))
-            | _ -> Choice2Of2 <| Exception "ABS"
+            | Var(_, _), Comb(Comb(Const("=", _), l), r) when not(exists (vfree_in v) asl) ->
+                safe_mk_eq (Abs(v, l)) (Abs(v, r))
+                |> Choice.map (fun tm -> Sequent(asl, tm))
+            | _ -> Choice.failwith "ABS"
         Choice.bind (ABS v) thm
     
     (* ------------------------------------------------------------------------- *)
@@ -644,8 +649,9 @@ module Hol_kernel =
     let BETA tm =
         match tm with
         | Comb(Abs(v, bod), arg) when compare arg v = 0 -> 
-            Choice1Of2 <| Sequent([], safe_mk_eq tm bod)
-        | _ -> Choice2Of2 <| Exception "BETA: not a trivial beta-redex"
+            safe_mk_eq tm bod
+            |> Choice.map (fun tm -> Sequent([], tm))
+        | _ -> Choice.failwith "BETA: not a trivial beta-redex"
     
     (* ------------------------------------------------------------------------- *)
     (* Rules connected with deduction.                                           *)
@@ -653,16 +659,16 @@ module Hol_kernel =
 
     /// Introduces an assumption.
     let ASSUME tm = 
-        if compare (Choice.get <| type_of tm) bool_ty = 0 then Choice1Of2 <| Sequent([tm], tm)
-        else Choice2Of2 <| Exception "ASSUME: not a proposition"
+        if compare (Choice.get <| type_of tm) bool_ty = 0 then Choice.succeed <| Sequent([tm], tm)
+        else Choice.failwith "ASSUME: not a proposition"
     
     /// Equality version of the Modus Ponens rule.
     let EQ_MP thm1 thm2 =
         let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) = 
             match eq with
             | Comb(Comb(Const("=", _), l), r) when alphaorder l c = 0 -> 
-                Choice1Of2 <| Sequent(term_union asl1 asl2, r)
-            | _ -> Choice2Of2 <| Exception "EQ_MP"
+                Choice.succeed <| Sequent(term_union asl1 asl2, r)
+            | _ -> Choice.failwith "EQ_MP"
         Choice.bind2 EQ_MP thm1 thm2
     
     /// Deduces logical equivalence from deduction in both directions.
@@ -670,7 +676,8 @@ module Hol_kernel =
         let DEDUCT_ANTISYM_RULE (Sequent(asl1, c1)) (Sequent(asl2, c2)) = 
             let asl1' = term_remove c2 asl1
             let asl2' = term_remove c1 asl2
-            Choice1Of2 <| Sequent(term_union asl1' asl2', safe_mk_eq c1 c2)
+            safe_mk_eq c1 c2
+            |> Choice.map (fun tm -> Sequent(term_union asl1' asl2', tm))
         Choice.bind2 DEDUCT_ANTISYM_RULE thm1 thm2
     
     (* ------------------------------------------------------------------------- *)
@@ -681,14 +688,14 @@ module Hol_kernel =
     let INST_TYPE theta thm =
         let INST_TYPE theta (Sequent(asl, c)) = 
             let inst_fn = Choice.get << inst theta
-            Choice1Of2 <| Sequent(term_image inst_fn asl, inst_fn c)
+            Choice.succeed <| Sequent(term_image inst_fn asl, inst_fn c)
         Choice.bind (INST_TYPE theta) thm
     
     /// Instantiates free variables in a theorem.
     let INST theta thm =
         let INST theta (Sequent(asl, c)) = 
             let inst_fun = Choice.get << vsubst theta
-            Choice1Of2 <| Sequent(term_image inst_fun asl, inst_fun c)
+            Choice.succeed <| Sequent(term_image inst_fun asl, inst_fun c)
         Choice.bind (INST theta) thm
     
     (* ------------------------------------------------------------------------- *)
@@ -703,7 +710,7 @@ module Hol_kernel =
     /// Sets up a new axiom.
     let new_axiom tm = 
         if compare (Choice.get <| type_of tm) bool_ty = 0 then 
-            let th = Choice1Of2 <| Sequent([], tm)
+            let th = Choice.succeed <| Sequent([], tm)
             the_axioms := th :: (!the_axioms)
             th
         else Choice2Of2 <| Exception "new_axiom: Not a proposition"
@@ -729,7 +736,7 @@ module Hol_kernel =
                 let c = 
                     new_constant(cname, ty)
                     Const(cname, ty)
-                let dth = Choice1Of2 <| Sequent([], safe_mk_eq c r)
+                let dth = safe_mk_eq c r |> Choice.map (fun tm -> Sequent([], tm))
                 the_definitions := dth :: (!the_definitions)
                 dth
         | _ -> Choice2Of2 <| Exception "new_basic_definition"
@@ -787,8 +794,10 @@ module Hol_kernel =
                          Const(repname, repty))
                     let a = Var("a", aty)
                     let r = Var("r", rty)
-                    Choice1Of2 <| Sequent([], safe_mk_eq (Comb(abs, Choice.get <| mk_comb(rep, a))) a), 
-                    Choice1Of2 <| Sequent([], safe_mk_eq (Comb(P, r)) (safe_mk_eq (Choice.get <| mk_comb(rep, Choice.get <| mk_comb(abs, r))) r))
+                    safe_mk_eq (Comb(abs, Choice.get <| mk_comb(rep, a))) a |> Choice.map (fun tm -> Sequent([], tm)),
+                    (safe_mk_eq (Choice.get <| mk_comb(rep, Choice.get <| mk_comb(abs, r))) r)
+                    |> Choice.bind (fun tm -> safe_mk_eq (Comb(P, r)) tm
+                                              |> Choice.map (fun tm' -> Sequent([], tm')))
         | Error _ ->
             tuple (Choice2Of2 <| Exception "new_basic_type_definition: Erroneous theorem")
 

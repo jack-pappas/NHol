@@ -2174,7 +2174,7 @@ let NUM_CANCEL_CONV =
             EQ_ADD_LCANCEL_0
     let AC_RULE = AC ADD_AC
     fun tm -> 
-        let l, r = dest_eq tm
+        let l, r = Choice.get <| dest_eq tm
         let lats = sort (<=) (binops (parse_term @"(+)") l)
         let rats = sort (<=) (binops (parse_term @"(+)") r)
         let i, lats', rats' = minter [] [] [] lats rats

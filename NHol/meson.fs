@@ -782,7 +782,7 @@ let GEN_MESON_TAC =
                                 with
                                 | Failure _ -> 
                                     try 
-                                        let l, r = dest_eq tm
+                                        let l, r = Choice.get <| dest_eq tm
                                         if Choice.get <| type_of l = bool_ty
                                         then fm_consts r (fm_consts l acc)
                                         else failwith "atomic equality"
@@ -889,7 +889,7 @@ let GEN_MESON_TAC =
             BRAND sts th
         let BRANDE th = 
             let tm = concl th
-            let l, r = dest_eq tm
+            let l, r = Choice.get <| dest_eq tm
             let gv = genvar(Choice.get <| type_of l)
             let eq = mk_eq(r, gv)
             CLAUSIFY(DISCH eq (EQ_MP (AP_TERM (Choice.get <| rator tm) (ASSUME eq)) th))

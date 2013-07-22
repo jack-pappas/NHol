@@ -467,7 +467,7 @@ let CONV_TAC : conv -> tactic =
         let tm = concl th
         if aconv tm w then ACCEPT_TAC th g
         else 
-            let l, r = dest_eq tm
+            let l, r = Choice.get <| dest_eq tm
             if not(aconv l w) then Choice2Of2 <| Exception "CONV_TAC: bad equation"
             elif r = t_tm then ACCEPT_TAC (EQT_ELIM th) g
             else 
@@ -492,7 +492,7 @@ let REFL_TAC : tactic =
 let ABS_TAC : tactic = 
     fun (asl, w) -> 
         let v = 
-            let l, r = dest_eq w
+            let l, r = Choice.get <| dest_eq w
             let lv, lb = Choice.get <| dest_abs l
             let rv, rb = Choice.get <| dest_abs r
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
@@ -516,7 +516,7 @@ let MK_COMB_TAC : tactic =
                 match l with
                 | [a1; a2] -> (a1, a2)
                 | _ -> failwith "MK_COMB_TAC.fun1: Unhandled case."
-            let l, r = dest_eq gl
+            let l, r = Choice.get <| dest_eq gl
             let f, x = Choice.get <| dest_comb l
             let g, y = Choice.get <| dest_comb r
             (null_meta, [asl, mk_eq(f, g); asl, mk_eq(x, y)], fun _ tl -> MK_COMB (fun1 tl))
@@ -562,7 +562,7 @@ let BETA_TAC = CONV_TAC(REDEPTH_CONV BETA_CONV)
 let SUBST_VAR_TAC th g = 
     let v = 
         let asm, eq = dest_thm th
-        let l, r = dest_eq eq
+        let l, r = Choice.get <| dest_eq eq
         if aconv l r
         then ALL_TAC g
         elif not(subset (frees eq) (freesl asm))
@@ -621,7 +621,7 @@ let EQ_TAC : tactic =
                 match l with
                 | [th1; th2] -> IMP_ANTISYM_RULE th1 th2
                 | _ -> Choice2Of2 <| Exception "EQ_TAC.fun1: Unhandled case."
-            let l, r = dest_eq w
+            let l, r = Choice.get <| dest_eq w
             (null_meta, [asl, mk_imp(l, r); asl, mk_imp(r, l)], fun _ tml -> fun1 tml)
             |> Choice1Of2
         v |> Choice.mapError (fun _ -> Exception "EQ_TAC: Failure.")

@@ -687,7 +687,7 @@ let new_definition tm =
     let avs, bod = strip_forall tm
     let l, r = 
         try 
-            dest_eq bod
+            Choice.get <| dest_eq bod
         with
         | Failure _ as e ->
             nestedFailwith e "new_definition: Not an equation"

@@ -191,7 +191,7 @@ let DIST_LE_CASES, DIST_ADDBOUND, DIST_TRIANGLE, DIST_ADD2, DIST_ADD2_REV =
         |> THEN <| CONJ_TAC
         |> THEN <| DISCH_THEN(fun th -> 
                            SUBST_ALL_TAC th
-                           |> THEN <| (let l, r = dest_eq(concl th)
+                           |> THEN <| (let l, r = Choice.get <| dest_eq(concl th)
                                        if is_var l && not(vfree_in l r)
                                        then ALL_TAC
                                        else ASSUME_TAC th))
