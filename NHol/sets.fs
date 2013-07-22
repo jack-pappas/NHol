@@ -3150,7 +3150,7 @@ let mk_setenum =
         itlist (mk_binop insert_tm) l nil_tm
 
 /// Constructs an explicit set enumeration from a nonempty list of elements.
-let mk_fset l = mk_setenum(l, type_of(hd l))
+let mk_fset l = mk_setenum(l, Choice.get <| type_of(hd l))
 
 (* ------------------------------------------------------------------------- *)
 (* Pairwise property over sets and lists.                                    *)
@@ -3790,7 +3790,7 @@ let REAL_SUP_EQ_INF =
 (* ------------------------------------------------------------------------- *)
 /// Dene a set or family of sets inductively.
 let new_inductive_set = 
-    let const_of_var v = mk_mconst(name_of v, type_of v)
+    let const_of_var v = mk_mconst(name_of v, Choice.get <| type_of v)
     let comb_all = 
         let rec f (n : int) (tm : term) : hol_type list -> term = 
             function 
@@ -3800,7 +3800,7 @@ let new_inductive_set =
                     variant (variables tm) (mk_var("x" + string n, ty))
                 f (n + 1) (mk_comb(tm, v)) tys
         fun tm -> 
-            let tys = fst(splitlist dest_fun_ty (type_of tm))
+            let tys = fst(splitlist dest_fun_ty (Choice.get <| type_of tm))
             f 0 tm tys
     let mk_eqin = REWR_CONV(GSYM IN) << comb_all
     let transf conv = rhs << concl << conv

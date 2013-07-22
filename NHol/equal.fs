@@ -215,7 +215,7 @@ let ABS_CONV : conv -> conv =
         let th = conv bod
         ABS v th
         |> Choice.bindError(fun _ ->
-            let gv = genvar(type_of v)
+            let gv = genvar(Choice.get <| type_of v)
             let gbod = vsubst [gv, v] bod
             let gth = ABS gv (conv gbod)
             let gtm = concl gth
@@ -388,7 +388,7 @@ let SUBS_CONV ths tm =
         if ths = [] then REFL tm
         else 
             let lefts = map (lhand << concl) ths
-            let gvs = map (genvar << type_of) lefts
+            let gvs = map (genvar << Choice.get << type_of) lefts
             let pat = subst (zip gvs lefts) tm
             let abs = list_mk_abs(gvs, pat)
             let th = 

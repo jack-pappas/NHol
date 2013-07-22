@@ -660,7 +660,7 @@ let SELECT_ELIM_TAC =
                 if is_const stm && fst(dest_const stm) = "@"
                 then 
                     CONV_RULE (LAND_CONV BETA_CONV) 
-                        (PINST [type_of(bndvar atm), aty] [atm, ptm] pth)
+                        (PINST [Choice.get <| type_of(bndvar atm), aty] [atm, ptm] pth)
                 else failwith "SELECT_ELIM_THM: not a select-term"
         fun tm -> 
             PURE_REWRITE_CONV (map SELECT_ELIM_THM (find_terms is_select tm)) tm
@@ -673,7 +673,7 @@ let SELECT_ELIM_TAC =
                 if is_const stm && fst(dest_const stm) = "@"
                 then 
                     let fvs = frees atm
-                    let th1 = PINST [type_of(bndvar atm), aty] [atm, ptm] pth
+                    let th1 = PINST [Choice.get <| type_of(bndvar atm), aty] [atm, ptm] pth
                     let th2 = CONV_RULE (BINDER_CONV(BINOP_CONV BETA_CONV)) th1
                     GENL fvs th2
                 else failwith "SELECT_AX_THM: not a select-term"
@@ -683,7 +683,7 @@ let SELECT_ELIM_TAC =
             let itm = mk_imp(concl th1, tm)
             let th2 = DISCH_ALL(MP (ASSUME itm) th1)
             let fvs = frees t
-            let fty = itlist (mk_fun_ty << type_of) fvs (type_of t)
+            let fty = itlist (mk_fun_ty << Choice.get << type_of) fvs (Choice.get <| type_of t)
             let fn = genvar fty
             let atm = list_mk_abs(fvs, t)
             let rawdef = mk_eq(fn, atm)
@@ -759,7 +759,7 @@ let LAMBDA_ELIM_CONV =
         let vs = frees atm
         let vs' = vs @ [v]
         let aatm = list_mk_abs(vs, atm)
-        let f = genvar(type_of aatm)
+        let f = genvar(Choice.get <| type_of aatm)
         let eq = mk_eq(f, aatm)
         let th1 = SYM(RIGHT_BETAS vs (ASSUME eq))
         let th2 = ELIM_LAMBDA (GEN_REWRITE_CONV I [th1]) tm

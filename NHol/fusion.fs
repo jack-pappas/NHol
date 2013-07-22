@@ -149,6 +149,7 @@ module Hol_kernel =
 
     /// Tests whether a type is an instance of a type constructor.
     let is_type = Choice.isResult << dest_type
+
     /// Tests a type to see if it is a type variable.
     let is_vartype = Choice.isResult << dest_vartype
     
@@ -179,6 +180,7 @@ module Hol_kernel =
     
     /// The type ':bool'.
     let bool_ty = Tyapp("bool", [])
+
     /// The type variable ':A'.
     let aty = Tyvar "A"
     
@@ -190,8 +192,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     let the_term_constants = 
-        ref ["=", Tyapp("fun", [aty;
-                                Tyapp("fun", [aty; bool_ty])])]
+        ref ["=", Tyapp("fun", [aty; Tyapp("fun", [aty; bool_ty])])]
     
     (* ------------------------------------------------------------------------- *)
     (* Return all the defined constants with generic types.                      *)
@@ -226,15 +227,19 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the type of a term.
-    let rec type_of tm = 
-        match tm with
-        | Var(_, ty) -> ty
-        | Const(_, ty) -> ty
-        | Comb(s, _) -> hd(tl(snd(Choice.get <| dest_type(type_of s))))
-        | Abs(Var(_, ty), t) -> 
-            Tyapp("fun", [ty;
-                          type_of t])
-        | _ -> failwith "type_of: not a type of a term"
+    let type_of tm = 
+        let rec type_of tm = 
+            match tm with
+            | Var(_, ty) -> ty
+            | Const(_, ty) -> ty
+            | Comb(s, _) -> hd(tl(snd(Choice.get <| dest_type(type_of s))))
+            | Abs(Var(_, ty), t) -> 
+                Tyapp("fun", [ty; type_of t])
+            | _ -> failwith "type_of: not a type of a term"
+        try
+            Choice.succeed <| type_of tm
+        with Failure s ->
+            Choice.failwith s
     
     (* ------------------------------------------------------------------------- *)
     (* Primitive discriminators.                                                 *)
@@ -289,8 +294,8 @@ module Hol_kernel =
     
     /// Constructs a combination.
     let mk_comb(f, a) = 
-        match type_of f with
-        | Tyapp("fun", [ty; _]) when compare ty (type_of a) = 0 -> Comb(f, a)
+        match Choice.get <| type_of f with
+        | Tyapp("fun", [ty; _]) when compare ty (Choice.get <| type_of a) = 0 -> Comb(f, a)
         | _ -> failwith "mk_comb: types do not agree"
     
     (* ------------------------------------------------------------------------- *)
@@ -410,7 +415,7 @@ module Hol_kernel =
                     else Abs(v, s')
         fun theta -> 
             if theta = [] then (fun tm -> tm)
-            elif forall (fun (t, x) -> type_of t = snd(dest_var x)) theta then vsubst theta
+            elif forall (fun (t, x) -> Choice.get <| type_of t = snd(dest_var x)) theta then vsubst theta
             else failwith "vsubst: Bad substitution list"
     
     (* ------------------------------------------------------------------------- *)
@@ -479,9 +484,8 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     let safe_mk_eq l r = 
-        let ty = type_of l
-        Comb(Comb(Const("=", Tyapp("fun", [ty;
-                                           Tyapp("fun", [ty; bool_ty])])), l), r)
+        let ty = Choice. get <| type_of l
+        Comb(Comb(Const("=", Tyapp("fun", [ty; Tyapp("fun", [ty; bool_ty])])), l), r)
     
     /// Term destructor for equality.
     let dest_eq tm = 
@@ -598,8 +602,8 @@ module Hol_kernel =
         let MK_COMB(Sequent(asl1, c1), Sequent(asl2, c2)) = 
             match (c1, c2) with
             | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) -> 
-                match type_of l1 with
-                | Tyapp("fun", [ty; _]) when compare ty (type_of l2) = 0 -> 
+                match Choice.get <| type_of l1 with
+                | Tyapp("fun", [ty; _]) when compare ty (Choice.get <| type_of l2) = 0 -> 
                      Choice1Of2 <| Sequent(term_union asl1 asl2, safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2)))
                 | _ -> Choice2Of2 <| Exception "MK_COMB: types do not agree"
             | _ -> Choice2Of2 <| Exception "MK_COMB: not both equations"
@@ -631,7 +635,7 @@ module Hol_kernel =
 
     /// Introduces an assumption.
     let ASSUME tm = 
-        if compare (type_of tm) bool_ty = 0 then Choice1Of2 <| Sequent([tm], tm)
+        if compare (Choice.get <| type_of tm) bool_ty = 0 then Choice1Of2 <| Sequent([tm], tm)
         else Choice2Of2 <| Exception "ASSUME: not a proposition"
     
     /// Equality version of the Modus Ponens rule.
@@ -680,7 +684,7 @@ module Hol_kernel =
     
     /// Sets up a new axiom.
     let new_axiom tm = 
-        if compare (type_of tm) bool_ty = 0 then 
+        if compare (Choice.get <| type_of tm) bool_ty = 0 then 
             let th = Choice1Of2 <| Sequent([], tm)
             the_axioms := th :: (!the_axioms)
             th
@@ -754,7 +758,7 @@ module Hol_kernel =
                         | Failure _ as e ->
                             nestedFailwith e "new_basic_type_definition: Type already defined"
                     let aty = Tyapp(tyname, tyvars)
-                    let rty = type_of x
+                    let rty = Choice.get <| type_of x
                     let absty = Tyapp("fun", [rty; aty])
                     let repty = Tyapp("fun", [aty; rty])
                     let abs = 
@@ -790,7 +794,7 @@ let mk_eq =
     let eq = mk_const("=", [])
     fun (l, r) -> 
         try 
-            let ty = type_of l
+            let ty = Choice.get <| type_of l
             let eq_tm = inst [ty, aty] eq
             mk_comb(mk_comb(eq_tm, l), r)
         with

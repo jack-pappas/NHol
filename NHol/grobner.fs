@@ -706,7 +706,7 @@ let NUM_SIMPLIFY_CONV =
     else
        try 
            let t = find_term (fun t -> is_pre t && free_in t tm) tm in
-           let ty = type_of t in
+           let ty = Choice.get <| type_of t in
            let v = genvar ty in
            let p = mk_abs(v,subst [v,t] tm) in
            let th0 = if pos then PRE_ELIM_THM'' else PRE_ELIM_THM' in
@@ -718,7 +718,7 @@ let NUM_SIMPLIFY_CONV =
        | Failure _ -> 
        try
            let t = find_term (fun t -> is_sub t && free_in t tm) tm in
-           let ty = type_of t in
+           let ty = Choice.get <| type_of t in
            let v = genvar ty in
            let p = mk_abs(v,subst [v,t] tm) in
            let th0 = if pos then SUB_ELIM_THM'' else SUB_ELIM_THM' in
@@ -733,8 +733,8 @@ let NUM_SIMPLIFY_CONV =
            let y = rand t in
            let dtm = mk_comb(mk_comb(div_tm,x),y)
            let mtm = mk_comb(mk_comb(mod_tm,x),y) in
-           let vd = genvar(type_of dtm)
-           let vm = genvar(type_of mtm) in
+           let vd = genvar(Choice.get <| type_of dtm)
+           let vm = genvar(Choice.get <| type_of mtm) in
            let p = list_mk_abs([vd;vm],subst[vd,dtm; vm,mtm] tm) in
            let th0 = if pos then DIVMOD_ELIM_THM'' else DIVMOD_ELIM_THM' in
            let th1 = INST [p,q_tm; x,m_tm; y,n_tm] th0 in

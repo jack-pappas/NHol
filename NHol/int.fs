@@ -1378,7 +1378,7 @@ let INT_RING, int_ideal_cofactors =
              (parse_term @"(pow):int->num->int"), INT_INTEGRAL, TRUTH, 
              INT_POLY_CONV)
     ``pure``, (fun tms tm -> 
-        if forall (fun t -> type_of t = int_ty) (tm :: tms)
+        if forall (fun t -> Choice.get <| type_of t = int_ty) (tm :: tms)
         then ideal tms tm
         else failwith "int_ideal_cofactors: not all terms have type :int");;
 
@@ -1627,7 +1627,7 @@ let INTEGER_TAC_001 =
     let isolate_variables evs ps eq = 
         let vars = filter (fun v -> vfree_in v eq) evs
         let qs, p = isolate_monomials vars eq
-        let rs = filter (fun t -> type_of t = int_ty) (qs @ ps)
+        let rs = filter (fun t -> Choice.get <| type_of t = int_ty) (qs @ ps)
         let rs = int_ideal_cofactors rs p
         eq, zip (fst(chop_list (length qs) rs)) vars
     let subst_in_poly i p = rhs(concl(INT_POLY_CONV(vsubst i p)))
@@ -1644,14 +1644,14 @@ let INTEGER_TAC_001 =
         then REFL tm
         else 
             let ev, bod = dest_exists tm
-            let gv = genvar(type_of ev)
+            let gv = genvar(Choice.get <| type_of ev)
             (GEN_ALPHA_CONV gv
              |> THENC <| BINDER_CONV GENVAR_EXISTS_CONV) tm
     let EXISTS_POLY_TAC(asl, w as gl) = 
         let evs, bod = strip_exists w
         let ps = 
             mapfilter 
-                (check(fun t -> type_of t = int_ty) << lhs << concl << snd) asl
+                (check(fun t -> Choice.get <| type_of t = int_ty) << lhs << concl << snd) asl
         let cfs = solve_idealism evs ps (map lhs (conjuncts bod))
         (MAP_EVERY EXISTS_TAC (map (fun v -> rev_assocd v cfs zero_tm) evs)
          |> THEN <| REPEAT(POP_ASSUM MP_TAC)
@@ -1768,7 +1768,7 @@ let INTEGER_TAC =
             find_terms (can dest_gcd) w in
           let ths = map (fun tm -> let a,b = dest_gcd tm in SPECL [a;b] int_gcd) gts
           MAP_EVERY MP_TAC ths |> THEN <|
-          MAP_EVERY SPEC_TAC (zip gts (map (genvar << type_of) gts))) in
+          MAP_EVERY SPEC_TAC (zip gts (map (genvar << Choice.get << type_of) gts))) in
   REPEAT(GEN_TAC |>ORELSE<| CONJ_TAC) |> THEN <| GCD_ELIM_TAC |> THEN <| INTEGER_TAC_001;;
 
 /// Automatically prove elementary divisibility property over the integers.
@@ -1859,7 +1859,7 @@ let ARITH_RULE =
     let tm1 = rand(concl th1) in
     let avs,bod = strip_forall tm1 in
     let nim = setify(find_terms is_numimage bod) in
-    let gvs = map (genvar << type_of) nim in
+    let gvs = map (genvar << Choice.get << type_of) nim in
     let pths = map (fun v -> SPEC (rand v) INT_POS) nim in
     let ibod = itlist (curry mk_imp << concl) pths bod in
     let gbod = subst (zip gvs nim) ibod in

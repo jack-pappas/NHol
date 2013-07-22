@@ -80,7 +80,7 @@ let enter =
         elif is_abs op then 
             let bv, bod = dest_abs op
             let bod' = 
-                if mem bv lconsts then vsubst [genvar(type_of bv), bv] bod
+                if mem bv lconsts then vsubst [genvar(Choice.get <| type_of bv), bv] bod
                 else bod
             Lnet(length args), bod' :: args
         elif mem op lconsts then Lcnet(fst(dest_var op), length args), args

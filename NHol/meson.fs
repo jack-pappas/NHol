@@ -167,7 +167,7 @@ let GEN_MESON_TAC =
             | Failure _ -> 
                 let v' = v % offinc
                 let hv' = hol_of_var v'
-                let gv = genvar(type_of hv')
+                let gv = genvar(Choice.get <| type_of hv')
                 gstore := (gv, v) :: (!gstore)
                 gv
         reset_vars, fol_of_var, hol_of_bumped_var
@@ -744,7 +744,7 @@ let GEN_MESON_TAC =
         let eq_elim_RULE = MATCH_MP(TAUT(parse_term @"(a <=> b) ==> b \/ ~a"))
         let veq_tm = rator(rator(concl(hd eq_thms)))
         let create_equivalence_axioms(eq, _) = 
-            let tyins = type_match (type_of veq_tm) (type_of eq) []
+            let tyins = type_match (Choice.get <| type_of veq_tm) (Choice.get <| type_of eq) []
             map (INST_TYPE tyins) eq_thms
         let rec tm_consts tm acc = 
             let fn, args = strip_comb tm
@@ -783,7 +783,7 @@ let GEN_MESON_TAC =
                                 | Failure _ -> 
                                     try 
                                         let l, r = dest_eq tm
-                                        if type_of l = bool_ty
+                                        if Choice.get <| type_of l = bool_ty
                                         then fm_consts r (fm_consts l acc)
                                         else failwith "atomic equality"
                                     with
@@ -800,7 +800,7 @@ let GEN_MESON_TAC =
                         let op, l = Choice.get <| dest_type ty
                         if op = "fun"
                         then hd l, hd(tl l)
-                        else fail()) (type_of tm)
+                        else fail()) (Choice.get <| type_of tm)
             let ctys = fst(chop_list len atys)
             let largs = map genvar ctys
             let rargs = map genvar ctys
@@ -861,7 +861,7 @@ let GEN_MESON_TAC =
             then th
             else 
                 let tm = hd tms
-                let gv = genvar(type_of tm)
+                let gv = genvar(Choice.get <| type_of tm)
                 let eq = mk_eq(gv, tm)
                 let th' = CLAUSIFY(DISCH eq (SUBS [SYM(ASSUME eq)] th))
                 let tms' = map (subst [gv, tm]) (tl tms)
@@ -890,7 +890,7 @@ let GEN_MESON_TAC =
         let BRANDE th = 
             let tm = concl th
             let l, r = dest_eq tm
-            let gv = genvar(type_of l)
+            let gv = genvar(Choice.get <| type_of l)
             let eq = mk_eq(r, gv)
             CLAUSIFY(DISCH eq (EQ_MP (AP_TERM (rator tm) (ASSUME eq)) th))
         let LDISJ_CASES th lth rth = 
@@ -1066,7 +1066,7 @@ let GEN_MESON_TAC =
         <| RULE_ASSUM_TAC
                (repeat
                     (fun th -> 
-                        SPEC (genvar(type_of(fst(dest_forall(concl th))))) th))
+                        SPEC (genvar(Choice.get <| type_of(fst(dest_forall(concl th))))) th))
         |> THEN <| REPEAT(FIRST_X_ASSUM(CONJUNCTS_THEN' ASSUME_TAC))
         |> THEN <| RULE_ASSUM_TAC(CONV_RULE(ASSOC_CONV DISJ_ASSOC))
         |> THEN <| REPEAT(FIRST_X_ASSUM SUBST_VAR_TAC)

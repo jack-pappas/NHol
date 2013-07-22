@@ -346,7 +346,7 @@ let pp_print_term =
                     try 
                         (let tms = dest_list tm
                          try 
-                             if fst(Choice.get <| dest_type(hd(snd(Choice.get <| dest_type(type_of tm))))) <> "char" then fail()
+                             if fst(Choice.get <| dest_type(hd(snd(Choice.get <| dest_type(Choice.get <| type_of tm))))) <> "char" then fail()
                              else 
                                  let ccs = map (String.make 1 << Char.chr << code_of_term) tms
                                  let s = "\"" + String.escaped(implode ccs) + "\""
@@ -362,7 +362,7 @@ let pp_print_term =
                         else 
                             let hop, args = strip_comb tm
                             let s0 = name_of hop
-                            let ty0 = type_of hop
+                            let ty0 = Choice.get <| type_of hop
                             let s = reverse_interface(s0, ty0)
                             try 
                                 if s = "EMPTY" && is_const tm && args = [] then pp_print_string fmt "{}"
@@ -371,7 +371,7 @@ let pp_print_term =
                             | Failure _ -> 
                                 try 
                                     if s = "UNIV" && !typify_universal_set && is_const tm && args = [] then 
-                                        let ty = fst(dest_fun_ty(type_of tm))
+                                        let ty = fst(dest_fun_ty(Choice.get <| type_of tm))
                                         (pp_print_string fmt "(:"
                                          pp_print_type fmt ty
                                          pp_print_string fmt ")")
@@ -513,7 +513,7 @@ let pp_print_term =
                                                                         && (try 
                                                                                 let l, r = dest_comb(hd args)
                                                                                 let s0 = name_of l
-                                                                                let ty0 = type_of l
+                                                                                let ty0 = Choice.get <| type_of l
                                                                                 reverse_interface(s0, ty0) = "--" 
                                                                                 || mem (fst(dest_const l)) 
                                                                                        ["real_of_num";

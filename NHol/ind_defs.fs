@@ -205,7 +205,7 @@ let derive_nonschematic_inductive_relations =
         let xargs = rels |> map (fun x -> assoc x uncs |> Option.getOrFailWith "find")
         let closed = list_mk_conj clauses
         let avoids = variables closed
-        let flargs = make_args "a" avoids (map type_of (end_itlist (@) xargs))
+        let flargs = make_args "a" avoids (map (Choice.get << type_of) (end_itlist (@) xargs))
         let zargs = zip rels (shareout xargs flargs)
         let cargs = uncs |> map (fun (r, a) -> assoc r zargs |> Option.getOrFailWith "find")
         let cthms = map2 canonicalize_clause clauses cargs
@@ -430,7 +430,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
         let generalize_def tm th = 
             let l, r = dest_eq tm
             let lname, lty = dest_var l
-            let l' = mk_var(lname, itlist (mk_fun_ty << type_of) vs lty)
+            let l' = mk_var(lname, itlist (mk_fun_ty << Choice.get << type_of) vs lty)
             let r' = list_mk_abs(vs, r)
             let tm' = mk_eq(l', r')
             let th0 = RIGHT_BETAS vs (ASSUME tm')
@@ -470,7 +470,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
         then failwith "Schematic variables not used consistently"
         else 
             let avoids = variables(list_mk_conj clauses)
-            let hack_fn tm = mk_var(fst(dest_var(repeat rator tm)), type_of tm)
+            let hack_fn tm = mk_var(fst(dest_var(repeat rator tm)), Choice.get <| type_of tm)
             let grels = variants avoids (map hack_fn schems)
             let crels = zip grels schems
             let clauses' = map (subst crels) clauses
@@ -548,7 +548,7 @@ let derive_strong_induction =
         let prs = 
             map2 
                 (fun n (r, p) -> 
-                    let tys, ty = nsplit dest_fun_ty (1 -- n) (type_of r)
+                    let tys, ty = nsplit dest_fun_ty (1 -- n) (Choice.get <| type_of r)
                     let gvs = map genvar tys
                     list_mk_abs
                         (gvs, 

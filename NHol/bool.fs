@@ -336,7 +336,7 @@ let ISPEC t th =
             nestedFailwith e "ISPEC: input theorem not universally quantified"
     let tyins = 
         try 
-            type_match (snd(dest_var x)) (type_of t) []
+            type_match (snd(dest_var x)) (Choice.get <| type_of t) []
         with
         | Failure _ as e ->
             nestedFailwith e "ISPEC can't type-instantiate input theorem"
@@ -348,7 +348,7 @@ let ISPECL tms th =
         if tms = [] then th
         else 
             let avs = fst(chop_list (length tms) (fst(strip_forall(concl th))))
-            let tyins = itlist2 type_match (map (snd << dest_var) avs) (map type_of tms) []
+            let tyins = itlist2 type_match (map (snd << dest_var) avs) (map (Choice.get << type_of) tms) []
             SPECL tms (INST_TYPE tyins th)
             |> Choice.mapError (fun _ -> Exception "ISPECL")
 
@@ -401,7 +401,7 @@ let EXISTS =
         let qf, abs = dest_comb etm
         let bth = BETA_CONV(mk_comb(abs, stm))
         let cth = 
-            PINST [type_of stm, aty] [abs, P; stm, x] <| pth()
+            PINST [Choice.get <| type_of stm, aty] [abs, P; stm, x] <| pth()
         PROVE_HYP (EQ_MP (SYM bth) th) cth
         |> Choice.mapError (fun _ -> Exception "EXISTS")
 

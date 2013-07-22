@@ -62,7 +62,7 @@ open meson
 /// Defines a quotient type based on given equivalence relation.
 let define_quotient_type = 
     fun tyname (absname, repname) eqv -> 
-        let ty = hd(snd(Choice.get <| dest_type(type_of eqv)))
+        let ty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of eqv)))
         let pty = mk_fun_ty ty bool_ty
         let s = mk_var("s", pty)
         let x = mk_var("x", ty)
@@ -104,7 +104,7 @@ let lift_function =
         let dmr, rtm = dest_eq tybr
         let dest, mrt = dest_comb dmr
         let mk = rator mrt
-        let ety = type_of mrt
+        let ety = Choice.get <| type_of mrt
         fun (refl_th, trans_th) fname wth -> 
             let wtm = repeat (snd << dest_forall) (concl wth)
             let wfvs = frees wtm
@@ -121,7 +121,7 @@ let lift_function =
             let mems = 
                 map2 (fun rv ev -> mk_comb(mk_comb(dest, ev), rv)) rvs evs
             let lcon, rcon = dest_comb con
-            let u = variant (evs @ wfvs) (mk_var("u", type_of rcon))
+            let u = variant (evs @ wfvs) (mk_var("u", Choice.get <| type_of rcon))
             let ucon = mk_comb(lcon, u)
             let dbod = list_mk_conj(ucon :: mems)
             let detm = list_mk_exists(rvs, dbod)
@@ -141,7 +141,7 @@ let lift_function =
                             | None ->
                                 nestedFailwith ex "find") hyps
             let rdef = list_mk_abs(newargs, def)
-            let ldef = mk_var(fname, type_of rdef)
+            let ldef = mk_var(fname, Choice.get <| type_of rdef)
             let dth = new_definition(mk_eq(ldef, rdef))
             let eth = 
                 rev_itlist 

@@ -186,7 +186,7 @@ let subst =
         else 
             let ts, xs = unzip theta
             fun tm -> 
-                let gs = variants (variables tm) (map (genvar << type_of) xs)
+                let gs = variants (variables tm) (map (genvar << Choice.get << type_of) xs)
                 let tm' = ssubst (zip gs xs) tm
                 if tm' == tm then tm
                 else vsubst (zip ts gs) tm'
@@ -204,7 +204,7 @@ let alpha v tm =
         | Failure _ as e ->
             nestedFailwith e "alpha: Not an abstraction"
     if v = v0 then tm
-    elif type_of v = type_of v0 && not(vfree_in v bod) then mk_abs(v, vsubst [v, v0] bod)
+    elif Choice.get <| type_of v = (Choice.get <| type_of v0) && not(vfree_in v bod) then mk_abs(v, vsubst [v, v0] bod)
     else failwith "alpha: Invalid new variable"
 
 (* ------------------------------------------------------------------------- *)
@@ -236,7 +236,7 @@ let mk_mconst(c, ty) =
         let uty = get_const_type c
         let mat = type_match uty ty []
         let con = mk_const(c, mat)
-        if type_of con = ty then con
+        if Choice.get <| type_of con = ty then con
         else fail()
     with
     | Failure _ as e ->
@@ -248,9 +248,9 @@ let mk_mconst(c, ty) =
 
 /// Makes a combination, instantiating types in rator if necessary.
 let mk_icomb(tm1, tm2) = 
-    match Choice.get <| dest_type(type_of tm1) with
+    match Choice.get <| dest_type(Choice.get <| type_of tm1) with
     | "fun", [ty; _] ->
-        let tyins = type_match ty (type_of tm2) []
+        let tyins = type_match ty (Choice.get <| type_of tm2) []
         mk_comb(inst tyins tm1, tm2)
     | _ -> failwith "mk_icomb: Unhandled case."
 
@@ -261,7 +261,7 @@ let mk_icomb(tm1, tm2) =
 /// Applies constant to list of arguments, instantiating constant type as needed.
 let list_mk_icomb cname args = 
     let atys, _ = nsplit dest_fun_ty args (get_const_type cname)
-    let tyin = itlist2 (fun g a -> type_match g (type_of a)) atys args []
+    let tyin = itlist2 (fun g a -> type_match g (Choice.get <| type_of a)) atys args []
     list_mk_comb(mk_const(cname, tyin), args)
 
 (* ------------------------------------------------------------------------- *)
@@ -338,7 +338,7 @@ let dest_binder s tm =
 /// Constructs a term with a named constant applied to an abstraction.
 let mk_binder op = 
     let c = mk_const(op, [])
-    fun (v, tm) -> mk_comb(inst [type_of v, aty] c, mk_abs(v, tm))
+    fun (v, tm) -> mk_comb(inst [Choice.get <| type_of v, aty] c, mk_abs(v, tm))
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for binary operators.                                              *)
@@ -518,17 +518,17 @@ let is_gabs x =
 /// Constructs a generalized abstraction.
 let mk_gabs = 
     let mk_forall(v, t) = 
-        let cop = mk_const("!", [type_of v, aty])
+        let cop = mk_const("!", [Choice.get <| type_of v, aty])
         mk_comb(cop, mk_abs(v, t))
     let list_mk_forall(vars, bod) = itlist (curry mk_forall) vars bod
     let mk_geq(t1, t2) = 
-        let p = mk_const("GEQ", [type_of t1, aty])
+        let p = mk_const("GEQ", [Choice.get <| type_of t1, aty])
         mk_comb(mk_comb(p, t1), t2)
     fun (tm1, tm2) -> 
         if is_var tm1 then mk_abs(tm1, tm2)
         else 
             let fvs = frees tm1
-            let fty = mk_fun_ty (type_of tm1) (type_of tm2)
+            let fty = mk_fun_ty (Choice.get <| type_of tm1) (Choice.get <| type_of tm2)
             let f = variant (frees tm1 @ frees tm2) (mk_var("f", fty))
             let bod = mk_abs(f, list_mk_forall(fvs, mk_geq(mk_comb(f, tm1), tm2)))
             mk_comb(mk_const("GABS", [fty, aty]), bod)
@@ -567,9 +567,9 @@ let is_let x =
 /// Constructs a let-expression.
 let mk_let(assigs, bod) = 
     let lefts, rights = unzip assigs
-    let lend = mk_comb(mk_const("LET_END", [type_of bod, aty]), bod)
+    let lend = mk_comb(mk_const("LET_END", [Choice.get <| type_of bod, aty]), bod)
     let lbod = list_mk_gabs(lefts, lend)
-    let ty1, ty2 = dest_fun_ty(type_of lbod)
+    let ty1, ty2 = dest_fun_ty(Choice.get <| type_of lbod)
     let ltm = 
         mk_const("LET", [ty1, aty;
                          ty2, bty])

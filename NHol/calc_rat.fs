@@ -701,7 +701,7 @@ let REAL_RING,real_ideal_cofactors =
      let th = init tm
      EQ_MP (SYM th) (``pure``(rand(concl th)))),
    (fun tms tm -> 
-     if forall (fun t -> type_of t = real_ty) (tm::tms)
+     if forall (fun t -> Choice.get <| type_of t = real_ty) (tm::tms)
      then ideal tms tm
      else failwith "real_ideal_cofactors: not all terms have type :real")
 

@@ -73,12 +73,12 @@ let MK_DISJ =
 /// Universally quantifies both sides of equational theorem.
 let MK_FORALL = 
     let atm = mk_const("!", [])
-    fun v th -> AP_TERM (inst [type_of v, aty] atm) (ABS v th)
+    fun v th -> AP_TERM (inst [Choice.get <| type_of v, aty] atm) (ABS v th)
 
 /// Existentially quantifies both sides of equational theorem.
 let MK_EXISTS = 
     let atm = mk_const("?", [])
-    fun v th -> AP_TERM (inst [type_of v, aty] atm) (ABS v th)
+    fun v th -> AP_TERM (inst [Choice.get <| type_of v, aty] atm) (ABS v th)
 
 (* ------------------------------------------------------------------------- *)
 (* Eliminate the antecedent of a theorem using a conversion/proof rule.      *)
@@ -314,8 +314,8 @@ let term_match : term list -> term -> term -> instantiation =
             if is_var vhop && not(mem vhop lconsts) 
                && (Option.isNone <| rev_assoc vhop env)
             then 
-                let vty = type_of vtm
-                let cty = type_of ctm
+                let vty = Choice.get <| type_of vtm
+                let cty = Choice.get <| type_of ctm
                 let insts' = 
                     if compare vty cty = 0
                     then insts
@@ -327,7 +327,7 @@ let term_match : term list -> term -> term -> instantiation =
                 let sofar' = term_pmatch lconsts env lv lc sofar
                 term_pmatch lconsts env rv rc sofar'
     let get_type_insts insts = 
-        itlist (fun (t, x) -> type_match (snd(dest_var x)) (type_of t)) insts
+        itlist (fun (t, x) -> type_match (snd(dest_var x)) (Choice.get <| type_of t)) insts
     let separate_insts insts = 
         let realinsts, patterns = partition (is_var << snd) insts
         let betacounts = 
@@ -362,7 +362,7 @@ let term_match : term list -> term -> term -> instantiation =
                 then term_homatch lconsts tyins (insts, tl homs)
                 else 
                     let newtyins = 
-                        safe_insert (type_of ctm, snd(dest_var vtm)) tyins
+                        safe_insert (Choice.get <| type_of ctm, snd(dest_var vtm)) tyins
                     let newinsts = (ctm, vtm) :: insts
                     term_homatch lconsts newtyins (newinsts, tl homs)
             else 
@@ -396,7 +396,7 @@ let term_match : term list -> term -> term -> instantiation =
                                 map (fun p -> 
                                         (if is_var p
                                          then p
-                                         else genvar(type_of p)), p) pats
+                                         else genvar(Choice.get <| type_of p)), p) pats
                             let ctm' = subst ginsts ctm
                             let gvs = map fst ginsts
                             let abstm = list_mk_abs(gvs, ctm')
@@ -643,7 +643,7 @@ let HIGHER_REWRITE_CONV =
         free_beta
     let GINST th = 
         let fvs = subtract (frees(concl th)) (freesl(hyp th))
-        let gvs = map (genvar << type_of) fvs
+        let gvs = map (genvar << Choice.get << type_of) fvs
         INST (zip gvs fvs) th
     fun ths -> 
         let thl = map (GINST << SPEC_ALL) ths
@@ -673,7 +673,7 @@ let HIGHER_REWRITE_CONV =
             let pred, (th, beta_fn) =
                 assoc pat ass_list
                 |> Option.getOrFailWith "find"
-            let gv = genvar(type_of stm)
+            let gv = genvar(Choice.get <| type_of stm)
             let abs = mk_abs(gv, subst [gv, stm] tm)
             let _, tmin0, tyin0 = term_match [] pred abs
             CONV_RULE beta_fn (INST tmin (INST tmin0 (INST_TYPE tyin0 th)))

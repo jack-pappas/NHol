@@ -61,8 +61,8 @@ let ETA_CONV =
             let l, r = dest_comb bod
             if r = bv && not(vfree_in bv l)
             then 
-                TRANS (REFL tm) (PINST [type_of bv, aty
-                                        type_of bod, bty] [l, t] pth)
+                TRANS (REFL tm) (PINST [Choice.get <| type_of bv, aty
+                                        Choice.get <| type_of bod, bty] [l, t] pth)
             else fail()
         with
         | Failure _ as e ->
@@ -131,7 +131,7 @@ let SELECT_RULE =
     fun th -> 
         try 
             let abs = rand(concl th)
-            let ty = type_of(bndvar abs)
+            let ty = Choice.get <| type_of(bndvar abs)
             CONV_RULE BETA_CONV (MP (PINST [ty, aty] [abs, P] pth) th)
         with
         | Failure _ as e ->
@@ -153,7 +153,7 @@ let SELECT_CONV =
                 aconv tm (vsubst [t, bv] bod)
             let pickeps = find_term is_epsok tm
             let abs = rand pickeps
-            let ty = type_of(bndvar abs)
+            let ty = Choice.get <| type_of(bndvar abs)
             CONV_RULE (LAND_CONV BETA_CONV) (PINST [ty, aty] [abs, P] pth)
         with
         | Failure _ as e ->
@@ -259,7 +259,7 @@ let TAUT_001 =
     let PROP_REWRITE_TAC = REWRITE_TAC []
     let RTAUT_001_TAC(asl, w) = 
         let ok t = 
-            type_of t = bool_ty && can (find_term is_var) t && free_in t w
+            Choice.get <| type_of t = bool_ty && can (find_term is_var) t && free_in t w
         (PROP_REWRITE_TAC
          |> THEN <| W
                 ((fun t1 t2 -> t1 |> THEN <| t2)(REWRITE_TAC []) << BOOL_CASES_TAC 
@@ -448,7 +448,7 @@ let is_cond tm =
 /// Constructs a conditional term.
 let mk_cond(b, x, y) = 
     try 
-        let c = mk_const("COND", [type_of x, aty])
+        let c = mk_const("COND", [Choice.get <| type_of x, aty])
         mk_comb(mk_comb(mk_comb(c, b), x), y)
     with
     | Failure _ as e ->
@@ -517,7 +517,7 @@ let TAUT =
     let PROP_REWRITE_TAC = REWRITE_TAC []
     let RTAUT_TAC(asl, w) = 
         let ok t =
-            type_of t = bool_ty && can (find_term is_var) t && free_in t w
+            Choice.get <| type_of t = bool_ty && can (find_term is_var) t && free_in t w
         (PROP_REWRITE_TAC
          |> THEN <| W
                 ((fun t1 t2 -> t1

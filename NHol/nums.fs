@@ -319,13 +319,13 @@ let new_specification =
         | Failure _ -> false
     let specify n name th = 
         let ntm = mk_numeral n
-        let gv = genvar(type_of ntm)
+        let gv = genvar(Choice.get <| type_of ntm)
         let th0 = CONV_RULE (REWR_CONV SKOLEM_THM) (GEN gv th)
         let th1 = CONV_RULE (RATOR_CONV(REWR_CONV EXISTS_THM)
                              |> THENC <| BETA_CONV) th0
         let l, r = dest_comb(concl th1)
         let rn = mk_comb(r, ntm)
-        let ty = type_of rn
+        let ty = Choice.get <| type_of rn
         let th2 = new_definition(mk_eq(mk_var(name, ty), rn))
         GEN_REWRITE_RULE ONCE_DEPTH_CONV [GSYM th2] 
             (SPEC ntm (CONV_RULE BETA_CONV th1))

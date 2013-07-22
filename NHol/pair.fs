@@ -221,8 +221,8 @@ let dest_pair = dest_binary ","
 let mk_pair = 
     let ptm = mk_const(",", [])
     fun (l, r) -> 
-        mk_comb(mk_comb(inst [type_of l, aty
-                              type_of r, bty] ptm, l), r)
+        mk_comb(mk_comb(inst [Choice.get <| type_of l, aty
+                              Choice.get <| type_of r, bty] ptm, l), r)
 
 //extend_basic_rewrites [FST; SND; PAIR] duplicate line
 
@@ -253,7 +253,7 @@ let new_definition =
             with
             | Failure _ -> [gv, arg]
         fun arg -> 
-            let gv = genvar(type_of arg)
+            let gv = genvar(Choice.get <| type_of arg)
             gv, depair gv arg
     fun tm -> 
         let avs, def = strip_forall tm
@@ -331,9 +331,9 @@ let GEN_BETA_CONV =
             let avs, eqn = strip_forall ourcj
             let con', args = strip_comb(rand eqn)
             let aargs, zargs = chop_list (length avs) args
-            let gargs = map (genvar << type_of) zargs
+            let gargs = map (genvar << Choice.get << type_of) zargs
             let gcon = 
-                genvar(itlist (mk_fun_ty << type_of) avs (type_of(rand eqn)))
+                genvar(itlist (mk_fun_ty << Choice.get << type_of) avs (Choice.get <| type_of(rand eqn)))
             let bth = 
                 INST [list_mk_abs(aargs @ gargs, list_mk_comb(gcon, avs)), con'] 
                     sth
@@ -345,9 +345,9 @@ let GEN_BETA_CONV =
             let eth = 
                 SIMPLE_EXISTS (rator(lhand(snd(strip_forall(concl dth))))) dth
             let fth = PROVE_HYP bth (itlist SIMPLE_CHOOSE evs eth)
-            let zty = type_of(rand(snd(strip_forall(concl dth))))
+            let zty = Choice.get <| type_of(rand(snd(strip_forall(concl dth))))
             let mk_projector a = 
-                let ity = type_of a
+                let ity = Choice.get <| type_of a
                 let th = 
                     BETA_RULE(PINST [ity, zty] [list_mk_abs(avs, a), gcon] fth)
                 SYM(SPEC_ALL(SELECT_RULE th))
@@ -390,12 +390,12 @@ let GEN_BETA_CONV =
             let prjs = create_iterated_projections vstr
             let th1 = SUBS_CONV prjs bod
             let bod' = rand(concl th1)
-            let gv = genvar(type_of vstr)
+            let gv = genvar(Choice.get <| type_of vstr)
             let pat = mk_abs(gv, subst [gv, vstr] bod')
             let th2 = TRANS (BETA_CONV(mk_comb(pat, vstr))) (SYM th1)
             let avs = fst(strip_forall(body(rand l)))
             let th3 = GENL (fst(strip_forall(body(rand l)))) th2
-            let efn = genvar(type_of pat)
+            let efn = genvar(Choice.get <| type_of pat)
             let th4 = 
                 EXISTS (mk_exists(efn, subst [efn, pat] (concl th3)), pat) th3
             let th5 = 

@@ -735,7 +735,7 @@ let MEM_APPEND_DECOMPOSE =
 /// Constructs a CONS pair.
 let mk_cons h t = 
     try 
-        let cons = mk_const("CONS", [type_of h, aty])
+        let cons = mk_const("CONS", [Choice.get <| type_of h, aty])
         mk_comb(mk_comb(cons, h), t)
     with
     | Failure _ as e -> nestedFailwith e "mk_cons"
@@ -755,7 +755,7 @@ let mk_list(tms, ty) =
 /// Constructs object-level list from nonempty list of terms.
 let mk_flist tms = 
     try 
-        mk_list(tms, type_of(hd tms))
+        mk_list(tms, Choice.get <| type_of(hd tms))
     with
     | Failure _ as e -> nestedFailwith e "mk_flist"
 

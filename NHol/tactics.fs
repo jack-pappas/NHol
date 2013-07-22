@@ -653,8 +653,8 @@ let SPEC_TAC : term * term -> tactic =
         v |> Choice.mapError (fun _ -> Exception "SPEC_TAC: Failure.")
 
 let private tactic_type_compatibility_check pfx e g = 
-    let et = type_of e
-    let gt = type_of g
+    let et = Choice.get <| type_of e
+    let gt = Choice.get <| type_of g
     if et = gt
     then ()
     else 
@@ -1212,7 +1212,7 @@ let rotate : int -> refinement =
 /// Converts a goal into a 1-element goalstate.
 let (mk_goalstate : goal -> goalstate) = 
     fun (asl, w) -> 
-        if type_of w = bool_ty
+        if Choice.get <| type_of w = bool_ty
         then 
             let fun1 l =
                 match l with
