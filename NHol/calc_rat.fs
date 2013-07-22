@@ -313,7 +313,7 @@ let REAL_RAT_NEG_CONV =
         with
         | Failure _ -> 
             try 
-                let l, r = dest_comb tm
+                let l, r = Choice.get <| dest_comb tm
                 if l = ptm && is_realintconst r && dest_realintconst r >/ num_0
                 then REFL tm
                 else fail()
@@ -624,7 +624,7 @@ let REAL_POLY_CONV =
         if not(is_comb tm) || is_ratconst tm
         then REFL tm
         else 
-            let lop, r = dest_comb tm
+            let lop, r = Choice.get <| dest_comb tm
             if lop = neg_tm
             then 
                 let th1 = AP_TERM lop (REAL_POLY_CONV r)
@@ -638,7 +638,7 @@ let REAL_POLY_CONV =
             elif not(is_comb lop)
             then REFL tm
             else 
-                let op, l = dest_comb lop
+                let op, l = Choice.get <| dest_comb lop
                 if op = pow_tm
                 then 
                     let th1 = AP_THM (AP_TERM op (REAL_POLY_CONV l)) r

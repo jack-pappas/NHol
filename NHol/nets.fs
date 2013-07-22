@@ -78,7 +78,7 @@ let enter =
         let op, args = strip_comb tm
         if is_const op then Cnet(fst(Choice.get <| dest_const op), length args), args
         elif is_abs op then 
-            let bv, bod = dest_abs op
+            let bv, bod = Choice.get <| dest_abs op
             let bod' = 
                 if mem bv lconsts then vsubst [genvar(Choice.get <| type_of bv), bv] bod
                 else bod

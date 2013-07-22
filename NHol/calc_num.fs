@@ -295,8 +295,8 @@ let NUM_ODD_CONV =
 let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
     let NUM_SUC_CONV,NUM_ADD_CONV',NUM_ADD_CONV =
       let std_tm = rand (parse_term @"2") in
-      let bit0_tm,bz_tm = dest_comb std_tm in
-      let bit1_tm,zero_tm = dest_comb bz_tm in
+      let bit0_tm,bz_tm = Choice.get <| dest_comb std_tm in
+      let bit1_tm,zero_tm = Choice.get <| dest_comb bz_tm in
       let n_tm = (parse_term @"n:num") 
       let m_tm = (parse_term @"m:num") in
       let sths = 
@@ -346,38 +346,38 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
                   let rec raw_suc_conv tm =
                     let otm = rand tm in
                     if otm = zero_tm then sth_z else
-                    let btm,ntm = dest_comb otm in
+                    let btm,ntm = Choice.get <| dest_comb otm in
                     if btm = bit0_tm then INST [ntm,n_tm] sth_0 else
                     let th = INST [ntm,n_tm] sth_1 in
-                    let ltm,rtm = dest_comb(rand(concl th)) in
+                    let ltm,rtm = Choice.get <| dest_comb(rand(concl th)) in
                     TRANS th (AP_TERM ltm (raw_suc_conv rtm)) in
                   let rec raw_add_conv tm =
-                    let atm,rtm = dest_comb tm in
+                    let atm,rtm = Choice.get <| dest_comb tm in
                     let ltm = rand atm in
                     if ltm = zero_tm then INST [rtm,n_tm] ath_0x
                     else if rtm = zero_tm then INST [ltm,n_tm] ath_x0 else
-                    let lbit,larg = dest_comb ltm
-                    let rbit,rarg = dest_comb rtm in
+                    let lbit,larg = Choice.get <| dest_comb ltm
+                    let rbit,rarg = Choice.get <| dest_comb rtm in
                     if lbit = bit0_tm then
                        if rbit = bit0_tm then
                           let th = INST [larg,m_tm; rarg,n_tm] ath_00 in
-                          let ltm,rtm = dest_comb(rand(concl th)) in
+                          let ltm,rtm = Choice.get <| dest_comb(rand(concl th)) in
                           TRANS th (AP_TERM ltm (raw_add_conv rtm))
                        else
                           let th = INST [larg,m_tm; rarg,n_tm] ath_01 in
-                          let ltm,rtm = dest_comb(rand(concl th)) in
+                          let ltm,rtm = Choice.get <| dest_comb(rand(concl th)) in
                           TRANS th (AP_TERM ltm (raw_add_conv rtm))
                     else
                        if rbit = bit0_tm then
                           let th = INST [larg,m_tm; rarg,n_tm] ath_10 in
-                          let ltm,rtm = dest_comb(rand(concl th)) in
+                          let ltm,rtm = Choice.get <| dest_comb(rand(concl th)) in
                           TRANS th (AP_TERM ltm (raw_add_conv rtm))
                        else
                           let th = INST [larg,m_tm; rarg,n_tm] ath_11 in
-                          let ltm,rtm = dest_comb(rand(concl th)) in
+                          let ltm,rtm = Choice.get <| dest_comb(rand(concl th)) in
                           TRANS th (AP_TERM ltm (raw_adc_conv rtm))
                   and raw_adc_conv tm =
-                    let atm,rtm = dest_comb(rand tm) in
+                    let atm,rtm = Choice.get <| dest_comb(rand tm) in
                     let ltm = rand atm in
                     if ltm = zero_tm then
                        let th = INST [rtm,n_tm] cth_0x in
@@ -386,39 +386,39 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
                        let th = INST [ltm,n_tm] cth_x0 in
                        TRANS th (raw_suc_conv (rand(concl th)))
                     else
-                       let lbit,larg = dest_comb ltm
-                       let rbit,rarg = dest_comb rtm in
+                       let lbit,larg = Choice.get <| dest_comb ltm
+                       let rbit,rarg = Choice.get <| dest_comb rtm in
                        if lbit = bit0_tm then
                           if rbit = bit0_tm then
                              let th = INST [larg,m_tm; rarg,n_tm] cth_00 in
-                             let ltm,rtm = dest_comb(rand(concl th)) in
+                             let ltm,rtm = Choice.get <| dest_comb(rand(concl th)) in
                              TRANS th (AP_TERM ltm (raw_add_conv rtm))
                           else
                              let th = INST [larg,m_tm; rarg,n_tm] cth_01 in
-                             let ltm,rtm = dest_comb(rand(concl th)) in
+                             let ltm,rtm = Choice.get <| dest_comb(rand(concl th)) in
                              TRANS th (AP_TERM ltm (raw_adc_conv rtm))
                        else
                           if rbit = bit0_tm then
                              let th = INST [larg,m_tm; rarg,n_tm] cth_10 in
-                             let ltm,rtm = dest_comb(rand(concl th)) in
+                             let ltm,rtm = Choice.get <| dest_comb(rand(concl th)) in
                              TRANS th (AP_TERM ltm (raw_adc_conv rtm))
                           else
                              let th = INST [larg,m_tm; rarg,n_tm] cth_11 in
-                             let ltm,rtm = dest_comb(rand(concl th)) in
+                             let ltm,rtm = Choice.get <| dest_comb(rand(concl th)) in
                              TRANS th (AP_TERM ltm (raw_adc_conv rtm)) in
                   let NUM_SUC_CONV tm =
                     let th = INST [rand(rand tm),n_tm] pth_suc in
                     let ctm = concl th in
                     if lhand ctm <> tm then failwith "NUM_SUC_CONV" else
-                    let ltm,rtm = dest_comb(rand ctm) in
+                    let ltm,rtm = Choice.get <| dest_comb(rand ctm) in
                     TRANS th (AP_TERM ltm (raw_suc_conv rtm))
                   let NUM_ADD_CONV tm =
-                    let atm,rtm = dest_comb tm in
+                    let atm,rtm = Choice.get <| dest_comb tm in
                     let ltm = rand atm in
                     let th = INST [rand ltm,m_tm; rand rtm,n_tm] pth_add in
                     let ctm = concl th in
                     if lhand ctm <> tm then failwith "NUM_ADD_CONV" else
-                    let ltm,rtm = dest_comb(rand(concl th)) in
+                    let ltm,rtm = Choice.get <| dest_comb(rand(concl th)) in
                     TRANS th (AP_TERM ltm (raw_add_conv rtm)) in
                   NUM_SUC_CONV,raw_add_conv,NUM_ADD_CONV
               | _ -> failwith "cths: Unhandled case."
@@ -489,7 +489,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
           | Failure _ -> false 
         then Int 0 
         else
-          let l,r = dest_comb tm in
+          let l,r = Choice.get <| dest_comb tm in
           let n = Int 2 * dest_raw_numeral r in
           let cn = fst(Choice.get <| dest_const l) in
           if cn = "BIT0" then n
@@ -543,7 +543,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
         | Failure _ -> 
           try
             let th1 = NUM_MULT_EVEN_CONV' tm in
-            let l,r = dest_comb(rand(concl th1)) in
+            let l,r = Choice.get <| dest_comb(rand(concl th1)) in
             TRANS th1 (AP_TERM l (NUM_MULT_CONV' r))
           with 
           | Failure _ ->
@@ -670,7 +670,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
       let tconv = GEN_REWRITE_CONV I [tth] in
       let rec NUM_EXP_CONV l r =
         if r = Z then INST [l,x] pth else
-        let b,r' = dest_comb r in
+        let b,r' = Choice.get <| dest_comb r in
         if b = BIT0 then
           let th1 = NUM_EXP_CONV l r' in
           let tm1 = rand(concl th1) in
@@ -686,8 +686,8 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
           let tm3 = rand(concl th3) in
           MP (MP (MP (INST [l,x; r',n; tm1,y; tm2,w; tm3,z] pth1) th1) th2) th3 in
       fun tm -> try let th = tconv tm in
-                    let lop,r = dest_comb (rand(concl th)) in
-                    let _,l = dest_comb lop in
+                    let lop,r = Choice.get <| dest_comb (rand(concl th)) in
+                    let _,l = Choice.get <| dest_comb lop in
                     let th' = NUM_EXP_CONV l r in
                     let tm' = rand(concl th') in
                     TRANS (TRANS th th') (INST [tm',x] fth)
@@ -709,7 +709,7 @@ let NUM_PRE_CONV =
     let n = (parse_term @"n:num") in
     let suc = (parse_term @"SUC") in
     let pre = (parse_term @"PRE") in
-    fun tm -> try let l,r = dest_comb tm in
+    fun tm -> try let l,r = Choice.get <| dest_comb tm in
                   if not (l = pre) then fail() else
                   let x = dest_numeral r in
                   if x = Int 0 then tth else
@@ -812,7 +812,7 @@ let NUM_FACT_CONV =
       let pth = INST [tmx,x; tm0, y; tm1,w; tm2,z] pth_suc in
       MP (MP (MP pth th0) th1) th2 in
     fun tm ->
-      try let l,r = dest_comb tm in
+      try let l,r = Choice.get <| dest_comb tm in
           if fst(Choice.get <| dest_const l) = "FACT"
           then NUM_FACT_CONV (dest_numeral r)
           else fail()

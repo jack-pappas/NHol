@@ -1756,7 +1756,7 @@ let INTEGER_TAC =
   let GCD_ELIM_TAC =
     let gcd_tm = (parse_term @"gcd") in
     let dest_gcd tm =
-      let l,r = dest_comb tm in
+      let l,r = Choice.get <| dest_comb tm in
       if l = gcd_tm then dest_pair r else failwith "dest_gcd" in
     REPEAT GEN_TAC |> THEN <|
     W(fun (asl,w) ->

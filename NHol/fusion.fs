@@ -312,14 +312,14 @@ module Hol_kernel =
     /// Breaks apart a combination (function application) into rator and rand.
     let dest_comb = 
         function 
-        | (Comb(f, x)) -> f, x
-        | _ -> failwith "dest_comb: not a combination"
+        | Comb(f, x) -> Choice.succeed (f, x)
+        | _ -> Choice.failwith "dest_comb: not a combination"
     
     /// Breaks apart an abstraction into abstracted variable and body.
     let dest_abs = 
         function 
-        | (Abs(v, b)) -> v, b
-        | _ -> failwith "dest_abs: not an abstraction"
+        | Abs(v, b) -> Choice.succeed (v, b)
+        | _ -> Choice.failwith "dest_abs: not an abstraction"
     
     (* ------------------------------------------------------------------------- *)
     (* Finds the variables free in a term (list of terms).                       *)
@@ -739,7 +739,7 @@ module Hol_kernel =
             else 
                 let P, x = 
                     try 
-                        dest_comb c
+                        Choice.get <| dest_comb c
                     with
                     | Failure _ as e ->
                         nestedFailwith e "new_basic_type_definition: Not a combination"

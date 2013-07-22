@@ -111,14 +111,14 @@ let instantiate : instantiation -> term -> term =
     let betas n tm = 
         let args, lam = funpow n (fun (l, t) -> (rand t) :: l, rator t) ([], tm)
         rev_itlist (fun a l -> 
-                let v, b = dest_abs l
+                let v, b = Choice.get <| dest_abs l
                 vsubst [a, v] b) args lam
     let rec ho_betas bcs pat tm = 
         if is_var pat || is_const pat
         then fail()
         else 
             try 
-                let bv, bod = dest_abs tm
+                let bv, bod = Choice.get <| dest_abs tm
                 Choice.get <| mk_abs(bv, ho_betas bcs (body pat) bod)
             with
             | Failure _ -> 
@@ -132,8 +132,8 @@ let instantiate : instantiation -> term -> term =
                     else fail()
                 with
                 | Failure _ -> 
-                    let lpat, rpat = dest_comb pat
-                    let ltm, rtm = dest_comb tm
+                    let lpat, rpat = Choice.get <| dest_comb pat
+                    let ltm, rtm = Choice.get <| dest_comb tm
                     try 
                         let lth = ho_betas bcs lpat ltm
                         try 
@@ -172,7 +172,7 @@ let INSTANTIATE : instantiation -> thm -> thm =
         if is_var pat || is_const pat
         then Choice2Of2 <| Exception ""
         else 
-            let bv, bod = dest_abs tm
+            let bv, bod = Choice.get <| dest_abs tm
             ABS bv (HO_BETAS bcs (body pat) bod)
             |> Choice.bindError (fun _ ->
                 let hop, args = strip_comb pat
@@ -184,8 +184,8 @@ let INSTANTIATE : instantiation -> thm -> thm =
                     then BETAS_CONV n tm
                     else Choice2Of2 <| Exception ""
                 v |> Choice.bindError (fun _ -> 
-                    let lpat, rpat = dest_comb pat
-                    let ltm, rtm = dest_comb tm
+                    let lpat, rpat = Choice.get <| dest_comb pat
+                    let ltm, rtm = Choice.get <| dest_comb tm
                     let v = 
                         let lth = HO_BETAS bcs lpat ltm
                         let v' = 
@@ -322,8 +322,8 @@ let term_match : term list -> term -> term -> instantiation =
                     else safe_insert (mk_dummy cty, mk_dummy vty) insts
                 (insts', (env, ctm, vtm) :: homs)
             else 
-                let lv, rv = dest_comb vtm
-                let lc, rc = dest_comb ctm
+                let lv, rv = Choice.get <| dest_comb vtm
+                let lc, rc = Choice.get <| dest_comb ctm
                 let sofar' = term_pmatch lconsts env lv lc sofar
                 term_pmatch lconsts env rv rc sofar'
     let get_type_insts insts = 
@@ -406,8 +406,8 @@ let term_match : term list -> term -> term -> instantiation =
                     term_homatch lconsts tyins (ni, tl homs)
                 with
                 | Failure _ -> 
-                    let lc, rc = dest_comb ctm
-                    let lv, rv = dest_comb vtm
+                    let lc, rc = Choice.get <| dest_comb ctm
+                    let lv, rv = Choice.get <| dest_comb vtm
                     let pinsts_homs' = 
                         term_pmatch lconsts env rv rc 
                             (insts, (env, lc, lv) :: (tl homs))
@@ -465,8 +465,8 @@ let term_unify : term list -> term -> term -> instantiation =
             let tm2' = subst [bndvar tm1, bndvar tm2] (body tm2)
             unify vars tm1' tm2' sofar
         else 
-            let l1, r1 = dest_comb tm1
-            let l2, r2 = dest_comb tm2
+            let l1, r1 = Choice.get <| dest_comb tm1
+            let l2, r2 = Choice.get <| dest_comb tm2
             unify vars l1 l2 (unify vars r1 r2 sofar)
     fun vars tm1 tm2 -> [], unify vars tm1 tm2 [], []
 
@@ -491,20 +491,20 @@ let deep_alpha =
         then tm
         else 
             try 
-                let v, bod = dest_abs tm
+                let v, bod = Choice.get <| dest_abs tm
                 let vn, vty = Choice.get <| dest_var v
                 try 
                     let (vn', _), newenv = remove (fun (_, x) -> x = vn) env
                     let v' = mk_var(vn', vty)
                     let tm' = tryalpha v' tm
-                    let iv, ib = dest_abs tm'
+                    let iv, ib = Choice.get <| dest_abs tm'
                     Choice.get <| mk_abs(iv, deep_alpha newenv ib)
                 with
                 | Failure _ -> Choice.get <| mk_abs(v, deep_alpha env bod)
             with
             | Failure _ -> 
                 try 
-                    let l, r = dest_comb tm
+                    let l, r = Choice.get <| dest_comb tm
                     Choice.get <| mk_comb(deep_alpha env l, deep_alpha env r)
                 with
                 | Failure _ -> tm
@@ -520,8 +520,8 @@ let deep_alpha =
 let PART_MATCH, GEN_PART_MATCH = 
     let rec match_bvs t1 t2 acc = 
         try 
-            let v1, b1 = dest_abs t1
-            let v2, b2 = dest_abs t2
+            let v1, b1 = Choice.get <| dest_abs t1
+            let v2, b2 = Choice.get <| dest_abs t2
             let n1 = fst(Choice.get <| dest_var v1)
             let n2 = fst(Choice.get <| dest_var v2)
             let newacc = 
@@ -532,8 +532,8 @@ let PART_MATCH, GEN_PART_MATCH =
         with
         | Failure _ -> 
             try 
-                let l1, r1 = dest_comb t1
-                let l2, r2 = dest_comb t2
+                let l1, r1 = Choice.get <| dest_comb t1
+                let l2, r2 = Choice.get <| dest_comb t2
                 match_bvs l1 l2 (match_bvs r1 r2 acc)
             with
             | Failure _ -> acc
@@ -619,7 +619,7 @@ let HIGHER_REWRITE_CONV =
         let rec free_beta v tm = 
             if is_abs tm
             then 
-                let bv, bod = dest_abs tm
+                let bv, bod = Choice.get <| dest_abs tm
                 if v = bv
                 then failwith "unchanged"
                 else ABS_CONV(free_beta v bod)
@@ -630,7 +630,7 @@ let HIGHER_REWRITE_CONV =
                 elif op = v
                 then BETA_CONVS(length args)
                 else 
-                    let l, r = dest_comb tm
+                    let l, r = Choice.get <| dest_comb tm
                     try 
                         let lconv = free_beta v l
                         (try 
@@ -649,7 +649,7 @@ let HIGHER_REWRITE_CONV =
         let thl = map (GINST << SPEC_ALL) ths
         let concs = map concl thl
         let lefts = map lhs concs
-        let preds, pats = unzip(map dest_comb lefts)
+        let preds, pats = unzip(map (Choice.get << dest_comb) lefts)
         let beta_fns = map2 BETA_VAR preds concs
         let ass_list = zip pats (zip preds (zip thl beta_fns))
         let mnet = itlist (fun p n -> enter [] (p, p) n) pats empty_net

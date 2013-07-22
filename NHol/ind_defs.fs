@@ -55,7 +55,7 @@ let strip_ncomb =
         if n < 1
         then tm, acc
         else 
-            let l, r = dest_comb tm
+            let l, r = Choice.get <| dest_comb tm
             strip(n - 1, l, r :: acc)
     fun n tm -> strip(n, tm, [])
 
@@ -270,8 +270,8 @@ let derive_nonschematic_inductive_relations =
         let double_fn = subst(zip dtms rels)
         let mk_unbetas tm dtm = 
             let avs, bod = strip_forall tm
-            let il, r = dest_comb bod
-            let i, l = dest_comb il
+            let il, r = Choice.get <| dest_comb bod
+            let i, l = Choice.get <| dest_comb il
             let bth = RIGHT_BETAS avs (REFL dtm)
             let munb = AP_THM (AP_TERM i bth) r
             let iunb = AP_TERM (Choice.get <| mk_comb(i, double_fn l)) bth

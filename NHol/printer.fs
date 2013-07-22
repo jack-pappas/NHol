@@ -288,8 +288,8 @@ let pp_print_term =
             | Failure _ -> s0
     let rec DEST_BINARY c tm = 
         try 
-            let il, r = dest_comb tm
-            let i, l = dest_comb il
+            let il, r = Choice.get <| dest_comb tm
+            let i, l = Choice.get <| dest_comb il
             if i = c || (is_const i && is_const c && reverse_interface(Choice.get <| dest_const i) = reverse_interface(Choice.get <| dest_const c)) then 
                 l, r
             else fail()
@@ -393,8 +393,8 @@ let pp_print_term =
                                             if not(s = "GSPEC") then fail()
                                             else 
                                                 let evs, bod = strip_exists(body(rand tm))
-                                                let bod1, fabs = dest_comb bod
-                                                let bod2, babs = dest_comb bod1
+                                                let bod1, fabs = Choice.get <| dest_comb bod
+                                                let bod2, babs = Choice.get <| dest_comb bod1
                                                 let c = rator bod2
                                                 if fst(Choice.get <| dest_const c) <> "SETSPEC" then fail()
                                                 else 
@@ -511,7 +511,7 @@ let pp_print_term =
                                                                  (if isalnum s 
                                                                      || s = "--" && length args = 1 
                                                                         && (try 
-                                                                                let l, r = dest_comb(hd args)
+                                                                                let l, r = Choice.get <| dest_comb(hd args)
                                                                                 let s0 = name_of l
                                                                                 let ty0 = Choice.get <| type_of l
                                                                                 reverse_interface(s0, ty0) = "--" 
@@ -565,7 +565,7 @@ let pp_print_term =
                                                                     else s
                                                                 pp_print_string fmt s'
                                                             else 
-                                                                let l, r = dest_comb tm
+                                                                let l, r = Choice.get <| dest_comb tm
                                                                 (pp_open_hvbox fmt 0
                                                                  if prec = 1000 then pp_print_string fmt "("
                                                                  else ()
@@ -598,7 +598,7 @@ let pp_print_term =
             let rec collectvs tm = 
                 if absf then 
                     if is_abs tm then 
-                        let v, t = dest_abs tm
+                        let v, t = Choice.get <| dest_abs tm
                         let vs, bod = collectvs t
                         (false, v) :: vs, bod
                     elif is_gabs tm then 
@@ -608,7 +608,7 @@ let pp_print_term =
                     else [], tm
                 elif is_comb tm && name_of(rator tm) = s then 
                     if is_abs(rand tm) then 
-                        let v, t = dest_abs(rand tm)
+                        let v, t = Choice.get <| dest_abs(rand tm)
                         let vs, bod = collectvs t
                         (false, v) :: vs, bod
                     elif is_gabs(rand tm) then 

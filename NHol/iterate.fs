@@ -304,8 +304,8 @@ let NUMSEG_CONV =
     let m_tm = (parse_term @"m:num")
     let n_tm = (parse_term @"n:num")
     let rec NUMSEG_CONV tm = 
-        let nstm, nt = dest_comb tm
-        let nst, mt = dest_comb nstm
+        let nstm, nt = Choice.get <| dest_comb tm
+        let nst, mt = Choice.get <| dest_comb nstm
         if nst <> ns_tm
         then failwith "NUMSEG_CONV"
         else 

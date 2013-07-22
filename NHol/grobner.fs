@@ -432,10 +432,10 @@ let RING_AND_IDEAL_CONV =
         LEFT_AND_EXISTS_THM;
         RIGHT_AND_EXISTS_THM] in
     let ring_dest_neg t =
-      let l,r = dest_comb t in
+      let l,r = Choice.get <| dest_comb t in
       if l = ring_neg_tm then r else failwith "ring_dest_neg"
     let ring_dest_inv t =
-      let l,r = dest_comb t in
+      let l,r = Choice.get <| dest_comb t in
       if l = ring_inv_tm then r else failwith "ring_dest_inv"
     let ring_dest_add = dest_binop ring_add_tm
     let ring_mk_add = mk_binop ring_add_tm    

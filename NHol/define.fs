@@ -705,7 +705,7 @@ let instantiate_casewise_recursion,
   let MAIN_ADMISS_TAC (asl,w as gl) =
     let had,args = strip_comb w
     if not(is_const had) then failwith "ADMISS_TAC" else
-    let f,fbod = dest_abs(last args)
+    let f,fbod = Choice.get <| dest_abs(last args)
     let xtup,bod = dest_gabs fbod
     let hop,args = strip_comb bod
     match (name_of had,name_of hop) with
@@ -786,7 +786,7 @@ let instantiate_casewise_recursion,
       in let rewr2 = GEN_REWRITE_CONV I [FUN_EQ_THM]
       fun parms tm ->
         let parm = end_itlist (curry mk_pair) parms
-        let x,bod = dest_abs tm
+        let x,bod = Choice.get <| dest_abs tm
         let tm' = mk_gabs(parm,vsubst[parm,x] bod)
         let th1 = BETA_CONV(Choice.get <| mk_comb(tm,parm))
         in let th2 = GEN_BETA_CONV (Choice.get <| mk_comb(tm',parm))
@@ -939,7 +939,7 @@ let instantiate_casewise_recursion,
         let process_clause k t =
           let avs,eq = strip_forall t
           let l,r = dest_eq eq
-          let fn,cargs = dest_comb l
+          let fn,cargs = Choice.get <| dest_comb l
           let con,args = strip_comb cargs
           let bargs = filter (fun t -> Choice.get <| type_of t = ty) args
           let r' = list_mk_binop (parse_term @"(+):num->num->num")

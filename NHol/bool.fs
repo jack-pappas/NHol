@@ -398,7 +398,7 @@ let EXISTS =
         let th3 = DISCH (parse_term @"!x:A. P x ==> Q") (MP th2 (ASSUME <| parse_term @"(P:A->bool) x"))
         EQ_MP (SYM th1) (GEN (parse_term @"Q:bool") th3)
     fun (etm, stm) th -> 
-        let qf, abs = dest_comb etm
+        let qf, abs = Choice.get <| dest_comb etm
         let bth = BETA_CONV(Choice.get <| mk_comb(abs, stm))
         let cth = 
             PINST [Choice.get <| type_of stm, aty] [abs, P; stm, x] <| pth()
@@ -418,7 +418,7 @@ let CHOOSE =
         DISCH_ALL(DISCH (parse_term @"(?) (P:A->bool)") (UNDISCH th2))
     fun (v, th1) th2 -> 
         let abs = rand(concl th1)
-        let bv, bod = dest_abs abs
+        let bv, bod = Choice.get <| dest_abs abs
         let cmb = Choice.get <| mk_comb(abs, v)
         let pat = vsubst [v, bv] bod
         let th3 = CONV_RULE BETA_CONV (ASSUME cmb)

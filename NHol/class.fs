@@ -57,8 +57,8 @@ let ETA_CONV =
         prove((parse_term @"(\x. (t:A->B) x) = t"), MATCH_ACCEPT_TAC ETA_AX)
     fun tm -> 
         try 
-            let bv, bod = dest_abs tm
-            let l, r = dest_comb bod
+            let bv, bod = Choice.get <| dest_abs tm
+            let l, r = Choice.get <| dest_comb bod
             if r = bv && not(vfree_in bv l)
             then 
                 TRANS (REFL tm) (PINST [Choice.get <| type_of bv, aty
@@ -457,9 +457,9 @@ let mk_cond(b, x, y) =
 /// Breaks apart a conditional into the three terms involved.
 let dest_cond tm = 
     try 
-        let tm1, y = dest_comb tm
-        let tm2, x = dest_comb tm1
-        let c, b = dest_comb tm2
+        let tm1, y = Choice.get <| dest_comb tm
+        let tm2, x = Choice.get <| dest_comb tm1
+        let c, b = Choice.get <| dest_comb tm2
         if fst(Choice.get <| dest_const c) = "COND"
         then (b, (x, y))
         else fail()

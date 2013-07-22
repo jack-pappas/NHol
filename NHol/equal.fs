@@ -76,7 +76,7 @@ let mk_primed_var =
 let BETA_CONV tm = 
     BETA tm
     |> Choice.bindError (fun _ -> 
-        let f, arg = dest_comb tm
+        let f, arg = Choice.get <| dest_comb tm
         let v = bndvar f
         INST [arg, v] (BETA(Choice.get <| mk_comb(f, v))))
     |> Choice.mapError (fun _ -> Exception "BETA_CONV: Not a beta-redex")
@@ -120,7 +120,7 @@ let ALPHA_CONV v tm =
 let GEN_ALPHA_CONV v tm = 
     if is_abs tm then ALPHA_CONV v tm
     else 
-        let b, abs = dest_comb tm
+        let b, abs = Choice.get <| dest_comb tm
         AP_TERM b (ALPHA_CONV v abs)
 
 /// Compose equational theorems with binary operator.
@@ -183,13 +183,13 @@ let TRY_CONV conv = ORELSEC conv ALL_CONV
 /// Applies a conversion to the operator of an application.
 let RATOR_CONV : conv -> conv = 
     fun conv tm -> 
-        let l, r = dest_comb tm
+        let l, r = Choice.get <| dest_comb tm
         AP_THM (conv l) r
 
 /// Applies a conversion to the operand of an application.
 let RAND_CONV : conv -> conv = 
     fun conv tm -> 
-        let l, r = dest_comb tm
+        let l, r = Choice.get <| dest_comb tm
         AP_TERM l (conv r)
 
 /// Apply a conversion to left-hand argument of binary operator.
@@ -198,7 +198,7 @@ let LAND_CONV = RATOR_CONV << RAND_CONV
 /// Applies two conversions to the two sides of an application.
 let COMB2_CONV : conv -> conv -> conv = 
     fun lconv rconv tm -> 
-        let l, r = dest_comb tm
+        let l, r = Choice.get <| dest_comb tm
         MK_COMB(lconv l, rconv r)
 
 /// Applies a conversion to the two sides of an application.
@@ -207,7 +207,7 @@ let COMB_CONV = W COMB2_CONV
 /// Applies a conversion to the body of an abstraction.
 let ABS_CONV : conv -> conv = 
     fun conv tm -> 
-        let v, bod = dest_abs tm
+        let v, bod = Choice.get <| dest_abs tm
         let th = conv bod
         ABS v th
         |> Choice.bindError(fun _ ->
@@ -235,8 +235,8 @@ let SUB_CONV conv tm =
 
 /// Applies a conversion to both arguments of a binary operator.
 let BINOP_CONV conv tm = 
-    let lop, r = dest_comb tm
-    let op, l = dest_comb lop
+    let lop, r = Choice.get <| dest_comb tm
+    let op, l = Choice.get <| dest_comb lop
     MK_COMB(AP_TERM op (conv l), conv r)
 
 (* ------------------------------------------------------------------------- *)
@@ -264,7 +264,7 @@ and private THENCQC conv1 conv2 tm =
     | Failure _ -> th1
 
 and private COMB_QCONV conv tm = 
-    let l, r = dest_comb tm
+    let l, r = Choice.get <| dest_comb tm
     try 
         let th1 = conv l
         try 

@@ -339,7 +339,7 @@ let GEN_REAL_ARITH_001 =
                                 match POLY_MUL_CONV with
                                 | POLY_MUL_CONV -> 
                                     let REAL_INEQ_CONV pth tm = 
-                                        let lop, r = dest_comb tm
+                                        let lop, r = Choice.get <| dest_comb tm
                                         let th = 
                                             INST [rand lop, x_tm
                                                   r, y_tm] pth
@@ -695,11 +695,11 @@ let REAL_LINEAR_PROVER =
             elif is_ratconst tm
             then (one_tm |=> rat_of_term tm)
             else 
-                let lop, r = dest_comb tm
+                let lop, r = Choice.get <| dest_comb tm
                 if not(is_comb lop)
                 then (tm |=> Int 1)
                 else 
-                    let op, l = dest_comb lop
+                    let op, l = Choice.get <| dest_comb lop
                     if op = add_tm
                     then linear_add (lin_of_hol l) (lin_of_hol r)
                     elif op = mul_tm && is_ratconst l
@@ -864,7 +864,7 @@ let GEN_REAL_ARITH =
             let t = find_term (fun t -> p t && free_in t tm) tm
             let v = genvar(Choice.get <| type_of t)
             let th0 = SYM(BETA_CONV(Choice.get <| mk_comb(Choice.get <| mk_abs(v, subst [v, t] tm), t)))
-            let p, ax = dest_comb(rand(concl th0))
+            let p, ax = Choice.get <| dest_comb(rand(concl th0))
             CONV_RULE (RAND_CONV(BINOP_CONV(RAND_CONV BETA_CONV))) 
                 (TRANS th0 (c p ax))
         let elim_abs = 
@@ -873,13 +873,13 @@ let GEN_REAL_ARITH =
                           rand ax, x_tm] pth_abs)
         let elim_max = 
             eliminate_construct is_max (fun p ax -> 
-                    let ax, y = dest_comb ax
+                    let ax, y = Choice.get <| dest_comb ax
                     INST [p, p_tm
                           rand ax, x_tm
                           y, y_tm] pth_max)
         let elim_min = 
             eliminate_construct is_min (fun p ax -> 
-                    let ax, y = dest_comb ax
+                    let ax, y = Choice.get <| dest_comb ax
                     INST [p, p_tm
                           rand ax, x_tm
                           y, y_tm] pth_min)

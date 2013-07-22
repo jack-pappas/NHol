@@ -299,8 +299,8 @@ let GABS_CONV conv tm =
     if is_abs tm
     then ABS_CONV conv tm
     else 
-        let gabs, bod = dest_comb tm
-        let f, qtm = dest_abs bod
+        let gabs, bod = Choice.get <| dest_comb tm
+        let f, qtm = Choice.get <| dest_abs bod
         let xs, bod = strip_forall qtm
         AP_TERM gabs (ABS f (itlist MK_FORALL xs (RAND_CONV conv bod)))
 
@@ -383,7 +383,7 @@ let GEN_BETA_CONV =
             BETA_CONV tm
         with
         | Failure _ -> 
-            let l, r = dest_comb tm
+            let l, r = Choice.get <| dest_comb tm
             let vstr, bod = dest_gabs l
             let instn = term_match [] vstr r
             let prjs = create_iterated_projections vstr

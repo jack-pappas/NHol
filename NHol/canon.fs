@@ -617,8 +617,8 @@ let WEAK_CNF_CONV, CNF_CONV =
 /// Right-associates a term with respect to an associative binary operator.
 let ASSOC_CONV th = 
     let th' = SYM(SPEC_ALL th)
-    let opx, yopz = dest_comb(rhs(concl th'))
-    let op, x = dest_comb opx
+    let opx, yopz = Choice.get <| dest_comb(rhs(concl th'))
+    let op, x = Choice.get <| dest_comb opx
     let y = lhand yopz
     let z = rand yopz
     let rec distrib tm = 
@@ -628,7 +628,7 @@ let ASSOC_CONV th =
                 INST [p, x
                       q, y
                       r, z] th'
-            let l, r' = dest_comb(rand(concl th1))
+            let l, r' = Choice.get <| dest_comb(rand(concl th1))
             let th2 = AP_TERM l (distrib r')
             let th3 = distrib(rand(concl th2))
             TRANS th1 (TRANS th2 th3)
@@ -656,7 +656,7 @@ let SELECT_ELIM_TAC =
                      |> THEN <| REFL_TAC)
             let ptm = (parse_term @"P:A->bool")
             fun tm -> 
-                let stm, atm = dest_comb tm
+                let stm, atm = Choice.get <| dest_comb tm
                 if is_const stm && fst(Choice.get <| dest_const stm) = "@"
                 then 
                     CONV_RULE (LAND_CONV BETA_CONV) 
@@ -669,7 +669,7 @@ let SELECT_ELIM_TAC =
             let pth = ISPEC (parse_term @"P:A->bool") SELECT_AX
             let ptm = (parse_term @"P:A->bool")
             fun tm -> 
-                let stm, atm = dest_comb tm
+                let stm, atm = Choice.get <| dest_comb tm
                 if is_const stm && fst(Choice.get <| dest_const stm) = "@"
                 then 
                     let fvs = frees atm
@@ -730,7 +730,7 @@ let LAMBDA_ELIM_CONV =
         elif is_forall tm || is_exists tm || is_uexists tm
         then find_lambda(body(rand tm))
         else 
-            let l, r = dest_comb tm
+            let l, r = Choice.get <| dest_comb tm
             try 
                 find_lambda l
             with
@@ -755,7 +755,7 @@ let LAMBDA_ELIM_CONV =
         MATCH_MP pth
     let LAMB1_CONV tm = 
         let atm = find_lambda tm
-        let v, bod = dest_abs atm
+        let v, bod = Choice.get <| dest_abs atm
         let vs = frees atm
         let vs' = vs @ [v]
         let aatm = list_mk_abs(vs, atm)

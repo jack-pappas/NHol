@@ -98,11 +98,11 @@ let lift_function =
              |> THEN <| GEN_REWRITE_TAC (LAND_CONV << BINDER_CONV) [EQ_SYM_EQ]
              |> THEN <| MATCH_ACCEPT_TAC SELECT_REFL)
     fun tybij2 -> 
-        let tybl, tybr = dest_comb(concl tybij2)
+        let tybl, tybr = Choice.get <| dest_comb(concl tybij2)
         let eqvx = rand(body(rand(rand tybl)))
-        let eqv, xtm = dest_comb eqvx
+        let eqv, xtm = Choice.get <| dest_comb eqvx
         let dmr, rtm = dest_eq tybr
-        let dest, mrt = dest_comb dmr
+        let dest, mrt = Choice.get <| dest_comb dmr
         let mk = rator mrt
         let ety = Choice.get <| type_of mrt
         fun (refl_th, trans_th) fname wth -> 
@@ -120,7 +120,7 @@ let lift_function =
                 variants wfvs (map (fun v -> mk_var(fst(Choice.get <| dest_var v), ety)) rvs)
             let mems = 
                 map2 (fun rv ev -> Choice.get <| mk_comb(Choice.get <| mk_comb(dest, ev), rv)) rvs evs
-            let lcon, rcon = dest_comb con
+            let lcon, rcon = Choice.get <| dest_comb con
             let u = variant (evs @ wfvs) (mk_var("u", Choice.get <| type_of rcon))
             let ucon = Choice.get <| mk_comb(lcon, u)
             let dbod = list_mk_conj(ucon :: mems)
@@ -153,7 +153,7 @@ let lift_function =
                 EQ_MP th (EXISTS (lhs(concl th), xtm) (REFL eqvx))
             let ith = INST (zip targs evs) eth
             let jth = SUBS (map (fun v -> INST [v, xtm] dme_th) rvs) ith
-            let apop, uxtm = dest_comb(rand(concl jth))
+            let apop, uxtm = Choice.get <| dest_comb(rand(concl jth))
             let extm = body uxtm
             let evs, bod = strip_exists extm
             let th1 = ASSUME bod

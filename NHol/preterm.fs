@@ -215,11 +215,11 @@ let rec preterm_of_term tm =
         with
         | Failure _ -> 
             try 
-                let v, bod = dest_abs tm
+                let v, bod = Choice.get <| dest_abs tm
                 Absp(preterm_of_term v, preterm_of_term bod)
             with
             | Failure _ -> 
-                let l, r = dest_comb tm
+                let l, r = Choice.get <| dest_comb tm
                 Combp(preterm_of_term l, preterm_of_term r)
 
 (* ------------------------------------------------------------------------- *)

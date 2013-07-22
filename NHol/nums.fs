@@ -321,7 +321,7 @@ let new_specification =
         let th0 = CONV_RULE (REWR_CONV SKOLEM_THM) (GEN gv th)
         let th1 = CONV_RULE (RATOR_CONV(REWR_CONV EXISTS_THM)
                              |> THENC <| BETA_CONV) th0
-        let l, r = dest_comb(concl th1)
+        let l, r = Choice.get <| dest_comb(concl th1)
         let rn = Choice.get <| mk_comb(r, ntm)
         let ty = Choice.get <| type_of rn
         let th2 = new_definition(mk_eq(mk_var(name, ty), rn))

@@ -493,8 +493,8 @@ let ABS_TAC : tactic =
     fun (asl, w) -> 
         let v = 
             let l, r = dest_eq w
-            let lv, lb = dest_abs l
-            let rv, rb = dest_abs r
+            let lv, lb = Choice.get <| dest_abs l
+            let rv, rb = Choice.get <| dest_abs r
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
             let v = mk_primed_var avoids lv
             (null_meta, [asl, mk_eq(vsubst [v, lv] lb, vsubst [v, rv] rb)], 
@@ -517,8 +517,8 @@ let MK_COMB_TAC : tactic =
                 | [a1; a2] -> (a1, a2)
                 | _ -> failwith "MK_COMB_TAC.fun1: Unhandled case."
             let l, r = dest_eq gl
-            let f, x = dest_comb l
-            let g, y = dest_comb r
+            let f, x = Choice.get <| dest_comb l
+            let g, y = Choice.get <| dest_comb r
             (null_meta, [asl, mk_eq(f, g); asl, mk_eq(x, y)], fun _ tl -> MK_COMB (fun1 tl))
             |> Choice1Of2
         v |> Choice.mapError (fun _ -> Exception "MK_COMB_TAC: Failure.")

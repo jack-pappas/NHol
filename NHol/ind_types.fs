@@ -713,8 +713,8 @@ let define_type_raw_001 =
             if is_imp bod
             then conjuncts(lhand bod), rand bod
             else [], bod
-        let asmlist = map dest_comb asms
-        let cpred, cterm = dest_comb conc
+        let asmlist = map (Choice.get << dest_comb) asms
+        let cpred, cterm = Choice.get <| dest_comb conc
         let oldcon, oldargs = strip_comb cterm
         let modify_arg v = 
             try 
@@ -842,7 +842,7 @@ let define_type_raw_001 =
         fun th -> 
             let av, bimp = dest_forall(concl th)
             let pv = lhand(body(rator(rand bimp)))
-            let p, v = dest_comb pv
+            let p, v = Choice.get <| dest_comb pv
             let mk, dest = assoc p consindex |> Option.getOrFailWith "find"
             let ty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of dest)))
             let v' = mk_var(fst(Choice.get <| dest_var v), ty)
@@ -963,8 +963,8 @@ let define_type_raw_001 =
                 let artms = snd(strip_comb(rand(rand(concl cth))))
                 let artys = mapfilter (Choice.get << type_of << rand) artms
                 let args, bod = strip_abs(rand(hd(hyp cth)))
-                let ccitm, rtm = dest_comb bod
-                let cctm, itm = dest_comb ccitm
+                let ccitm, rtm = Choice.get <| dest_comb bod
+                let cctm, itm = Choice.get <| dest_comb ccitm
                 let rargs, iargs = partition (C free_in rtm) args
                 let xths = map (extract_arg itm) iargs
                 let cargs' = map (subst [i, itm] << lhand << concl) xths
@@ -997,7 +997,7 @@ let define_type_raw_001 =
             let eth = ISPEC bigfun CONSTR_REC
             let fn = rator(rand(hd(conjuncts(concl rath))))
             let betm = 
-                let v, bod = dest_abs(rand(concl eth))
+                let v, bod = Choice.get <| dest_abs(rand(concl eth))
                 vsubst [fn, v] bod
             let LCONV = REWR_CONV(ASSUME betm)
             let fnths = 
@@ -1166,7 +1166,7 @@ let define_type_raw_002 =
             let s, ty = Choice.get <| dest_var fn
             let dty = hd(snd(Choice.get <| dest_type ty))
             let x = mk_var("x", dty)
-            let y, bod = dest_abs outl
+            let y, bod = Choice.get <| dest_abs outl
             let r = Choice.get <| mk_abs(x, vsubst [Choice.get <| mk_comb(fn, x), y] bod)
             let l = mk_var(s, Choice.get <| type_of r)
             let th1 = ASSUME(mk_eq(l, r))
@@ -1316,7 +1316,7 @@ let prove_constructors_distinct =
         CONJUNCTS(PROVE_HYP eth (SIMPLE_CHOOSE ev (end_itlist CONJ fths)))
     fun ax -> 
         let cls = conjuncts(snd(strip_exists(snd(strip_forall(concl ax)))))
-        let lefts = map (dest_comb << lhand << snd << strip_forall) cls
+        let lefts = map (Choice.get << dest_comb << lhand << snd << strip_forall) cls
         let fns = itlist (insert << fst) lefts []
         let pats = map (fun f -> map snd (filter ((=) f << fst) lefts)) fns
         end_itlist CONJ (end_itlist (@) (mapfilter (prove_distinct ax) pats));;
@@ -1373,7 +1373,7 @@ let prove_cases_thm =
                     if is_imp t
                     then rand t
                     else t) cls
-        let spats = map dest_comb pats
+        let spats = map (Choice.get << dest_comb) pats
         let preds = itlist (insert << fst) spats []
         let rpatlist = 
             map (fun pr -> map snd (filter (fun (p, x) -> p = pr) spats)) preds
@@ -1558,11 +1558,11 @@ let define_type_raw =
         DE_EXISTENTIALIZE_RULE
     let grab_type = Choice.get << type_of << rand << lhand << snd << strip_forall
     let clause_corresponds cl0 = 
-        let f0, ctm0 = dest_comb(lhs cl0)
+        let f0, ctm0 = Choice.get <| dest_comb(lhs cl0)
         let c0 = fst(Choice.get <| dest_const(fst(strip_comb ctm0)))
         let dty0, rty0 = dest_fun_ty(Choice.get <| type_of f0)
         fun cl1 -> 
-            let f1, ctm1 = dest_comb(lhs cl1)
+            let f1, ctm1 = Choice.get <| dest_comb(lhs cl1)
             let c1 = fst(Choice.get <| dest_const(fst(strip_comb ctm1)))
             let dty1, rty1 = dest_fun_ty(Choice.get <| type_of f1)
             c0 = c1 && dty0 = rty1 && rty0 = dty1

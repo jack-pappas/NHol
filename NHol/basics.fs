@@ -79,7 +79,7 @@ let rec tysubst alist ty =
 /// Returns the bound variable of an abstraction.
 let bndvar tm = 
     try 
-        fst(dest_abs tm)
+        fst(Choice.get <| dest_abs tm)
     with
     | Failure _ as e ->
         nestedFailwith e "bndvar: Not an abstraction"
@@ -87,7 +87,7 @@ let bndvar tm =
 /// Returns the body of an abstraction.
 let body tm = 
     try 
-        snd(dest_abs tm)
+        snd(Choice.get <| dest_abs tm)
     with
     | Failure _ as e ->
         nestedFailwith e "body: Not an abstraction"
@@ -97,9 +97,9 @@ let list_mk_comb(h, t) = rev_itlist (C(curry (Choice.get << mk_comb))) t h
 /// Iteratively constructs abstractions.
 let list_mk_abs(vs, bod) = itlist (curry (Choice.get << mk_abs)) vs bod
 /// Iteratively breaks apart combinations (function applications).
-let strip_comb = rev_splitlist dest_comb
+let strip_comb = rev_splitlist (Choice.get << dest_comb)
 /// Iteratively breaks apart abstractions.
-let strip_abs = splitlist dest_abs
+let strip_abs = splitlist (Choice.get << dest_abs)
 
 (* ------------------------------------------------------------------------- *)
 (* Generic syntax to deal with some binary operators.                        *)
@@ -150,10 +150,10 @@ let variables =
         if is_var tm then insert tm acc
         elif is_const tm then acc
         elif is_abs tm then 
-            let v, bod = dest_abs tm
+            let v, bod = Choice.get <| dest_abs tm
             vars(insert v acc, bod)
         else 
-            let l, r = dest_comb tm
+            let l, r = Choice.get <| dest_comb tm
             vars(vars(acc, l), r)
     fun tm -> vars([], tm)
 
@@ -199,7 +199,7 @@ let subst =
 let alpha v tm = 
     let v0, bod = 
         try 
-            dest_abs tm
+            Choice.get <| dest_abs tm
         with
         | Failure _ as e ->
             nestedFailwith e "alpha: Not an abstraction"
@@ -281,10 +281,10 @@ let thm_frees th =
 let rec free_in tm1 tm2 = 
     if aconv tm1 tm2 then true
     elif is_comb tm2 then 
-        let l, r = dest_comb tm2
+        let l, r = Choice.get <| dest_comb tm2
         free_in tm1 l || free_in tm1 r
     elif is_abs tm2 then 
-        let bv, bod = dest_abs tm2
+        let bv, bod = Choice.get <| dest_abs tm2
         not(vfree_in bv tm1) && free_in tm1 bod
     else false
 
@@ -297,7 +297,7 @@ let rec find_term p tm =
     if p tm then tm
     elif is_abs tm then find_term p (body tm)
     elif is_comb tm then 
-        let l, r = dest_comb tm
+        let l, r = Choice.get <| dest_comb tm
         try 
             find_term p l
         with
@@ -422,7 +422,7 @@ let is_neg tm =
 /// Breaks apart a negation, returning its body.
 let dest_neg tm = 
     try 
-        let n, p = dest_comb tm
+        let n, p = Choice.get <| dest_comb tm
         if fst(Choice.get <| dest_const n) = "~" then p
         else fail()
     with
@@ -468,7 +468,7 @@ let dest_numeral =
            | Failure _ -> false
         then num_0
         else 
-            let l, r = dest_comb tm
+            let l, r = Choice.get <| dest_comb tm
             let n = num_2 * dest_num r
             let cn = fst(Choice.get <| dest_const l)
             if cn = "BIT0" then n
@@ -476,7 +476,7 @@ let dest_numeral =
             else fail()
     fun tm -> 
         try 
-            let l, r = dest_comb tm
+            let l, r = Choice.get <| dest_comb tm
             if fst(Choice.get <| dest_const l) = "NUMERAL" then dest_num r
             else fail()
         with
@@ -497,9 +497,9 @@ let dest_gabs =
     let dest_geq = dest_binary "GEQ"
     fun tm -> 
         try 
-            if is_abs tm then dest_abs tm
+            if is_abs tm then Choice.get <| dest_abs tm
             else 
-                let l, r = dest_comb tm
+                let l, r = Choice.get <| dest_comb tm
                 if not(fst(Choice.get <| dest_const l) = "GABS") then fail()
                 else 
                     let ltm, rtm = dest_geq(snd(strip_forall(body r)))
@@ -550,7 +550,7 @@ let dest_let tm =
         else 
             let vars, lebod = strip_gabs(hd aargs)
             let eqs = zip vars (tl aargs)
-            let le, bod = dest_comb lebod
+            let le, bod = Choice.get <| dest_comb lebod
             if fst(Choice.get <| dest_const le) = "LET_END" then eqs, bod
             else fail()
     with

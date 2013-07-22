@@ -405,7 +405,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         v |> Choice.bindError (fun _ ->
                 if is_comb tm
                 then 
-                    let l, r = dest_comb tm
+                    let l, r = Choice.get <| dest_comb tm
                     let v = 
                         let th1 = strat ss lev l
                         let v = 
@@ -415,7 +415,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                     v |> Choice.bindError (fun _ -> AP_TERM l (strat ss lev r))
                 elif is_abs tm
                 then 
-                    let v, bod = dest_abs tm
+                    let v, bod = Choice.get <| dest_abs tm
                     let th = strat ss lev bod
                     let v' = 
                         ABS v th
