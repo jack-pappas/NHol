@@ -449,7 +449,7 @@ let is_cond tm =
 let mk_cond(b, x, y) = 
     try 
         let c = Choice.get <| mk_const("COND", [Choice.get <| type_of x, aty])
-        mk_comb(mk_comb(mk_comb(c, b), x), y)
+        Choice.get <| mk_comb(Choice.get <| mk_comb(Choice.get <| mk_comb(c, b), x), y)
     with
     | Failure _ as e ->
         nestedFailwith e "mk_cond"

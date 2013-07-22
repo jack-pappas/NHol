@@ -78,7 +78,7 @@ let dest_iff tm =
 /// Constructs a logical equivalence (Boolean equation).
 let mk_iff = 
     let eq_tm = parse_term @"(<=>)"
-    fun (l, r) -> mk_comb(mk_comb(eq_tm, l), r)
+    fun (l, r) -> Choice.get <| mk_comb(Choice.get <| mk_comb(eq_tm, l), r)
 
 (* ------------------------------------------------------------------------- *)
 (* Rule allowing easy instantiation of polymorphic proformas.                *)
@@ -399,7 +399,7 @@ let EXISTS =
         EQ_MP (SYM th1) (GEN (parse_term @"Q:bool") th3)
     fun (etm, stm) th -> 
         let qf, abs = dest_comb etm
-        let bth = BETA_CONV(mk_comb(abs, stm))
+        let bth = BETA_CONV(Choice.get <| mk_comb(abs, stm))
         let cth = 
             PINST [Choice.get <| type_of stm, aty] [abs, P; stm, x] <| pth()
         PROVE_HYP (EQ_MP (SYM bth) th) cth
@@ -419,7 +419,7 @@ let CHOOSE =
     fun (v, th1) th2 -> 
         let abs = rand(concl th1)
         let bv, bod = dest_abs abs
-        let cmb = mk_comb(abs, v)
+        let cmb = Choice.get <| mk_comb(abs, v)
         let pat = vsubst [v, bv] bod
         let th3 = CONV_RULE BETA_CONV (ASSUME cmb)
         let th4 = GEN v (DISCH cmb (MP (DISCH pat th2) th3))
@@ -508,7 +508,7 @@ let mk_neg =
     let neg_tm = parse_term @"(~)"
     fun tm -> 
         try 
-            mk_comb(neg_tm, tm)
+            Choice.get <| mk_comb(neg_tm, tm)
         with
         | Failure _ as e ->
             nestedFailwith e "mk_neg"

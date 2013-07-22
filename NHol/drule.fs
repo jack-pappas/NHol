@@ -119,7 +119,7 @@ let instantiate : instantiation -> term -> term =
         else 
             try 
                 let bv, bod = dest_abs tm
-                mk_abs(bv, ho_betas bcs (body pat) bod)
+                Choice.get <| mk_abs(bv, ho_betas bcs (body pat) bod)
             with
             | Failure _ -> 
                 let hop, args = strip_comb pat
@@ -138,13 +138,13 @@ let instantiate : instantiation -> term -> term =
                         let lth = ho_betas bcs lpat ltm
                         try 
                             let rth = ho_betas bcs rpat rtm
-                            mk_comb(lth, rth)
+                            Choice.get <| mk_comb(lth, rth)
                         with
-                        | Failure _ -> mk_comb(lth, rtm)
+                        | Failure _ -> Choice.get <| mk_comb(lth, rtm)
                     with
                     | Failure _ -> 
                         let rth = ho_betas bcs rpat rtm
-                        mk_comb(ltm, rth)
+                        Choice.get <| mk_comb(ltm, rth)
     fun (bcs, tmin, tyin) tm -> 
         let itm = 
             if tyin = []
@@ -498,14 +498,14 @@ let deep_alpha =
                     let v' = mk_var(vn', vty)
                     let tm' = tryalpha v' tm
                     let iv, ib = dest_abs tm'
-                    mk_abs(iv, deep_alpha newenv ib)
+                    Choice.get <| mk_abs(iv, deep_alpha newenv ib)
                 with
-                | Failure _ -> mk_abs(v, deep_alpha env bod)
+                | Failure _ -> Choice.get <| mk_abs(v, deep_alpha env bod)
             with
             | Failure _ -> 
                 try 
                     let l, r = dest_comb tm
-                    mk_comb(deep_alpha env l, deep_alpha env r)
+                    Choice.get <| mk_comb(deep_alpha env l, deep_alpha env r)
                 with
                 | Failure _ -> tm
     deep_alpha
@@ -674,7 +674,7 @@ let HIGHER_REWRITE_CONV =
                 assoc pat ass_list
                 |> Option.getOrFailWith "find"
             let gv = genvar(Choice.get <| type_of stm)
-            let abs = mk_abs(gv, subst [gv, stm] tm)
+            let abs = Choice.get <| mk_abs(gv, subst [gv, stm] tm)
             let _, tmin0, tyin0 = term_match [] pred abs
             CONV_RULE beta_fn (INST tmin (INST tmin0 (INST_TYPE tyin0 th)))
 

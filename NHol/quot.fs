@@ -66,9 +66,9 @@ let define_quotient_type =
         let pty = mk_fun_ty ty bool_ty
         let s = mk_var("s", pty)
         let x = mk_var("x", ty)
-        let eqvx = mk_comb(eqv, x)
-        let pred = mk_abs(s, mk_exists(x, mk_eq(s, eqvx)))
-        let th0 = BETA_CONV(mk_comb(pred, eqvx))
+        let eqvx = Choice.get <| mk_comb(eqv, x)
+        let pred = Choice.get <| mk_abs(s, mk_exists(x, mk_eq(s, eqvx)))
+        let th0 = BETA_CONV(Choice.get <| mk_comb(pred, eqvx))
         let th1 = EXISTS (rand(concl th0), x) (REFL eqvx)
         let th2 = EQ_MP (SYM th0) th1
         let abs, rep = new_basic_type_definition tyname (absname, repname) th2
@@ -119,17 +119,17 @@ let lift_function =
             let evs = 
                 variants wfvs (map (fun v -> mk_var(fst(dest_var v), ety)) rvs)
             let mems = 
-                map2 (fun rv ev -> mk_comb(mk_comb(dest, ev), rv)) rvs evs
+                map2 (fun rv ev -> Choice.get <| mk_comb(Choice.get <| mk_comb(dest, ev), rv)) rvs evs
             let lcon, rcon = dest_comb con
             let u = variant (evs @ wfvs) (mk_var("u", Choice.get <| type_of rcon))
-            let ucon = mk_comb(lcon, u)
+            let ucon = Choice.get <| mk_comb(lcon, u)
             let dbod = list_mk_conj(ucon :: mems)
             let detm = list_mk_exists(rvs, dbod)
-            let datm = mk_abs(u, detm)
+            let datm = Choice.get <| mk_abs(u, detm)
             let def = 
                 if is_eq con
                 then list_mk_icomb "@" [datm]
-                else mk_comb(mk, datm)
+                else Choice.get <| mk_comb(mk, datm)
             let newargs = 
                 map (fun e -> 
                         try 
@@ -147,7 +147,7 @@ let lift_function =
                 rev_itlist 
                     (fun v th -> CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th v)) 
                     newargs dth
-            let targs = map (fun v -> mk_comb(mk, mk_comb(eqv, v))) rvs
+            let targs = map (fun v -> Choice.get <| mk_comb(mk, Choice.get <| mk_comb(eqv, v))) rvs
             let dme_th = 
                 let th = INST [eqvx, rtm] tybij2
                 EQ_MP th (EXISTS (lhs(concl th), xtm) (REFL eqvx))

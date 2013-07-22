@@ -3798,7 +3798,7 @@ let new_inductive_set =
             | ty :: tys -> 
                 let v = 
                     variant (variables tm) (mk_var("x" + string n, ty))
-                f (n + 1) (mk_comb(tm, v)) tys
+                f (n + 1) (Choice.get <| mk_comb(tm, v)) tys
         fun tm -> 
             let tys = fst(splitlist dest_fun_ty (Choice.get <| type_of tm))
             f 0 tm tys

@@ -87,10 +87,10 @@ let dest_realintconst tm =
 let mk_realintconst = 
     let cast_tm = (parse_term @"real_of_num")
     let neg_tm = (parse_term @"(--)")
-    let mk_numconst n = mk_comb(cast_tm, mk_numeral n)
+    let mk_numconst n = Choice.get <| mk_comb(cast_tm, mk_numeral n)
     fun x -> 
         if x < num_0
-        then mk_comb(neg_tm, mk_numconst(minus_num x))
+        then Choice.get <| mk_comb(neg_tm, mk_numconst(minus_num x))
         else mk_numconst x
 
 /// Tests if a term is a canonical rational literal of type :real.
@@ -122,7 +122,7 @@ let term_of_rat =
         let ptm = mk_realintconst p
         if q = num_1
         then ptm
-        else mk_comb(mk_comb(div_tm, ptm), mk_realintconst q)
+        else Choice.get <| mk_comb(Choice.get <| mk_comb(div_tm, ptm), mk_realintconst q)
 
 (* ------------------------------------------------------------------------- *)
 (* Some elementary "bootstrapping" lemmas we need below.                     *)

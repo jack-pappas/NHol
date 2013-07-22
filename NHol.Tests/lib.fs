@@ -503,24 +503,24 @@ let ``{map2} fails if the two lists are of different lengths``() =
 
 (* can tests *)
 
-[<Test>]
-let ``{can f x} evaluates to {true} if the application of {f} to {x} succeeds``() =
-
-    can hd [1;2]
-    |> should equal true
-
-[<Test>]
-let ``{can f x} evaluates to {false} if the application of {f} to {x} causes an System.Exception exception``() =
-
-    can hd []
-    |> should equal false
-
-[<Test>]
-[<ExpectedException(typeof<System.DivideByZeroException>, ExpectedMessage = "Attempted to divide by zero.")>]
-let ``{can f x} fails if the application of {f} to {x} causes an exception different from System.Exception``() =
-
-    can (fun x -> x / 0) 3
-    |> ignore
+//[<Test>]
+//let ``{can f x} evaluates to {true} if the application of {f} to {x} succeeds``() =
+//
+//    can hd [1;2]
+//    |> should equal true
+//
+//[<Test>]
+//let ``{can f x} evaluates to {false} if the application of {f} to {x} causes an System.Exception exception``() =
+//
+//    can hd []
+//    |> should equal false
+//
+//[<Test>]
+//[<ExpectedException(typeof<System.DivideByZeroException>, ExpectedMessage = "Attempted to divide by zero.")>]
+//let ``{can f x} fails if the application of {f} to {x} causes an exception different from System.Exception``() =
+//
+//    can (fun x -> x / 0) 3
+//    |> ignore
 
 (* check tests *)
 

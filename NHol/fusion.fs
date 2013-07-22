@@ -271,23 +271,28 @@ module Hol_kernel =
     let mk_const(name, theta) = 
         let uty = get_const_type name
         uty
-        |> Choice.bind (fun uty -> 
-            Choice.succeed <| Const(name, type_subst theta uty))
+        |> Choice.map (fun uty -> Const(name, type_subst theta uty))
         |> Choice.bindError (fun e -> 
             Choice.nestedFailwith e "mk_const: not a constant name")
     
     /// Constructs an abstraction.
     let mk_abs(bvar, bod) = 
         match bvar with
-        | Var(_, _) -> Abs(bvar, bod)
-        | _ -> failwith "mk_abs: not a variable"
+        | Var(_, _) -> Choice.succeed <| Abs(bvar, bod)
+        | _ -> Choice.failwith "mk_abs: not a variable"
     
     /// Constructs a combination.
     let mk_comb(f, a) = 
-        match Choice.get <| type_of f with
-        | Tyapp("fun", [ty; _]) when compare ty (Choice.get <| type_of a) = 0 -> Comb(f, a)
-        | _ -> failwith "mk_comb: types do not agree"
-    
+        type_of f 
+        |> Choice.bind (fun ty0 -> 
+            match ty0 with
+            | Tyapp("fun", [ty; _]) ->
+                type_of a
+                |> Choice.bind (fun ta ->
+                    if compare ty ta = 0 then Choice.succeed <| Comb(f, a)
+                    else Choice.failwith "mk_comb: types do not agree")
+            | _ -> Choice.failwith "mk_comb: types do not agree")
+
     (* ------------------------------------------------------------------------- *)
     (* Primitive destructors.                                                    *)
     (* ------------------------------------------------------------------------- *)
@@ -759,8 +764,8 @@ module Hol_kernel =
                          Const(repname, repty))
                     let a = Var("a", aty)
                     let r = Var("r", rty)
-                    Choice1Of2 <| Sequent([], safe_mk_eq (Comb(abs, mk_comb(rep, a))) a), 
-                    Choice1Of2 <| Sequent([], safe_mk_eq (Comb(P, r)) (safe_mk_eq (mk_comb(rep, mk_comb(abs, r))) r))
+                    Choice1Of2 <| Sequent([], safe_mk_eq (Comb(abs, Choice.get <| mk_comb(rep, a))) a), 
+                    Choice1Of2 <| Sequent([], safe_mk_eq (Comb(P, r)) (safe_mk_eq (Choice.get <| mk_comb(rep, Choice.get <| mk_comb(abs, r))) r))
         | Error _ ->
             tuple (Choice2Of2 <| Exception "new_basic_type_definition: Erroneous theorem")
 
@@ -787,7 +792,7 @@ let mk_eq =
         try 
             let ty = Choice.get <| type_of l
             let eq_tm = inst [ty, aty] eq
-            mk_comb(mk_comb(eq_tm, l), r)
+            Choice.get <| mk_comb(Choice.get <| mk_comb(eq_tm, l), r)
         with
         | Failure _ as e ->
             nestedFailwith e "mk_eq"

@@ -78,7 +78,7 @@ let BETA_CONV tm =
     |> Choice.bindError (fun _ -> 
         let f, arg = dest_comb tm
         let v = bndvar f
-        INST [arg, v] (BETA(mk_comb(f, v))))
+        INST [arg, v] (BETA(Choice.get <| mk_comb(f, v))))
     |> Choice.mapError (fun _ -> Exception "BETA_CONV: Not a beta-redex")
 
 (* ------------------------------------------------------------------------- *)

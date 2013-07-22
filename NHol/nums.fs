@@ -283,13 +283,11 @@ let mk_numeral =
         if n =/ num_0
         then Z
         else 
-            mk_comb((if mod_num n num_2 =/ num_0
-                     then BIT0
-                     else BIT1), mk_num(quo_num n num_2))
+            Choice.get <| mk_comb((if mod_num n num_2 =/ num_0 then BIT0 else BIT1), mk_num(quo_num n num_2))
     fun n -> 
         if n </ zero
         then failwith "mk_numeral: negative argument"
-        else mk_comb(NUMERAL, mk_num n)
+        else Choice.get <| mk_comb(NUMERAL, mk_num n)
 
 /// Maps a nonnegative integer to corresponding numeral term.
 let mk_small_numeral n = mk_numeral(Int n)
@@ -324,7 +322,7 @@ let new_specification =
         let th1 = CONV_RULE (RATOR_CONV(REWR_CONV EXISTS_THM)
                              |> THENC <| BETA_CONV) th0
         let l, r = dest_comb(concl th1)
-        let rn = mk_comb(r, ntm)
+        let rn = Choice.get <| mk_comb(r, ntm)
         let ty = Choice.get <| type_of rn
         let th2 = new_definition(mk_eq(mk_var(name, ty), rn))
         GEN_REWRITE_RULE ONCE_DEPTH_CONV [GSYM th2] 

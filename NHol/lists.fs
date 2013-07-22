@@ -736,7 +736,7 @@ let MEM_APPEND_DECOMPOSE =
 let mk_cons h t = 
     try 
         let cons = Choice.get <| mk_const("CONS", [Choice.get <| type_of h, aty])
-        mk_comb(mk_comb(cons, h), t)
+        Choice.get <| mk_comb(Choice.get <| mk_comb(cons, h), t)
     with
     | Failure _ as e -> nestedFailwith e "mk_cons"
 

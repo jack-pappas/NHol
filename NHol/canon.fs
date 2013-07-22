@@ -252,7 +252,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             AP_TERM q (ABS x th_p), 
             let th1 = INST [bod,mk_var("P",mk_fun_ty ty bool_ty)]
                          (INST_TYPE [ty,aty] pth_not_forall)
-            let th2 = TRANS (AP_TERM not_tm (BETA(mk_comb(bod,x)))) th_n
+            let th2 = TRANS (AP_TERM not_tm (BETA(Choice.get <| mk_comb(bod,x)))) th_n
             TRANS th1 (MK_EXISTS x th2)
         | Comb(Const("?", Tyapp("fun", Tyapp("fun", ty :: _) :: _)) as q, 
                (Abs(x, t) as bod)) -> 
@@ -260,7 +260,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             AP_TERM q (ABS x th_p), 
             let th1 = INST [bod,mk_var("P",mk_fun_ty ty bool_ty)]
                          (INST_TYPE [ty,aty] pth_not_exists)
-            let th2 = TRANS (AP_TERM not_tm (BETA(mk_comb(bod,x)))) th_n in
+            let th2 = TRANS (AP_TERM not_tm (BETA(Choice.get <| mk_comb(bod,x)))) th_n in
             TRANS th1 (MK_FORALL x th2)
         | Comb(Const("?!", Tyapp("fun", Tyapp("fun", ty :: _) :: _)), 
                (Abs(x, t) as bod)) -> 
@@ -268,8 +268,8 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             let th_p, th_n = NNF_DCONV cf baseconvs t
             let eq = mk_eq(y, x)
             let eth_p, eth_n = baseconvs eq
-            let bth = BETA(mk_comb(bod, x))
-            let bth' = BETA_CONV(mk_comb(bod, y))
+            let bth = BETA(Choice.get <| mk_comb(bod, x))
+            let bth' = BETA_CONV(Choice.get <| mk_comb(bod, y))
             let th_p' = INST [y, x] th_p
             let th_n' = INST [y, x] th_n
             let th1 = 
@@ -355,8 +355,8 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             let th_p, th_n = NNF_DCONV cf base2 t
             let eq = mk_eq(y, x)
             let eth_p, eth_n = base2 eq
-            let bth = BETA(mk_comb(bod, x))
-            let bth' = BETA_CONV(mk_comb(bod, y))
+            let bth = BETA(Choice.get <| mk_comb(bod, x))
+            let bth' = BETA_CONV(Choice.get <| mk_comb(bod, y))
             let th_n' = INST [y, x] th_n
             let th1 = 
                 INST [bod, mk_var("P", mk_fun_ty ty bool_ty)] 
@@ -422,7 +422,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             let th1 = 
                 INST [bod, mk_var("P", mk_fun_ty ty bool_ty)] 
                     (INST_TYPE [ty, aty] pth_not_forall)
-            let th2 = TRANS (AP_TERM not_tm (BETA(mk_comb(bod, x)))) th_n
+            let th2 = TRANS (AP_TERM not_tm (BETA(Choice.get <| mk_comb(bod, x)))) th_n
             TRANS th1 (MK_EXISTS x th2)
         | Comb(Const("?", Tyapp("fun", Tyapp("fun", ty :: _) :: _)), 
                (Abs(x, t) as bod)) -> 
@@ -430,7 +430,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             let th1 = 
                 INST [bod, mk_var("P", mk_fun_ty ty bool_ty)] 
                     (INST_TYPE [ty, aty] pth_not_exists)
-            let th2 = TRANS (AP_TERM not_tm (BETA(mk_comb(bod, x)))) th_n
+            let th2 = TRANS (AP_TERM not_tm (BETA(Choice.get <| mk_comb(bod, x)))) th_n
             TRANS th1 (MK_FORALL x th2)
         | Comb(Const("?!", Tyapp("fun", Tyapp("fun", ty :: _) :: _)), 
                (Abs(x, t) as bod)) -> 
@@ -438,8 +438,8 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             let th_p, th_n = NNF_DCONV cf base2 t
             let eq = mk_eq(y, x)
             let eth_p, eth_n = base2 eq
-            let bth = BETA(mk_comb(bod, x))
-            let bth' = BETA_CONV(mk_comb(bod, y))
+            let bth = BETA(Choice.get <| mk_comb(bod, x))
+            let bth' = BETA_CONV(Choice.get <| mk_comb(bod, y))
             let th_p' = INST [y, x] th_p
             let th1' = 
                 INST [bod, mk_var("P", mk_fun_ty ty bool_ty)] 

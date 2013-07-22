@@ -85,8 +85,8 @@ let EXISTS_EQUATION =
              |> THEN <| REFL_TAC)
     fun tm th -> 
         let l, r = dest_eq tm
-        let P = mk_abs(l, concl th)
-        let th1 = BETA_CONV(mk_comb(P, l))
+        let P = Choice.get <| mk_abs(l, concl th)
+        let th1 = BETA_CONV(Choice.get <| mk_comb(P, l))
         let th2 = ISPECL [P; r] pth
         let th3 = EQ_MP (SYM th1) th
         let th4 = GEN l (DISCH tm th3)
@@ -274,8 +274,8 @@ let derive_nonschematic_inductive_relations =
             let i, l = dest_comb il
             let bth = RIGHT_BETAS avs (REFL dtm)
             let munb = AP_THM (AP_TERM i bth) r
-            let iunb = AP_TERM (mk_comb(i, double_fn l)) bth
-            let junb = AP_TERM (mk_comb(i, r)) bth
+            let iunb = AP_TERM (Choice.get <| mk_comb(i, double_fn l)) bth
+            let junb = AP_TERM (Choice.get <| mk_comb(i, r)) bth
             let quantify = itlist MK_FORALL avs
             (quantify munb, (quantify iunb, quantify junb))
         let unths = map2 mk_unbetas clauses dtms

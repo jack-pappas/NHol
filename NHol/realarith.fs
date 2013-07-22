@@ -451,24 +451,24 @@ let GEN_REAL_ARITH_001 =
                                             | Rational_eq x -> 
                                                 EQT_ELIM
                                                     (NUMERIC_EQ_CONV
-                                                         (mk_comb
-                                                              (mk_comb
+                                                         (Choice.get <| mk_comb
+                                                              (Choice.get <| mk_comb
                                                                    (eq_tm, 
                                                                     mk_numeric x), 
                                                                z_tm)))
                                             | Rational_le x -> 
                                                 EQT_ELIM
                                                     (NUMERIC_GE_CONV
-                                                         (mk_comb
-                                                              (mk_comb
+                                                         (Choice.get <| mk_comb
+                                                              (Choice.get <| mk_comb
                                                                    (ge_tm, 
                                                                     mk_numeric x), 
                                                                z_tm)))
                                             | Rational_lt x -> 
                                                 EQT_ELIM
                                                     (NUMERIC_GT_CONV
-                                                         (mk_comb
-                                                              (mk_comb
+                                                         (Choice.get <| mk_comb
+                                                              (Choice.get <| mk_comb
                                                                    (gt_tm, 
                                                                     mk_numeric x), 
                                                                z_tm)))
@@ -863,7 +863,7 @@ let GEN_REAL_ARITH =
         let eliminate_construct p c tm = 
             let t = find_term (fun t -> p t && free_in t tm) tm
             let v = genvar(Choice.get <| type_of t)
-            let th0 = SYM(BETA_CONV(mk_comb(mk_abs(v, subst [v, t] tm), t)))
+            let th0 = SYM(BETA_CONV(Choice.get <| mk_comb(Choice.get <| mk_abs(v, subst [v, t] tm), t)))
             let p, ax = dest_comb(rand(concl th0))
             CONV_RULE (RAND_CONV(BINOP_CONV(RAND_CONV BETA_CONV))) 
                 (TRANS th0 (c p ax))

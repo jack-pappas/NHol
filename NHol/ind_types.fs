@@ -531,7 +531,7 @@ let define_type_raw_001 =
     let sucivate = 
         let zero = (parse_term @"0")
         let suc = (parse_term @"SUC")
-        fun n -> funpow n (curry mk_comb suc) zero
+        fun n -> funpow n (curry (Choice.get << mk_comb) suc) zero
 
     (* ----------------------------------------------------------------------- *)
     (* Eliminate local "definitions" in hyps.                                  *)
@@ -580,7 +580,7 @@ let define_type_raw_001 =
             let constr = Choice.get <| mk_const("CONSTR", [pty, aty])
             let fcons = Choice.get <| mk_const("FCONS", [recty, aty])
             let bot = Choice.get <| mk_const("BOTTOM", [pty, aty])
-            let bottail = mk_abs(n_tm, bot)
+            let bottail = Choice.get <| mk_abs(n_tm, bot)
             let mk_constructor n (cname, cargs) = 
                 let ttys = 
                     map (fun ty -> 
@@ -635,10 +635,9 @@ let define_type_raw_001 =
                     itlist2 (fun arg argty sofar -> 
                             if mem argty newtys
                             then 
-                                mk_comb(mk_var(Choice.get <| dest_vartype argty, predty), arg) 
-                                :: sofar
+                                (Choice.get <| mk_comb(mk_var(Choice.get <| dest_vartype argty, predty), arg)) :: sofar
                             else sofar) args a []
-                let conc = mk_comb(mk_var(Choice.get <| dest_vartype r, predty), lapp)
+                let conc = Choice.get <| mk_comb(mk_var(Choice.get <| dest_vartype r, predty), lapp)
                 let rule = 
                     if conds = []
                     then conc
@@ -729,7 +728,7 @@ let define_type_raw_001 =
                     |> snd
                 let ty' = hd(snd(Choice.get <| dest_type(Choice.get <| type_of dest)))
                 let v' = mk_var(fst(dest_var v), ty')
-                mk_comb(dest, v'), v'
+                Choice.get <| mk_comb(dest, v'), v'
             with
             | Failure _ -> v, v
         let newrights, newargs = unzip(map modify_arg oldargs)
@@ -737,7 +736,7 @@ let define_type_raw_001 =
             assoc cpred consindex
             |> Option.getOrFailWith "find"
             |> fst
-        let defbod = mk_comb(retmk, list_mk_comb(oldcon, newrights))
+        let defbod = Choice.get <| mk_comb(retmk, list_mk_comb(oldcon, newrights))
         let defrt = list_mk_abs(newargs, defbod)
         let expth = find (fun th -> lhand(concl th) = oldcon) defs
         let rexpth = SUBS_CONV [expth] defrt
@@ -775,9 +774,9 @@ let define_type_raw_001 =
         let lambs = 
             map2 
                 (fun (r, (m, d)) (p, a) ->
-                        mk_abs
+                        Choice.get <| mk_abs
                             (a, 
-                             mk_conj(mk_comb(r, a), mk_comb(p, mk_comb(m, a))))) 
+                             mk_conj(Choice.get <| mk_comb(r, a), Choice.get <| mk_comb(p, Choice.get <| mk_comb(m, a))))) 
                 consindex' (zip preds args)
         SPECL lambs ith
 
@@ -847,7 +846,7 @@ let define_type_raw_001 =
             let mk, dest = assoc p consindex |> Option.getOrFailWith "find"
             let ty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of dest)))
             let v' = mk_var(fst(dest_var v), ty)
-            let dv = mk_comb(dest, v')
+            let dv = Choice.get <| mk_comb(dest, v')
             let th1 = PRERULE(SPEC dv th)
             let th2 = MP th1 (REFL(rand(lhand(concl th1))))
             let th3 = CONV_RULE BETA_CONV th2
@@ -892,7 +891,7 @@ let define_type_raw_001 =
         let fns = make_args "fn" [] (map (C mk_fun_ty ranty) domtys)
         let args = make_args "a" [] domtys
         let rights = 
-            map2 (fun (_, (_, d)) a -> mk_abs(a, mk_comb(fn, mk_comb(d, a)))) consindex 
+            map2 (fun (_, (_, d)) a -> Choice.get <| mk_abs(a, Choice.get <| mk_comb(fn, Choice.get <| mk_comb(d, a)))) consindex 
                 args
         let eqs = map2 (curry mk_eq) fns rights
         let fdefs = map ASSUME eqs
@@ -970,11 +969,11 @@ let define_type_raw_001 =
                 let xths = map (extract_arg itm) iargs
                 let cargs' = map (subst [i, itm] << lhand << concl) xths
                 let indices = map sucivate (0 -- (length rargs - 1))
-                let rindexed = map (curry mk_comb r) indices
+                let rindexed = map (curry (Choice.get << mk_comb) r) indices
                 let rargs' = 
-                    map2 (fun a rx -> mk_comb(Option.getOrFailWith "find" <| assoc a mkindex, rx)) artys 
+                    map2 (fun a rx -> Choice.get <| mk_comb(Option.getOrFailWith "find" <| assoc a mkindex, rx)) artys 
                         rindexed
-                let sargs' = map (curry mk_comb s) indices
+                let sargs' = map (curry (Choice.get << mk_comb) s) indices
                 let allargs = cargs' @ rargs' @ sargs'
                 let funty = itlist (mk_fun_ty << Choice.get << type_of) allargs zty
                 let funname = 
@@ -1140,12 +1139,12 @@ let define_type_raw_002 =
                             Choice.get <| mk_const("INL", [ty1, aty; ty2, bty])
                         let inr = 
                             Choice.get <| mk_const("INR", [ty1, aty; ty2, bty])
-                        map (curry mk_comb inl) inls1 
-                        @ map (curry mk_comb inr) inls2
+                        map (curry (Choice.get << mk_comb) inl) inls1 
+                        @ map (curry (Choice.get << mk_comb) inr) inls2
                     | _ -> failwith "mk_inls: Unhnadled case."
             fun ty -> 
                 let bods = mk_inls ty
-                map (fun t -> mk_abs(find_term is_var t, t)) bods
+                map (fun t -> Choice.get <| mk_abs(find_term is_var t, t)) bods
         let mk_outls = 
             let rec mk_inls sof ty = 
                 if is_vartype ty
@@ -1157,18 +1156,18 @@ let define_type_raw_002 =
                             Choice.get <| mk_const("OUTL", [ty1, aty; ty2, bty])
                         let outr = 
                             Choice.get <| mk_const("OUTR", [ty1, aty; ty2, bty])
-                        mk_inls (mk_comb(outl, sof)) ty1 
-                        @ mk_inls (mk_comb(outr, sof)) ty2
+                        mk_inls (Choice.get <| mk_comb(outl, sof)) ty1 
+                        @ mk_inls (Choice.get <| mk_comb(outr, sof)) ty2
                     | _ -> failwith "mk_outls: Unhandled case."
             fun ty -> 
                 let x = mk_var("x", ty)
-                map (curry mk_abs x) (mk_inls x ty)
+                map (curry (Choice.get << mk_abs) x) (mk_inls x ty)
         let mk_newfun fn outl = 
             let s, ty = dest_var fn
             let dty = hd(snd(Choice.get <| dest_type ty))
             let x = mk_var("x", dty)
             let y, bod = dest_abs outl
-            let r = mk_abs(x, vsubst [mk_comb(fn, x), y] bod)
+            let r = Choice.get <| mk_abs(x, vsubst [Choice.get <| mk_comb(fn, x), y] bod)
             let l = mk_var(s, Choice.get <| type_of r)
             let th1 = ASSUME(mk_eq(l, r))
             RIGHT_BETAS [x] th1
@@ -1204,7 +1203,7 @@ let define_type_raw_002 =
                                 then g, g
                                 else 
                                     let outl = assoc (rator a) outlalist |> Option.getOrFailWith "find"
-                                    mk_comb(outl, g), g) args
+                                    Choice.get <| mk_comb(outl, g), g) args
                     let args', args'' = unzip pargs
                     let inl = assoc (rator l) inlalist |> Option.getOrFailWith "find"
                     let rty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of inl)))
@@ -1212,7 +1211,7 @@ let define_type_raw_002 =
                     let fn' = mk_var(fst(dest_var fn), nty)
                     let r' = 
                         list_mk_abs
-                            (args'', mk_comb(inl, list_mk_comb(fn', args')))
+                            (args'', Choice.get <| mk_comb(inl, list_mk_comb(fn', args')))
                     r', fn
                 let defs = map hack_clause (conjuncts bod)
                 let jth = BETA_RULE(SPECL (map fst defs) ith)
@@ -1263,7 +1262,7 @@ let prove_constructors_injective =
         let rt = end_itlist (curry mk_pair) args
         let ty = mk_fun_ty (Choice.get <| type_of pat) (Choice.get <| type_of rt)
         let fn = genvar ty
-        let dtm = mk_eq(mk_comb(fn, pat), rt)
+        let dtm = mk_eq(Choice.get <| mk_comb(fn, pat), rt)
         let eth = prove_recursive_functions_exist ax (list_mk_forall(args, dtm))
         let args' = variants args args
         let atm = mk_eq(pat, list_mk_comb(f, args'))
@@ -1296,7 +1295,7 @@ let prove_constructors_distinct =
         let nums = map mk_small_numeral (0 -- (length pat - 1))
         let fn = 
             genvar(Choice.get <| mk_type("fun", [Choice.get <| type_of(hd pat); num_ty]))
-        let ls = map (curry mk_comb fn) pat
+        let ls = map (curry (Choice.get << mk_comb) fn) pat
         let defs = 
             map2 (fun l r -> list_mk_forall(frees(rand l), mk_eq(l, r))) ls nums
         let eth = prove_recursive_functions_exist ax (list_mk_conj defs)
@@ -1330,7 +1329,7 @@ let prove_constructors_distinct =
 let prove_cases_thm = 
     let mk_exclauses x rpats = 
         let xts = map (fun t -> list_mk_exists(frees t, mk_eq(x, t))) rpats
-        mk_abs(x, list_mk_disj xts)
+        Choice.get <| mk_abs(x, list_mk_disj xts)
     let prove_triv tm = 
         let evs, bod = strip_exists tm
         let l, r = dest_eq bod
@@ -1682,7 +1681,7 @@ let define_type_raw =
             let ctvs = 
                 map (fun p -> 
                         let x = mk_var("x", hd(snd(Choice.get <| dest_type(Choice.get <| type_of p))))
-                        mk_abs(x, t_tm), p) tvs
+                        Choice.get <| mk_abs(x, t_tm), p) tvs
             DETRIV_RULE(INST ctvs (itlist INSTANTIATE cinsts itha))
         let jth1 = 
             let itha = SPEC_ALL ith1
@@ -1696,7 +1695,7 @@ let define_type_raw =
             let ctvs = 
                 map (fun p -> 
                         let x = mk_var("x", hd(snd(Choice.get <| dest_type(Choice.get <| type_of p))))
-                        mk_abs(x, t_tm), p) tvs
+                        Choice.get <| mk_abs(x, t_tm), p) tvs
             DETRIV_RULE(INST ctvs (itlist INSTANTIATE cinsts itha))
         let cths4 = map2 CONJ (CONJUNCTS jth0) (CONJUNCTS jth1)
         let cths5 = map (PURE_ONCE_REWRITE_RULE [GSYM ISO]) cths4

@@ -478,7 +478,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
         let BIT1 = Choice.get <| mk_const("BIT1",[]) in
         let rec mk_num n =
           if n = Int 0 then Z else
-          mk_comb((if mod_num n (Int 2) = Int 0 then BIT0 else BIT1),
+          Choice.get <| mk_comb((if mod_num n (Int 2) = Int 0 then BIT0 else BIT1),
                   mk_num(quo_num n (Int 2))) in
         mk_num in
       let rec dest_raw_numeral tm =
@@ -714,7 +714,7 @@ let NUM_PRE_CONV =
                   let x = dest_numeral r in
                   if x = Int 0 then tth else
                   let tm' = mk_numeral (x - Int 1) in
-                  let th1 = NUM_SUC_CONV (mk_comb(suc,tm')) in
+                  let th1 = NUM_SUC_CONV (Choice.get <| mk_comb(suc,tm')) in
                   MP (INST [tm',m; r,n] pth) th1
               with Failure _ as e -> nestedFailwith e "NUM_PRE_CONV";;
 
@@ -799,7 +799,7 @@ let NUM_FACT_CONV =
     let z = (parse_term @"z:num") in
     let mksuc n =
       let n' = n - (Int 1) in
-      NUM_SUC_CONV (mk_comb(suc,mk_numeral n')) in
+      NUM_SUC_CONV (Choice.get <| mk_comb(suc,mk_numeral n')) in
     let rec NUM_FACT_CONV n =
       if n = Int 0 then pth_0 else
       let th0 = mksuc n in
@@ -888,7 +888,7 @@ let num_CONV =
       let n = dest_numeral tm - Int 1 in
       if n < Int 0 then failwith "num_CONV" else
       let tm' = mk_numeral n in
-      SYM(NUM_SUC_CONV (mk_comb(SUC_tm,tm')));;
+      SYM(NUM_SUC_CONV (Choice.get <| mk_comb(SUC_tm,tm')));;
 
 (* ------------------------------------------------------------------------- *)
 (* Expands "!n. n < numeral-constant ==> P(n)" into all the cases.           *)

@@ -338,7 +338,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             function 
             | Varp(s, pty) -> mk_var(s, aty)
             | Constp(s, pty) -> mk_mconst(s, Choice.get <| get_const_type s)
-            | Combp(l, r) -> mk_comb(untyped_t_of_pt l, untyped_t_of_pt r)
+            | Combp(l, r) -> Choice.get <| mk_comb(untyped_t_of_pt l, untyped_t_of_pt r)
             | Absp(v, bod) -> mk_gabs(untyped_t_of_pt v, untyped_t_of_pt bod)
             | Typing(ptm, pty) -> untyped_t_of_pt ptm
         string_of_term << untyped_t_of_pt
@@ -512,7 +512,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             match ptm with
             | Varp(s, pty) -> mk_var(s, type_of_pretype pty)
             | Constp(s, pty) -> mk_mconst(s, type_of_pretype pty)
-            | Combp(l, r) -> mk_comb(term_of_preterm l, term_of_preterm r)
+            | Combp(l, r) -> Choice.get <| mk_comb(term_of_preterm l, term_of_preterm r)
             | Absp(v, bod) -> mk_gabs(term_of_preterm v, term_of_preterm bod)
             | Typing(ptm, pty) -> term_of_preterm ptm
         let report_type_invention() = 

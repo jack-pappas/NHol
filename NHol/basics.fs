@@ -93,9 +93,9 @@ let body tm =
         nestedFailwith e "body: Not an abstraction"
 
 /// Iteratively constructs combinations (function applications).
-let list_mk_comb(h, t) = rev_itlist (C(curry mk_comb)) t h
+let list_mk_comb(h, t) = rev_itlist (C(curry (Choice.get << mk_comb))) t h
 /// Iteratively constructs abstractions.
-let list_mk_abs(vs, bod) = itlist (curry mk_abs) vs bod
+let list_mk_abs(vs, bod) = itlist (curry (Choice.get << mk_abs)) vs bod
 /// Iteratively breaks apart combinations (function applications).
 let strip_comb = rev_splitlist dest_comb
 /// Iteratively breaks apart abstractions.
@@ -124,7 +124,7 @@ let mk_binary s =
     let c = Choice.get <| mk_const(s, [])
     fun (l, r) -> 
         try 
-            mk_comb(mk_comb(c, l), r)
+            Choice.get <| mk_comb(Choice.get <| mk_comb(c, l), r)
         with
         | Failure _ as e ->
             nestedFailwith e "mk_binary"
@@ -175,10 +175,10 @@ let subst =
                     let f' = ssubst ilist f
                     let x' = ssubst ilist x
                     if f' == f && x' == x then tm
-                    else mk_comb(f', x')
+                    else Choice.get <| mk_comb(f', x')
                 | Abs(v, bod) -> 
                     let ilist' = filter (not << (vfree_in v) << snd) ilist
-                    mk_abs(v, ssubst ilist' bod)
+                    Choice.get <| mk_abs(v, ssubst ilist' bod)
                 | _ -> tm
     fun ilist -> 
         let theta = filter (fun (s, t) -> compare s t <> 0) ilist
@@ -204,7 +204,7 @@ let alpha v tm =
         | Failure _ as e ->
             nestedFailwith e "alpha: Not an abstraction"
     if v = v0 then tm
-    elif Choice.get <| type_of v = (Choice.get <| type_of v0) && not(vfree_in v bod) then mk_abs(v, vsubst [v, v0] bod)
+    elif Choice.get <| type_of v = (Choice.get <| type_of v0) && not(vfree_in v bod) then Choice.get <| mk_abs(v, vsubst [v, v0] bod)
     else failwith "alpha: Invalid new variable"
 
 (* ------------------------------------------------------------------------- *)
@@ -251,7 +251,7 @@ let mk_icomb(tm1, tm2) =
     match Choice.get <| dest_type(Choice.get <| type_of tm1) with
     | "fun", [ty; _] ->
         let tyins = type_match ty (Choice.get <| type_of tm2) []
-        mk_comb(inst tyins tm1, tm2)
+        Choice.get <| mk_comb(inst tyins tm1, tm2)
     | _ -> failwith "mk_icomb: Unhandled case."
 
 (* ------------------------------------------------------------------------- *)
@@ -338,7 +338,7 @@ let dest_binder s tm =
 /// Constructs a term with a named constant applied to an abstraction.
 let mk_binder op = 
     let c = Choice.get <| mk_const(op, [])
-    fun (v, tm) -> mk_comb(inst [Choice.get <| type_of v, aty] c, mk_abs(v, tm))
+    fun (v, tm) -> Choice.get <| mk_comb(inst [Choice.get <| type_of v, aty] c, Choice.get <| mk_abs(v, tm))
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for binary operators.                                              *)
@@ -358,8 +358,8 @@ let dest_binop op tm =
 
 /// The call 'mk_binop op l r' returns the term '(op l) r'.
 let mk_binop op tm1 = 
-    let f = mk_comb(op, tm1)
-    fun tm2 -> mk_comb(f, tm2)
+    let f = Choice.get <| mk_comb(op, tm1)
+    fun tm2 -> Choice.get <| mk_comb(f, tm2)
 
 /// Makes an iterative application of a binary operator.
 let list_mk_binop op = end_itlist(mk_binop op)
@@ -519,19 +519,19 @@ let is_gabs x =
 let mk_gabs = 
     let mk_forall(v, t) = 
         let cop = Choice.get <| mk_const("!", [Choice.get <| type_of v, aty])
-        mk_comb(cop, mk_abs(v, t))
+        Choice.get <| mk_comb(cop, Choice.get <| mk_abs(v, t))
     let list_mk_forall(vars, bod) = itlist (curry mk_forall) vars bod
     let mk_geq(t1, t2) = 
         let p = Choice.get <| mk_const("GEQ", [Choice.get <| type_of t1, aty])
-        mk_comb(mk_comb(p, t1), t2)
+        Choice.get <| mk_comb(Choice.get <| mk_comb(p, t1), t2)
     fun (tm1, tm2) -> 
-        if is_var tm1 then mk_abs(tm1, tm2)
+        if is_var tm1 then Choice.get <| mk_abs(tm1, tm2)
         else 
             let fvs = frees tm1
             let fty = mk_fun_ty (Choice.get <| type_of tm1) (Choice.get <| type_of tm2)
             let f = variant (frees tm1 @ frees tm2) (mk_var("f", fty))
-            let bod = mk_abs(f, list_mk_forall(fvs, mk_geq(mk_comb(f, tm1), tm2)))
-            mk_comb(Choice.get <| mk_const("GABS", [fty, aty]), bod)
+            let bod = Choice.get <| mk_abs(f, list_mk_forall(fvs, mk_geq(Choice.get <| mk_comb(f, tm1), tm2)))
+            Choice.get <| mk_comb(Choice.get <| mk_const("GABS", [fty, aty]), bod)
 
 /// Iteratively makes a generalized abstraction.
 let list_mk_gabs(vs, bod) = itlist (curry mk_gabs) vs bod
@@ -567,7 +567,7 @@ let is_let x =
 /// Constructs a let-expression.
 let mk_let(assigs, bod) = 
     let lefts, rights = unzip assigs
-    let lend = mk_comb(Choice.get <| mk_const("LET_END", [Choice.get <| type_of bod, aty]), bod)
+    let lend = Choice.get <| mk_comb(Choice.get <| mk_const("LET_END", [Choice.get <| type_of bod, aty]), bod)
     let lbod = list_mk_gabs(lefts, lend)
     let ty1, ty2 = dest_fun_ty(Choice.get <| type_of lbod)
     let ltm = 

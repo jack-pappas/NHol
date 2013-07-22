@@ -788,8 +788,8 @@ let instantiate_casewise_recursion,
         let parm = end_itlist (curry mk_pair) parms
         let x,bod = dest_abs tm
         let tm' = mk_gabs(parm,vsubst[parm,x] bod)
-        let th1 = BETA_CONV(mk_comb(tm,parm))
-        in let th2 = GEN_BETA_CONV (mk_comb(tm',parm))
+        let th1 = BETA_CONV(Choice.get <| mk_comb(tm,parm))
+        in let th2 = GEN_BETA_CONV (Choice.get <| mk_comb(tm',parm))
         let th3 = TRANS th1 (SYM th2)
         let th4 = itlist (fun v th -> rewr1 (GEN v th))
                          (butlast parms) (GEN (last parms) th3)
@@ -803,7 +803,7 @@ let instantiate_casewise_recursion,
         | [] -> failwith "depair: Unhandled case."
       fun parm parms ->
         let p = mk_var("P",mk_fun_ty (Choice.get <| type_of parm) bool_ty)
-        let tm = list_mk_forall(parms,mk_comb(p,parm))
+        let tm = list_mk_forall(parms,Choice.get <| mk_comb(p,parm))
         GEN p (SYM(depair parms tm))
     let ELIM_LISTOPS_CONV =
       PURE_REWRITE_CONV[PAIRWISE; ALL; GSYM CONJ_ASSOC; AND_CLAUSES] |>THENC<|
@@ -822,7 +822,7 @@ let instantiate_casewise_recursion,
       let f' = variant (frees tm)
                        (mk_var(fst(dest_var f),mk_fun_ty dty ranty))
       let gvs = map genvar domtys
-      let f'' = list_mk_abs(gvs,mk_comb(f',end_itlist (curry mk_pair) gvs))
+      let f'' = list_mk_abs(gvs,Choice.get <| mk_comb(f',end_itlist (curry mk_pair) gvs))
       let def' = subst [f'',f] def
       let th1 = EXISTS (tm,f'') (ASSUME def')
       in let bth = BETAS_CONV (list_mk_comb(f'',gvs))
@@ -839,7 +839,7 @@ let instantiate_casewise_recursion,
       let parms = if parms0 <> [] then parms0 else [genvar aty]
       let parm = end_itlist (curry mk_pair) parms
       let ss = map (fun a -> mk_gabs(parm,end_itlist (curry mk_pair) a)) arglists
-      in let ts = map (fun a -> mk_abs(f,mk_gabs(parm,a))) rights
+      in let ts = map (fun a -> Choice.get <| mk_abs(f,mk_gabs(parm,a))) rights
       let clauses = mk_flist(map2 (curry mk_pair) ss ts)
       let pth = ISPEC clauses RECURSION_SUPERADMISSIBLE
       let FIDDLE_CONV =
@@ -943,7 +943,7 @@ let instantiate_casewise_recursion,
           let con,args = strip_comb cargs
           let bargs = filter (fun t -> Choice.get <| type_of t = ty) args
           let r' = list_mk_binop (parse_term @"(+):num->num->num")
-                    (mk_small_numeral k :: map (curry mk_comb fn) bargs)
+                    (mk_small_numeral k :: map (curry (Choice.get << mk_comb) fn) bargs)
           list_mk_forall(avs,mk_eq(l,r'))
         let cjs = conjuncts cbod
         let def = map2 process_clause (1--length cjs) cjs
@@ -961,7 +961,7 @@ let instantiate_casewise_recursion,
       fun tac (asl,w) ->
         let ev,bod = dest_exists w
         let ty = fst(dest_fun_ty(Choice.get <| type_of ev))
-        (EXISTS_TAC(mk_abs(genvar ty,one_tm)) |>THEN<| tac) (asl,w)
+        (EXISTS_TAC(Choice.get <| mk_abs(genvar ty,one_tm)) |>THEN<| tac) (asl,w)
     let GUESS_MEASURE_THEN tac =
       (EXISTS_TAC (parse_term @"\n. n + 1") |>THEN<| tac) |>ORELSE<|
       (INDUCTIVE_MEASURE_THEN tac) |>ORELSE<|

@@ -545,14 +545,14 @@ let RING_AND_IDEAL_CONV =
       let x,th1 = SPEC_VAR(CONJUNCT1(CONJUNCT2 RING_INTEGRAL)) in
       let y,th2 = SPEC_VAR th1 in
       let z,th3 = SPEC_VAR th2 in
-      let SUB_EQ_RULE = GEN_REWRITE_RULE I [SYM(INST [mk_comb(ring_neg_tm,z),x] th3)] in
+      let SUB_EQ_RULE = GEN_REWRITE_RULE I [SYM(INST [Choice.get <| mk_comb(ring_neg_tm,z),x] th3)] in
       let initpols = map (CONV_RULE(BINOP_CONV RING_NORMALIZE_CONV) << SUB_EQ_RULE) eths in
       let ADD_RULE th1 th2 =
          CONV_RULE (BINOP_CONV RING_NORMALIZE_CONV)
                    (MK_COMB(AP_TERM ring_add_tm th1,th2))
       let MUL_RULE vars m th =
          CONV_RULE (BINOP_CONV RING_NORMALIZE_CONV)
-                   (AP_TERM (mk_comb(ring_mul_tm,holify_polynomial vars [m]))
+                   (AP_TERM (Choice.get <| mk_comb(ring_mul_tm,holify_polynomial vars [m]))
                             th) in
       let execache = ref [] in
       let memoize prf x = (execache := (prf,x)::(!execache)); x in
@@ -610,7 +610,7 @@ let RING_AND_IDEAL_CONV =
       let thm_fn pols =
         if pols = [] 
         then REFL(ring_mk_const num_0) 
-        else end_itlist MK_ADD (map (fun (i,p) -> AP_TERM(mk_comb(ring_mul_tm,p)) (el i eths)) pols) in
+        else end_itlist MK_ADD (map (fun (i,p) -> AP_TERM(Choice.get <| mk_comb(ring_mul_tm,p)) (el i eths)) pols) in
       let th1 = thm_fn herts_pos 
       let th2 = thm_fn herts_neg in
       let th3 = CONJ(MK_ADD (SYM th1) th2) noteqth in
@@ -708,7 +708,7 @@ let NUM_SIMPLIFY_CONV =
            let t = find_term (fun t -> is_pre t && free_in t tm) tm in
            let ty = Choice.get <| type_of t in
            let v = genvar ty in
-           let p = mk_abs(v,subst [v,t] tm) in
+           let p = Choice.get <| mk_abs(v,subst [v,t] tm) in
            let th0 = if pos then PRE_ELIM_THM'' else PRE_ELIM_THM' in
            let th1 = INST [p,p_tm; rand t,n_tm] th0 in
            let th2 = CONV_RULE(COMB2_CONV (RAND_CONV BETA_CONV)
@@ -720,7 +720,7 @@ let NUM_SIMPLIFY_CONV =
            let t = find_term (fun t -> is_sub t && free_in t tm) tm in
            let ty = Choice.get <| type_of t in
            let v = genvar ty in
-           let p = mk_abs(v,subst [v,t] tm) in
+           let p = Choice.get <| mk_abs(v,subst [v,t] tm) in
            let th0 = if pos then SUB_ELIM_THM'' else SUB_ELIM_THM' in
            let th1 = INST [p,p_tm; lhand t,a_tm; rand t,b_tm] th0 in
            let th2 = CONV_RULE(COMB2_CONV (RAND_CONV BETA_CONV) (BINDER_CONV(RAND_CONV BETA_CONV))) th1 in
@@ -731,8 +731,8 @@ let NUM_SIMPLIFY_CONV =
            let t = find_term (fun t -> is_divmod t && free_in t tm) tm in
            let x = lhand t 
            let y = rand t in
-           let dtm = mk_comb(mk_comb(div_tm,x),y)
-           let mtm = mk_comb(mk_comb(mod_tm,x),y) in
+           let dtm = Choice.get <| mk_comb(Choice.get <| mk_comb(div_tm,x),y)
+           let mtm = Choice.get <| mk_comb(Choice.get <| mk_comb(mod_tm,x),y) in
            let vd = genvar(Choice.get <| type_of dtm)
            let vm = genvar(Choice.get <| type_of mtm) in
            let p = list_mk_abs([vd;vm],subst[vd,dtm; vm,mtm] tm) in

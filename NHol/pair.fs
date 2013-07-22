@@ -221,8 +221,7 @@ let dest_pair = dest_binary ","
 let mk_pair = 
     let ptm = Choice.get <| mk_const(",", [])
     fun (l, r) -> 
-        mk_comb(mk_comb(inst [Choice.get <| type_of l, aty
-                              Choice.get <| type_of r, bty] ptm, l), r)
+        Choice.get <| mk_comb(Choice.get <| mk_comb(inst [Choice.get <| type_of l, aty; Choice.get <| type_of r, bty] ptm, l), r)
 
 //extend_basic_rewrites [FST; SND; PAIR] duplicate line
 
@@ -391,8 +390,8 @@ let GEN_BETA_CONV =
             let th1 = SUBS_CONV prjs bod
             let bod' = rand(concl th1)
             let gv = genvar(Choice.get <| type_of vstr)
-            let pat = mk_abs(gv, subst [gv, vstr] bod')
-            let th2 = TRANS (BETA_CONV(mk_comb(pat, vstr))) (SYM th1)
+            let pat = Choice.get <| mk_abs(gv, subst [gv, vstr] bod')
+            let th2 = TRANS (BETA_CONV(Choice.get <| mk_comb(pat, vstr))) (SYM th1)
             let avs = fst(strip_forall(body(rand l)))
             let th3 = GENL (fst(strip_forall(body(rand l)))) th2
             let efn = genvar(Choice.get <| type_of pat)

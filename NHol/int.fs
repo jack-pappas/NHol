@@ -447,10 +447,10 @@ let dest_intconst tm =
 let mk_intconst = 
     let cast_tm = (parse_term @"int_of_num")
     let neg_tm = (parse_term @"int_neg")
-    let mk_numconst n = mk_comb(cast_tm, mk_numeral n)
+    let mk_numconst n = Choice.get <| mk_comb(cast_tm, mk_numeral n)
     fun x -> 
         if x </ num_0
-        then mk_comb(neg_tm, mk_numconst(minus_num x))
+        then Choice.get <| mk_comb(neg_tm, mk_numconst(minus_num x))
         else mk_numconst x
 
 (* ------------------------------------------------------------------------- *)
@@ -477,7 +477,7 @@ let INT_OF_REAL_THM =
     let int_tm_of_real_var v = 
         let s, ty = dest_var v
         if ty = real_ty
-        then mk_comb(dest, mk_var(s, int_ty))
+        then Choice.get <| mk_comb(dest, mk_var(s, int_ty))
         else v
     let int_of_real_var v = 
         let s, ty = dest_var v
@@ -1622,7 +1622,7 @@ let INTEGER_TAC_001 =
             let cnc = 
                 if cmons = []
                 then zero_tm
-                else mk_comb(neg_tm, end_itlist mk_add cmons)
+                else Choice.get <| mk_comb(neg_tm, end_itlist mk_add cmons)
             cofactors, cnc
     let isolate_variables evs ps eq = 
         let vars = filter (fun v -> vfree_in v eq) evs
