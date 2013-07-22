@@ -819,7 +819,7 @@ let instantiate_casewise_recursion,
       let ranty = itlist mk_fun_ty midtys ranty0
       if length domtys <= 1 then ASSUME tm else
       let dty = end_itlist (fun ty1 ty2 -> Choice.get <| mk_type("prod",[ty1;ty2])) domtys
-      let f' = variant (frees tm)
+      let f' = Choice.get <| variant (frees tm)
                        (mk_var(fst(Choice.get <| dest_var f),mk_fun_ty dty ranty))
       let gvs = map genvar domtys
       let f'' = list_mk_abs(gvs,Choice.get <| mk_comb(f',end_itlist (curry mk_pair) gvs))

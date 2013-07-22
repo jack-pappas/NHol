@@ -264,7 +264,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             TRANS th1 (MK_FORALL x th2)
         | Comb(Const("?!", Tyapp("fun", Tyapp("fun", ty :: _) :: _)), 
                (Abs(x, t) as bod)) -> 
-            let y = variant (x :: frees t) x
+            let y = Choice.get <| variant (x :: frees t) x
             let th_p, th_n = NNF_DCONV cf baseconvs t
             let eq = mk_eq(y, x)
             let eth_p, eth_n = baseconvs eq
@@ -351,7 +351,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             AP_TERM q (ABS x th_p)
         | Comb(Const("?!", Tyapp("fun", Tyapp("fun", ty :: _) :: _)), 
                (Abs(x, t) as bod)) -> 
-            let y = variant (x :: frees t) x
+            let y = Choice.get <| variant (x :: frees t) x
             let th_p, th_n = NNF_DCONV cf base2 t
             let eq = mk_eq(y, x)
             let eth_p, eth_n = base2 eq
@@ -434,7 +434,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             TRANS th1 (MK_FORALL x th2)
         | Comb(Const("?!", Tyapp("fun", Tyapp("fun", ty :: _) :: _)), 
                (Abs(x, t) as bod)) -> 
-            let y = variant (x :: frees t) x
+            let y = Choice.get <| variant (x :: frees t) x
             let th_p, th_n = NNF_DCONV cf base2 t
             let eq = mk_eq(y, x)
             let eth_p, eth_n = base2 eq

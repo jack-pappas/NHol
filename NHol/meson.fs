@@ -972,8 +972,8 @@ let GEN_MESON_TAC =
             else failwith "match_consts"
         let polymorph mconsts th = 
             let tvs = 
-                subtract (type_vars_in_term(concl th)) 
-                    (unions(map type_vars_in_term (hyp th)))
+                subtract (Choice.get <| type_vars_in_term(concl th)) 
+                    (unions(map (Choice.get << type_vars_in_term) (hyp th)))
             if tvs = []
             then [th]
             else 

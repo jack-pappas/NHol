@@ -363,25 +363,30 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the set of type variables used in a term.
-    let rec type_vars_in_term tm = 
-        match tm with
-        | Var(_, ty) -> tyvars ty
-        | Const(_, ty) -> tyvars ty
-        | Comb(s, t) -> union (type_vars_in_term s) (type_vars_in_term t)
-        | Abs(Var(_, ty), t) -> union (tyvars ty) (type_vars_in_term t)
-        | _ -> failwith "type_vars_in_term: not a type variable"
-    
+    let type_vars_in_term tm = 
+        let rec type_vars_in_term tm = 
+            match tm with
+            | Var(_, ty) -> tyvars ty
+            | Const(_, ty) -> tyvars ty
+            | Comb(s, t) -> union (type_vars_in_term s) (type_vars_in_term t)
+            | Abs(Var(_, ty), t) -> union (tyvars ty) (type_vars_in_term t)
+            | _ -> failwith "type_vars_in_term: not a type variable"
+        try
+            Choice.succeed <| type_vars_in_term tm
+        with Failure s ->
+            Choice.failwith s
+
     (* ------------------------------------------------------------------------- *)
     (* For name-carrying syntax, we need this early.                             *)
     (* ------------------------------------------------------------------------- *)
 
     /// Modifies a variable name to avoid clashes.
     let rec variant avoid v = 
-        if not(exists (vfree_in v) avoid) then v
+        if not(exists (vfree_in v) avoid) then Choice.succeed v
         else 
             match v with
             | Var(s, ty) -> variant avoid (Var(s + "'", ty))
-            | _ -> failwith "variant: not a variable"
+            | _ -> Choice.failwith "variant: not a variable"
     
     (* ------------------------------------------------------------------------- *)
     (* Substitution primitive (substitution for variables only!)                 *)
@@ -405,7 +410,7 @@ module Hol_kernel =
                     let s' = vsubst ilist' s
                     if s' == s then tm
                     elif exists (fun (t, x) -> vfree_in v t && vfree_in x s) ilist' then 
-                        let v' = variant [s'] v
+                        let v' = Choice.get <| variant [s'] v
                         Abs(v', vsubst ((v', v) :: ilist') s)
                     else Abs(v, s')
         fun theta -> 
@@ -451,7 +456,7 @@ module Hol_kernel =
                     if w' <> y' then raise ex
                     else 
                         let ifrees = map (inst [] tyin) (frees t)
-                        let y'' = variant ifrees y'
+                        let y'' = Choice.get <| variant ifrees y'
                         let z = Var(fst(Choice.get <| dest_var y''), snd(Choice.get <| dest_var y))
                         inst env tyin (Abs(z, vsubst [z, y] t))
         fun tyin -> 
@@ -700,7 +705,7 @@ module Hol_kernel =
         match tm with
         | Comb(Comb(Const("=", _), Var(cname, ty)), r) -> 
             if not(freesin [] r) then Choice2Of2 <| Exception "new_definition: term not closed"
-            elif not(subset (type_vars_in_term r) (tyvars ty)) then 
+            elif not(subset (Choice.get <| type_vars_in_term r) (tyvars ty)) then 
                 Choice2Of2 <| Exception "new_definition: Type variables not reflected in constant"
             else 
                 let c = 
@@ -745,7 +750,7 @@ module Hol_kernel =
                         nestedFailwith e "new_basic_type_definition: Not a combination"
                 if not(freesin [] P) then tuple (Choice2Of2 <| Exception "new_basic_type_definition: Predicate is not closed")
                 else 
-                    let tyvars = sort (<=) (type_vars_in_term P)
+                    let tyvars = sort (<=) (Choice.get <| type_vars_in_term P)
                     let _ = 
                         try 
                             new_type(tyname, length tyvars)

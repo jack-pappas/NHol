@@ -137,7 +137,7 @@ let mk_binary s =
 let rec variants av vs = 
     if vs = [] then []
     else 
-        let vh = variant av (hd vs)
+        let vh = Choice.get <| variant av (hd vs)
         vh :: (variants (vh :: av) (tl vs))
 
 (* ------------------------------------------------------------------------- *)
@@ -529,7 +529,7 @@ let mk_gabs =
         else 
             let fvs = frees tm1
             let fty = mk_fun_ty (Choice.get <| type_of tm1) (Choice.get <| type_of tm2)
-            let f = variant (frees tm1 @ frees tm2) (mk_var("f", fty))
+            let f = Choice.get <| variant (frees tm1 @ frees tm2) (mk_var("f", fty))
             let bod = Choice.get <| mk_abs(f, list_mk_forall(fvs, mk_geq(Choice.get <| mk_comb(f, tm1), tm2)))
             Choice.get <| mk_comb(Choice.get <| mk_const("GABS", [fty, aty]), bod)
 
@@ -584,10 +584,10 @@ let make_args =
     let rec margs n s avoid tys = 
         if tys = [] then []
         else 
-            let v = variant avoid (mk_var(s + (string n), hd tys))
+            let v = Choice.get <| variant avoid (mk_var(s + (string n), hd tys))
             v :: (margs (n + 1) s (v :: avoid) (tl tys))
     fun s avoid tys -> 
-        if length tys = 1 then [variant avoid (mk_var(s, hd tys))]
+        if length tys = 1 then [Choice.get <| variant avoid (mk_var(s, hd tys))]
         else margs 0 s avoid tys
 
 (* ------------------------------------------------------------------------- *)

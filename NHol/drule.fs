@@ -93,7 +93,7 @@ let MP_CONV (cnv : conv) th =
     |> Choice.bindError (fun _ -> MP th ath)
 
 (* ------------------------------------------------------------------------- *)
-(* Multiple beta-reduction (we use a slight variant below).                  *)
+(* Multiple beta-reduction (we use a slight Choice.get <| variant below).                  *)
 (* ------------------------------------------------------------------------- *)
 /// Beta conversion over multiple arguments.
 let rec BETAS_CONV tm = 
@@ -229,7 +229,7 @@ let INSTANTIATE_ALL : instantiation -> thm -> thm =
                     else 
                         let tvs = itlist (union << tyvars << snd) tyin []
                         partition (fun tm -> 
-                                let tvs' = type_vars_in_term tm
+                                let tvs' = Choice.get <| type_vars_in_term tm
                                 not(intersect tvs tvs' = [])) hyps
                 let tmrel, tmirrel = 
                     if tmin = [] then [], tyiirel
@@ -482,7 +482,7 @@ let deep_alpha =
         with
         | Failure _ -> 
             try 
-                let v' = variant (frees tm) v
+                let v' = Choice.get <| variant (frees tm) v
                 alpha v' tm
             with
             | Failure _ -> tm

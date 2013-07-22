@@ -121,7 +121,7 @@ let lift_function =
             let mems = 
                 map2 (fun rv ev -> Choice.get <| mk_comb(Choice.get <| mk_comb(dest, ev), rv)) rvs evs
             let lcon, rcon = Choice.get <| dest_comb con
-            let u = variant (evs @ wfvs) (mk_var("u", Choice.get <| type_of rcon))
+            let u = Choice.get <| variant (evs @ wfvs) (mk_var("u", Choice.get <| type_of rcon))
             let ucon = Choice.get <| mk_comb(lcon, u)
             let dbod = list_mk_conj(ucon :: mems)
             let detm = list_mk_exists(rvs, dbod)

@@ -55,7 +55,7 @@ let lhs = fst << dest_eq
 let rhs = snd << dest_eq
 
 (* ------------------------------------------------------------------------- *)
-(* Similar to variant, but even avoids constants, and ignores types.         *)
+(* Similar to Choice.get <| variant, but even avoids constants, and ignores types.         *)
 (* ------------------------------------------------------------------------- *)
 
 /// Rename variable to avoid specied names and constant names.
@@ -216,7 +216,7 @@ let ABS_CONV : conv -> conv =
             let gth = ABS gv (conv gbod)
             let gtm = concl gth
             let l, r = dest_eq gtm
-            let v' = variant (frees gtm) v
+            let v' = Choice.get <| variant (frees gtm) v
             let l' = alpha v' l
             let r' = alpha v' r
             EQ_MP (ALPHA gtm (mk_eq(l', r'))) gth)

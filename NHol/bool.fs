@@ -315,9 +315,9 @@ let SPECL tms th =
 let thm_frees thm = 
     thm_frees (Choice.get thm)
 
-/// Specializes the conclusion of a theorem, returning the chosen variant.
+/// Specializes the conclusion of a theorem, returning the chosen Choice.get <| variant.
 let SPEC_VAR th = 
-    let bv = variant (thm_frees th) (bndvar(rand(concl th)))
+    let bv = Choice.get <| variant (thm_frees th) (bndvar(rand(concl th)))
     bv, SPEC bv th
 
 /// Specializes the conclusion of a theorem with its own quantified variables.

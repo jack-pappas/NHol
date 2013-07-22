@@ -66,7 +66,7 @@ open calc_rat
 #endif
 
 (* ------------------------------------------------------------------------- *)
-(* Representing predicate. The "is_int" variant is useful for backwards      *)
+(* Representing predicate. The "is_int" Choice.get <| variant is useful for backwards      *)
 (* compatibility with former definition of "is_int" constant, now removed.   *)
 (* ------------------------------------------------------------------------- *)
 let integer = new_definition(parse_term @"integer(x) <=> ?n. abs(x) = &n")

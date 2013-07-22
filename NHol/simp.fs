@@ -425,7 +425,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                             let gth = ABS gv (strat ss lev gbod)
                             let gtm = concl gth
                             let l, r = dest_eq gtm
-                            let v' = variant (frees gtm) v
+                            let v' = Choice.get <| variant (frees gtm) v
                             let l' = alpha v' l
                             let r' = alpha v' r
                             EQ_MP (ALPHA gtm (mk_eq(l', r'))) gth)
