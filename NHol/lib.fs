@@ -84,10 +84,10 @@ module Choice =
     let inline fail () =
         failwith ""
 
-    let inline failwithDouble s =
+    let inline failwithPair s =
         (failwith s, failwith s)
 
-    let inline tuple (x, y) =
+    let inline pair (x, y) =
         (Choice1Of2 x, Choice1Of2 y)
 
     /// Applies the specified binding function to a choice value representing an error value

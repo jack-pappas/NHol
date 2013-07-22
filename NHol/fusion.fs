@@ -722,11 +722,13 @@ module Hol_kernel =
     
     /// Sets up a new axiom.
     let new_axiom tm = 
-        if compare (Choice.get <| type_of tm) bool_ty = 0 then 
-            let th = Choice.succeed <| Sequent([], tm)
-            the_axioms := th :: (!the_axioms)
-            th
-        else Choice.failwith "new_axiom: Not a proposition"
+        type_of tm
+        |> Choice.bind (fun ty ->
+            if compare ty bool_ty = 0 then 
+                let th = Choice.succeed <| Sequent([], tm)
+                the_axioms := th :: (!the_axioms)
+                th
+            else Choice.failwith "new_axiom: Not a proposition")
     
     (* ------------------------------------------------------------------------- *)
     (* Handling of (term) definitions.                                           *)
@@ -743,15 +745,18 @@ module Hol_kernel =
         match tm with
         | Comb(Comb(Const("=", _), Var(cname, ty)), r) -> 
             if not(freesin [] r) then Choice.failwith "new_definition: term not closed"
-            elif not(subset (Choice.get <| type_vars_in_term r) (tyvars ty)) then 
-                Choice.failwith "new_definition: Type variables not reflected in constant"
-            else 
-                let c = 
-                    new_constant(cname, ty)
-                    Const(cname, ty)
-                let dth = safe_mk_eq c r |> Choice.map (fun tm -> Sequent([], tm))
-                the_definitions := dth :: (!the_definitions)
-                dth
+            else
+                type_vars_in_term r
+                |> Choice.bind (fun ty' ->
+                    if not(subset ty' (tyvars ty)) then 
+                        Choice.failwith "new_definition: Type variables not reflected in constant"
+                    else 
+                        let c = 
+                            new_constant(cname, ty)
+                            Const(cname, ty)
+                        let dth = safe_mk_eq c r |> Choice.map (fun tm -> Sequent([], tm))
+                        the_definitions := dth :: (!the_definitions)
+                        dth)
         | _ -> Choice.failwith "new_basic_definition"
     
     (* ------------------------------------------------------------------------- *)
@@ -777,8 +782,8 @@ module Hol_kernel =
                 with Failure _ -> false
 
             if exists (can get_const_type) [absname; repname] then 
-                tuple (Choice.failwith "new_basic_type_definition: Constant(s) already in use")
-            elif not(asl = []) then tuple (Choice.failwith "new_basic_type_definition: Assumptions in theorem")
+                Choice.failwithPair "new_basic_type_definition: Constant(s) already in use"
+            elif not(asl = []) then Choice.failwithPair "new_basic_type_definition: Assumptions in theorem"
             else 
                 let P, x = 
                     try 
@@ -786,7 +791,7 @@ module Hol_kernel =
                     with
                     | Failure _ as e ->
                         nestedFailwith e "new_basic_type_definition: Not a combination"
-                if not(freesin [] P) then tuple (Choice.failwith "new_basic_type_definition: Predicate is not closed")
+                if not(freesin [] P) then Choice.failwithPair "new_basic_type_definition: Predicate is not closed"
                 else 
                     let tyvars = sort (<=) (Choice.get <| type_vars_in_term P)
                     let _ = 
@@ -812,7 +817,7 @@ module Hol_kernel =
                     |> Choice.bind (fun tm -> safe_mk_eq (Comb(P, r)) tm
                                               |> Choice.map (fun tm' -> Sequent([], tm')))
         | Error _ ->
-            tuple (Choice.failwith "new_basic_type_definition: Erroneous theorem")
+            Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
 
 (* ------------------------------------------------------------------------- *)
 (* Stuff that didn't seem worth putting in.                                  *)
