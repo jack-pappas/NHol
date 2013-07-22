@@ -451,18 +451,18 @@ let RING_AND_IDEAL_CONV =
           try f x |> ignore; true
           with Failure _ -> false
       if can ring_dest_const tm then acc                            
-      else if can ring_dest_neg tm then grobvars (rand tm) acc      
-      else if can ring_dest_pow tm && is_numeral (rand tm)          
+      else if can ring_dest_neg tm then grobvars (Choice.get <| rand tm) acc      
+      else if can ring_dest_pow tm && is_numeral (Choice.get <| rand tm)          
            then grobvars (lhand tm) acc
       else if can ring_dest_add tm || can ring_dest_sub tm
            || can ring_dest_mul tm
-           then grobvars (lhand tm) (grobvars (rand tm) acc)
+           then grobvars (lhand tm) (grobvars (Choice.get <| rand tm) acc)
       else if can ring_dest_inv tm then
-           let gvs = grobvars (rand tm) [] in
+           let gvs = grobvars (Choice.get <| rand tm) [] in
            if gvs = [] then acc else tm::acc
       else if can ring_dest_div tm then
            let lvs = grobvars (lhand tm) acc
-           let gvs = grobvars (rand tm) [] in
+           let gvs = grobvars (Choice.get <| rand tm) [] in
            if gvs = [] then lvs else tm::acc
       else tm::acc in
   
@@ -521,7 +521,7 @@ let RING_AND_IDEAL_CONV =
     let grobify_equations tm =
       let cjs = conjuncts tm in
       let rawvars =
-        itlist (fun eq a -> grobvars (lhand eq) (grobvars (rand eq) a))
+        itlist (fun eq a -> grobvars (lhand eq) (grobvars (Choice.get <| rand eq) a))
                cjs [] in
       let vars = sort (fun x y -> x < y) (setify rawvars) in
       vars,map (grobify_equation vars) cjs in
@@ -575,12 +575,12 @@ let RING_AND_IDEAL_CONV =
       if tm = false_tm then ASSUME tm 
       else
       let nths0,eths0 = partition (is_neg << concl) (CONJUNCTS(ASSUME tm)) in
-      let nths = filter (is_eq << rand << concl) nths0
+      let nths = filter (is_eq << Choice.get << rand << concl) nths0
       let eths = filter (is_eq << concl) eths0 in
       if eths = [] then
         let th1 = end_itlist (fun th1 th2 -> IDOM_RULE(CONJ th1 th2)) nths in
         let th2 = CONV_RULE(RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) th1 in
-        let l,r = dest_eq(rand(concl th2)) in
+        let l,r = dest_eq(Choice.get <| rand(concl th2)) in
         EQ_MP (EQF_INTRO th2) (REFL l)
       else if nths = [] && not(is_var ring_neg_tm) then
         let vars,pols = grobify_equations(list_mk_conj(map concl eths)) in
@@ -593,7 +593,7 @@ let RING_AND_IDEAL_CONV =
           vars,l,cert,NOT_EQ_01
         else
           let nth = end_itlist (fun th1 th2 -> IDOM_RULE(CONJ th1 th2)) nths in
-          match grobify_equations(list_mk_conj(rand(concl nth)::map concl eths)) with
+          match grobify_equations(list_mk_conj((Choice.get <| rand(concl nth))::map concl eths)) with
           | vars,pol::pols -> 
               let deg,l,cert = grobner_strong vars pols pol in
               let th1 = CONV_RULE(RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) nth in
@@ -615,17 +615,17 @@ let RING_AND_IDEAL_CONV =
       let th2 = thm_fn herts_neg in
       let th3 = CONJ(MK_ADD (SYM th1) th2) noteqth in
       let th4 = CONV_RULE (RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) (INE_RULE l th3) in
-      let l,r = dest_eq(rand(concl th4)) in
+      let l,r = dest_eq(Choice.get <| rand(concl th4)) in
       EQ_MP (EQF_INTRO th4) (REFL l) in
   
     let RING tm =
       let avs = frees tm in
       let tm' = list_mk_forall(avs,tm) in
       let th1 = INITIAL_CONV(mk_neg tm') in
-      let evs,bod = strip_exists(rand(concl th1)) in
+      let evs,bod = strip_exists(Choice.get <| rand(concl th1)) in
       if is_forall bod then failwith "RING: non-universal formula" else
       let th1a = WEAK_DNF_CONV bod in
-      let boda = rand(concl th1a) in
+      let boda = Choice.get <| rand(concl th1a) in
       let th2a = refute_disj REFUTE boda in
       let th2b = TRANS th1a (EQF_INTRO(NOT_INTRO(DISCH boda th2a))) in
       let th2 = UNDISCH(NOT_ELIM(EQF_ELIM th2b)) in
@@ -670,7 +670,7 @@ let NUM_SIMPLIFY_CONV =
   let q_tm = (parse_term @"P:num->num->bool") 
   let a_tm = (parse_term @"a:num") 
   let b_tm = (parse_term @"b:num") in
-  let is_pre tm = is_comb tm && rator tm = pre_tm
+  let is_pre tm = is_comb tm && Choice.get <| rator tm = pre_tm
   let is_sub = is_binop (parse_term @"(-):num->num->num")
   let is_divmod =
     let is_div = is_binop div_tm 
@@ -710,7 +710,7 @@ let NUM_SIMPLIFY_CONV =
            let v = genvar ty in
            let p = Choice.get <| mk_abs(v,subst [v,t] tm) in
            let th0 = if pos then PRE_ELIM_THM'' else PRE_ELIM_THM' in
-           let th1 = INST [p,p_tm; rand t,n_tm] th0 in
+           let th1 = INST [p,p_tm; Choice.get <| rand t,n_tm] th0 in
            let th2 = CONV_RULE(COMB2_CONV (RAND_CONV BETA_CONV)
                       (BINDER_CONV(RAND_CONV BETA_CONV))) th1 in
            CONV_RULE(RAND_CONV (NUM_MULTIPLY_CONV pos)) th2
@@ -722,7 +722,7 @@ let NUM_SIMPLIFY_CONV =
            let v = genvar ty in
            let p = Choice.get <| mk_abs(v,subst [v,t] tm) in
            let th0 = if pos then SUB_ELIM_THM'' else SUB_ELIM_THM' in
-           let th1 = INST [p,p_tm; lhand t,a_tm; rand t,b_tm] th0 in
+           let th1 = INST [p,p_tm; lhand t,a_tm; Choice.get <| rand t,b_tm] th0 in
            let th2 = CONV_RULE(COMB2_CONV (RAND_CONV BETA_CONV) (BINDER_CONV(RAND_CONV BETA_CONV))) th1 in
            CONV_RULE(RAND_CONV (NUM_MULTIPLY_CONV pos)) th2
        with 
@@ -730,7 +730,7 @@ let NUM_SIMPLIFY_CONV =
        try
            let t = find_term (fun t -> is_divmod t && free_in t tm) tm in
            let x = lhand t 
-           let y = rand t in
+           let y = Choice.get <| rand t in
            let dtm = Choice.get <| mk_comb(Choice.get <| mk_comb(div_tm,x),y)
            let mtm = Choice.get <| mk_comb(Choice.get <| mk_comb(mod_tm,x),y) in
            let vd = genvar(Choice.get <| type_of dtm)
@@ -779,5 +779,5 @@ let NUM_RING =
   let initconv = NUM_SIMPLIFY_CONV |>THENC<| GEN_REWRITE_CONV DEPTH_CONV [ADD1]
   let t_tm = (parse_term @"T") in
   fun tm -> let th = initconv tm in
-            if rand(concl th) = t_tm then th
-            else EQ_MP (SYM th) (rawring(rand(concl th)));;
+            if Choice.get <| rand(concl th) = t_tm then th
+            else EQ_MP (SYM th) (rawring(Choice.get <| rand(concl th)));;

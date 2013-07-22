@@ -48,7 +48,7 @@ type conv = term -> thm
 (* ------------------------------------------------------------------------- *)
 
 /// Take left-hand argument of a binary operator.
-let lhand = rand << rator
+let lhand = Choice.get << rand << Choice.get << rator
 /// Returns the left-hand side of an equation.
 let lhs = fst << dest_eq
 /// Returns the right-hand side of an equation.
@@ -104,7 +104,7 @@ let SYM th =
     let tm = concl th
     let l, r = dest_eq tm
     let lth = REFL l
-    EQ_MP (MK_COMB(AP_TERM (rator(rator tm)) th, lth)) lth
+    EQ_MP (MK_COMB(AP_TERM (Choice.get <| rator(Choice.get <| rator tm)) th, lth)) lth
 
 /// Proves equality of alpha-equivalent terms.
 let ALPHA tm1 tm2 = 
@@ -144,7 +144,7 @@ let ALL_CONV : conv = REFL
 let THENC : conv -> conv -> conv = 
     fun conv1 conv2 t -> 
         let th1 = conv1 t
-        let th2 = conv2 (rand(concl th1))
+        let th2 = conv2 (Choice.get <| rand(concl th1))
         TRANS th1 th2
 
 /// Applies the first of two conversions that succeeds.
@@ -248,7 +248,7 @@ let rec private THENQC conv1 conv2 tm =
     try 
         let th1 = conv1 tm
         try 
-            let th2 = conv2(rand(concl th1))
+            let th2 = conv2(Choice.get <| rand(concl th1))
             TRANS th1 th2
         with
         | Failure _ -> th1
@@ -258,7 +258,7 @@ let rec private THENQC conv1 conv2 tm =
 and private THENCQC conv1 conv2 tm = 
     let th1 = conv1 tm
     try 
-        let th2 = conv2(rand(concl th1))
+        let th2 = conv2(Choice.get <| rand(concl th1))
         TRANS th1 th2
     with
     | Failure _ -> th1
@@ -349,7 +349,7 @@ let PAT_CONV =
     let rec PCONV xs pat conv = 
         if mem pat xs then conv
         elif not(exists (fun x -> free_in x pat) xs) then ALL_CONV
-        elif is_comb pat then COMB2_CONV (PCONV xs (rator pat) conv) (PCONV xs (rand pat) conv)
+        elif is_comb pat then COMB2_CONV (PCONV xs (Choice.get <| rator pat) conv) (PCONV xs (Choice.get <| rand pat) conv)
         else ABS_CONV(PCONV xs (body pat) conv)
     fun pat -> 
         let xs, pbod = strip_abs pat
@@ -390,7 +390,7 @@ let SUBS_CONV ths tm =
             let th = 
                 rev_itlist (fun y x -> CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(x, y))) 
                     ths (REFL abs)
-            if rand(concl th) = tm then REFL tm
+            if Choice.get <| rand(concl th) = tm then REFL tm
             else th
     tm |> Choice.mapError (fun _ -> Exception "SUBS_CONV")
 

@@ -2081,7 +2081,7 @@ let HAS_SIZE_CONV =
                        |> THENC <| BINDER_CONV EXISTS_HAS_SIZE_AND_CONV)
     fun tm -> 
         let th = HAS_SIZE_CONV tm
-        let tm' = rand(concl th)
+        let tm' = Choice.get <| rand(concl th)
         let evs, bod = strip_exists tm'
         if evs = []
         then th

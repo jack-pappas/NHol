@@ -320,12 +320,12 @@ let pp_print_term =
         let pbod = snd(strip_exists(body(body tm)))
         let s, args = strip_comb pbod
         if name_of s = "_UNGUARDED_PATTERN" && length args = 2 then 
-            [rand(rator(hd args));
-             rand(rator(hd(tl args)))]
+            [Choice.get <| rand(Choice.get <| rator(hd args));
+             Choice.get <| rand(Choice.get <| rator(hd(tl args)))]
         elif name_of s = "_GUARDED_PATTERN" && length args = 3 then 
-            [rand(rator(hd args));
+            [Choice.get <| rand(Choice.get <| rator(hd args));
              hd(tl args);
-             rand(rator(hd(tl(tl args))))]
+             Choice.get <| rand(Choice.get <| rator(hd(tl(tl args))))]
         else failwith "dest_clause"
     let rec dest_clauses tm = 
         let s, args = strip_comb tm
@@ -392,10 +392,10 @@ let pp_print_term =
                                         try 
                                             if not(s = "GSPEC") then fail()
                                             else 
-                                                let evs, bod = strip_exists(body(rand tm))
+                                                let evs, bod = strip_exists(body(Choice.get <| rand tm))
                                                 let bod1, fabs = Choice.get <| dest_comb bod
                                                 let bod2, babs = Choice.get <| dest_comb bod1
-                                                let c = rator bod2
+                                                let c = Choice.get <| rator bod2
                                                 if fst(Choice.get <| dest_const c) <> "SETSPEC" then fail()
                                                 else 
                                                     pp_print_string fmt "{"
@@ -594,7 +594,7 @@ let pp_print_term =
             let absf = is_gabs tm
             let s = 
                 if absf then "\\"
-                else name_of(rator tm)
+                else name_of(Choice.get <| rator tm)
             let rec collectvs tm = 
                 if absf then 
                     if is_abs tm then 
@@ -606,13 +606,13 @@ let pp_print_term =
                         let vs, bod = collectvs t
                         (true, v) :: vs, bod
                     else [], tm
-                elif is_comb tm && name_of(rator tm) = s then 
-                    if is_abs(rand tm) then 
-                        let v, t = Choice.get <| dest_abs(rand tm)
+                elif is_comb tm && name_of(Choice.get <| rator tm) = s then 
+                    if is_abs(Choice.get <| rand tm) then 
+                        let v, t = Choice.get <| dest_abs(Choice.get <| rand tm)
                         let vs, bod = collectvs t
                         (false, v) :: vs, bod
-                    elif is_gabs(rand tm) then 
-                        let v, t = dest_gabs(rand tm)
+                    elif is_gabs(Choice.get <| rand tm) then 
+                        let v, t = dest_gabs(Choice.get <| rand tm)
                         let vs, bod = collectvs t
                         (true, v) :: vs, bod
                     else [], tm

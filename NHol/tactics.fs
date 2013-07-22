@@ -485,7 +485,7 @@ let CONV_TAC : conv -> tactic =
 /// Solves a goal that is an equation between alpha-equivalent terms.
 let REFL_TAC : tactic = 
     fun ((asl, w) as g) -> 
-        ACCEPT_TAC (REFL(rand w)) g
+        ACCEPT_TAC (REFL(Choice.get <| rand w)) g
         |> Choice.mapError (fun _ -> Exception "REFL_TAC")
 
 /// Strips an abstraction from each side of an equational goal.

@@ -341,11 +341,11 @@ let GEN_REAL_ARITH_001 =
                                     let REAL_INEQ_CONV pth tm = 
                                         let lop, r = Choice.get <| dest_comb tm
                                         let th = 
-                                            INST [rand lop, x_tm
+                                            INST [Choice.get <| rand lop, x_tm
                                                   r, y_tm] pth
                                         TRANS th 
                                             (LAND_CONV POLY_CONV 
-                                                 (rand(concl th))) 
+                                                 (Choice.get <| rand(concl th))) 
 
                                     let REAL_LT_CONV, REAL_LE_CONV, REAL_GT_CONV, REAL_GE_CONV, REAL_EQ_CONV, REAL_NOT_LT_CONV, REAL_NOT_LE_CONV, REAL_NOT_GT_CONV, REAL_NOT_GE_CONV =
                                         let realEqFuncs = map REAL_INEQ_CONV (CONJUNCTS pth)
@@ -364,7 +364,7 @@ let GEN_REAL_ARITH_001 =
                                             let th_p = 
                                                 POLY_CONV
                                                     (lhand
-                                                         (lhand(rand(concl th))))
+                                                         (lhand(Choice.get <| rand(concl th))))
                                             let th_x = AP_TERM neg_tm th_p
                                             let th_n = 
                                                 CONV_RULE 
@@ -381,19 +381,19 @@ let GEN_REAL_ARITH_001 =
                                         itlist (uncurry net_of_conv) 
                                             [xy_lt, REAL_LT_CONV
                                              xy_nlt, 
-                                             (fun t -> REAL_NOT_LT_CONV(rand t))
+                                             (fun t -> REAL_NOT_LT_CONV(Choice.get <| rand t))
                                              xy_le, REAL_LE_CONV
                                              xy_nle, 
-                                             (fun t -> REAL_NOT_LE_CONV(rand t))
+                                             (fun t -> REAL_NOT_LE_CONV(Choice.get <| rand t))
                                              xy_gt, REAL_GT_CONV
                                              xy_ngt, 
-                                             (fun t -> REAL_NOT_GT_CONV(rand t))
+                                             (fun t -> REAL_NOT_GT_CONV(Choice.get <| rand t))
                                              xy_ge, REAL_GE_CONV
                                              xy_nge, 
-                                             (fun t -> REAL_NOT_GE_CONV(rand t))
+                                             (fun t -> REAL_NOT_GE_CONV(Choice.get <| rand t))
                                              xy_eq, REAL_EQ_CONV
                                              xy_ne, 
-                                             (fun t -> REAL_NOT_EQ_CONV(rand t))] empty_net
+                                             (fun t -> REAL_NOT_EQ_CONV(Choice.get <| rand t))] empty_net
                                     let net_double = 
                                         itlist (uncurry net_of_conv) 
                                             [xy_lt, 
@@ -525,7 +525,7 @@ let GEN_REAL_ARITH_001 =
                                                          :: oths)
                                                 let th2 = 
                                                     overall dun 
-                                                        (ASSUME(rand tm) :: oths)
+                                                        (ASSUME(Choice.get <| rand tm) :: oths)
                                                 DISJ_CASES th th1 th2
                                             else overall (th :: dun) oths
                                     fun tm -> 
@@ -547,7 +547,7 @@ let GEN_REAL_ARITH_001 =
                                                      <| BINOP_CONV absremover)) 
                                                 t
                                         let th0 = init_conv(mk_neg tm)
-                                        let tm0 = rand(concl th0)
+                                        let tm0 = Choice.get <| rand(concl th0)
                                         let th = 
                                             if tm0 = false_tm
                                             then fst(EQ_IMP_RULE th0)
@@ -562,7 +562,7 @@ let GEN_REAL_ARITH_001 =
                                                     overall [] 
                                                         [SPECL avs 
                                                              (ASSUME
-                                                                  (rand
+                                                                  (Choice.get <| rand
                                                                        (concl 
                                                                             th1)))]
                                                 let th3 = 
@@ -721,7 +721,7 @@ let REAL_LINEAR_PROVER =
                 (itlist (union << dom) (eq_pols @ le_pols @ lt_pols) [])
         let le_pols' = le_pols @ map (fun v -> (v |=> Int 1)) aliens
         let _, proof = linear_prover(eq_pols, le_pols', lt_pols)
-        let le' = le @ map (fun a -> INST [rand a, n_tm] pth) aliens
+        let le' = le @ map (fun a -> INST [Choice.get <| rand a, n_tm] pth) aliens
         translator (eq, le', lt) proof
 
 (* ------------------------------------------------------------------------- *)
@@ -741,7 +741,7 @@ let REAL_ARITH_001 =
     let deabs_conv = REWRITE_CONV [real_abs; real_max; real_min]
     fun tm -> 
         let th1 = deabs_conv tm
-        EQ_MP (SYM th1) (rule(rand(concl th1)))
+        EQ_MP (SYM th1) (rule(Choice.get <| rand(concl th1)))
 
 (* ------------------------------------------------------------------------- *)
 (* Slightly less parametrized GEN_REAL_ARITH with more intelligent           *)
@@ -859,29 +859,29 @@ let GEN_REAL_ARITH =
         let y_tm = (parse_term @"y:real")
         let is_max = is_binop(parse_term @"real_max")
         let is_min = is_binop(parse_term @"real_min")
-        let is_abs t = is_comb t && rator t = abs_tm
+        let is_abs t = is_comb t && Choice.get <| rator t = abs_tm
         let eliminate_construct p c tm = 
             let t = find_term (fun t -> p t && free_in t tm) tm
             let v = genvar(Choice.get <| type_of t)
             let th0 = SYM(BETA_CONV(Choice.get <| mk_comb(Choice.get <| mk_abs(v, subst [v, t] tm), t)))
-            let p, ax = Choice.get <| dest_comb(rand(concl th0))
+            let p, ax = Choice.get <| dest_comb(Choice.get <| rand(concl th0))
             CONV_RULE (RAND_CONV(BINOP_CONV(RAND_CONV BETA_CONV))) 
                 (TRANS th0 (c p ax))
         let elim_abs = 
             eliminate_construct is_abs (fun p ax -> 
                     INST [p, p_tm
-                          rand ax, x_tm] pth_abs)
+                          Choice.get <| rand ax, x_tm] pth_abs)
         let elim_max = 
             eliminate_construct is_max (fun p ax -> 
                     let ax, y = Choice.get <| dest_comb ax
                     INST [p, p_tm
-                          rand ax, x_tm
+                          Choice.get <| rand ax, x_tm
                           y, y_tm] pth_max)
         let elim_min = 
             eliminate_construct is_min (fun p ax -> 
                     let ax, y = Choice.get <| dest_comb ax
                     INST [p, p_tm
-                          rand ax, x_tm
+                          Choice.get <| rand ax, x_tm
                           y, y_tm] pth_min)
         FIRST_CONV [elim_abs; elim_max; elim_min]
     fun (mkconst, EQ, GE, GT, NORM, NEG, ADD, MUL, PROVER) -> 

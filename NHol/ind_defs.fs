@@ -173,7 +173,7 @@ let derive_nonschematic_inductive_relations =
                 let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
                 let th2 = EQ_MP (SYM th1) th0
                 let th3 = INST yes (DISCH atm th2)
-                let tm4 = funpow (length yes) rand (lhand(concl th3))
+                let tm4 = funpow (length yes) (Choice.get << rand) (lhand(concl th3))
                 let th4 = itlist (CONJ << REFL << fst) yes (ASSUME tm4)
                 let th5 = GENL args (GENL nvs (DISCH tm4 (MP th3 th4)))
                 let th6 = SPECL nvs (SPECL (map snd plis) (ASSUME(concl th5)))
@@ -189,14 +189,14 @@ let derive_nonschematic_inductive_relations =
                 let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
                 let th2 = EQ_MP (SYM th1) th0
                 let th3 = INST yes (DISCH atm th2)
-                let tm4 = funpow (length yes) rand (lhand(concl th3))
+                let tm4 = funpow (length yes) (Choice.get << rand) (lhand(concl th3))
                 let th4 = itlist (CONJ << REFL << fst) yes (ASSUME tm4)
                 let th5 = GENL args (GENL nvs (DISCH tm4 (MP th3 th4)))
                 let th6 = SPECL nvs (SPECL (map snd plis) (ASSUME(concl th5)))
                 let th7 = end_itlist CONJ (map (REFL << snd) no)
                 let th8 = GENL avs (MP th6 th7)
                 IMP_ANTISYM_RULE (DISCH_ALL th5) (DISCH_ALL th8)
-        let ftm = funpow (length args) (body << rand) (rand(concl eth))
+        let ftm = funpow (length args) (body << Choice.get << rand) (Choice.get <| rand(concl eth))
         TRANS eth (itlist MK_FORALL args (FORALL_IMPS_CONV ftm))
     let canonicalize_clauses clauses = 
         let concls = map getconcl clauses
@@ -209,7 +209,7 @@ let derive_nonschematic_inductive_relations =
         let zargs = zip rels (shareout xargs flargs)
         let cargs = uncs |> map (fun (r, a) -> assoc r zargs |> Option.getOrFailWith "find")
         let cthms = map2 canonicalize_clause clauses cargs
-        let pclauses = map (rand << concl) cthms
+        let pclauses = map (Choice.get << rand << concl) cthms
         let collectclauses tm = 
             mapfilter (fun t -> 
                     if fst t = tm
@@ -227,7 +227,7 @@ let derive_nonschematic_inductive_relations =
         let clauses = conjuncts closed
         let vargs, bodies = unzip(map strip_forall clauses)
         let ants, concs = unzip(map dest_imp bodies)
-        let rels = map (repeat rator) concs
+        let rels = map (repeat (Choice.get << rator)) concs
         let avoids = variables closed
         let rels' = variants avoids rels
         let crels = zip rels' rels
@@ -235,7 +235,7 @@ let derive_nonschematic_inductive_relations =
         let closed' = prime_fn closed
         let mk_def arg con = 
             mk_eq
-                (repeat rator con, 
+                (repeat (Choice.get << rator) con, 
                  list_mk_abs
                      (arg, list_mk_forall(rels', mk_imp(closed', prime_fn con))))
         let deftms = map2 mk_def vargs concs
@@ -295,7 +295,7 @@ let derive_nonschematic_inductive_relations =
         let clauses = conjuncts tm
         let canonthm = canonicalize_clauses clauses
         let canonthm' = SYM canonthm
-        let pclosed = rand(concl canonthm)
+        let pclosed = Choice.get <| rand(concl canonthm)
         let pclauses = conjuncts pclosed
         let rawthm = derive_canon_inductive_relations pclauses
         let rulethm, otherthms = CONJ_PAIR rawthm
@@ -374,7 +374,7 @@ let MONO_TAC =
         else 
             let cn = 
                 try 
-                    fst(Choice.get <| dest_const(repeat rator c))
+                    fst(Choice.get <| dest_const(repeat (Choice.get << rator) c))
                 with
                 | Failure _ -> ""
             Choice.tryFind (fun (k, t) -> 
@@ -384,7 +384,7 @@ let MONO_TAC =
     fun gl -> 
         let tacs = 
             itlist (fun th l -> 
-                    let ft = repeat rator (funpow 2 rand (concl th))
+                    let ft = repeat (Choice.get << rator) (funpow 2 (Choice.get << rand) (concl th))
                     let c = 
                         try 
                             fst(Choice.get <| dest_const ft)
@@ -425,7 +425,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
     let rec pare_comb qvs tm = 
         if intersect (frees tm) qvs = [] && forall is_var (snd(strip_comb tm))
         then tm
-        else pare_comb qvs (rator tm)
+        else pare_comb qvs (Choice.get <| rator tm)
     let generalize_schematic_variables gflag vs = 
         let generalize_def tm th = 
             let l, r = dest_eq tm
@@ -470,7 +470,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
         then failwith "Schematic variables not used consistently"
         else 
             let avoids = variables(list_mk_conj clauses)
-            let hack_fn tm = mk_var(fst(Choice.get <| dest_var(repeat rator tm)), Choice.get <| type_of tm)
+            let hack_fn tm = mk_var(fst(Choice.get <| dest_var(repeat (Choice.get << rator) tm)), Choice.get <| type_of tm)
             let grels = variants avoids (map hack_fn schems)
             let crels = zip grels schems
             let clauses' = map (subst crels) clauses
@@ -514,12 +514,12 @@ let derive_strong_induction =
     let dest_ibod tm = 
         let avs, ibod = strip_forall tm
         let n = length avs
-        let prator = funpow n rator
+        let prator = funpow n (Choice.get << rator)
         let ant, con = dest_imp ibod
         n, (prator ant, prator con)
     let rec prove_triv tm = 
         if is_conj tm
-        then CONJ (prove_triv(lhand tm)) (prove_triv(rand tm))
+        then CONJ (prove_triv(lhand tm)) (prove_triv(Choice.get <| rand tm))
         else 
             let avs, bod = strip_forall tm
             let a, c = dest_imp bod

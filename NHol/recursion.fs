@@ -68,14 +68,14 @@ let prove_recursive_functions_exist =
         let exvs, axbody = strip_exists(concl axth)
         let axcls = conjuncts axbody
         let f = 
-            fst << Choice.get << dest_const << repeat rator << rand << lhand << snd 
+            fst << Choice.get << dest_const << repeat (Choice.get << rator) << Choice.get << rand << lhand << snd 
             << strip_forall
         let findax s =
             assoc s (map (fun t -> f t, t) axcls)
             |> Option.getOrFailWith "find"
         let raxs = 
-            map (findax << fst << Choice.get << dest_const << repeat rator << hd << snd) lpats
-        let axfns = map (repeat rator << lhand << snd << strip_forall) raxs
+            map (findax << fst << Choice.get << dest_const << repeat (Choice.get << rator) << hd << snd) lpats
+        let axfns = map (repeat (Choice.get << rator) << lhand << snd << strip_forall) raxs
         let urfns = 
             map (fun v -> assocd v (setify(zip axfns (map fst lpats))) v) exvs
         let axtm = list_mk_exists(exvs, list_mk_conj raxs)
@@ -134,7 +134,7 @@ let prove_recursive_functions_exist =
         let uxargs = map (fun x -> assoc x lpats |> Option.getOrFailWith "find") ufns
         let trths = itlist2 reshuffle ufns uxargs []
         let tth = GEN_REWRITE_CONV REDEPTH_CONV (BETA_THM :: trths) tm
-        let eth = prove_canon_recursive_functions_exist ax (rand(concl tth))
+        let eth = prove_canon_recursive_functions_exist ax (Choice.get <| rand(concl tth))
         let evs, ebod = strip_exists(concl eth)
         let fth = itlist SIMPLE_EXISTS ufns (EQ_MP (SYM tth) (ASSUME ebod))
         let gth = itlist scrub_def (map concl trths) fth

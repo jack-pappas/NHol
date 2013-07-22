@@ -325,14 +325,14 @@ let GEN_BETA_CONV =
             let ourcj = 
                 find 
                     ((=) conname << fst << Choice.get << dest_const << fst << strip_comb //check (=) conname, check all better
-                     << rand << lhand << snd << strip_forall) cjs
+                     << Choice.get << rand << lhand << snd << strip_forall) cjs
             let n = index ourcj cjs
             let avs, eqn = strip_forall ourcj
-            let con', args = strip_comb(rand eqn)
+            let con', args = strip_comb(Choice.get <| rand eqn)
             let aargs, zargs = chop_list (length avs) args
             let gargs = map (genvar << Choice.get << type_of) zargs
             let gcon = 
-                genvar(itlist (mk_fun_ty << Choice.get << type_of) avs (Choice.get <| type_of(rand eqn)))
+                genvar(itlist (mk_fun_ty << Choice.get << type_of) avs (Choice.get <| type_of(Choice.get <| rand eqn)))
             let bth = 
                 INST [list_mk_abs(aargs @ gargs, list_mk_comb(gcon, avs)), con'] 
                     sth
@@ -342,9 +342,9 @@ let GEN_BETA_CONV =
                     (funpow (length avs) BINDER_CONV (RAND_CONV(BETAS_CONV))) 
                     cth
             let eth = 
-                SIMPLE_EXISTS (rator(lhand(snd(strip_forall(concl dth))))) dth
+                SIMPLE_EXISTS (Choice.get <| rator(lhand(snd(strip_forall(concl dth))))) dth
             let fth = PROVE_HYP bth (itlist SIMPLE_CHOOSE evs eth)
-            let zty = Choice.get <| type_of(rand(snd(strip_forall(concl dth))))
+            let zty = Choice.get <| type_of(Choice.get <| rand(snd(strip_forall(concl dth))))
             let mk_projector a = 
                 let ity = Choice.get <| type_of a
                 let th = 
@@ -369,7 +369,7 @@ let GEN_BETA_CONV =
         else 
             let con, args = strip_comb tm
             let prjths = create_projections(fst(Choice.get <| dest_const con))
-            let atm = rand(rand(concl(hd prjths)))
+            let atm = Choice.get <| rand(Choice.get <| rand(concl(hd prjths)))
             let instn = term_match [] atm tm
             let arths = map (INSTANTIATE instn) prjths
             let ths = 
@@ -388,12 +388,12 @@ let GEN_BETA_CONV =
             let instn = term_match [] vstr r
             let prjs = create_iterated_projections vstr
             let th1 = SUBS_CONV prjs bod
-            let bod' = rand(concl th1)
+            let bod' = Choice.get <| rand(concl th1)
             let gv = genvar(Choice.get <| type_of vstr)
             let pat = Choice.get <| mk_abs(gv, subst [gv, vstr] bod')
             let th2 = TRANS (BETA_CONV(Choice.get <| mk_comb(pat, vstr))) (SYM th1)
-            let avs = fst(strip_forall(body(rand l)))
-            let th3 = GENL (fst(strip_forall(body(rand l)))) th2
+            let avs = fst(strip_forall(body(Choice.get <| rand l)))
+            let th3 = GENL (fst(strip_forall(body(Choice.get <| rand l)))) th2
             let efn = genvar(Choice.get <| type_of pat)
             let th4 = 
                 EXISTS (mk_exists(efn, subst [efn, pat] (concl th3)), pat) th3
@@ -544,13 +544,13 @@ let let_CONV =
                     |> THENC <| GEN_BETA_CONV
     let lete_CONV = REWR_CONV LET_END_DEF
     let rec EXPAND_BETAS_CONV tm = 
-        let tm' = rator tm
+        let tm' = Choice.get <| rator tm
         try 
             let1_CONV tm
         with
         | Failure _ -> 
-            let th1 = AP_THM (EXPAND_BETAS_CONV tm') (rand tm)
-            let th2 = GEN_BETA_CONV(rand(concl th1))
+            let th1 = AP_THM (EXPAND_BETAS_CONV tm') (Choice.get <| rand tm)
+            let th2 = GEN_BETA_CONV(Choice.get <| rand(concl th1))
             TRANS th1 th2
     fun tm -> 
         let ltm, pargs = strip_comb tm
@@ -586,12 +586,12 @@ let (LET_TAC : tactic) =
                  TAUT(parse_term @"a /\ T <=> a")]
         fun tm -> 
             let th1 = rewr1_CONV tm
-            let tm1 = rand(concl th1)
+            let tm1 = Choice.get <| rand(concl th1)
             let cjs = conjuncts tm1
             let vars = map lhand cjs
             let th2 = EQ_MP (SYM th1) (ASSUME tm1)
             let th3 = DISCH_ALL(itlist SIMPLE_EXISTS vars th2)
-            let th4 = INST (map (fun t -> rand t, lhand t) cjs) th3
+            let th4 = INST (map (fun t -> Choice.get <| rand t, lhand t) cjs) th3
             MP (rewr2_RULE th4) TRUTH
     fun (asl, w as gl) ->  
             let path = 

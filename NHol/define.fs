@@ -583,7 +583,7 @@ let instantiate_casewise_recursion,
         let avs,bod = strip_forall tm
         let ant,cons = dest_imp bod
         let ath = RECTYPE_ARITH_EQ_CONV ant
-        let atm = rand(concl ath)
+        let atm = Choice.get <| rand(concl ath)
         let bth = 
          CONJ ath (if atm = false_tm then REFL cons
                     else DISCH atm
@@ -675,7 +675,7 @@ let instantiate_casewise_recursion,
 (* ------------------------------------------------------------------------- *)
 
   let APPLY_PROFORMA_TAC th (asl,w as gl) =
-    let vs = fst(dest_gabs(body(rand w)))
+    let vs = fst(dest_gabs(body(Choice.get <| rand w)))
     let n = 1 + length(fst(splitlist dest_pair vs))
     (MATCH_MP_TAC(HACK_PROFORMA n th) |>THEN<| BETA_TAC) gl in
 
@@ -712,7 +712,7 @@ let instantiate_casewise_recursion,
       "superadmissible","COND"
           -> APPLY_PROFORMA_TAC SUPERADMISSIBLE_COND gl
     | "superadmissible","_MATCH" when
-          name_of(repeat rator (last args)) = "_SEQPATTERN"
+          name_of(repeat (Choice.get << rator) (last args)) = "_SEQPATTERN"
           -> (APPLY_PROFORMA_TAC SUPERADMISSIBLE_MATCH_SEQPATTERN |>THEN<|
               CONV_TAC(ONCE_DEPTH_CONV EXISTS_PAT_CONV)) gl
     | "superadmissible","_MATCH" when
@@ -727,7 +727,7 @@ let instantiate_casewise_recursion,
              let th = EACK_PROFORMA n SUPERADMISSIBLE_MATCH_GUARDED_PATTERN
              (APPLY_PROFORMA_TAC th |>THEN<| CONJ_TAC |>THENL<|
                [SIMPLIFY_MATCH_WELLDEFINED_TAC; ALL_TAC]) gl
-    | "superadmissible",_ when is_comb bod && rator bod = f
+    | "superadmissible",_ when is_comb bod && Choice.get <| rator bod = f
           -> APPLY_PROFORMA_TAC SUPERADMISSIBLE_TAIL gl
     | "admissible","sum"
           -> APPLY_PROFORMA_TAC ADMISSIBLE_SUM gl
@@ -736,7 +736,7 @@ let instantiate_casewise_recursion,
     | "admissible","MAP"
           -> APPLY_PROFORMA_TAC ADMISSIBLE_MAP gl
     | "admissible","_MATCH" when
-          name_of(repeat rator (last args)) = "_SEQPATTERN"
+          name_of(repeat (Choice.get << rator) (last args)) = "_SEQPATTERN"
           -> (APPLY_PROFORMA_TAC ADMISSIBLE_MATCH_SEQPATTERN |>THEN<|
               CONV_TAC(ONCE_DEPTH_CONV EXISTS_PAT_CONV)) gl
     | "admissible","_MATCH"
@@ -747,8 +747,8 @@ let instantiate_casewise_recursion,
           -> APPLY_PROFORMA_TAC ADMISSIBLE_GUARDED_PATTERN gl
     | "admissible",_ when is_abs bod
           -> APPLY_PROFORMA_TAC ADMISSIBLE_LAMBDA gl
-    | "admissible",_ when is_comb bod && rator bod = f
-          -> if free_in f (rand bod) then
+    | "admissible",_ when is_comb bod && Choice.get <| rator bod = f
+          -> if free_in f (Choice.get <| rand bod) then
                APPLY_PROFORMA_TAC ADMISSIBLE_NEST gl
              else
                APPLY_PROFORMA_TAC ADMISSIBLE_BASE gl
@@ -1028,7 +1028,7 @@ let define =
     let avs,bod = strip_forall tm
     let cjs = conjuncts bod
     let fs =
-      try map (repeat rator << lhs << snd << strip_forall) cjs
+      try map (repeat (Choice.get << rator) << lhs << snd << strip_forall) cjs
       with Failure _ -> failwith "close_definition_clauses: non-equation"
     if length (setify fs) <> 1
     then failwith "close_definition_clauses: defining multiple functions" else

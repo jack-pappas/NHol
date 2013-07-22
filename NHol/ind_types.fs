@@ -79,7 +79,7 @@ let INJ_INVERSE2 =
    |> THEN <| EQ_TAC
    |> THEN <| STRIP_TAC
    |> THEN <| ASM_REWRITE_TAC []
-   |> THEN <| W(EXISTS_TAC << rand << snd << dest_exists << snd)
+   |> THEN <| W(EXISTS_TAC << Choice.get <| rand << snd << dest_exists << snd)
    |> THEN <| REFL_TAC)
 #else
     Choice1Of2 <| Sequent([], parse_term @"!P. (!x1 y1 x2 y2. P x1 y1 = P x2 y2 <=> x1 = x2 /\ y1 = y2)
@@ -432,7 +432,7 @@ let CONSTR_REC =
     |> THEN <| DISCH_THEN(CHOOSE_THEN(CONJUNCTS_THEN2 STRIP_ASSUME_TAC MP_TAC))
     |> THEN <| DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC (ASSUME_TAC << GSYM))
     |> THEN <| SUBGOAL_THEN (parse_term @"!x. ?!y. (Z:(A)recspace->B->bool) x y") MP_TAC
-    |> THENL <| [W(MP_TAC << PART_MATCH rand CONSTR_IND << snd)
+    |> THENL <| [W(MP_TAC << PART_MATCH Choice.get <| rand CONSTR_IND << snd)
                  |> THEN <| DISCH_THEN MATCH_MP_TAC
                  |> THEN <| CONJ_TAC
                  |> THEN <| REPEAT GEN_TAC
@@ -658,13 +658,13 @@ let define_type_raw_001 =
     let prove_model_inhabitation rth = 
         let srules = map SPEC_ALL (CONJUNCTS rth)
         let imps, bases = partition (is_imp << concl) srules
-        let concs = map concl bases @ map (rand << concl) imps
-        let preds = setify(map (repeat rator) concs)
+        let concs = map concl bases @ map (Choice.get << rand << concl) imps
+        let preds = setify(map (repeat (Choice.get << rator)) concs)
         let rec exhaust_inhabitations ths sofar = 
             let dunnit = setify(map (fst << strip_comb << concl) sofar)
             let useful = 
                 filter 
-                    (fun th -> not(mem (fst(strip_comb(rand(concl th)))) dunnit)) 
+                    (fun th -> not(mem (fst(strip_comb(Choice.get <| rand(concl th)))) dunnit)) 
                     ths
             if useful = []
             then sofar
@@ -693,13 +693,13 @@ let define_type_raw_001 =
         let epred = fst(strip_comb extm)
         let ename = fst(Choice.get <| dest_var epred)
         let th1 = ASSUME(find (fun eq -> lhand eq = epred) (hyp exth))
-        let th2 = TRANS th1 (SUBS_CONV cdefs (rand(concl th1)))
-        let th3 = EQ_MP (AP_THM th2 (rand extm)) exth
+        let th2 = TRANS th1 (SUBS_CONV cdefs (Choice.get <| rand(concl th1)))
+        let th3 = EQ_MP (AP_THM th2 (Choice.get <| rand extm)) exth
         let th4, _ = itlist SCRUB_EQUATION (hyp th3) (th3, [])
         let mkname = "_mk_" + ename
         let destname = "_dest_" + ename
         let bij1, bij2 = new_basic_type_definition ename (mkname, destname) th4
-        let bij2a = AP_THM th2 (rand(rand(concl bij2)))
+        let bij2a = AP_THM th2 (Choice.get <| rand(Choice.get <| rand(concl bij2)))
         let bij2b = TRANS bij2a bij2
         bij1, bij2b
 
@@ -711,7 +711,7 @@ let define_type_raw_001 =
         let avs, bod = strip_forall(concl th)
         let asms, conc = 
             if is_imp bod
-            then conjuncts(lhand bod), rand bod
+            then conjuncts(lhand bod), Choice.get <| rand bod
             else [], bod
         let asmlist = map (Choice.get << dest_comb) asms
         let cpred, cterm = Choice.get <| dest_comb conc
@@ -741,7 +741,7 @@ let define_type_raw_001 =
         let expth = find (fun th -> lhand(concl th) = oldcon) defs
         let rexpth = SUBS_CONV [expth] defrt
         let deflf = mk_var(fst(Choice.get <| dest_var oldcon), Choice.get <| type_of defrt)
-        let defth = new_definition(mk_eq(deflf, rand(concl rexpth)))
+        let defth = new_definition(mk_eq(deflf, Choice.get <| rand(concl rexpth)))
         TRANS defth (SYM rexpth)
 
     (* ----------------------------------------------------------------------- *)
@@ -752,8 +752,8 @@ let define_type_raw_001 =
     let instantiate_induction_theorem consindex ith = 
         let avs, bod = strip_forall(concl ith)
         let corlist = 
-            map ((repeat rator ||>> repeat rator) << dest_imp << body << rand) 
-                (conjuncts(rand bod))
+            map ((repeat (Choice.get << rator) ||>> repeat (Choice.get << rator)) << dest_imp << body << Choice.get << rand) 
+                (conjuncts(Choice.get <| rand bod))
         let consindex' = 
             map (fun v -> 
                     let w =
@@ -798,21 +798,21 @@ let define_type_raw_001 =
                 let tth = MATCH_MP (SPEC_ALL rthm) (end_itlist CONJ tths)
                 let mths = map IPRULE (tth :: tths)
                 let conth1 = BETA_CONV con
-                let contm1 = rand(concl conth1)
+                let contm1 = Choice.get <| rand(concl conth1)
                 let conth2 = 
                     TRANS conth1 
-                        (AP_TERM (rator contm1) 
-                             (SUBS_CONV (tl mths) (rand contm1)))
+                        (AP_TERM (Choice.get <| rator contm1) 
+                             (SUBS_CONV (tl mths) (Choice.get <| rand contm1)))
                 let conth3 = PRERULE conth2
                 let lctms = map concl pths
-                let asmin = mk_imp(list_mk_conj lctms, rand(rand(concl conth3)))
-                let argsin = map rand (conjuncts(lhand asmin))
+                let asmin = mk_imp(list_mk_conj lctms, Choice.get <| rand(Choice.get <| rand(concl conth3)))
+                let argsin = map (Choice.get << rand) (conjuncts(lhand asmin))
                 let argsgen = 
-                    map (fun tm -> mk_var(fst(Choice.get <| dest_var(rand tm)), Choice.get <| type_of tm)) 
+                    map (fun tm -> mk_var(fst(Choice.get <| dest_var(Choice.get <| rand tm)), Choice.get <| type_of tm)) 
                         argsin
                 let asmgen = subst (zip argsgen argsin) asmin
                 let asmquant = 
-                    list_mk_forall(snd(strip_comb(rand(rand asmgen))), asmgen)
+                    list_mk_forall(snd(strip_comb(Choice.get <| rand(Choice.get <| rand asmgen))), asmgen)
                 let th1 = INST (zip argsin argsgen) (SPEC_ALL(ASSUME asmquant))
                 let th2 = MP th1 (end_itlist CONJ pths)
                 let th3 = EQ_MP (SYM conth3) (CONJ tth th2)
@@ -820,11 +820,11 @@ let define_type_raw_001 =
             else 
                 let con = bimp
                 let conth2 = BETA_CONV con
-                let tth = PART_MATCH I rthm (lhand(rand(concl conth2)))
+                let tth = PART_MATCH I rthm (lhand(Choice.get <| rand(concl conth2)))
                 let conth3 = PRERULE conth2
-                let asmgen = rand(rand(concl conth3))
+                let asmgen = Choice.get <| rand(Choice.get <| rand(concl conth3))
                 let asmquant = 
-                    list_mk_forall(snd(strip_comb(rand asmgen)), asmgen)
+                    list_mk_forall(snd(strip_comb(Choice.get <| rand asmgen)), asmgen)
                 let th2 = SPEC_ALL(ASSUME asmquant)
                 let th3 = EQ_MP (SYM conth3) (CONJ tth th2)
                 DISCH asmquant (GENL avs th3)
@@ -841,14 +841,14 @@ let define_type_raw_001 =
         let FINRULE = GEN_REWRITE_RULE RAND_CONV tybij1
         fun th -> 
             let av, bimp = dest_forall(concl th)
-            let pv = lhand(body(rator(rand bimp)))
+            let pv = lhand(body(Choice.get <| rator(Choice.get <| rand bimp)))
             let p, v = Choice.get <| dest_comb pv
             let mk, dest = assoc p consindex |> Option.getOrFailWith "find"
             let ty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of dest)))
             let v' = mk_var(fst(Choice.get <| dest_var v), ty)
             let dv = Choice.get <| mk_comb(dest, v')
             let th1 = PRERULE(SPEC dv th)
-            let th2 = MP th1 (REFL(rand(lhand(concl th1))))
+            let th2 = MP th1 (REFL(Choice.get <| rand(lhand(concl th1))))
             let th3 = CONV_RULE BETA_CONV th2
             GEN v' (FINRULE(CONJUNCT2 th3))
 
@@ -868,7 +868,7 @@ let define_type_raw_001 =
                 (map (finish_induction_conclusion consindex tybijpairs) 
                      (CONJUNCTS th1))
         let th3 = DISCH asm th2
-        let preds = map (rator << body << rand) (conjuncts(rand(concl th3)))
+        let preds = map (Choice.get << rator << body << Choice.get << rand) (conjuncts(Choice.get <| rand(concl th3)))
         let th4 = GENL preds th3
         let pasms = filter (C mem (map fst consindex) << lhand) (hyp th4)
         let th5 = itlist DISCH pasms th4
@@ -898,26 +898,26 @@ let define_type_raw_001 =
         let fxths1 = 
             map (fun th1 -> Choice.tryFind (fun th2 -> MK_COMB(th2, th1)) fdefs) 
                 conthms
-        let fxths2 = map (fun th -> TRANS th (BETA_CONV(rand(concl th)))) fxths1
+        let fxths2 = map (fun th -> TRANS th (BETA_CONV(Choice.get <| rand(concl th)))) fxths1
         let mk_tybijcons(th1, th2) = 
-            let th3 = INST [rand(lhand(concl th1)), rand(lhand(concl th2))] th2
-            let th4 = AP_TERM (rator(lhand(rand(concl th2)))) th1
+            let th3 = INST [Choice.get <| rand(lhand(concl th1)), Choice.get <| rand(lhand(concl th2))] th2
+            let th4 = AP_TERM (Choice.get <| rator(lhand(Choice.get <| rand(concl th2)))) th1
             EQ_MP (SYM th3) th4
         let SCONV = GEN_REWRITE_CONV I (map mk_tybijcons tybijpairs)
         let ERULE = GEN_REWRITE_RULE I (map snd tybijpairs)
         let simplify_fxthm rthm fxth = 
-            let pat = funpow 4 rand (concl fxth)
+            let pat = funpow 4 (Choice.get << rand) (concl fxth)
             if is_imp(repeat (snd << dest_forall) (concl rthm))
             then 
-                let th1 = PART_MATCH (rand << rand) rthm pat
+                let th1 = PART_MATCH (Choice.get << rand << Choice.get << rand) rthm pat
                 let tms1 = conjuncts(lhand(concl th1))
                 let ths2 = map (fun t -> EQ_MP (SYM(SCONV t)) TRUTH) tms1
                 ERULE(MP th1 (end_itlist CONJ ths2))
-            else ERULE(PART_MATCH rand rthm pat)
+            else ERULE(PART_MATCH (Choice.get << rand) rthm pat)
         let fxths3 = map2 simplify_fxthm (CONJUNCTS rth) fxths2
         let fxths4 = map2 (fun th1 -> TRANS th1 << AP_TERM fn) fxths2 fxths3
         let cleanup_fxthm cth fxth = 
-            let tms = snd(strip_comb(rand(rand(concl fxth))))
+            let tms = snd(strip_comb(Choice.get <| rand(Choice.get <| rand(concl fxth))))
             let kth = RIGHT_BETAS tms (ASSUME(hd(hyp cth)))
             TRANS fxth (AP_TERM fn kth)
         let fxth5 = end_itlist CONJ (map2 cleanup_fxthm conthms fxths4)
@@ -945,11 +945,11 @@ let define_type_raw_001 =
                     ISPECL [t1; t2] (if free_in v t1
                                      then FST
                                      else SND)
-                let tup' = rand(concl PAIR_th)
+                let tup' = Choice.get <| rand(concl PAIR_th)
                 if tup' = v
                 then PAIR_th
                 else 
-                    let th = extract_arg (rand(concl PAIR_th)) v
+                    let th = extract_arg (Choice.get <| rand(concl PAIR_th)) v
                     SUBS [SYM PAIR_th] th
         fun consindex -> 
             let recty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of(fst(hd consindex)))))
@@ -960,9 +960,9 @@ let define_type_raw_001 =
             let mkindex = 
                 map (fun t -> hd(tl(snd(Choice.get <| dest_type(Choice.get <| type_of t)))), t) mks
             fun cth -> 
-                let artms = snd(strip_comb(rand(rand(concl cth))))
-                let artys = mapfilter (Choice.get << type_of << rand) artms
-                let args, bod = strip_abs(rand(hd(hyp cth)))
+                let artms = snd(strip_comb(Choice.get <| rand(Choice.get <| rand(concl cth))))
+                let artys = mapfilter (Choice.get << type_of << Choice.get << rand) artms
+                let args, bod = strip_abs(Choice.get <| rand(hd(hyp cth)))
                 let ccitm, rtm = Choice.get <| dest_comb bod
                 let cctm, itm = Choice.get <| dest_comb ccitm
                 let rargs, iargs = partition (C free_in rtm) args
@@ -977,7 +977,7 @@ let define_type_raw_001 =
                 let allargs = cargs' @ rargs' @ sargs'
                 let funty = itlist (mk_fun_ty << Choice.get << type_of) allargs zty
                 let funname = 
-                    fst(Choice.get <| dest_const(repeat rator (lhand(concl cth)))) + "'"
+                    fst(Choice.get <| dest_const(repeat (Choice.get << rator) (lhand(concl cth)))) + "'"
                 let funarg = mk_var(funname, funty)
                 list_mk_abs([i; r; s], list_mk_comb(funarg, allargs))
 
@@ -995,13 +995,13 @@ let define_type_raw_001 =
             let fnil = Choice.get <| mk_const("FNIL", [ty, aty])
             let bigfun = itlist (mk_binop fcons) isocons fnil
             let eth = ISPEC bigfun CONSTR_REC
-            let fn = rator(rand(hd(conjuncts(concl rath))))
+            let fn = Choice.get <| rator(Choice.get <| rand(hd(conjuncts(concl rath))))
             let betm = 
-                let v, bod = Choice.get <| dest_abs(rand(concl eth))
+                let v, bod = Choice.get <| dest_abs(Choice.get <| rand(concl eth))
                 Choice.get <| vsubst [fn, v] bod
             let LCONV = REWR_CONV(ASSUME betm)
             let fnths = 
-                map (fun t -> RIGHT_BETAS [bndvar(rand t)] (ASSUME t)) 
+                map (fun t -> RIGHT_BETAS [bndvar(Choice.get <| rand t)] (ASSUME t)) 
                     (hyp rath)
             let SIMPER = 
                 PURE_REWRITE_RULE
@@ -1009,13 +1009,13 @@ let define_type_raw_001 =
                      @ map fst tybijpairs @ [FST; SND; FCONS; BETA_THM])
             let hackdown_rath th = 
                 let ltm, rtm = dest_eq(concl th)
-                let wargs = snd(strip_comb(rand ltm))
+                let wargs = snd(strip_comb(Choice.get <| rand ltm))
                 let th1 = TRANS th (LCONV rtm)
-                let th2 = TRANS th1 (CCONV(rand(concl th1)))
+                let th2 = TRANS th1 (CCONV(Choice.get <| rand(concl th1)))
                 let th3 = 
-                    TRANS th2 (funpow 2 RATOR_CONV BETA_CONV (rand(concl th2)))
-                let th4 = TRANS th3 (RATOR_CONV BETA_CONV (rand(concl th3)))
-                let th5 = TRANS th4 (BETA_CONV(rand(concl th4)))
+                    TRANS th2 (funpow 2 RATOR_CONV BETA_CONV (Choice.get <| rand(concl th2)))
+                let th4 = TRANS th3 (RATOR_CONV BETA_CONV (Choice.get <| rand(concl th3)))
+                let th5 = TRANS th4 (BETA_CONV(Choice.get <| rand(concl th4)))
                 GENL wargs (SIMPER th5)
             let rthm = end_itlist CONJ (map hackdown_rath (CONJUNCTS rath))
             let seqs = 
@@ -1031,7 +1031,7 @@ let define_type_raw_001 =
             let rethm = itlist EXISTS_EQUATION seqs rthm
             let fethm = CHOOSE (fn, eth) rethm
             let pcons = 
-                map (repeat rator << rand << repeat(snd << dest_forall)) 
+                map (repeat (Choice.get << rator) << Choice.get << rand << repeat(snd << dest_forall)) 
                     (conjuncts(concl rthm))
             GENL pcons fethm
     fun def -> 
@@ -1041,18 +1041,18 @@ let define_type_raw_001 =
         let defs, rth, ith = justify_inductive_type_model def
         let neths = prove_model_inhabitation rth
         let tybijpairs = map (define_inductive_type defs) neths
-        let preds = map (repeat rator << concl) neths
+        let preds = map (repeat (Choice.get << rator) << concl) neths
         let mkdests = 
             map (fun (th, _) -> 
                     let tm = lhand(concl th)
-                    rator tm, rator(rand tm)) tybijpairs
+                    Choice.get <| rator tm, Choice.get <| rator(Choice.get <| rand tm)) tybijpairs
         let consindex = zip preds mkdests
         let condefs = 
             map (define_inductive_type_constructor defs consindex) 
                 (CONJUNCTS rth)
         let conthms = 
             map (fun th -> 
-                    let args = fst(strip_abs(rand(concl th)))
+                    let args = fst(strip_abs(Choice.get <| rand(concl th)))
                     RIGHT_BETAS args th) condefs
         let iith = instantiate_induction_theorem consindex ith
         let fth = derive_induction_theorem consindex tybijpairs conthms iith rth
@@ -1184,12 +1184,12 @@ let define_type_raw_002 =
                 let sty = mk_sum tys
                 let inls = mk_inls sty
                 let outls = mk_outls sty
-                let zty = Choice.get <| type_of(rand(snd(strip_forall(hd(conjuncts bod)))))
+                let zty = Choice.get <| type_of(Choice.get <| rand(snd(strip_forall(hd(conjuncts bod)))))
                 let ith = INST_TYPE [sty, zty] th
                 let avs, ebod = strip_forall(concl ith)
                 let evs, bod = strip_exists ebod
                 let fns' = map2 mk_newfun evs outls
-                let fnalist = zip evs (map (rator << lhs << concl) fns')
+                let fnalist = zip evs (map (Choice.get << rator << lhs << concl) fns')
                 let inlalist = zip evs inls
                 let outlalist = zip evs outls
                 let hack_clause tm = 
@@ -1202,10 +1202,10 @@ let define_type_raw_002 =
                                 if is_var a
                                 then g, g
                                 else 
-                                    let outl = assoc (rator a) outlalist |> Option.getOrFailWith "find"
+                                    let outl = assoc (Choice.get <| rator a) outlalist |> Option.getOrFailWith "find"
                                     Choice.get <| mk_comb(outl, g), g) args
                     let args', args'' = unzip pargs
-                    let inl = assoc (rator l) inlalist |> Option.getOrFailWith "find"
+                    let inl = assoc (Choice.get <| rator l) inlalist |> Option.getOrFailWith "find"
                     let rty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of inl)))
                     let nty = itlist (mk_fun_ty << Choice.get << type_of) args' rty
                     let fn' = mk_var(fst(Choice.get <| dest_var fn), nty)
@@ -1218,7 +1218,7 @@ let define_type_raw_002 =
                 let bth = ASSUME(snd(strip_exists(concl jth)))
                 let finish_clause th = 
                     let avs, bod = strip_forall(concl th)
-                    let outl = assoc (rator(lhand bod)) outlalist |> Option.getOrFailWith "find"
+                    let outl = assoc (Choice.get <| rator(lhand bod)) outlalist |> Option.getOrFailWith "find"
                     GENL avs (BETA_RULE(AP_TERM outl (SPECL avs th)))
                 let cth = end_itlist CONJ (map finish_clause (CONJUNCTS bth))
                 let dth = ELIM_OUTCOMBS cth
@@ -1231,7 +1231,7 @@ let define_type_raw_002 =
                             MP (INST [r, l] (DISCH e th)) (REFL r)) dtms fth
                 let hth = PROVE_HYP jth (itlist SIMPLE_CHOOSE evs gth)
                 let xvs = 
-                    map (fst << strip_comb << rand << snd << strip_forall) 
+                    map (fst << strip_comb << Choice.get << rand << snd << strip_forall) 
                         (conjuncts(concl eth))
                 GENL xvs hth
     fun def ->
@@ -1279,7 +1279,7 @@ let prove_constructors_injective =
         PROVE_HYP eth (SIMPLE_CHOOSE fn uth)
     fun ax -> 
         let cls = conjuncts(snd(strip_exists(snd(strip_forall(concl ax)))))
-        let pats = map (rand << lhand << snd << strip_forall) cls
+        let pats = map (Choice.get << rand << lhand << snd << strip_forall) cls
         end_itlist CONJ (mapfilter (prove_distinctness ax) pats);;
 
 /// Proves that the constructors of an automatically-dened concrete type yield distinct values.
@@ -1297,7 +1297,7 @@ let prove_constructors_distinct =
             genvar(Choice.get <| mk_type("fun", [Choice.get <| type_of(hd pat); num_ty]))
         let ls = map (curry (Choice.get << mk_comb) fn) pat
         let defs = 
-            map2 (fun l r -> list_mk_forall(frees(rand l), mk_eq(l, r))) ls nums
+            map2 (fun l r -> list_mk_forall(frees(Choice.get <| rand l), mk_eq(l, r))) ls nums
         let eth = prove_recursive_functions_exist ax (list_mk_conj defs)
         let ev, bod = dest_exists(concl eth)
         let REWRITE = GEN_REWRITE_RULE ONCE_DEPTH_CONV (CONJUNCTS(ASSUME bod))
@@ -1357,7 +1357,7 @@ let prove_cases_thm =
         let avs, bod = strip_forall tm
         let ctm = 
             if is_imp bod
-            then rand bod
+            then Choice.get <| rand bod
             else bod
         let cth = prove_disj ctm
         let dth = 
@@ -1371,7 +1371,7 @@ let prove_cases_thm =
         let pats = 
             map (fun t -> 
                     if is_imp t
-                    then rand t
+                    then Choice.get <| rand t
                     else t) cls
         let spats = map (Choice.get << dest_comb) pats
         let preds = itlist (insert << fst) spats []
@@ -1489,7 +1489,7 @@ let define_type_raw =
             let avs, bod = strip_forall tm
             let bth = 
                 if is_eq bod
-                then REFL(rand bod)
+                then REFL(Choice.get <| rand bod)
                 else 
                     let ant, con = dest_imp bod
                     let ith = SUBS_CONV (CONJUNCTS(ASSUME ant)) (lhs con)
@@ -1550,13 +1550,13 @@ let define_type_raw =
             then [], th
             else 
                 let th1 = USE_PTH th
-                let v1 = rand(rand(concl th1))
+                let v1 = Choice.get <| rand(Choice.get <| rand(concl th1))
                 let gv = genvar(Choice.get <| type_of v1)
                 let th2 = CONV_RULE BETA_CONV (UNDISCH(INST [gv, v1] th1))
                 let vs, th3 = DE_EXISTENTIALIZE_RULE th2
                 gv :: vs, th3
         DE_EXISTENTIALIZE_RULE
-    let grab_type = Choice.get << type_of << rand << lhand << snd << strip_forall
+    let grab_type = Choice.get << type_of << Choice.get << rand << lhand << snd << strip_forall
     let clause_corresponds cl0 = 
         let f0, ctm0 = Choice.get <| dest_comb(lhs cl0)
         let c0 = fst(Choice.get <| dest_const(fst(strip_comb ctm0)))
@@ -1598,7 +1598,7 @@ let define_type_raw =
             let l0, r0 = dest_eq tm0
             let l1, r1 = dest_eq tm1
             let vc0, wargs0 = strip_comb r0
-            let con0, vargs0 = strip_comb(rand l0)
+            let con0, vargs0 = strip_comb(Choice.get <| rand l0)
             let gargs0 = map (genvar << Choice.get << type_of) wargs0
             let nestf0 =
                 /// Tests for failure.
@@ -1607,12 +1607,12 @@ let define_type_raw =
                     with Failure _ -> false
                 map 
                     (fun a -> 
-                        can (find(fun t -> is_comb t && rand t = a)) wargs0) 
+                        can (find(fun t -> is_comb t && Choice.get <| rand t = a)) wargs0) 
                     vargs0
             let targs0 = 
                 map2 (fun a f -> 
                         if f
-                        then find (fun t -> is_comb t && rand t = a) wargs0
+                        then find (fun t -> is_comb t && Choice.get <| rand t = a) wargs0
                         else a) vargs0 nestf0
             let gvlist0 = zip wargs0 gargs0
             let xargs =
@@ -1622,14 +1622,14 @@ let define_type_raw =
                     |> Option.getOrFailWith "find")
             let inst0 = 
                 list_mk_abs
-                    (gargs0, list_mk_comb(fst(strip_comb(rand l1)), xargs)), vc0
+                    (gargs0, list_mk_comb(fst(strip_comb(Choice.get <| rand l1)), xargs)), vc0
             let vc1, wargs1 = strip_comb r1
-            let con1, vargs1 = strip_comb(rand l1)
+            let con1, vargs1 = strip_comb(Choice.get <| rand l1)
             let gargs1 = map (genvar << Choice.get << type_of) wargs1
             let targs1 = 
                 map2 (fun a f -> 
                         if f
-                        then find (fun t -> is_comb t && rand t = a) wargs1
+                        then find (fun t -> is_comb t && Choice.get <| rand t = a) wargs1
                         else a) vargs1 nestf0
             let gvlist1 = zip wargs1 gargs1
             let xargs =
@@ -1639,7 +1639,7 @@ let define_type_raw =
                     |> Option.getOrFailWith "find")
             let inst1 = 
                 list_mk_abs
-                    (gargs1, list_mk_comb(fst(strip_comb(rand l0)), xargs)), vc1
+                    (gargs1, list_mk_comb(fst(strip_comb(Choice.get <| rand l0)), xargs)), vc1
             inst0, inst1
         let insts0, insts1 = 
             unzip(map2 proc_clause (lcjs0 @ rcjs0) (lcjs1 @ rcjs1))
@@ -1662,7 +1662,7 @@ let define_type_raw =
             map2 (fun ff gg -> list_mk_icomb "ISO" [ff; gg]) efvs0 efvs2
         let ctm = list_mk_conj isotms
         let cth1 = ISO_EXPAND_CONV ctm
-        let ctm1 = rand(concl cth1)
+        let ctm1 = Choice.get <| rand(concl cth1)
         let cjs = conjuncts ctm1
         let eee = map (fun n -> n mod 2 = 0) (0 -- (length cjs - 1))
         let cjs1, cjs2 = partition fst (zip eee cjs)
@@ -1671,10 +1671,10 @@ let define_type_raw =
         let DETRIV_RULE = TRIV_ANTE_RULE << REWRITE_RULE [sth0; sth1]
         let jth0 = 
             let itha = SPEC_ALL ith0
-            let icjs = conjuncts(rand(concl itha))
+            let icjs = conjuncts(Choice.get <| rand(concl itha))
             let cinsts = 
                 map (fun tm -> tryfind (fun vtm -> term_match [] vtm tm) icjs) 
-                    (conjuncts(rand ctm2))
+                    (conjuncts(Choice.get <| rand ctm2))
             let tvs = 
                 subtract (fst(strip_forall(concl ith0))) 
                     (itlist (fun (_, x, _) -> union(map snd x)) cinsts [])
@@ -1685,7 +1685,7 @@ let define_type_raw =
             DETRIV_RULE(INST ctvs (itlist INSTANTIATE cinsts itha))
         let jth1 = 
             let itha = SPEC_ALL ith1
-            let icjs = conjuncts(rand(concl itha))
+            let icjs = conjuncts(Choice.get <| rand(concl itha))
             let cinsts = 
                 map (fun tm -> tryfind (fun vtm -> term_match [] vtm tm) icjs) 
                     (conjuncts(lhand ctm2))
@@ -1711,7 +1711,7 @@ let define_type_raw =
         let eqn = 
             find (fun t -> 
                     let x = lhs t
-                    forall (fun u -> not(free_in x (rand u))) hyps) hyps
+                    forall (fun u -> not(free_in x (Choice.get <| rand u))) hyps) hyps
         let l, r = dest_eq eqn
         MP (INST [r, l] (DISCH eqn th)) (REFL r)
     let define_type_basecase def = 
@@ -1753,7 +1753,7 @@ let define_type_raw =
         let cjs = map (lhand << snd << strip_forall) (conjuncts bod)
         let rtys = map (hd << snd << Choice.get << dest_type << Choice.get << type_of) evs
         let tyins = tryfind (fun vty -> type_match vty nty []) rtys
-        let cjs' = map (Choice.get << inst tyins << rand) (fst(chop_list k cjs))
+        let cjs' = map (Choice.get << inst tyins << Choice.get << rand) (fst(chop_list k cjs))
         let mtys = itlist (insert << Choice.get << type_of) cjs' []
         let pcons = map (fun ty -> filter (fun t -> Choice.get <| type_of t = ty) cjs') mtys
         let cls' = zip mtys (map (map(recover_clause id)) pcons)
@@ -1813,14 +1813,14 @@ let define_type_raw =
                 filter 
                     (fun t -> 
                         exists (fun v -> not(is_var v)) 
-                            (snd(strip_comb(rand(lhs(snd(strip_forall t))))))) 
+                            (snd(strip_comb(Choice.get <| rand(lhs(snd(strip_forall t))))))) 
                     (conjuncts
                          (snd
                               (strip_exists
-                                   (snd(strip_forall(rand(concl irth6)))))))
+                                   (snd(strip_forall(Choice.get <| rand(concl irth6)))))))
             let mk_newcon tm = 
                 let vs, bod = strip_forall tm
-                let rdeb = rand(lhs bod)
+                let rdeb = Choice.get <| rand(lhs bod)
                 let rdef = list_mk_abs(vs, rdeb)
                 let newname = fst(Choice.get <| dest_var(genvar bool_ty))
                 let def = mk_eq(mk_var(newname, Choice.get <| type_of rdef), rdef)
@@ -1837,7 +1837,7 @@ let define_type_raw =
         let allcls = conjuncts(snd(strip_exists etm))
         let relcls = fst(chop_list (length truecons) allcls)
         let gencons = 
-            map (repeat rator << rand << lhand << snd << strip_forall) relcls
+            map (repeat (Choice.get << rator) << Choice.get << rand << lhand << snd << strip_forall) relcls
         let cdefs = 
             map2 
                 (fun s r -> SYM(new_definition(mk_eq(mk_var(s, Choice.get <| type_of r), r)))) 
@@ -1979,7 +1979,7 @@ let UNWIND_CONV, MATCH_CONV =
                 let th2 = itlist MK_EXISTS evs th1
                 let th3 = 
                     funpow n BINDER_CONV (PUSH_EXISTS_CONV baseconv) 
-                        (rand(concl th2))
+                        (Choice.get <| rand(concl th2))
                 CONV_RULE (RAND_CONV UNWIND_CONV) (TRANS th2 th3)
             with
             | Failure _ -> REFL tm
@@ -1999,7 +1999,7 @@ let UNWIND_CONV, MATCH_CONV =
                                   |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [EXISTS_SIMP]))
     let MATCH_ONEPATTERN_CONV tm = 
         let th1 = GEN_REWRITE_CONV I [pth_3] tm
-        let tm' = body(rand(lhand(rand(concl th1))))
+        let tm' = body(Choice.get <| rand(lhand(Choice.get <| rand(concl th1))))
         let th2 = 
             (INSIDE_EXISTS_CONV(GEN_REWRITE_CONV I [pth_4]
                                 |> THENC <| RAND_CONV BREAK_CONS_CONV)
@@ -2079,11 +2079,11 @@ let FORALL_UNWIND_CONV =
             let cjs' = eq :: (subtract eqs [eq])
             let n = length avs - (1 + index v (rev avs))
             let th1 = CONJ_ACI_RULE(mk_eq(ant, list_mk_conj cjs'))
-            let th2 = AP_THM (AP_TERM (rator(rator bod)) th1) con
+            let th2 = AP_THM (AP_TERM (Choice.get <| rator(Choice.get <| rator bod)) th1) con
             let th3 = itlist MK_FORALL avs th2
             let th4 = 
                 funpow n BINDER_CONV (PUSH_FORALL_CONV baseconv) 
-                    (rand(concl th3))
+                    (Choice.get <| rand(concl th3))
             CONV_RULE (RAND_CONV FORALL_UNWIND_CONV) (TRANS th3 th4)
         with
         | Failure _ -> REFL tm

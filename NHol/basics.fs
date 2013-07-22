@@ -243,10 +243,10 @@ let mk_mconst(c, ty) =
         nestedFailwith e "mk_const: generic type cannot be instantiated"
 
 (* ------------------------------------------------------------------------- *)
-(* Like mk_comb, but instantiates type variables in rator if necessary.      *)
+(* Like mk_comb, but instantiates type variables in Choice.get <| rator if necessary.      *)
 (* ------------------------------------------------------------------------- *)
 
-/// Makes a combination, instantiating types in rator if necessary.
+/// Makes a combination, instantiating types in Choice.get <| rator if necessary.
 let mk_icomb(tm1, tm2) = 
     match Choice.get <| dest_type(Choice.get <| type_of tm1) with
     | "fun", [ty; _] ->
@@ -313,7 +313,7 @@ let find_terms =
             if p tm then insert tm tl
             else tl
         if is_abs tm then accum tl' p (body tm)
-        elif is_comb tm then accum (accum tl' p (rator tm)) p (rand tm)
+        elif is_comb tm then accum (accum tl' p (Choice.get <| rator tm)) p (Choice.get <| rand tm)
         else tl'
     accum []
 
@@ -415,7 +415,7 @@ let disjuncts = striplist dest_disj
 /// Tests a term to see if it is a logical negation.
 let is_neg tm = 
     try 
-        fst(Choice.get <| dest_const(rator tm)) = "~"
+        fst(Choice.get <| dest_const(Choice.get <| rator tm)) = "~"
     with
     | Failure _ -> false
 
@@ -503,7 +503,7 @@ let dest_gabs =
                 if not(fst(Choice.get <| dest_const l) = "GABS") then fail()
                 else 
                     let ltm, rtm = dest_geq(snd(strip_forall(body r)))
-                    rand ltm, rtm
+                    Choice.get <| rand ltm, rtm
         with
         | Failure _ as e ->
             nestedFailwith e "dest_gabs: Not a generalized abstraction"
@@ -601,9 +601,9 @@ let find_path =
         elif is_abs tm then "b" :: (find_path p (body tm))
         else 
             try 
-                "r" :: (find_path p (rand tm))
+                "r" :: (find_path p (Choice.get <| rand tm))
             with
-            | Failure _ -> "l" :: (find_path p (rator tm))
+            | Failure _ -> "l" :: (find_path p (Choice.get <| rator tm))
     fun p tm -> implode(find_path p tm)
 
 /// Find the subterm of a given term indicated by a path.
@@ -611,7 +611,7 @@ let follow_path =
     let rec follow_path s tm = 
         match s with
         | [] -> tm
-        | "l" :: t -> follow_path t (rator tm)
-        | "r" :: t -> follow_path t (rand tm)
+        | "l" :: t -> follow_path t (Choice.get <| rator tm)
+        | "r" :: t -> follow_path t (Choice.get <| rand tm)
         | _ :: t -> follow_path t (body tm)
     fun s tm -> follow_path (explode s) tm

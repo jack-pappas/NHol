@@ -109,7 +109,7 @@ let rec BETAS_CONV tm =
 /// Apply a higher-order instantiation to a term.
 let instantiate : instantiation -> term -> term = 
     let betas n tm = 
-        let args, lam = funpow n (fun (l, t) -> (rand t) :: l, rator t) ([], tm)
+        let args, lam = funpow n (fun (l, t) -> (Choice.get <| rand t) :: l, Choice.get <| rator t) ([], tm)
         rev_itlist (fun a l -> 
                 let v, b = Choice.get <| dest_abs l
                 Choice.get <| vsubst [a, v] b) args lam
@@ -310,7 +310,7 @@ let term_match : term list -> term -> term -> instantiation =
                     insts, homs
             term_pmatch lconsts ((cv, vv) :: env) vbod cbod sofar'
         | _ -> 
-            let vhop = repeat rator vtm
+            let vhop = repeat (Choice.get << rator) vtm
             if is_var vhop && not(mem vhop lconsts) 
                && (Option.isNone <| rev_assoc vhop env)
             then 
@@ -703,6 +703,6 @@ let new_definition tm =
     let th2 = 
         rev_itlist (fun tm th -> 
                 let ith = AP_THM th tm
-                TRANS ith (BETA_CONV(rand(concl ith)))) largs th1
+                TRANS ith (BETA_CONV(Choice.get <| rand(concl ith)))) largs th1
     let rvs = filter (not << C mem avs) largs
     itlist GEN rvs (itlist GEN avs th2)

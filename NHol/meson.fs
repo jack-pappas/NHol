@@ -742,7 +742,7 @@ let GEN_MESON_TAC =
                                                |> THEN <| CONV_TAC TAUT)
         let imp_elim_CONV = REWR_CONV(TAUT(parse_term @"(a ==> b) <=> ~a \/ b"))
         let eq_elim_RULE = MATCH_MP(TAUT(parse_term @"(a <=> b) ==> b \/ ~a"))
-        let veq_tm = rator(rator(concl(hd eq_thms)))
+        let veq_tm = Choice.get <| rator(Choice.get <| rator(concl(hd eq_thms)))
         let create_equivalence_axioms(eq, _) = 
             let tyins = type_match (Choice.get <| type_of veq_tm) (Choice.get <| type_of eq) []
             map (INST_TYPE tyins) eq_thms
@@ -892,7 +892,7 @@ let GEN_MESON_TAC =
             let l, r = dest_eq tm
             let gv = genvar(Choice.get <| type_of l)
             let eq = mk_eq(r, gv)
-            CLAUSIFY(DISCH eq (EQ_MP (AP_TERM (rator tm) (ASSUME eq)) th))
+            CLAUSIFY(DISCH eq (EQ_MP (AP_TERM (Choice.get <| rator tm) (ASSUME eq)) th))
         let LDISJ_CASES th lth rth = 
             DISJ_CASES th (DISJ1 lth (concl rth)) (DISJ2 (concl lth) rth)
         let ASSOCIATE = CONV_RULE(REWR_CONV(GSYM DISJ_ASSOC))
@@ -958,11 +958,11 @@ let GEN_MESON_TAC =
         let setify' le eq s = uniq' eq (sort le s)
         let rec grab_constants tm acc = 
             if is_forall tm || is_exists tm
-            then grab_constants (body(rand tm)) acc
+            then grab_constants (body(Choice.get <| rand tm)) acc
             elif is_iff tm || is_imp tm || is_conj tm || is_disj tm
-            then grab_constants (rand tm) (grab_constants (lhand tm) acc)
+            then grab_constants (Choice.get <| rand tm) (grab_constants (lhand tm) acc)
             elif is_neg tm
-            then grab_constants (rand tm) acc
+            then grab_constants (Choice.get <| rand tm) acc
             else union (find_terms is_const tm) acc
         let match_consts(tm1, tm2) = 
             let s1, ty1 = Choice.get <| dest_const tm1

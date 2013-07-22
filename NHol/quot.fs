@@ -69,7 +69,7 @@ let define_quotient_type =
         let eqvx = Choice.get <| mk_comb(eqv, x)
         let pred = Choice.get <| mk_abs(s, mk_exists(x, mk_eq(s, eqvx)))
         let th0 = BETA_CONV(Choice.get <| mk_comb(pred, eqvx))
-        let th1 = EXISTS (rand(concl th0), x) (REFL eqvx)
+        let th1 = EXISTS (Choice.get <| rand(concl th0), x) (REFL eqvx)
         let th2 = EQ_MP (SYM th0) th1
         let abs, rep = new_basic_type_definition tyname (absname, repname) th2
         abs, CONV_RULE (LAND_CONV BETA_CONV) rep
@@ -99,11 +99,11 @@ let lift_function =
              |> THEN <| MATCH_ACCEPT_TAC SELECT_REFL)
     fun tybij2 -> 
         let tybl, tybr = Choice.get <| dest_comb(concl tybij2)
-        let eqvx = rand(body(rand(rand tybl)))
+        let eqvx = Choice.get <| rand(body(Choice.get <| rand(Choice.get <| rand tybl)))
         let eqv, xtm = Choice.get <| dest_comb eqvx
         let dmr, rtm = dest_eq tybr
         let dest, mrt = Choice.get <| dest_comb dmr
-        let mk = rator mrt
+        let mk = Choice.get <| rator mrt
         let ety = Choice.get <| type_of mrt
         fun (refl_th, trans_th) fname wth -> 
             let wtm = repeat (snd << dest_forall) (concl wth)
@@ -153,7 +153,7 @@ let lift_function =
                 EQ_MP th (EXISTS (lhs(concl th), xtm) (REFL eqvx))
             let ith = INST (zip targs evs) eth
             let jth = SUBS (map (fun v -> INST [v, xtm] dme_th) rvs) ith
-            let apop, uxtm = Choice.get <| dest_comb(rand(concl jth))
+            let apop, uxtm = Choice.get <| dest_comb(Choice.get <| rand(concl jth))
             let extm = body uxtm
             let evs, bod = strip_exists extm
             let th1 = ASSUME bod

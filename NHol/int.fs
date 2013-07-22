@@ -879,7 +879,7 @@ let INT_ARITH =
     fun tm -> 
         let th0 = INST [tm, p_tm] pth
         let th1 = init_CONV(mk_neg tm)
-        let th2 = REAL_ARITH(mk_neg(rand(concl th1)))
+        let th2 = REAL_ARITH(mk_neg(Choice.get <| rand(concl th1)))
         EQ_MP th0 (EQ_MP (AP_TERM not_tm (SYM th1)) th2)
 
 /// Attempt to prove goal using basic algebra and linear arithmetic over the integers.
@@ -1201,19 +1201,19 @@ let INT_ADD_CONV =
     |> ORELSEC <| (fun tm -> 
         try 
             let l, r = dest tm
-            if rator l = neg_tm
+            if Choice.get <| rator l = neg_tm
             then 
-                if rator r = neg_tm
+                if Choice.get <| rator r = neg_tm
                 then 
                     let th1 = 
-                        INST [rand(rand l), m_tm
-                              rand(rand r), n_tm] pth1
-                    let tm1 = rand(rand(rand(concl th1)))
+                        INST [Choice.get <| rand(Choice.get <| rand l), m_tm
+                              Choice.get <| rand(Choice.get <| rand r), n_tm] pth1
+                    let tm1 = Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(concl th1)))
                     let th2 = AP_TERM neg_tm (AP_TERM amp_tm (NUM_ADD_CONV tm1))
                     TRANS th1 th2
                 else 
-                    let m = rand(rand l)
-                    let n = rand r
+                    let m = Choice.get <| rand(Choice.get <| rand l)
+                    let n = Choice.get <| rand r
                     let m' = dest_numeral m
                     let n' = dest_numeral n
                     if m' <=/ n'
@@ -1222,8 +1222,8 @@ let INT_ADD_CONV =
                         let th1 = 
                             INST [m, m_tm
                                   p, n_tm] pth2
-                        let th2 = NUM_ADD_CONV(rand(rand(lhand(concl th1))))
-                        let th3 = AP_TERM (rator tm) (AP_TERM amp_tm (SYM th2))
+                        let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(lhand(concl th1))))
+                        let th3 = AP_TERM (Choice.get <| rator tm) (AP_TERM amp_tm (SYM th2))
                         TRANS th3 th1
                     else 
                         let p = mk_numeral(m' -/ n')
@@ -1231,14 +1231,14 @@ let INT_ADD_CONV =
                             INST [n, m_tm
                                   p, n_tm] pth3
                         let th2 = 
-                            NUM_ADD_CONV(rand(rand(lhand(lhand(concl th1)))))
+                            NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(lhand(lhand(concl th1)))))
                         let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
-                        let th4 = AP_THM (AP_TERM add_tm th3) (rand tm)
+                        let th4 = AP_THM (AP_TERM add_tm th3) (Choice.get <| rand tm)
                         TRANS th4 th1
-            elif rator r = neg_tm
+            elif Choice.get <| rator r = neg_tm
             then 
-                let m = rand l
-                let n = rand(rand r)
+                let m = Choice.get <| rand l
+                let n = Choice.get <| rand(Choice.get <| rand r)
                 let m' = dest_numeral m
                 let n' = dest_numeral n
                 if n' <=/ m'
@@ -1247,24 +1247,24 @@ let INT_ADD_CONV =
                     let th1 = 
                         INST [n, m_tm
                               p, n_tm] pth4
-                    let th2 = NUM_ADD_CONV(rand(lhand(lhand(concl th1))))
+                    let th2 = NUM_ADD_CONV(Choice.get <| rand(lhand(lhand(concl th1))))
                     let th3 = AP_TERM add_tm (AP_TERM amp_tm (SYM th2))
-                    let th4 = AP_THM th3 (rand tm)
+                    let th4 = AP_THM th3 (Choice.get <| rand tm)
                     TRANS th4 th1
                 else 
                     let p = mk_numeral(n' -/ m')
                     let th1 = 
                         INST [m, m_tm
                               p, n_tm] pth5
-                    let th2 = NUM_ADD_CONV(rand(rand(rand(lhand(concl th1)))))
+                    let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(lhand(concl th1)))))
                     let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
-                    let th4 = AP_TERM (rator tm) th3
+                    let th4 = AP_TERM (Choice.get <| rator tm) th3
                     TRANS th4 th1
             else 
                 let th1 = 
-                    INST [rand l, m_tm
-                          rand r, n_tm] pth6
-                let tm1 = rand(rand(concl th1))
+                    INST [Choice.get <| rand l, m_tm
+                          Choice.get <| rand r, n_tm] pth6
+                let tm1 = Choice.get <| rand(Choice.get <| rand(concl th1))
                 let th2 = AP_TERM amp_tm (NUM_ADD_CONV tm1)
                 TRANS th1 th2
         with
@@ -1294,7 +1294,7 @@ let INT_POW_CONV =
                    |> THENC <| RATOR_CONV(RATOR_CONV(RAND_CONV NUM_EVEN_CONV))
                    |> THENC <| GEN_REWRITE_CONV I [tth]
                    |> THENC <| (fun tm -> 
-                       if rator tm = neg_tm
+                       if Choice.get <| rator tm = neg_tm
                        then RAND_CONV (RAND_CONV NUM_EXP_CONV) tm
                        else RAND_CONV NUM_EXP_CONV tm))
 
@@ -1566,14 +1566,14 @@ let INTEGER_TAC_001 =
                        |> THENC <| INT_POLYEQ_CONV) tm
             let v, th1 = 
                 try 
-                    find (fun v -> is_defined v (lhand(rand(concl th)))) vars, 
+                    find (fun v -> is_defined v (lhand(Choice.get <| rand(concl th)))) vars, 
                     th'
                 with
                 | Failure _ -> 
-                    find (fun v -> is_defined v (lhand(rand(concl th')))) vars, 
+                    find (fun v -> is_defined v (lhand(Choice.get <| rand(concl th')))) vars, 
                     th
             let th2 = 
-                TRANS th1 (SPECL [lhs(rand(concl th1))
+                TRANS th1 (SPECL [lhs(Choice.get <| rand(concl th1))
                                   v] <| pth())
             CONV_RULE (RAND_CONV(RAND_CONV INT_POLY_CONV)) th2
     let UNWIND_POLYS_CONV tm = 
@@ -1583,8 +1583,8 @@ let INTEGER_TAC_001 =
         let eq = lhand(concl th1)
         let bod' = list_mk_conj(eq :: (subtract cjs [eq]))
         let th2 = CONJ_ACI_RULE(mk_eq(bod, bod'))
-        let th3 = TRANS th2 (MK_CONJ th1 (REFL(rand(rand(concl th2)))))
-        let v = lhs(lhand(rand(concl th3)))
+        let th3 = TRANS th2 (MK_CONJ th1 (REFL(Choice.get <| rand(Choice.get <| rand(concl th2)))))
+        let v = lhs(lhand(Choice.get <| rand(concl th3)))
         let vars' = (subtract vars [v]) @ [v]
         let th4 = CONV_RULE (RAND_CONV(REWR_CONV UNWIND_THM2)) (MK_EXISTS v th3)
         let IMP_RULE v v' = 
@@ -1856,11 +1856,11 @@ let ARITH_RULE =
     | _ -> false in
   fun tm ->
     let th1 = init_conv tm in
-    let tm1 = rand(concl th1) in
+    let tm1 = Choice.get <| rand(concl th1) in
     let avs,bod = strip_forall tm1 in
     let nim = setify(find_terms is_numimage bod) in
     let gvs = map (genvar << Choice.get << type_of) nim in
-    let pths = map (fun v -> SPEC (rand v) INT_POS) nim in
+    let pths = map (fun v -> SPEC (Choice.get <| rand v) INT_POS) nim in
     let ibod = itlist (curry mk_imp << concl) pths bod in
     let gbod = subst (zip gvs nim) ibod in
     let th2 = INST (zip nim gvs) (INT_ARITH gbod) in

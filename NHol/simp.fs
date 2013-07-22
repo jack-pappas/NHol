@@ -76,7 +76,7 @@ let ORDERED_IMP_REWR_CONV ord th =
     let basic_conv = IMP_REWR_CONV th
     fun tm -> 
         let thm = basic_conv tm
-        let l, r = dest_eq(rand(concl thm))
+        let l, r = dest_eq(Choice.get <| rand(concl thm))
         if ord l r
         then thm
         else failwith "ORDERED_IMP_REWR_CONV: wrong orientation"
@@ -185,7 +185,7 @@ let net_of_cong th sofar =
     then failwith "net_of_cong: Non-implicational congruence"
     else 
         let pat = lhs conc
-        let conv = GEN_PART_MATCH (lhand << funpow n rand) th
+        let conv = GEN_PART_MATCH (lhand << funpow n (Choice.get << rand)) th
         enter [] (pat, (4, conv)) sofar
 
 (* ------------------------------------------------------------------------- *)
@@ -233,7 +233,7 @@ let mk_rewrites =
         elif is_neg tm
         then 
             let ths = split_rewrites oldhyps cf (EQF_INTRO th) sofar
-            if is_eq(rand tm)
+            if is_eq(Choice.get <| rand tm)
             then split_rewrites oldhyps cf (EQF_INTRO(GSYM th)) ths
             else ths
         else split_rewrites oldhyps cf (EQT_INTRO th) sofar
@@ -300,7 +300,7 @@ let basic_prover strat (Simpset(net, prover, provers, rewmaker) as ss) lev tm =
         |> Choice.bindError (fun _ -> REFL tm)
     EQT_ELIM sth
     |> Choice.bindError (fun _ ->
-        let tth = Choice.tryFind (fun pr -> apply_prover pr (rand(concl sth))) provers
+        let tth = Choice.tryFind (fun pr -> apply_prover pr (Choice.get <| rand(concl sth))) provers
         EQ_MP (SYM sth) tth)
 
 (* ------------------------------------------------------------------------- *)
@@ -387,7 +387,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             let eth' = GENL avs (mk_fun eth)
             let th' = 
                 if is_var t'
-                then INST [rand(concl eth), t'] th
+                then INST [Choice.get <| rand(concl eth), t'] th
                 else GEN_PART_MATCH lhand th (concl eth')
             let th'' = MP th' eth'
             RUN_SUB_CONV strat ss lev triv' th''
@@ -442,7 +442,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         let pconvs = lookup tm net
         try 
             let th1 = GEN_SUB_CONV DEPTH_SQCONV ss lev pconvs tm
-            let tm1 = rand(concl th1)
+            let tm1 = Choice.get <| rand(concl th1)
             let pconvs1 = lookup tm1 net
             try 
                 TRANS th1 (IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs1 tm1)
@@ -456,7 +456,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         let th = 
             try 
                 let th1 = GEN_SUB_CONV REDEPTH_SQCONV ss lev pconvs tm
-                let tm1 = rand(concl th1)
+                let tm1 = Choice.get <| rand(concl th1)
                 let pconvs1 = lookup tm1 net
                 try 
                     TRANS th1 
@@ -466,7 +466,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             with
             | Failure _ -> IMP_REWRITES_CONV REDEPTH_SQCONV ss lev pconvs tm
         try 
-            let th' = REDEPTH_SQCONV ss lev (rand(concl th))
+            let th' = REDEPTH_SQCONV ss lev (Choice.get <| rand(concl th))
             TRANS th th'
         with
         | Failure _ -> th
@@ -479,7 +479,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             with
             | Failure _ -> GEN_SUB_CONV TOP_DEPTH_SQCONV ss lev pconvs tm
         try 
-            let th2 = TOP_DEPTH_SQCONV ss lev (rand(concl th1))
+            let th2 = TOP_DEPTH_SQCONV ss lev (Choice.get <| rand(concl th1))
             TRANS th1 th2
         with
         | Failure _ -> th1
@@ -489,7 +489,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         try 
             let th1 = IMP_REWRITES_CONV TOP_SWEEP_SQCONV ss lev pconvs tm
             try 
-                let th2 = TOP_SWEEP_SQCONV ss lev (rand(concl th1))
+                let th2 = TOP_SWEEP_SQCONV ss lev (Choice.get <| rand(concl th1))
                 TRANS th1 th2
             with
             | Failure _ -> th1

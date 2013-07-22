@@ -546,7 +546,7 @@ let WF_INDUCT_TAC =
             let fvs = frees tm
             let gv = genvar(Choice.get <| type_of tm)
             let pat = list_mk_forall(gv :: fvs, mk_imp(mk_eq(gv, tm), w))
-            let th0 = UNDISCH(PART_MATCH rand num_WF pat)
+            let th0 = UNDISCH(PART_MATCH (Choice.get << rand) num_WF pat)
             let th1 = MP (SPECL (tm :: fvs) th0) (REFL tm)
             let th2 = CONV_RULE (LAND_CONV qqconvs) (DISCH_ALL th1)
             (MATCH_MP_TAC th2

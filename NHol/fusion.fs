@@ -309,7 +309,7 @@ module Hol_kernel =
         | Const(s, ty) -> Choice.succeed (s, ty)
         | _ -> Choice.failwith "dest_const: not a constant"
     
-    /// Breaks apart a combination (function application) into rator and rand.
+    /// Breaks apart a combination (function application) into Choice.get <| rator and Choice.get <| rand.
     let dest_comb = 
         function 
         | Comb(f, x) -> Choice.succeed (f, x)
@@ -488,14 +488,14 @@ module Hol_kernel =
     /// Returns the operator from a combination (function application).
     let rator tm = 
         match tm with
-        | Comb(l, r) -> l
-        | _ -> failwith "rator: Not a combination"
+        | Comb(l, r) -> Choice.succeed l
+        | _ -> Choice.failwith "rator: Not a combination"
     
     /// Returns the operand from a combination (function application).
     let rand tm = 
         match tm with
-        | Comb(l, r) -> r
-        | _ -> failwith "rand: Not a combination"
+        | Comb(l, r) -> Choice.succeed r
+        | _ -> Choice.failwith "rand: Not a combination"
     
     (* ------------------------------------------------------------------------- *)
     (* Syntax operations for equations.                                          *)

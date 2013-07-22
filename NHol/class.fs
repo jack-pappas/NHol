@@ -130,7 +130,7 @@ let SELECT_RULE =
              SIMP_TAC [SELECT_AX; ETA_AX])
     fun th -> 
         try 
-            let abs = rand(concl th)
+            let abs = Choice.get <| rand(concl th)
             let ty = Choice.get <| type_of(bndvar abs)
             CONV_RULE BETA_CONV (MP (PINST [ty, aty] [abs, P] pth) th)
         with
@@ -152,7 +152,7 @@ let SELECT_CONV =
                 let bv, bod = dest_select t
                 aconv tm (Choice.get <| vsubst [t, bv] bod)
             let pickeps = find_term is_epsok tm
-            let abs = rand pickeps
+            let abs = Choice.get <| rand pickeps
             let ty = Choice.get <| type_of(bndvar abs)
             CONV_RULE (LAND_CONV BETA_CONV) (PINST [ty, aty] [abs, P] pth)
         with
@@ -441,7 +441,7 @@ let COND_CLAUSES = prove((parse_term @"!(t1:A) t2. ((if T then t1 else t2) = t1)
 /// Tests a term to see if it is a conditional.
 let is_cond tm = 
     try 
-        fst(Choice.get <| dest_const(rator(rator(rator tm)))) = "COND"
+        fst(Choice.get <| dest_const(Choice.get <| rator(Choice.get <| rator(Choice.get <| rator tm)))) = "COND"
     with
     | Failure _ -> false
 
