@@ -63,7 +63,7 @@ open meson
 let define_quotient_type = 
     fun tyname (absname, repname) eqv -> 
         let ty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of eqv)))
-        let pty = mk_fun_ty ty bool_ty
+        let pty = Choice.get <| mk_fun_ty ty bool_ty
         let s = mk_var("s", pty)
         let x = mk_var("x", ty)
         let eqvx = Choice.get <| mk_comb(eqv, x)

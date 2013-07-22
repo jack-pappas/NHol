@@ -250,7 +250,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
                (Abs(x, t) as bod)) -> 
             let th_p, th_n = NNF_DCONV true baseconvs t
             AP_TERM q (ABS x th_p), 
-            let th1 = INST [bod,mk_var("P",mk_fun_ty ty bool_ty)]
+            let th1 = INST [bod,mk_var("P", Choice.get <| mk_fun_ty ty bool_ty)]
                          (INST_TYPE [ty,aty] pth_not_forall)
             let th2 = TRANS (AP_TERM not_tm (BETA(Choice.get <| mk_comb(bod,x)))) th_n
             TRANS th1 (MK_EXISTS x th2)
@@ -258,7 +258,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
                (Abs(x, t) as bod)) -> 
             let th_p, th_n = NNF_DCONV cf baseconvs t
             AP_TERM q (ABS x th_p), 
-            let th1 = INST [bod,mk_var("P",mk_fun_ty ty bool_ty)]
+            let th1 = INST [bod,mk_var("P", Choice.get <| mk_fun_ty ty bool_ty)]
                          (INST_TYPE [ty,aty] pth_not_exists)
             let th2 = TRANS (AP_TERM not_tm (BETA(Choice.get <| mk_comb(bod,x)))) th_n in
             TRANS th1 (MK_FORALL x th2)
@@ -273,10 +273,10 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             let th_p' = INST [y, x] th_p
             let th_n' = INST [y, x] th_n
             let th1 = 
-                INST [bod, mk_var("P", mk_fun_ty ty bool_ty)] 
+                INST [bod, mk_var("P", Choice.get <| mk_fun_ty ty bool_ty)] 
                     (INST_TYPE [ty, aty] pth_exu)
             let th1' = 
-                INST [bod, mk_var("P", mk_fun_ty ty bool_ty)] 
+                INST [bod, mk_var("P", Choice.get <| mk_fun_ty ty bool_ty)] 
                     (INST_TYPE [ty, aty] pth_not_exu)
             let th2 = 
                 MK_COMB
@@ -359,7 +359,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             let bth' = BETA_CONV(Choice.get <| mk_comb(bod, y))
             let th_n' = INST [y, x] th_n
             let th1 = 
-                INST [bod, mk_var("P", mk_fun_ty ty bool_ty)] 
+                INST [bod, mk_var("P", Choice.get <| mk_fun_ty ty bool_ty)] 
                     (INST_TYPE [ty, aty] pth_exu)
             let th2 = 
                 MK_COMB
@@ -420,7 +420,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
                (Abs(x, t) as bod)) -> 
             let th_n = NNF_CONV' cf baseconvs t
             let th1 = 
-                INST [bod, mk_var("P", mk_fun_ty ty bool_ty)] 
+                INST [bod, mk_var("P", Choice.get <| mk_fun_ty ty bool_ty)] 
                     (INST_TYPE [ty, aty] pth_not_forall)
             let th2 = TRANS (AP_TERM not_tm (BETA(Choice.get <| mk_comb(bod, x)))) th_n
             TRANS th1 (MK_EXISTS x th2)
@@ -428,7 +428,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
                (Abs(x, t) as bod)) -> 
             let th_n = NNF_CONV' true baseconvs t
             let th1 = 
-                INST [bod, mk_var("P", mk_fun_ty ty bool_ty)] 
+                INST [bod, mk_var("P", Choice.get <| mk_fun_ty ty bool_ty)] 
                     (INST_TYPE [ty, aty] pth_not_exists)
             let th2 = TRANS (AP_TERM not_tm (BETA(Choice.get <| mk_comb(bod, x)))) th_n
             TRANS th1 (MK_FORALL x th2)
@@ -442,7 +442,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             let bth' = BETA_CONV(Choice.get <| mk_comb(bod, y))
             let th_p' = INST [y, x] th_p
             let th1' = 
-                INST [bod, mk_var("P", mk_fun_ty ty bool_ty)] 
+                INST [bod, mk_var("P", Choice.get <| mk_fun_ty ty bool_ty)] 
                     (INST_TYPE [ty, aty] pth_not_exu)
             let th2' = 
                 MK_COMB
@@ -683,7 +683,7 @@ let SELECT_ELIM_TAC =
             let itm = mk_imp(concl th1, tm)
             let th2 = DISCH_ALL(MP (ASSUME itm) th1)
             let fvs = frees t
-            let fty = itlist (mk_fun_ty << Choice.get << type_of) fvs (Choice.get <| type_of t)
+            let fty = itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) fvs (Choice.get <| type_of t)
             let fn = genvar fty
             let atm = list_mk_abs(fvs, t)
             let rawdef = mk_eq(fn, atm)

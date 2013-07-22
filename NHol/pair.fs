@@ -332,7 +332,7 @@ let GEN_BETA_CONV =
             let aargs, zargs = chop_list (length avs) args
             let gargs = map (genvar << Choice.get << type_of) zargs
             let gcon = 
-                genvar(itlist (mk_fun_ty << Choice.get << type_of) avs (Choice.get <| type_of(Choice.get <| rand eqn)))
+                genvar(itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) avs (Choice.get <| type_of(Choice.get <| rand eqn)))
             let bth = 
                 INST [list_mk_abs(aargs @ gargs, list_mk_comb(gcon, avs)), con'] 
                     sth

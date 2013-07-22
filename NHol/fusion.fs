@@ -822,8 +822,6 @@ module Hol_kernel =
 /// Construct a function type.
 let mk_fun_ty ty1 ty2 = mk_type ("fun", [ty1; ty2])
 
-let mk_fun_ty2 = fun ty -> Choice.get << mk_fun_ty ty
-
 /// The type variable ':B'.
 let bty = mk_vartype "B"
 

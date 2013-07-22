@@ -528,7 +528,7 @@ let mk_gabs =
         if is_var tm1 then Choice.get <| mk_abs(tm1, tm2)
         else 
             let fvs = frees tm1
-            let fty = mk_fun_ty (Choice.get <| type_of tm1) (Choice.get <| type_of tm2)
+            let fty = Choice.get <| mk_fun_ty (Choice.get <| type_of tm1) (Choice.get <| type_of tm2)
             let f = Choice.get <| variant (frees tm1 @ frees tm2) (mk_var("f", fty))
             let bod = Choice.get <| mk_abs(f, list_mk_forall(fvs, mk_geq(Choice.get <| mk_comb(f, tm1), tm2)))
             Choice.get <| mk_comb(Choice.get <| mk_const("GABS", [fty, aty]), bod)

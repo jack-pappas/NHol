@@ -119,7 +119,7 @@ let prove_recursive_functions_exist =
                     assoc x (zip args gvs)
                     |> Option.getOrFailWith "find")
             let lty = 
-                itlist (mk_fun_ty << Choice.get << type_of) gvs' (funpow (length gvs) (hd << tl << snd << Choice.get << dest_type) (Choice.get <| type_of fn))
+                itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) gvs' (funpow (length gvs) (hd << tl << snd << Choice.get << dest_type) (Choice.get <| type_of fn))
             let fn' = genvar lty
             let def = mk_eq(fn, list_mk_abs(gvs, list_mk_comb(fn', gvs')))
             (ASSUME def) :: acc

@@ -802,7 +802,7 @@ let instantiate_casewise_recursion,
         | v::vs -> rule(BINDER_CONV (depair vs) t)
         | [] -> failwith "depair: Unhandled case."
       fun parm parms ->
-        let p = mk_var("P",mk_fun_ty (Choice.get <| type_of parm) bool_ty)
+        let p = mk_var("P", Choice.get <| mk_fun_ty (Choice.get <| type_of parm) bool_ty)
         let tm = list_mk_forall(parms,Choice.get <| mk_comb(p,parm))
         GEN p (SYM(depair parms tm))
     let ELIM_LISTOPS_CONV =
@@ -816,11 +816,11 @@ let instantiate_casewise_recursion,
          (max << length << snd << strip_comb << lhs << snd << strip_forall)
          (conjuncts(snd(strip_forall def))) 0
       let domtys,midtys = chop_list nargs domtys0
-      let ranty = itlist mk_fun_ty midtys ranty0
+      let ranty = itlist (fun ty -> Choice.get << mk_fun_ty ty) midtys ranty0
       if length domtys <= 1 then ASSUME tm else
       let dty = end_itlist (fun ty1 ty2 -> Choice.get <| mk_type("prod",[ty1;ty2])) domtys
       let f' = Choice.get <| variant (frees tm)
-                       (mk_var(fst(Choice.get <| dest_var f),mk_fun_ty dty ranty))
+                       (mk_var(fst(Choice.get <| dest_var f), Choice.get <| mk_fun_ty dty ranty))
       let gvs = map genvar domtys
       let f'' = list_mk_abs(gvs,Choice.get <| mk_comb(f',end_itlist (curry mk_pair) gvs))
       let def' = subst [f'',f] def

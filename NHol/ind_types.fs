@@ -609,7 +609,7 @@ let define_type_raw_001 =
                     with
                     | Failure _ -> beps_tm
                 let rarg = itlist (mk_binop fcons) rargs bottail
-                let conty = itlist mk_fun_ty (map (Choice.get << type_of) args) recty
+                let conty = itlist (fun ty -> Choice.get << mk_fun_ty ty) (map (Choice.get << type_of) args) recty
                 let condef = 
                     list_mk_comb(constr, [sucivate n
                                           iarg; rarg])
@@ -622,7 +622,7 @@ let define_type_raw_001 =
                     :: (mk_constructors (n + 1) (tl rights))
             let condefs = mk_constructors 0 (itlist (@) rights [])
             let conths = map ASSUME condefs
-            let predty = mk_fun_ty recty bool_ty
+            let predty = Choice.get <| mk_fun_ty recty bool_ty
             let edefs = 
                 itlist (fun (x, l) acc -> map (fun t -> x, t) l @ acc) def []
             let idefs = 
@@ -768,7 +768,7 @@ let define_type_raw_001 =
             (hd << snd << Choice.get << dest_type << Choice.get << type_of << fst << snd << hd) consindex
         let newtys = 
             map (hd << snd << Choice.get << dest_type << Choice.get << type_of << snd << snd) consindex'
-        let ptypes = map (C mk_fun_ty bool_ty) newtys
+        let ptypes = map (C (fun ty -> Choice.get << mk_fun_ty ty) bool_ty) newtys
         let preds = make_args "P" [] ptypes
         let args = make_args "x" [] (map (K recty) preds)
         let lambs = 
@@ -887,8 +887,8 @@ let define_type_raw_001 =
         let recty = 
             (hd << snd << Choice.get << dest_type << Choice.get << type_of << fst << snd << hd) consindex
         let ranty = mk_vartype "Z"
-        let fn = mk_var("fn", mk_fun_ty recty ranty)
-        let fns = make_args "fn" [] (map (C mk_fun_ty ranty) domtys)
+        let fn = mk_var("fn", Choice.get <| mk_fun_ty recty ranty)
+        let fns = make_args "fn" [] (map (C (fun ty -> Choice.get << mk_fun_ty ty) ranty) domtys)
         let args = make_args "a" [] domtys
         let rights = 
             map2 (fun (_, (_, d)) a -> Choice.get <| mk_abs(a, Choice.get <| mk_comb(fn, Choice.get <| mk_comb(d, a)))) consindex 
@@ -955,7 +955,7 @@ let define_type_raw_001 =
             let recty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of(fst(hd consindex)))))
             let domty = hd(snd(Choice.get <| dest_type recty))
             let i = mk_var("i", domty)
-            let r = mk_var("r", mk_fun_ty numty recty)
+            let r = mk_var("r", Choice.get <| mk_fun_ty numty recty)
             let mks = map (fst << snd) consindex
             let mkindex = 
                 map (fun t -> hd(tl(snd(Choice.get <| dest_type(Choice.get <| type_of t)))), t) mks
@@ -975,7 +975,7 @@ let define_type_raw_001 =
                         rindexed
                 let sargs' = map (curry (Choice.get << mk_comb) s) indices
                 let allargs = cargs' @ rargs' @ sargs'
-                let funty = itlist (mk_fun_ty << Choice.get << type_of) allargs zty
+                let funty = itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) allargs zty
                 let funname = 
                     fst(Choice.get <| dest_const(repeat (Choice.get << rator) (lhand(concl cth)))) + "'"
                 let funarg = mk_var(funname, funty)
@@ -1207,7 +1207,7 @@ let define_type_raw_002 =
                     let args', args'' = unzip pargs
                     let inl = assoc (Choice.get <| rator l) inlalist |> Option.getOrFailWith "find"
                     let rty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of inl)))
-                    let nty = itlist (mk_fun_ty << Choice.get << type_of) args' rty
+                    let nty = itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) args' rty
                     let fn' = mk_var(fst(Choice.get <| dest_var fn), nty)
                     let r' = 
                         list_mk_abs
@@ -1260,7 +1260,7 @@ let prove_constructors_injective =
     let prove_distinctness ax pat = 
         let f, args = strip_comb pat
         let rt = end_itlist (curry mk_pair) args
-        let ty = mk_fun_ty (Choice.get <| type_of pat) (Choice.get <| type_of rt)
+        let ty = Choice.get <| mk_fun_ty (Choice.get <| type_of pat) (Choice.get <| type_of rt)
         let fn = genvar ty
         let dtm = mk_eq(Choice.get <| mk_comb(fn, pat), rt)
         let eth = prove_recursive_functions_exist ax (list_mk_forall(args, dtm))
