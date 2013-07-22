@@ -86,7 +86,7 @@ let FUN_EQ_THM =
                       MATCH_ACCEPT_TAC EQ_EXT])
 
 
-new_constant("@", parse_type @"(A->bool)->A")
+let result = new_constant("@", parse_type @"(A->bool)->A")
 parse_as_binder "@"
 
 (* ------------------------------------------------------------------------- *)

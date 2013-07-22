@@ -52,7 +52,7 @@ open quot
 #endif
 
 
-new_type("ind", 0)
+let result = new_type("ind", 0)
 
 let ONE_ONE = 
     new_definition

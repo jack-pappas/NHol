@@ -99,8 +99,8 @@ module Hol_kernel =
 
     /// Declares a new type or type constructor.
     let new_type(name, arity) =
-        if Choice.isResult <| get_type_arity name then failwith("new_type: type " + name + " has already been declared")
-        else the_type_constants := (name, arity) :: (!the_type_constants)
+        if Choice.isResult <| get_type_arity name then Choice.failwith("new_type: type " + name + " has already been declared")
+        else Choice.succeed (the_type_constants := (name, arity) :: (!the_type_constants))
     
     (* ------------------------------------------------------------------------- *)
     (* Basic type constructors.                                                  *)
@@ -210,8 +210,8 @@ module Hol_kernel =
 
     /// Declares a new constant.
     let new_constant(name, ty) =
-        if Choice.isResult <| get_const_type name then failwith("new_constant: constant " + name + " has already been declared")
-        else the_term_constants := (name, ty) :: (!the_term_constants)
+        if Choice.isResult <| get_const_type name then Choice.failwith("new_constant: constant " + name + " has already been declared")
+        else Choice.succeed (the_term_constants := (name, ty) :: (!the_term_constants))
     
     (* ------------------------------------------------------------------------- *)
     (* Finds the type of a term (assumes it is well-typed).                      *)
@@ -751,12 +751,12 @@ module Hol_kernel =
                     if not(subset ty' (tyvars ty)) then 
                         Choice.failwith "new_definition: Type variables not reflected in constant"
                     else 
-                        let c = 
-                            new_constant(cname, ty)
-                            Const(cname, ty)
-                        let dth = safe_mk_eq c r |> Choice.map (fun tm -> Sequent([], tm))
-                        the_definitions := dth :: (!the_definitions)
-                        dth)
+                        new_constant(cname, ty)
+                        |> Choice.bind (fun () ->
+                            let c = Const(cname, ty)
+                            let dth = safe_mk_eq c r |> Choice.map (fun tm -> Sequent([], tm))
+                            the_definitions := dth :: (!the_definitions)
+                            dth))
         | _ -> Choice.failwith "new_basic_definition"
     
     (* ------------------------------------------------------------------------- *)
@@ -794,28 +794,24 @@ module Hol_kernel =
                 if not(freesin [] P) then Choice.failwithPair "new_basic_type_definition: Predicate is not closed"
                 else 
                     let tyvars = sort (<=) (Choice.get <| type_vars_in_term P)
-                    let _ = 
-                        try 
-                            new_type(tyname, length tyvars)
-                        with
-                        | Failure _ as e ->
-                            nestedFailwith e "new_basic_type_definition: Type already defined"
-                    let aty = Tyapp(tyname, tyvars)
-                    let rty = Choice.get <| type_of x
-                    let absty = Tyapp("fun", [rty; aty])
-                    let repty = Tyapp("fun", [aty; rty])
-                    let abs = 
-                        (new_constant(absname, absty)
-                         Const(absname, absty))
-                    let rep = 
-                        (new_constant(repname, repty)
-                         Const(repname, repty))
-                    let a = Var("a", aty)
-                    let r = Var("r", rty)
-                    safe_mk_eq (Comb(abs, Choice.get <| mk_comb(rep, a))) a |> Choice.map (fun tm -> Sequent([], tm)),
-                    (safe_mk_eq (Choice.get <| mk_comb(rep, Choice.get <| mk_comb(abs, r))) r)
-                    |> Choice.bind (fun tm -> safe_mk_eq (Comb(P, r)) tm
-                                              |> Choice.map (fun tm' -> Sequent([], tm')))
+                    match new_type(tyname, length tyvars) with
+                    | Success _ ->
+                        let aty = Tyapp(tyname, tyvars)
+                        let rty = Choice.get <| type_of x
+                        let absty = Tyapp("fun", [rty; aty])
+                        let repty = Tyapp("fun", [aty; rty])
+                        match new_constant(absname, absty), new_constant(repname, repty) with
+                        | Success _, Success _ ->
+                            let abs = Const(absname, absty)
+                            let rep = Const(repname, repty)
+                            let a = Var("a", aty)
+                            let r = Var("r", rty)
+                            safe_mk_eq (Comb(abs, Choice.get <| mk_comb(rep, a))) a |> Choice.map (fun tm -> Sequent([], tm)),
+                            (safe_mk_eq (Choice.get <| mk_comb(rep, Choice.get <| mk_comb(abs, r))) r)
+                            |> Choice.bind (fun tm -> safe_mk_eq (Comb(P, r)) tm
+                                                      |> Choice.map (fun tm' -> Sequent([], tm')))
+                        | _ -> Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
+                    | Error _ -> Choice.failwithPair "new_basic_type_definition: Type already defined"
         | Error _ ->
             Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
 
