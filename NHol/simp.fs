@@ -421,7 +421,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                         ABS v th
                     v' |> Choice.bindError (fun _ ->
                             let gv = genvar(Choice.get <| type_of v)
-                            let gbod = vsubst [gv, v] bod
+                            let gbod = Choice.get <| vsubst [gv, v] bod
                             let gth = ABS gv (strat ss lev gbod)
                             let gtm = concl gth
                             let l, r = dest_eq gtm

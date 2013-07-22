@@ -998,7 +998,7 @@ let define_type_raw_001 =
             let fn = rator(rand(hd(conjuncts(concl rath))))
             let betm = 
                 let v, bod = Choice.get <| dest_abs(rand(concl eth))
-                vsubst [fn, v] bod
+                Choice.get <| vsubst [fn, v] bod
             let LCONV = REWR_CONV(ASSUME betm)
             let fnths = 
                 map (fun t -> RIGHT_BETAS [bndvar(rand t)] (ASSUME t)) 
@@ -1167,7 +1167,7 @@ let define_type_raw_002 =
             let dty = hd(snd(Choice.get <| dest_type ty))
             let x = mk_var("x", dty)
             let y, bod = Choice.get <| dest_abs outl
-            let r = Choice.get <| mk_abs(x, vsubst [Choice.get <| mk_comb(fn, x), y] bod)
+            let r = Choice.get <| mk_abs(x, Choice.get <| vsubst [Choice.get <| mk_comb(fn, x), y] bod)
             let l = mk_var(s, Choice.get <| type_of r)
             let th1 = ASSUME(mk_eq(l, r))
             RIGHT_BETAS [x] th1

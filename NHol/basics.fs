@@ -189,7 +189,7 @@ let subst =
                 let gs = variants (variables tm) (map (genvar << Choice.get << type_of) xs)
                 let tm' = ssubst (zip gs xs) tm
                 if tm' == tm then tm
-                else vsubst (zip ts gs) tm'
+                else Choice.get <| vsubst (zip ts gs) tm'
 
 (* ------------------------------------------------------------------------- *)
 (* Alpha conversion term operation.                                          *)
@@ -204,7 +204,7 @@ let alpha v tm =
         | Failure _ as e ->
             nestedFailwith e "alpha: Not an abstraction"
     if v = v0 then tm
-    elif Choice.get <| type_of v = (Choice.get <| type_of v0) && not(vfree_in v bod) then Choice.get <| mk_abs(v, vsubst [v, v0] bod)
+    elif Choice.get <| type_of v = (Choice.get <| type_of v0) && not(vfree_in v bod) then Choice.get <| mk_abs(v, Choice.get <| vsubst [v, v0] bod)
     else failwith "alpha: Invalid new variable"
 
 (* ------------------------------------------------------------------------- *)

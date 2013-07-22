@@ -394,29 +394,38 @@ module Hol_kernel =
 
     /// Substitute terms for variables inside a term.
     let vsubst = 
-        let rec vsubst ilist tm = 
-            match tm with
-            | Var(_, _) -> rev_assocd tm ilist tm
-            | Const(_, _) -> tm
-            | Comb(s, t) -> 
-                let s' = vsubst ilist s
-                let t' = vsubst ilist t
-                if s' == s && t' == t then tm
-                else Comb(s', t')
-            | Abs(v, s) -> 
-                let ilist' = filter (fun (t, x) -> x <> v) ilist
-                if ilist' = [] then tm
-                else 
-                    let s' = vsubst ilist' s
-                    if s' == s then tm
-                    elif exists (fun (t, x) -> vfree_in v t && vfree_in x s) ilist' then 
-                        let v' = Choice.get <| variant [s'] v
-                        Abs(v', vsubst ((v', v) :: ilist') s)
-                    else Abs(v, s')
+        let vsubst ilist tm = 
+            let rec vsubst ilist tm = 
+                match tm with
+                | Var(_, _) -> rev_assocd tm ilist tm
+                | Const(_, _) -> tm
+                | Comb(s, t) -> 
+                    let s' = vsubst ilist s
+                    let t' = vsubst ilist t
+                    if s' == s && t' == t then tm
+                    else Comb(s', t')
+                | Abs(v, s) -> 
+                    let ilist' = filter (fun (t, x) -> x <> v) ilist
+                    if ilist' = [] then tm
+                    else 
+                        let s' = vsubst ilist' s
+                        if s' == s then tm
+                        elif exists (fun (t, x) -> vfree_in v t && vfree_in x s) ilist' then 
+                            let v' = Choice.get <| variant [s'] v
+                            Abs(v', vsubst ((v', v) :: ilist') s)
+                        else Abs(v, s')
+            try
+                Choice.succeed <| vsubst ilist tm
+            with Failure s ->
+                Choice.failwith s
+
         fun theta -> 
-            if theta = [] then (fun tm -> tm)
-            elif forall (fun (t, x) -> Choice.get <| type_of t = snd(Choice.get <| dest_var x)) theta then vsubst theta
-            else failwith "vsubst: Bad substitution list"
+            if theta = [] then Choice.succeed
+            elif forall (fun (t, x) -> 
+                    match type_of t, dest_var x with
+                    | Success r1, Success r2 -> r1 = snd r2
+                    | _ -> false) theta then vsubst theta
+            else fun tm -> Choice.failwith "vsubst: Bad substitution list"
     
     (* ------------------------------------------------------------------------- *)
     (* Type instantiation primitive.                                             *)
@@ -458,7 +467,7 @@ module Hol_kernel =
                         let ifrees = map (inst [] tyin) (frees t)
                         let y'' = Choice.get <| variant ifrees y'
                         let z = Var(fst(Choice.get <| dest_var y''), snd(Choice.get <| dest_var y))
-                        inst env tyin (Abs(z, vsubst [z, y] t))
+                        inst env tyin (Abs(z, Choice.get <| vsubst [z, y] t))
         fun tyin -> 
             if tyin = [] then fun tm -> tm
             else inst [] tyin
@@ -484,7 +493,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     let safe_mk_eq l r = 
-        let ty = Choice. get <| type_of l
+        let ty = Choice.get <| type_of l
         Comb(Comb(Const("=", Tyapp("fun", [ty; Tyapp("fun", [ty; bool_ty])])), l), r)
     
     /// Term destructor for equality.
@@ -669,7 +678,7 @@ module Hol_kernel =
     /// Instantiates free variables in a theorem.
     let INST theta thm =
         let INST theta (Sequent(asl, c)) = 
-            let inst_fun = vsubst theta
+            let inst_fun = Choice.get << vsubst theta
             Choice1Of2 <| Sequent(term_image inst_fun asl, inst_fun c)
         Choice.bind (INST theta) thm
     

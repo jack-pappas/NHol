@@ -497,7 +497,7 @@ let ABS_TAC : tactic =
             let rv, rb = Choice.get <| dest_abs r
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
             let v = mk_primed_var avoids lv
-            (null_meta, [asl, mk_eq(vsubst [v, lv] lb, vsubst [v, rv] rb)], 
+            (null_meta, [asl, mk_eq(Choice.get <| vsubst [v, lv] lb, Choice.get <| vsubst [v, rv] rb)], 
              fun i tl -> 
                 let fun1 l =
                     match l with
@@ -685,7 +685,7 @@ let X_GEN_TAC x' =
                     match l with
                     | [a] -> a
                     | _ -> Choice2Of2 <| Exception "X_GEN_TAC.fun1: Unhandled case."
-                (null_meta, [asl, vsubst [x', x] bod], fun i tl -> afn(GEN x' (fun1 tl)))
+                (null_meta, [asl, Choice.get <| vsubst [x', x] bod], fun i tl -> afn(GEN x' (fun1 tl)))
                 |> Choice1Of2
 
 /// Assumes a theorem, with existentially quantified variable replaced by a given witness.
@@ -698,7 +698,7 @@ let X_CHOOSE_TAC x' xth =
         | Failure _ as e ->
             nestedFailwith e "X_CHOOSE_TAC: not existential"
     let _ = tactic_type_compatibility_check "X_CHOOSE_TAC" x x'
-    let pat = vsubst [x', x] bod
+    let pat = Choice.get <| vsubst [x', x] bod
     let xth' = ASSUME pat
     fun (asl, w) -> 
         let avoids = 
@@ -727,7 +727,7 @@ let EXISTS_TAC t (asl, w) =
         match l with
         | [a] -> a
         | _ -> Choice2Of2 <| Exception "EXISTS_TAC.fun1: Unhandled case."
-    (null_meta, [asl, vsubst [t, v] bod], fun i tl -> EXISTS (instantiate i w, instantiate i t) (fun1 tl))
+    (null_meta, [asl, Choice.get <| vsubst [t, v] bod], fun i tl -> EXISTS (instantiate i w, instantiate i t) (fun1 tl))
     |> Choice1Of2
 
 /// Strips the outermost universal quantifier from the conclusion of a goal.
@@ -1024,7 +1024,7 @@ let (X_META_EXISTS_TAC : term -> tactic) =
                     | [a] -> a
                     | _ -> Choice2Of2 <| Exception "X_META_EXISTS_TAC.fun1: Unhandled case."
                 let v, bod = dest_exists w
-                (([t], null_inst), [asl, vsubst [t, v] bod], fun i tl -> EXISTS (instantiate i w, instantiate i t) (fun1 tl))
+                (([t], null_inst), [asl, Choice.get <| vsubst [t, v] bod], fun i tl -> EXISTS (instantiate i w, instantiate i t) (fun1 tl))
                 |> Choice1Of2
         with
         | Failure _ -> Choice2Of2 <| Exception "X_META_EXISTS_TAC: Failure."

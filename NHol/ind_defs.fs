@@ -559,7 +559,7 @@ let derive_strong_induction =
             if is_imp bod
             then 
                 let a, c = dest_imp bod
-                let mgoal = mk_imp(gimps, mk_imp(vsubst (zip gs ps) a, a))
+                let mgoal = mk_imp(gimps, mk_imp(Choice.get <| vsubst (zip gs ps) a, a))
                 let mth = ASSUME(list_mk_forall(gs @ ps @ avs, mgoal))
                 let ith_r = BETA_RULE(SPECL (prs @ rs @ avs) mth)
                 let jth_r = MP ith_r (prove_triv(lhand(concl ith_r)))

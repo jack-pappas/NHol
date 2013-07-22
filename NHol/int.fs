@@ -1630,7 +1630,7 @@ let INTEGER_TAC_001 =
         let rs = filter (fun t -> Choice.get <| type_of t = int_ty) (qs @ ps)
         let rs = int_ideal_cofactors rs p
         eq, zip (fst(chop_list (length qs) rs)) vars
-    let subst_in_poly i p = rhs(concl(INT_POLY_CONV(vsubst i p)))
+    let subst_in_poly i p = rhs(concl(INT_POLY_CONV(Choice.get <| vsubst i p)))
     let rec solve_idealism evs ps eqs = 
         if evs = []
         then []

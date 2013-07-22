@@ -787,7 +787,7 @@ let instantiate_casewise_recursion,
       fun parms tm ->
         let parm = end_itlist (curry mk_pair) parms
         let x,bod = Choice.get <| dest_abs tm
-        let tm' = mk_gabs(parm,vsubst[parm,x] bod)
+        let tm' = mk_gabs(parm,Choice.get <| vsubst[parm,x] bod)
         let th1 = BETA_CONV(Choice.get <| mk_comb(tm,parm))
         in let th2 = GEN_BETA_CONV (Choice.get <| mk_comb(tm',parm))
         let th3 = TRANS th1 (SYM th2)

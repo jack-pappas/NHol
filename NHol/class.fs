@@ -150,7 +150,7 @@ let SELECT_CONV =
             let is_epsok t = 
                 is_select t && 
                 let bv, bod = dest_select t
-                aconv tm (vsubst [t, bv] bod)
+                aconv tm (Choice.get <| vsubst [t, bv] bod)
             let pickeps = find_term is_epsok tm
             let abs = rand pickeps
             let ty = Choice.get <| type_of(bndvar abs)

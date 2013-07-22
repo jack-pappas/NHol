@@ -608,7 +608,7 @@ let (LET_TAC : tactic) =
                         else mk_eq(x, y)) assigs
             let lvars = itlist (union << frees << lhs) abbrevs []
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
-            let rename = vsubst(zip (variants avoids lvars) lvars)
+            let rename = Choice.get << vsubst(zip (variants avoids lvars) lvars)
             let abbrevs' = 
                 map (fun eq -> 
                         let l, r = dest_eq eq

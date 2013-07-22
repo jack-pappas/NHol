@@ -212,7 +212,7 @@ let ABS_CONV : conv -> conv =
         ABS v th
         |> Choice.bindError(fun _ ->
             let gv = genvar(Choice.get <| type_of v)
-            let gbod = vsubst [gv, v] bod
+            let gbod = Choice.get <| vsubst [gv, v] bod
             let gth = ABS gv (conv gbod)
             let gtm = concl gth
             let l, r = dest_eq gtm

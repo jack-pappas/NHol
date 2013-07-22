@@ -112,7 +112,7 @@ let instantiate : instantiation -> term -> term =
         let args, lam = funpow n (fun (l, t) -> (rand t) :: l, rator t) ([], tm)
         rev_itlist (fun a l -> 
                 let v, b = Choice.get <| dest_abs l
-                vsubst [a, v] b) args lam
+                Choice.get <| vsubst [a, v] b) args lam
     let rec ho_betas bcs pat tm = 
         if is_var pat || is_const pat
         then fail()
@@ -153,7 +153,7 @@ let instantiate : instantiation -> term -> term =
         if tmin = []
         then itm
         else 
-            let ttm = vsubst tmin itm
+            let ttm = Choice.get <| vsubst tmin itm
             if bcs = []
             then ttm
             else 
@@ -382,7 +382,7 @@ let term_match : term list -> term -> term -> instantiation =
                                          then a
                                          else fail()), inst_fn a) afvs
                     let pats0 = map inst_fn vargs
-                    let pats = map (vsubst tmins) pats0
+                    let pats = map (Choice.get << vsubst tmins) pats0
                     let vhop' = inst_fn vhop
                     let ni = 
                         let chop, cargs = strip_comb ctm
@@ -432,7 +432,7 @@ let term_unify : term list -> term -> term -> instantiation =
         else (s', x)
     let raw_augment_insts p insts = p :: (map (augment1 [p]) insts)
     let augment_insts (t, v) insts = 
-        let t' = vsubst insts t
+        let t' = Choice.get <| vsubst insts t
         if t' = v
         then insts
         elif vfree_in v t'
