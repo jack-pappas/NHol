@@ -1753,7 +1753,7 @@ let define_type_raw =
         let cjs = map (lhand << snd << strip_forall) (conjuncts bod)
         let rtys = map (hd << snd << Choice.get << dest_type << Choice.get << type_of) evs
         let tyins = tryfind (fun vty -> type_match vty nty []) rtys
-        let cjs' = map (inst tyins << rand) (fst(chop_list k cjs))
+        let cjs' = map (Choice.get << inst tyins << rand) (fst(chop_list k cjs))
         let mtys = itlist (insert << Choice.get << type_of) cjs' []
         let pcons = map (fun ty -> filter (fun t -> Choice.get <| type_of t = ty) cjs') mtys
         let cls' = zip mtys (map (map(recover_clause id)) pcons)

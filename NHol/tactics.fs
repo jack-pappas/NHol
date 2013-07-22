@@ -135,7 +135,7 @@ let inst_goal : instantiation -> goal -> goal =
 /// Compose two instantiations.
 let compose_insts : instantiation -> instantiation -> instantiation = 
     fun (pats1, tmin1, tyin1) ((pats2, tmin2, tyin2) as i2) -> 
-        let tmin = map (instantiate i2 ||>> inst tyin2) tmin1
+        let tmin = map (instantiate i2 ||>> (Choice.get << inst tyin2)) tmin1
         let tyin = map (type_subst tyin2 ||>> I) tyin1
         let tmin' = filter (fun (_, x) -> Option.isNone <| rev_assoc x tmin) tmin2
         let tyin' = filter (fun (_, a) -> Option.isNone <| rev_assoc a tyin) tyin2
@@ -1176,7 +1176,7 @@ let by : tactic -> refinement =
                     let cths, oths = chop_list n ths
                     let sths = (subjust i cths) :: oths
                     just i' sths
-                Choice1Of2 <| ((mvs', inst'), gls', just')))
+                Choice.succeed <| ((mvs', inst'), gls', just')))
 
 (* ------------------------------------------------------------------------- *)
 (* Rotate the goalstate either way.                                          *)
@@ -1218,9 +1218,8 @@ let (mk_goalstate : goal -> goalstate) =
                 match l with
                 | [a] -> a
                 | _ -> Choice2Of2 <| Exception  "mk_goalstate.fun1: Unhandled case."
-            (null_meta, [asl, w], (fun inst tl -> INSTANTIATE_ALL inst (fun1 tl))) 
-            |> Choice1Of2 
-        else Choice2Of2 <| Exception  "mk_goalstate: Non-boolean goal"
+            Choice.succeed <| (null_meta, [asl, w], (fun inst tl -> INSTANTIATE_ALL inst (fun1 tl))) 
+        else Choice.failwith "mk_goalstate: Non-boolean goal"
 
 /// Attempts to prove a goal using a given tactic.
 let TAC_PROOF : goal * tactic -> thm = 

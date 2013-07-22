@@ -3145,8 +3145,8 @@ let mk_setenum =
     let insert_atm = (parse_term @"(INSERT):A->(A->bool)->(A->bool)")
     let nil_atm = (parse_term @"(EMPTY):A->bool")
     fun (l, ty) -> 
-        let insert_tm = inst [ty, aty] insert_atm
-        let nil_tm = inst [ty, aty] nil_atm
+        let insert_tm = Choice.get <| inst [ty, aty] insert_atm
+        let nil_tm = Choice.get <| inst [ty, aty] nil_atm
         itlist (mk_binop insert_tm) l nil_tm
 
 /// Constructs an explicit set enumeration from a nonempty list of elements.

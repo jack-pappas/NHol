@@ -86,7 +86,7 @@ let mk_iff =
 
 /// Instantiate types and terms in a theorem.
 let PINST tyin tmin = 
-    let iterm_fn = INST(map (I ||>> (inst tyin)) tmin)
+    let iterm_fn = INST(map (I ||>> (Choice.get << inst tyin)) tmin)
     let itype_fn = INST_TYPE tyin
     fun th -> 
         try 

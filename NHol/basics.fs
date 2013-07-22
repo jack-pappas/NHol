@@ -251,7 +251,7 @@ let mk_icomb(tm1, tm2) =
     match Choice.get <| dest_type(Choice.get <| type_of tm1) with
     | "fun", [ty; _] ->
         let tyins = type_match ty (Choice.get <| type_of tm2) []
-        Choice.get <| mk_comb(inst tyins tm1, tm2)
+        Choice.get <| mk_comb(Choice.get <| inst tyins tm1, tm2)
     | _ -> failwith "mk_icomb: Unhandled case."
 
 (* ------------------------------------------------------------------------- *)
@@ -338,7 +338,7 @@ let dest_binder s tm =
 /// Constructs a term with a named constant applied to an abstraction.
 let mk_binder op = 
     let c = Choice.get <| mk_const(op, [])
-    fun (v, tm) -> Choice.get <| mk_comb(inst [Choice.get <| type_of v, aty] c, Choice.get <| mk_abs(v, tm))
+    fun (v, tm) -> Choice.get <| mk_comb(Choice.get <| inst [Choice.get <| type_of v, aty] c, Choice.get <| mk_abs(v, tm))
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for binary operators.                                              *)

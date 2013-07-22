@@ -221,7 +221,7 @@ let dest_pair = dest_binary ","
 let mk_pair = 
     let ptm = Choice.get <| mk_const(",", [])
     fun (l, r) -> 
-        Choice.get <| mk_comb(Choice.get <| mk_comb(inst [Choice.get <| type_of l, aty; Choice.get <| type_of r, bty] ptm, l), r)
+        Choice.get <| mk_comb(Choice.get <| mk_comb(Choice.get <| inst [Choice.get <| type_of l, aty; Choice.get <| type_of r, bty] ptm, l), r)
 
 //extend_basic_rewrites [FST; SND; PAIR] duplicate line
 

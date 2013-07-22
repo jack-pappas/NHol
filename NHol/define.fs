@@ -1004,7 +1004,7 @@ let instantiate_casewise_recursion,
       let false_tm = (parse_term @"\x:A y:A. F")
       W(fun (asl,w) ->
             let ty = fst(dest_fun_ty(Choice.get <| type_of(fst(dest_exists w))))
-            EXISTS_TAC(inst [ty,aty] false_tm) |>THEN<|
+            EXISTS_TAC(Choice.get <| inst [ty,aty] false_tm) |>THEN<|
             REWRITE_TAC[WF_FALSE] |>THEN<| NO_TAC) |>ORELSE<|
       GUESS_WF_THEN
        (REWRITE_TAC[FORALL_PAIR_THM] |>THEN<| ARITH_TAC)

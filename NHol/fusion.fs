@@ -435,41 +435,50 @@ module Hol_kernel =
     
     /// Instantiate type variables in a term.
     let inst = 
-        let rec inst env tyin tm = 
-            match tm with
-            | Var(n, ty) -> 
-                let ty' = type_subst tyin ty
-                let tm' = 
+        let inst env tyin tm =
+            let rec inst env tyin tm = 
+                match tm with
+                | Var(n, ty) -> 
+                    let ty' = type_subst tyin ty
+                    let tm' = 
+                        if ty' == ty then tm
+                        else Var(n, ty')
+                    if compare (rev_assocd tm' env tm) tm = 0 then tm'
+                    else raise(Clash tm')
+                | Const(c, ty) -> 
+                    let ty' = type_subst tyin ty
                     if ty' == ty then tm
-                    else Var(n, ty')
-                if compare (rev_assocd tm' env tm) tm = 0 then tm'
-                else raise(Clash tm')
-            | Const(c, ty) -> 
-                let ty' = type_subst tyin ty
-                if ty' == ty then tm
-                else Const(c, ty')
-            | Comb(f, x) -> 
-                let f' = inst env tyin f
-                let x' = inst env tyin x
-                if f' == f && x' == x then tm
-                else Comb(f', x')
-            | Abs(y, t) -> 
-                let y' = inst [] tyin y
-                let env' = (y, y') :: env
-                try 
-                    let t' = inst env' tyin t
-                    if y' == y && t' == t then tm
-                    else Abs(y', t')
-                with
-                | (Clash(w') as ex) -> 
-                    if w' <> y' then raise ex
-                    else 
-                        let ifrees = map (inst [] tyin) (frees t)
-                        let y'' = Choice.get <| variant ifrees y'
-                        let z = Var(fst(Choice.get <| dest_var y''), snd(Choice.get <| dest_var y))
-                        inst env tyin (Abs(z, Choice.get <| vsubst [z, y] t))
+                    else Const(c, ty')
+                | Comb(f, x) -> 
+                    let f' = inst env tyin f
+                    let x' = inst env tyin x
+                    if f' == f && x' == x then tm
+                    else Comb(f', x')
+                | Abs(y, t) -> 
+                    let y' = inst [] tyin y
+                    let env' = (y, y') :: env
+                    try 
+                        let t' = inst env' tyin t
+                        if y' == y && t' == t then tm
+                        else Abs(y', t')
+                    with
+                    | Clash(w') as ex -> 
+                        if w' <> y' then raise ex
+                        else 
+                            let ifrees = map (inst [] tyin) (frees t)
+                            let y'' = Choice.get <| variant ifrees y'
+                            let z = Var(fst(Choice.get <| dest_var y''), snd(Choice.get <| dest_var y))
+                            inst env tyin (Abs(z, Choice.get <| vsubst [z, y] t))
+            try
+                Choice.succeed <| inst env tyin tm
+            with 
+            | :? Clash as ex ->
+                Choice2Of2 (ex :> exn)
+            | Failure s ->
+                Choice.failwith s
+
         fun tyin -> 
-            if tyin = [] then fun tm -> tm
+            if tyin = [] then Choice.succeed
             else inst [] tyin
     
     (* ------------------------------------------------------------------------- *)
@@ -671,7 +680,7 @@ module Hol_kernel =
     /// Instantiates types in a theorem.
     let INST_TYPE theta thm =
         let INST_TYPE theta (Sequent(asl, c)) = 
-            let inst_fn = inst theta
+            let inst_fn = Choice.get << inst theta
             Choice1Of2 <| Sequent(term_image inst_fn asl, inst_fn c)
         Choice.bind (INST_TYPE theta) thm
     
@@ -805,7 +814,7 @@ let mk_eq =
     fun (l, r) -> 
         try 
             let ty = Choice.get <| type_of l
-            let eq_tm = inst [ty, aty] eq
+            let eq_tm = Choice.get <| inst [ty, aty] eq
             Choice.get <| mk_comb(Choice.get <| mk_comb(eq_tm, l), r)
         with
         | Failure _ as e ->

@@ -73,12 +73,12 @@ let MK_DISJ =
 /// Universally quantifies both sides of equational theorem.
 let MK_FORALL = 
     let atm = Choice.get <| mk_const("!", [])
-    fun v th -> AP_TERM (inst [Choice.get <| type_of v, aty] atm) (ABS v th)
+    fun v th -> AP_TERM (Choice.get <| inst [Choice.get <| type_of v, aty] atm) (ABS v th)
 
 /// Existentially quantifies both sides of equational theorem.
 let MK_EXISTS = 
     let atm = Choice.get <| mk_const("?", [])
-    fun v th -> AP_TERM (inst [Choice.get <| type_of v, aty] atm) (ABS v th)
+    fun v th -> AP_TERM (Choice.get <| inst [Choice.get <| type_of v, aty] atm) (ABS v th)
 
 (* ------------------------------------------------------------------------- *)
 (* Eliminate the antecedent of a theorem using a conversion/proof rule.      *)
@@ -149,7 +149,7 @@ let instantiate : instantiation -> term -> term =
         let itm = 
             if tyin = []
             then tm
-            else inst tyin tm
+            else Choice.get <| inst tyin tm
         if tmin = []
         then itm
         else 
@@ -368,7 +368,7 @@ let term_match : term list -> term -> term -> instantiation =
             else 
                 let vhop, vargs = strip_comb vtm
                 let afvs = freesl vargs
-                let inst_fn = inst tyins
+                let inst_fn = Choice.get << inst tyins
                 try 
                     let tmins = 
                         map (fun a ->
