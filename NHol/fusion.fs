@@ -622,12 +622,15 @@ module Hol_kernel =
     let MK_COMB(thm1, thm2) =
         let MK_COMB(Sequent(asl1, c1), Sequent(asl2, c2)) = 
             match (c1, c2) with
-            | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) -> 
-                match Choice.get <| type_of l1 with
-                | Tyapp("fun", [ty; _]) when compare ty (Choice.get <| type_of l2) = 0 -> 
-                    safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2))
-                    |> Choice.map (fun tm -> Sequent(term_union asl1 asl2, tm))
-                | _ -> Choice.failwith "MK_COMB: types do not agree"
+            | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) ->
+                match type_of l1, type_of l2 with
+                | Success ty1, Success ty2 -> 
+                    match ty1 with
+                    | Tyapp("fun", [ty; _]) when compare ty ty2 = 0 -> 
+                        safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2))
+                        |> Choice.map (fun tm -> Sequent(term_union asl1 asl2, tm))
+                    | _ -> Choice.failwith "MK_COMB: types do not agree"
+                | _ -> Choice.failwith "MK_COMB: not both equations"
             | _ -> Choice.failwith "MK_COMB: not both equations"
         Choice.bind2 (curry MK_COMB) thm1 thm2
     
@@ -659,8 +662,10 @@ module Hol_kernel =
 
     /// Introduces an assumption.
     let ASSUME tm = 
-        if compare (Choice.get <| type_of tm) bool_ty = 0 then Choice.succeed <| Sequent([tm], tm)
-        else Choice.failwith "ASSUME: not a proposition"
+        type_of tm 
+        |> Choice.bind (fun ty ->
+            if compare ty bool_ty = 0 then Choice.succeed <| Sequent([tm], tm)
+            else Choice.failwith "ASSUME: not a proposition")
     
     /// Equality version of the Modus Ponens rule.
     let EQ_MP thm1 thm2 =
@@ -686,16 +691,24 @@ module Hol_kernel =
 
     /// Instantiates types in a theorem.
     let INST_TYPE theta thm =
+        // TODO: revise this
         let INST_TYPE theta (Sequent(asl, c)) = 
-            let inst_fn = Choice.get << inst theta
-            Choice.succeed <| Sequent(term_image inst_fn asl, inst_fn c)
+            try
+                let inst_fn = Choice.get << inst theta
+                Choice.succeed <| Sequent(term_image inst_fn asl, inst_fn c)
+            with Failure s ->
+                Choice.failwith s
         Choice.bind (INST_TYPE theta) thm
     
     /// Instantiates free variables in a theorem.
     let INST theta thm =
+        // TODO: revise this
         let INST theta (Sequent(asl, c)) = 
-            let inst_fun = Choice.get << vsubst theta
-            Choice.succeed <| Sequent(term_image inst_fun asl, inst_fun c)
+            try
+                let inst_fun = Choice.get << vsubst theta
+                Choice.succeed <| Sequent(term_image inst_fun asl, inst_fun c)
+            with Failure s ->
+                Choice.failwith s
         Choice.bind (INST theta) thm
     
     (* ------------------------------------------------------------------------- *)
@@ -713,7 +726,7 @@ module Hol_kernel =
             let th = Choice.succeed <| Sequent([], tm)
             the_axioms := th :: (!the_axioms)
             th
-        else Choice2Of2 <| Exception "new_axiom: Not a proposition"
+        else Choice.failwith "new_axiom: Not a proposition"
     
     (* ------------------------------------------------------------------------- *)
     (* Handling of (term) definitions.                                           *)
@@ -729,9 +742,9 @@ module Hol_kernel =
     let new_basic_definition tm = 
         match tm with
         | Comb(Comb(Const("=", _), Var(cname, ty)), r) -> 
-            if not(freesin [] r) then Choice2Of2 <| Exception "new_definition: term not closed"
+            if not(freesin [] r) then Choice.failwith "new_definition: term not closed"
             elif not(subset (Choice.get <| type_vars_in_term r) (tyvars ty)) then 
-                Choice2Of2 <| Exception "new_definition: Type variables not reflected in constant"
+                Choice.failwith "new_definition: Type variables not reflected in constant"
             else 
                 let c = 
                     new_constant(cname, ty)
@@ -739,7 +752,7 @@ module Hol_kernel =
                 let dth = safe_mk_eq c r |> Choice.map (fun tm -> Sequent([], tm))
                 the_definitions := dth :: (!the_definitions)
                 dth
-        | _ -> Choice2Of2 <| Exception "new_basic_definition"
+        | _ -> Choice.failwith "new_basic_definition"
     
     (* ------------------------------------------------------------------------- *)
     (* Handling of type definitions.                                             *)
@@ -764,8 +777,8 @@ module Hol_kernel =
                 with Failure _ -> false
 
             if exists (can get_const_type) [absname; repname] then 
-                tuple (Choice2Of2 <| Exception "new_basic_type_definition: Constant(s) already in use")
-            elif not(asl = []) then tuple (Choice2Of2 <| Exception "new_basic_type_definition: Assumptions in theorem")
+                tuple (Choice.failwith "new_basic_type_definition: Constant(s) already in use")
+            elif not(asl = []) then tuple (Choice.failwith "new_basic_type_definition: Assumptions in theorem")
             else 
                 let P, x = 
                     try 
@@ -773,7 +786,7 @@ module Hol_kernel =
                     with
                     | Failure _ as e ->
                         nestedFailwith e "new_basic_type_definition: Not a combination"
-                if not(freesin [] P) then tuple (Choice2Of2 <| Exception "new_basic_type_definition: Predicate is not closed")
+                if not(freesin [] P) then tuple (Choice.failwith "new_basic_type_definition: Predicate is not closed")
                 else 
                     let tyvars = sort (<=) (Choice.get <| type_vars_in_term P)
                     let _ = 
@@ -799,7 +812,7 @@ module Hol_kernel =
                     |> Choice.bind (fun tm -> safe_mk_eq (Comb(P, r)) tm
                                               |> Choice.map (fun tm' -> Sequent([], tm')))
         | Error _ ->
-            tuple (Choice2Of2 <| Exception "new_basic_type_definition: Erroneous theorem")
+            tuple (Choice.failwith "new_basic_type_definition: Erroneous theorem")
 
 (* ------------------------------------------------------------------------- *)
 (* Stuff that didn't seem worth putting in.                                  *)
