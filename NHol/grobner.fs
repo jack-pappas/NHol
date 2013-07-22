@@ -537,7 +537,7 @@ let RING_AND_IDEAL_CONV =
       holify_polynomial in
     let (pth_idom,pth_ine) = CONJ_PAIR(MATCH_MP pth_step RING_INTEGRAL) in                   
     let IDOM_RULE = CONV_RULE(REWR_CONV pth_idom) in                                         
-    let PROVE_NZ n = EQF_ELIM(RING_EQ_CONV (mk_eq(ring_mk_const n,ring_mk_const(num_0)))) in 
+    let PROVE_NZ n = EQF_ELIM(RING_EQ_CONV (Choice.get <| mk_eq(ring_mk_const n,ring_mk_const(num_0)))) in 
     let NOT_EQ_01 = PROVE_NZ (num_1)                                                         
     let INE_RULE n = MATCH_MP(MATCH_MP pth_ine (PROVE_NZ n))                                 
     let MK_ADD th1 th2 = MK_COMB(AP_TERM ring_add_tm th1,th2) in                             

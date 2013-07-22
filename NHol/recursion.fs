@@ -97,7 +97,7 @@ let prove_recursive_functions_exist =
         let l' = Choice.get <| mk_comb(fn, rarg)
         let r' = list_mk_abs(vargs, r)
         let fvs = frees rarg
-        let def = ASSUME(list_mk_forall(fvs, mk_eq(l', r')))
+        let def = ASSUME(list_mk_forall(fvs, Choice.get <| mk_eq(l', r')))
         GENL avs (RIGHT_BETAS vargs (SPECL fvs def))
     let prove_canon_recursive_functions_exist ax tm = 
         let ths = map canonize (conjuncts tm)
@@ -121,7 +121,7 @@ let prove_recursive_functions_exist =
             let lty = 
                 itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) gvs' (funpow (length gvs) (hd << tl << snd << Choice.get << dest_type) (Choice.get <| type_of fn))
             let fn' = genvar lty
-            let def = mk_eq(fn, list_mk_abs(gvs, list_mk_comb(fn', gvs')))
+            let def = Choice.get <| mk_eq(fn, list_mk_abs(gvs, list_mk_comb(fn', gvs')))
             (ASSUME def) :: acc
     let scrub_def t th = 
         let l, r = Choice.get <| dest_eq t

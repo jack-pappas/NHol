@@ -875,7 +875,7 @@ let INT_ARITH =
         |> THENC <| NNF_NORM_CONV
     let p_tm = (parse_term @"p:bool")
     let not_tm = (parse_term @"(~)")
-    let pth = TAUT(mk_eq(mk_neg(mk_neg p_tm), p_tm))
+    let pth = TAUT(Choice.get <| mk_eq(mk_neg(mk_neg p_tm), p_tm))
     fun tm -> 
         let th0 = INST [tm, p_tm] pth
         let th1 = init_CONV(mk_neg tm)
@@ -1582,7 +1582,7 @@ let INTEGER_TAC_001 =
         let th1 = Choice.tryFind (ISOLATE_VARIABLE vars) cjs
         let eq = lhand(concl th1)
         let bod' = list_mk_conj(eq :: (subtract cjs [eq]))
-        let th2 = CONJ_ACI_RULE(mk_eq(bod, bod'))
+        let th2 = CONJ_ACI_RULE(Choice.get <| mk_eq(bod, bod'))
         let th3 = TRANS th2 (MK_CONJ th1 (REFL(Choice.get <| rand(Choice.get <| rand(concl th2)))))
         let v = lhs(lhand(Choice.get <| rand(concl th3)))
         let vars' = (subtract vars [v]) @ [v]

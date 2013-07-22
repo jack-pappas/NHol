@@ -421,11 +421,11 @@ let pp_print_term =
                                                      (pp_open_hvbox fmt 1
                                                       pp_print_string fmt "(")
                                                  pp_print_string fmt "let "
-                                                 print_term 0 (mk_eq(hd eqs))
+                                                 print_term 0 (Choice.get <| mk_eq(hd eqs))
                                                  do_list (fun (v, t) -> 
                                                          pp_print_break fmt 1 0
                                                          pp_print_string fmt "and "
-                                                         print_term 0 (mk_eq(v, t))) (tl eqs)
+                                                         print_term 0 (Choice.get <| mk_eq(v, t))) (tl eqs)
                                                  pp_print_string fmt " in"
                                                  pp_print_break fmt 1 0
                                                  print_term 0 bod

@@ -67,7 +67,7 @@ let define_quotient_type =
         let s = mk_var("s", pty)
         let x = mk_var("x", ty)
         let eqvx = Choice.get <| mk_comb(eqv, x)
-        let pred = Choice.get <| mk_abs(s, mk_exists(x, mk_eq(s, eqvx)))
+        let pred = Choice.get <| mk_abs(s, mk_exists(x, Choice.get <| mk_eq(s, eqvx)))
         let th0 = BETA_CONV(Choice.get <| mk_comb(pred, eqvx))
         let th1 = EXISTS (Choice.get <| rand(concl th0), x) (REFL eqvx)
         let th2 = EQ_MP (SYM th0) th1
@@ -142,7 +142,7 @@ let lift_function =
                                 nestedFailwith ex "find") hyps
             let rdef = list_mk_abs(newargs, def)
             let ldef = mk_var(fname, Choice.get <| type_of rdef)
-            let dth = new_definition(mk_eq(ldef, rdef))
+            let dth = new_definition(Choice.get <| mk_eq(ldef, rdef))
             let eth = 
                 rev_itlist 
                     (fun v th -> CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th v)) 

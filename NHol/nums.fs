@@ -324,7 +324,7 @@ let new_specification =
         let l, r = Choice.get <| dest_comb(concl th1)
         let rn = Choice.get <| mk_comb(r, ntm)
         let ty = Choice.get <| type_of rn
-        let th2 = new_definition(mk_eq(mk_var(name, ty), rn))
+        let th2 = new_definition(Choice.get <| mk_eq(mk_var(name, ty), rn))
         GEN_REWRITE_RULE ONCE_DEPTH_CONV [GSYM th2] 
             (SPEC ntm (CONV_RULE BETA_CONV th1))
     let rec specifies n names th = 

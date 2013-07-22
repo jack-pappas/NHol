@@ -613,7 +613,7 @@ let define_type_raw_001 =
                 let condef = 
                     list_mk_comb(constr, [sucivate n
                                           iarg; rarg])
-                mk_eq(mk_var(cname, conty), list_mk_abs(args, condef))
+                Choice.get <| mk_eq(mk_var(cname, conty), list_mk_abs(args, condef))
             let rec mk_constructors n rights = 
                 if rights = []
                 then []
@@ -741,7 +741,7 @@ let define_type_raw_001 =
         let expth = find (fun th -> lhand(concl th) = oldcon) defs
         let rexpth = SUBS_CONV [expth] defrt
         let deflf = mk_var(fst(Choice.get <| dest_var oldcon), Choice.get <| type_of defrt)
-        let defth = new_definition(mk_eq(deflf, Choice.get <| rand(concl rexpth)))
+        let defth = new_definition(Choice.get <| mk_eq(deflf, Choice.get <| rand(concl rexpth)))
         TRANS defth (SYM rexpth)
 
     (* ----------------------------------------------------------------------- *)
@@ -893,7 +893,7 @@ let define_type_raw_001 =
         let rights = 
             map2 (fun (_, (_, d)) a -> Choice.get <| mk_abs(a, Choice.get <| mk_comb(fn, Choice.get <| mk_comb(d, a)))) consindex 
                 args
-        let eqs = map2 (curry mk_eq) fns rights
+        let eqs = map2 (curry (Choice.get << mk_eq)) fns rights
         let fdefs = map ASSUME eqs
         let fxths1 = 
             map (fun th1 -> Choice.tryFind (fun th2 -> MK_COMB(th2, th1)) fdefs) 
@@ -1169,7 +1169,7 @@ let define_type_raw_002 =
             let y, bod = Choice.get <| dest_abs outl
             let r = Choice.get <| mk_abs(x, Choice.get <| vsubst [Choice.get <| mk_comb(fn, x), y] bod)
             let l = mk_var(s, Choice.get <| type_of r)
-            let th1 = ASSUME(mk_eq(l, r))
+            let th1 = ASSUME(Choice.get <| mk_eq(l, r))
             RIGHT_BETAS [x] th1
         fun th -> 
             let avs, ebod = strip_forall(concl th)
@@ -1262,10 +1262,10 @@ let prove_constructors_injective =
         let rt = end_itlist (curry mk_pair) args
         let ty = Choice.get <| mk_fun_ty (Choice.get <| type_of pat) (Choice.get <| type_of rt)
         let fn = genvar ty
-        let dtm = mk_eq(Choice.get <| mk_comb(fn, pat), rt)
+        let dtm = Choice.get <| mk_eq(Choice.get <| mk_comb(fn, pat), rt)
         let eth = prove_recursive_functions_exist ax (list_mk_forall(args, dtm))
         let args' = variants args args
-        let atm = mk_eq(pat, list_mk_comb(f, args'))
+        let atm = Choice.get <| mk_eq(pat, list_mk_comb(f, args'))
         let ath = ASSUME atm
         let bth = AP_TERM fn ath
         let cth1 = SPECL args (ASSUME(snd(dest_exists(concl eth))))
@@ -1297,7 +1297,7 @@ let prove_constructors_distinct =
             genvar(Choice.get <| mk_type("fun", [Choice.get <| type_of(hd pat); num_ty]))
         let ls = map (curry (Choice.get << mk_comb) fn) pat
         let defs = 
-            map2 (fun l r -> list_mk_forall(frees(Choice.get <| rand l), mk_eq(l, r))) ls nums
+            map2 (fun l r -> list_mk_forall(frees(Choice.get <| rand l), Choice.get <| mk_eq(l, r))) ls nums
         let eth = prove_recursive_functions_exist ax (list_mk_conj defs)
         let ev, bod = dest_exists(concl eth)
         let REWRITE = GEN_REWRITE_RULE ONCE_DEPTH_CONV (CONJUNCTS(ASSUME bod))
@@ -1308,7 +1308,7 @@ let prove_constructors_distinct =
                         then t, []
                         else strip_comb t
                     list_mk_comb(f, variants args args)) pat
-        let pairs = allopairs (curry mk_eq) pat pat'
+        let pairs = allopairs (curry (Choice.get << mk_eq)) pat pat'
         let nths = map (REWRITE << AP_TERM fn << ASSUME) pairs
         let fths = 
             map2 (fun t th -> NEGATE(DISCH t (CONV_RULE NUM_EQ_CONV th))) pairs 
@@ -1328,7 +1328,7 @@ let prove_constructors_distinct =
 /// Proves a structural cases theorem for an automatically-defined concrete type.
 let prove_cases_thm = 
     let mk_exclauses x rpats = 
-        let xts = map (fun t -> list_mk_exists(frees t, mk_eq(x, t))) rpats
+        let xts = map (fun t -> list_mk_exists(frees t, Choice.get <| mk_eq(x, t))) rpats
         Choice.get <| mk_abs(x, list_mk_disj xts)
     let prove_triv tm = 
         let evs, bod = strip_exists tm
@@ -1340,7 +1340,7 @@ let prove_cases_thm =
             let rf, rargs = strip_comb r
             if lf = rf
             then 
-                let ths = map (ASSUME << mk_eq) (zip rargs largs)
+                let ths = map (ASSUME << Choice.get << mk_eq) (zip rargs largs)
                 let th1 = rev_itlist (C(curry MK_COMB)) ths (REFL lf)
                 itlist EXISTS_EQUATION (map concl ths) (SYM th1)
             else failwith "prove_triv"
@@ -1823,7 +1823,7 @@ let define_type_raw =
                 let rdeb = Choice.get <| rand(lhs bod)
                 let rdef = list_mk_abs(vs, rdeb)
                 let newname = fst(Choice.get <| dest_var(genvar bool_ty))
-                let def = mk_eq(mk_var(newname, Choice.get <| type_of rdef), rdef)
+                let def = Choice.get <| mk_eq(mk_var(newname, Choice.get <| type_of rdef), rdef)
                 let dth = new_definition def
                 SIMPLE_BETA_RULE dth
             let dths = map mk_newcon ncjs
@@ -1840,7 +1840,7 @@ let define_type_raw =
             map (repeat (Choice.get << rator) << Choice.get << rand << lhand << snd << strip_forall) relcls
         let cdefs = 
             map2 
-                (fun s r -> SYM(new_definition(mk_eq(mk_var(s, Choice.get <| type_of r), r)))) 
+                (fun s r -> SYM(new_definition(Choice.get <| mk_eq(mk_var(s, Choice.get <| type_of r), r)))) 
                 truecons gencons
         let tavs = make_args "f" [] (map (Choice.get << type_of) avs)
         let ith1 = SUBS cdefs ith0
@@ -1975,7 +1975,7 @@ let UNWIND_CONV, MATCH_CONV =
                     else r
                 let cjs' = eq :: (subtract eqs [eq])
                 let n = length evs - (1 + index v (rev evs))
-                let th1 = CONJ_ACI_RULE(mk_eq(bod, list_mk_conj cjs'))
+                let th1 = CONJ_ACI_RULE(Choice.get <| mk_eq(bod, list_mk_conj cjs'))
                 let th2 = itlist MK_EXISTS evs th1
                 let th3 = 
                     funpow n BINDER_CONV (PUSH_EXISTS_CONV baseconv) 
@@ -2078,7 +2078,7 @@ let FORALL_UNWIND_CONV =
                 else r
             let cjs' = eq :: (subtract eqs [eq])
             let n = length avs - (1 + index v (rev avs))
-            let th1 = CONJ_ACI_RULE(mk_eq(ant, list_mk_conj cjs'))
+            let th1 = CONJ_ACI_RULE(Choice.get <| mk_eq(ant, list_mk_conj cjs'))
             let th2 = AP_THM (AP_TERM (Choice.get <| rator(Choice.get <| rator bod)) th1) con
             let th3 = itlist MK_FORALL avs th2
             let th4 = 

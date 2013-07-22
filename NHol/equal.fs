@@ -219,7 +219,7 @@ let ABS_CONV : conv -> conv =
             let v' = Choice.get <| variant (frees gtm) v
             let l' = alpha v' l
             let r' = alpha v' r
-            EQ_MP (ALPHA gtm (mk_eq(l', r'))) gth)
+            EQ_MP (ALPHA gtm (Choice.get <| mk_eq(l', r'))) gth)
 
 /// Applies conversion to the body of a binder.
 let BINDER_CONV conv tm = 

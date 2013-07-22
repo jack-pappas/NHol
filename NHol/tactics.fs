@@ -497,7 +497,7 @@ let ABS_TAC : tactic =
             let rv, rb = Choice.get <| dest_abs r
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
             let v = mk_primed_var avoids lv
-            (null_meta, [asl, mk_eq(Choice.get <| vsubst [v, lv] lb, Choice.get <| vsubst [v, rv] rb)], 
+            (null_meta, [asl, Choice.get <| mk_eq(Choice.get <| vsubst [v, lv] lb, Choice.get <| vsubst [v, rv] rb)], 
              fun i tl -> 
                 let fun1 l =
                     match l with
@@ -519,7 +519,7 @@ let MK_COMB_TAC : tactic =
             let l, r = Choice.get <| dest_eq gl
             let f, x = Choice.get <| dest_comb l
             let g, y = Choice.get <| dest_comb r
-            (null_meta, [asl, mk_eq(f, g); asl, mk_eq(x, y)], fun _ tl -> MK_COMB (fun1 tl))
+            (null_meta, [asl, Choice.get <| mk_eq(f, g); asl, Choice.get <| mk_eq(x, y)], fun _ tl -> MK_COMB (fun1 tl))
             |> Choice1Of2
         v |> Choice.mapError (fun _ -> Exception "MK_COMB_TAC: Failure.")
 

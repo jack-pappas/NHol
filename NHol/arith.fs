@@ -2180,8 +2180,8 @@ let NUM_CANCEL_CONV =
         let i, lats', rats' = minter [] [] [] lats rats
         let l' = list_mk_binop add_tm (i @ lats')
         let r' = list_mk_binop add_tm (i @ rats')
-        let lth = AC_RULE(mk_eq(l, l'))
-        let rth = AC_RULE(mk_eq(r, r'))
+        let lth = AC_RULE(Choice.get <| mk_eq(l, l'))
+        let rth = AC_RULE(Choice.get <| mk_eq(r, r'))
         let eth = MK_COMB(AP_TERM eq_tm lth, rth)
         GEN_REWRITE_RULE (RAND_CONV << REPEATC) 
             [EQ_ADD_LCANCEL; EQ_ADD_LCANCEL_0; EQ_ADD_LCANCEL_0'] eth

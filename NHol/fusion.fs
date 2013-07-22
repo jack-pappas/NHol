@@ -309,7 +309,7 @@ module Hol_kernel =
         | Const(s, ty) -> Choice.succeed (s, ty)
         | _ -> Choice.failwith "dest_const: not a constant"
     
-    /// Breaks apart a combination (function application) into Choice.get <| rator and Choice.get <| rand.
+    /// Breaks apart a combination (function application) into rator and rand.
     let dest_comb = 
         function 
         | Comb(f, x) -> Choice.succeed (f, x)
@@ -776,42 +776,39 @@ module Hol_kernel =
     let new_basic_type_definition tyname (absname, repname) thm =
         match thm with
         | Success (Sequent(asl, c)) ->
-            /// Tests for failure.
-            let can f x = 
-                try f x |> ignore; true
-                with Failure _ -> false
-
-            if exists (can get_const_type) [absname; repname] then 
+            if exists (Choice.isResult << get_const_type) [absname; repname] then 
                 Choice.failwithPair "new_basic_type_definition: Constant(s) already in use"
             elif not(asl = []) then Choice.failwithPair "new_basic_type_definition: Assumptions in theorem"
-            else 
-                let P, x = 
-                    try 
-                        Choice.get <| dest_comb c
-                    with
-                    | Failure _ as e ->
-                        nestedFailwith e "new_basic_type_definition: Not a combination"
-                if not(freesin [] P) then Choice.failwithPair "new_basic_type_definition: Predicate is not closed"
-                else 
-                    let tyvars = sort (<=) (Choice.get <| type_vars_in_term P)
-                    match new_type(tyname, length tyvars) with
-                    | Success _ ->
-                        let aty = Tyapp(tyname, tyvars)
-                        let rty = Choice.get <| type_of x
-                        let absty = Tyapp("fun", [rty; aty])
-                        let repty = Tyapp("fun", [aty; rty])
-                        match new_constant(absname, absty), new_constant(repname, repty) with
-                        | Success _, Success _ ->
-                            let abs = Const(absname, absty)
-                            let rep = Const(repname, repty)
-                            let a = Var("a", aty)
-                            let r = Var("r", rty)
-                            safe_mk_eq (Comb(abs, Choice.get <| mk_comb(rep, a))) a |> Choice.map (fun tm -> Sequent([], tm)),
-                            (safe_mk_eq (Choice.get <| mk_comb(rep, Choice.get <| mk_comb(abs, r))) r)
-                            |> Choice.bind (fun tm -> safe_mk_eq (Comb(P, r)) tm
-                                                      |> Choice.map (fun tm' -> Sequent([], tm')))
-                        | _ -> Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
-                    | Error _ -> Choice.failwithPair "new_basic_type_definition: Type already defined"
+            else
+                match dest_comb c with
+                | Error e -> Choice.nestedFailwithPair e "new_basic_type_definition: Not a combination"
+                | Success(P, x) ->
+                    if not(freesin [] P) then Choice.failwithPair "new_basic_type_definition: Predicate is not closed"
+                    else 
+                        match type_vars_in_term P with
+                        | Success tvs ->
+                            let tyvars = sort (<=) tvs
+                            match new_type(tyname, length tyvars) with
+                            | Success _ ->
+                                let aty = Tyapp(tyname, tyvars)
+                                match type_of x with
+                                | Success rty ->
+                                    let absty = Tyapp("fun", [rty; aty])
+                                    let repty = Tyapp("fun", [aty; rty])
+                                    match new_constant(absname, absty), new_constant(repname, repty) with
+                                    | Success _, Success _ ->
+                                        let abs = Const(absname, absty)
+                                        let rep = Const(repname, repty)
+                                        let a = Var("a", aty)
+                                        let r = Var("r", rty)
+                                        (mk_comb(rep, a) |> Choice.bind (fun b -> safe_mk_eq (Comb(abs, b)) a) |> Choice.map (fun tm -> Sequent([], tm))),
+                                        (mk_comb(abs, r)
+                                         |> Choice.bind (fun b1 -> mk_comb(rep, b1) |> Choice.bind (fun b2 -> safe_mk_eq b2 r))
+                                         |> Choice.bind (fun tm -> safe_mk_eq (Comb(P, r)) tm |> Choice.map (fun tm' -> Sequent([], tm'))))
+                                    | _ -> Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
+                                | Error ex -> (Choice2Of2 ex, Choice2Of2 ex)
+                            | Error _ -> Choice.failwithPair "new_basic_type_definition: Type already defined"
+                        | Error ex -> (Choice2Of2 ex, Choice2Of2 ex)
         | Error _ ->
             Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
 
@@ -833,15 +830,19 @@ let is_eq tm =
 
 /// Constructs an equation.
 let mk_eq = 
-    let eq = Choice.get <| mk_const("=", [])
+    let eq = mk_const("=", [])
     fun (l, r) -> 
-        try 
-            let ty = Choice.get <| type_of l
-            let eq_tm = Choice.get <| inst [ty, aty] eq
-            Choice.get <| mk_comb(Choice.get <| mk_comb(eq_tm, l), r)
-        with
-        | Failure _ as e ->
-            nestedFailwith e "mk_eq"
+        eq
+        |> Choice.bind (fun eq ->
+            match type_of l with
+            | Success ty ->
+                match inst [ty, aty] eq with
+                | Success eq_tm ->
+                    mk_comb(eq_tm, l)
+                    |> Choice.bind (fun l -> mk_comb(l, r))
+                | Error ex -> Choice2Of2 ex
+            | Error ex -> Choice2Of2 ex)
+        |> Choice.bindError (fun e -> Choice.nestedFailwith e "mk_eq")
 
 (* ------------------------------------------------------------------------- *)
 (* Tests for alpha-convertibility (equality ignoring names in abstractions). *)

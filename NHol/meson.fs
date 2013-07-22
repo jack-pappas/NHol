@@ -688,7 +688,7 @@ let GEN_MESON_TAC =
                         else 
                             let ldjs, rdjs = chop_list n djs
                             let ndjs = (hd rdjs) :: (ldjs @ (tl rdjs))
-                            EQ_MP (DISJ_AC(mk_eq(tm, list_mk_disj ndjs))) th
+                            EQ_MP (DISJ_AC(Choice.get <| mk_eq(tm, list_mk_disj ndjs))) th
                     let fth = 
                         if length djs = 1
                         then acth
@@ -806,7 +806,7 @@ let GEN_MESON_TAC =
             let rargs = map genvar ctys
             let th1 = 
                 rev_itlist (C(curry MK_COMB)) 
-                    (map (ASSUME << mk_eq) (zip largs rargs)) (REFL tm)
+                    (map (ASSUME << Choice.get << mk_eq) (zip largs rargs)) (REFL tm)
             let th2 = 
                 if pflag
                 then eq_elim_RULE th1
@@ -862,7 +862,7 @@ let GEN_MESON_TAC =
             else 
                 let tm = hd tms
                 let gv = genvar(Choice.get <| type_of tm)
-                let eq = mk_eq(gv, tm)
+                let eq = Choice.get <| mk_eq(gv, tm)
                 let th' = CLAUSIFY(DISCH eq (SUBS [SYM(ASSUME eq)] th))
                 let tms' = map (subst [gv, tm]) (tl tms)
                 BRAND tms' th'
@@ -891,7 +891,7 @@ let GEN_MESON_TAC =
             let tm = concl th
             let l, r = Choice.get <| dest_eq tm
             let gv = genvar(Choice.get <| type_of l)
-            let eq = mk_eq(r, gv)
+            let eq = Choice.get <| mk_eq(r, gv)
             CLAUSIFY(DISCH eq (EQ_MP (AP_TERM (Choice.get <| rator tm) (ASSUME eq)) th))
         let LDISJ_CASES th lth rth = 
             DISJ_CASES th (DISJ1 lth (concl rth)) (DISJ2 (concl lth) rth)

@@ -269,7 +269,7 @@ let new_definition =
             let gargs, reps = (I ||>> unions)(unzip(map depair args))
             let l' = list_mk_comb(fn, gargs)
             let r' = subst reps r
-            let th1 = new_definition(mk_eq(l', r'))
+            let th1 = new_definition(Choice.get <| mk_eq(l', r'))
             let slist = zip args gargs
             let th2 = INST slist (SPEC_ALL th1)
             let xreps = map (subst slist << fst) reps
@@ -605,14 +605,14 @@ let (LET_TAC : tactic) =
                 mapfilter (fun (x, y) -> 
                         if x = y
                         then fail()
-                        else mk_eq(x, y)) assigs
+                        else Choice.get <| mk_eq(x, y)) assigs
             let lvars = itlist (union << frees << lhs) abbrevs []
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
             let rename = Choice.get << vsubst(zip (variants avoids lvars) lvars)
             let abbrevs' = 
                 map (fun eq -> 
                         let l, r = Choice.get <| dest_eq eq
-                        mk_eq(rename l, r)) abbrevs
+                        Choice.get <| mk_eq(rename l, r)) abbrevs
             let deprths = map PROVE_DEPAIRING_EXISTS abbrevs'
             (MAP_EVERY (REPEAT_TCL CHOOSE_THEN (fun th -> 
                                 let th' = SYM th

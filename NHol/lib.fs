@@ -87,6 +87,9 @@ module Choice =
     let inline failwithPair s =
         (failwith s, failwith s)
 
+    let inline nestedFailwithPair innerException message =
+        (nestedFailwith innerException message, nestedFailwith innerException message)
+
     let inline pair (x, y) =
         (Choice1Of2 x, Choice1Of2 y)
 

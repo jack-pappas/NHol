@@ -793,7 +793,7 @@ let instantiate_casewise_recursion,
         let th3 = TRANS th1 (SYM th2)
         let th4 = itlist (fun v th -> rewr1 (GEN v th))
                          (butlast parms) (GEN (last parms) th3)
-        EQ_MP (SYM(rewr2(mk_eq(tm,tm')))) th4
+        EQ_MP (SYM(rewr2(Choice.get <| mk_eq(tm,tm')))) th4
     let FORALL_PAIR_CONV =
       let rule = GEN_REWRITE_RULE RAND_CONV [GSYM FORALL_PAIR_THM]
       let rec depair l t =
@@ -944,7 +944,7 @@ let instantiate_casewise_recursion,
           let bargs = filter (fun t -> Choice.get <| type_of t = ty) args
           let r' = list_mk_binop (parse_term @"(+):num->num->num")
                     (mk_small_numeral k :: map (curry (Choice.get << mk_comb) fn) bargs)
-          list_mk_forall(avs,mk_eq(l,r'))
+          list_mk_forall(avs,Choice.get <| mk_eq(l,r'))
         let cjs = conjuncts cbod
         let def = map2 process_clause (1--length cjs) cjs
         prove_recursive_functions_exist sth (list_mk_conj def)

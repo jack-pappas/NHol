@@ -135,12 +135,12 @@ let DISJ_ACI_RULE =
 /// Puts an iterated conjunction in canonical form.
 let CONJ_CANON_CONV tm = 
     let tm' = list_mk_conj(setify(conjuncts tm))
-    CONJ_ACI_RULE(mk_eq(tm, tm'))
+    CONJ_ACI_RULE(Choice.get <| mk_eq(tm, tm'))
 
 /// Puts an iterated disjunction in canonical form.
 let DISJ_CANON_CONV tm = 
     let tm' = list_mk_disj(setify(disjuncts tm))
-    DISJ_ACI_RULE(mk_eq(tm, tm'))
+    DISJ_ACI_RULE(Choice.get <| mk_eq(tm, tm'))
 
 (* ------------------------------------------------------------------------- *)
 (* General NNF conversion. The user supplies some conversion to be applied   *)
@@ -266,7 +266,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
                (Abs(x, t) as bod)) -> 
             let y = Choice.get <| variant (x :: frees t) x
             let th_p, th_n = NNF_DCONV cf baseconvs t
-            let eq = mk_eq(y, x)
+            let eq = Choice.get <| mk_eq(y, x)
             let eth_p, eth_n = baseconvs eq
             let bth = BETA(Choice.get <| mk_comb(bod, x))
             let bth' = BETA_CONV(Choice.get <| mk_comb(bod, y))
@@ -353,7 +353,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
                (Abs(x, t) as bod)) -> 
             let y = Choice.get <| variant (x :: frees t) x
             let th_p, th_n = NNF_DCONV cf base2 t
-            let eq = mk_eq(y, x)
+            let eq = Choice.get <| mk_eq(y, x)
             let eth_p, eth_n = base2 eq
             let bth = BETA(Choice.get <| mk_comb(bod, x))
             let bth' = BETA_CONV(Choice.get <| mk_comb(bod, y))
@@ -436,7 +436,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
                (Abs(x, t) as bod)) -> 
             let y = Choice.get <| variant (x :: frees t) x
             let th_p, th_n = NNF_DCONV cf base2 t
-            let eq = mk_eq(y, x)
+            let eq = Choice.get <| mk_eq(y, x)
             let eth_p, eth_n = base2 eq
             let bth = BETA(Choice.get <| mk_comb(bod, x))
             let bth' = BETA_CONV(Choice.get <| mk_comb(bod, y))
@@ -686,7 +686,7 @@ let SELECT_ELIM_TAC =
             let fty = itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) fvs (Choice.get <| type_of t)
             let fn = genvar fty
             let atm = list_mk_abs(fvs, t)
-            let rawdef = mk_eq(fn, atm)
+            let rawdef = Choice.get <| mk_eq(fn, atm)
             let def = GENL fvs (SYM(RIGHT_BETAS fvs (ASSUME rawdef)))
             let th3 = PURE_REWRITE_CONV [def] (lhand(concl th2))
             let gtm = mk_forall(fn, Choice.get <| rand(concl th3))
@@ -760,7 +760,7 @@ let LAMBDA_ELIM_CONV =
         let vs' = vs @ [v]
         let aatm = list_mk_abs(vs, atm)
         let f = genvar(Choice.get <| type_of aatm)
-        let eq = mk_eq(f, aatm)
+        let eq = Choice.get <| mk_eq(f, aatm)
         let th1 = SYM(RIGHT_BETAS vs (ASSUME eq))
         let th2 = ELIM_LAMBDA (GEN_REWRITE_CONV I [th1]) tm
         let th3 = APPLY_PTH(GEN f (DISCH_ALL th2))
@@ -821,8 +821,8 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
                 if p = false_tm || p = true_tm
                 then propsimp_conv tm
                 else 
-                    let asm_0 = mk_eq(p, false_tm)
-                    let asm_1 = mk_eq(p, true_tm)
+                    let asm_0 = Choice.get <| mk_eq(p, false_tm)
+                    let asm_1 = Choice.get <| mk_eq(p, true_tm)
                     let simp_0 = net_of_thm false (ASSUME asm_0) propsimps
                     let simp_1 = net_of_thm false (ASSUME asm_1) propsimps
                     let th_0 = 

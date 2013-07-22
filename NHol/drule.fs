@@ -698,7 +698,7 @@ let new_definition tm =
         with
         | Failure _ as e ->
             nestedFailwith e "new_definition: Non-variable in LHS pattern"
-    let def = mk_eq(lv, rtm)
+    let def = Choice.get <| mk_eq(lv, rtm)
     let th1 = new_basic_definition def
     let th2 = 
         rev_itlist (fun tm th -> 

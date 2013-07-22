@@ -428,7 +428,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                             let v' = Choice.get <| variant (frees gtm) v
                             let l' = alpha v' l
                             let r' = alpha v' r
-                            EQ_MP (ALPHA gtm (mk_eq(l', r'))) gth)
+                            EQ_MP (ALPHA gtm (Choice.get <| mk_eq(l', r'))) gth)
                 else Choice2Of2 <| Exception "GEN_SUB_CONV")
 
     let rec ONCE_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) 
@@ -679,7 +679,7 @@ let ABBREV_TAC tm =
     let cvs, t = Choice.get <| dest_eq tm
     let v, vs = strip_comb cvs
     let rs = list_mk_abs(vs, t)
-    let eq = mk_eq(rs, v)
+    let eq = Choice.get <| mk_eq(rs, v)
     let th1 = 
         itlist (fun v th -> CONV_RULE (LAND_CONV BETA_CONV) (AP_THM th v)) 
             (rev vs) (ASSUME eq)

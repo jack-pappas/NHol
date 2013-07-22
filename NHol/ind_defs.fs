@@ -165,7 +165,7 @@ let derive_nonschematic_inductive_relations =
         let eth = 
             if is_imp bimp
             then 
-                let atm = itlist (curry mk_conj << mk_eq) (yes @ no) ant
+                let atm = itlist (curry mk_conj << Choice.get << mk_eq) (yes @ no) ant
                 let ths, tth = nsplit CONJ_PAIR plis (ASSUME atm)
                 let thl = 
                     map (fun t -> find (fun th -> lhs(concl th) = t) ths) args
@@ -181,7 +181,7 @@ let derive_nonschematic_inductive_relations =
                 let th8 = GENL avs (DISCH ant (MP th6 th7))
                 IMP_ANTISYM_RULE (DISCH_ALL th5) (DISCH_ALL th8)
             else 
-                let atm = list_mk_conj(map mk_eq (yes @ no))
+                let atm = list_mk_conj(map (Choice.get << mk_eq) (yes @ no))
                 let ths = CONJUNCTS(ASSUME atm)
                 let thl = 
                     map (fun t -> find (fun th -> lhs(concl th) = t) ths) args
@@ -219,7 +219,7 @@ let derive_nonschematic_inductive_relations =
         let cclausel = map list_mk_conj clausell
         let cclauses = list_mk_conj cclausel
         let oclauses = list_mk_conj pclauses
-        let eth = CONJ_ACI_RULE(mk_eq(oclauses, cclauses))
+        let eth = CONJ_ACI_RULE(Choice.get <| mk_eq(oclauses, cclauses))
         let pth = TRANS (end_itlist MK_CONJ cthms) eth
         TRANS pth (end_itlist MK_CONJ (map AND_IMPS_CONV cclausel))
     let derive_canon_inductive_relations clauses = 
@@ -234,7 +234,7 @@ let derive_nonschematic_inductive_relations =
         let prime_fn = subst crels
         let closed' = prime_fn closed
         let mk_def arg con = 
-            mk_eq
+            Choice.get <| mk_eq
                 (repeat (Choice.get << rator) con, 
                  list_mk_abs
                      (arg, list_mk_forall(rels', mk_imp(closed', prime_fn con))))
@@ -432,7 +432,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
             let lname, lty = Choice.get <| dest_var l
             let l' = mk_var(lname, itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) vs lty)
             let r' = list_mk_abs(vs, r)
-            let tm' = mk_eq(l', r')
+            let tm' = Choice.get <| mk_eq(l', r')
             let th0 = RIGHT_BETAS vs (ASSUME tm')
             let th1 = INST [lhs(concl th0), l] (DISCH tm th)
             MP th1 th0
