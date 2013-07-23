@@ -22,6 +22,8 @@ limitations under the License.
 // To use just Ctrl-A to select all then Alt-Enter to send all lines to F# Interactive.
 // Check the F# Interactive window for messages.
 
+// Used to test push to branch with GitGui.
+
 #if INTERACTIVE
 
 #I @"./../NHol"
