@@ -1560,11 +1560,11 @@ let define_type_raw =
     let clause_corresponds cl0 = 
         let f0, ctm0 = Choice.get <| dest_comb(lhs cl0)
         let c0 = fst(Choice.get <| dest_const(fst(strip_comb ctm0)))
-        let dty0, rty0 = dest_fun_ty(Choice.get <| type_of f0)
+        let dty0, rty0 = Choice.get <| dest_fun_ty(Choice.get <| type_of f0)
         fun cl1 -> 
             let f1, ctm1 = Choice.get <| dest_comb(lhs cl1)
             let c1 = fst(Choice.get <| dest_const(fst(strip_comb ctm1)))
-            let dty1, rty1 = dest_fun_ty(Choice.get <| type_of f1)
+            let dty1, rty1 = Choice.get <| dest_fun_ty(Choice.get <| type_of f1)
             c0 = c1 && dty0 = rty1 && rty0 = dty1
     let prove_inductive_types_isomorphic n k (ith0, rth0) (ith1, rth1) = 
         let sth0 = SPEC_ALL rth0
@@ -1578,11 +1578,11 @@ let define_type_raw =
         let tyal1 = map (fun (a, b) -> (b, a)) tyal0
         let tyins0 = 
             map (fun f -> 
-                    let domty, ranty = dest_fun_ty(Choice.get <| type_of f)
+                    let domty, ranty = Choice.get <| dest_fun_ty(Choice.get <| type_of f)
                     tysubst tyal0 domty, ranty) pevs0
         let tyins1 = 
             map (fun f -> 
-                    let domty, ranty = dest_fun_ty(Choice.get <| type_of f)
+                    let domty, ranty = Choice.get <| dest_fun_ty(Choice.get <| type_of f)
                     tysubst tyal1 domty, ranty) pevs1
         let tth0 = INST_TYPE tyins0 sth0
         let tth1 = INST_TYPE tyins1 sth1
@@ -1794,7 +1794,7 @@ let define_type_raw =
             let ctylist = 
                 filter (fun ty -> exists (fun t -> occurs_in t ty) isotys) 
                     vtylist
-            let atylist = itlist (union << striplist dest_fun_ty) ctylist []
+            let atylist = itlist (union << striplist (Choice.get << dest_fun_ty)) ctylist []
             let isoths' = 
                 map (lift_type_bijections isoths) 
                     (filter (fun ty -> exists (fun t -> occurs_in t ty) isotys) 
