@@ -51,8 +51,8 @@ let genvar =
 /// Break apart a function type into domain and range.
 let dest_fun_ty ty = 
     match ty with
-    | Tyapp("fun", [ty1; ty2]) -> (ty1, ty2)
-    | _ -> failwith "dest_fun_ty"
+    | Tyapp("fun", [ty1; ty2]) -> Choice.succeed (ty1, ty2)
+    | _ -> Choice.failwith "dest_fun_ty"
 
 /// Tests if one type occurs in another.
 let rec occurs_in ty bigty =
@@ -260,7 +260,7 @@ let mk_icomb(tm1, tm2) =
 
 /// Applies constant to list of arguments, instantiating constant type as needed.
 let list_mk_icomb cname args = 
-    let atys, _ = nsplit dest_fun_ty args (Choice.get <| get_const_type cname)
+    let atys, _ = nsplit (Choice.get << dest_fun_ty) args (Choice.get <| get_const_type cname)
     let tyin = itlist2 (fun g a -> type_match g (Choice.get <| type_of a)) atys args []
     list_mk_comb(Choice.get <| mk_const(cname, tyin), args)
 
@@ -569,7 +569,7 @@ let mk_let(assigs, bod) =
     let lefts, rights = unzip assigs
     let lend = Choice.get <| mk_comb(Choice.get <| mk_const("LET_END", [Choice.get <| type_of bod, aty]), bod)
     let lbod = list_mk_gabs(lefts, lend)
-    let ty1, ty2 = dest_fun_ty(Choice.get <| type_of lbod)
+    let ty1, ty2 = Choice.get <| dest_fun_ty(Choice.get <| type_of lbod)
     let ltm = 
         Choice.get <| mk_const("LET", [ty1, aty;
                          ty2, bty])
