@@ -315,7 +315,7 @@ let GEN_BETA_CONV =
         | Some x -> x
         | None ->
             let genty = Choice.get <| get_const_type conname
-            let conty = fst(Choice.get <| dest_type(repeat (snd << dest_fun_ty) genty))
+            let conty = fst(Choice.get <| dest_type(repeat (snd << (Choice.get << dest_fun_ty)) genty))
             let _, _, rth =
                 assoc conty (!inductive_type_store)
                 |> Option.getOrFailWith "find"
