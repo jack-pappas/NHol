@@ -548,7 +548,7 @@ let derive_strong_induction =
         let prs = 
             map2 
                 (fun n (r, p) -> 
-                    let tys, ty = nsplit dest_fun_ty (1 -- n) (Choice.get <| type_of r)
+                    let tys, ty = nsplit (Choice.get << dest_fun_ty) (1 -- n) (Choice.get <| type_of r)
                     let gvs = map genvar tys
                     list_mk_abs
                         (gvs, 
