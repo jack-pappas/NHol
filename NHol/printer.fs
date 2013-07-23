@@ -371,7 +371,7 @@ let pp_print_term =
                             | Failure _ -> 
                                 try 
                                     if s = "UNIV" && !typify_universal_set && is_const tm && args = [] then 
-                                        let ty = fst(dest_fun_ty(Choice.get <| type_of tm))
+                                        let ty = fst(Choice.get <| dest_fun_ty(Choice.get <| type_of tm))
                                         (pp_print_string fmt "(:"
                                          pp_print_type fmt ty
                                          pp_print_string fmt ")")
