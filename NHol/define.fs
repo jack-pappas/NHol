@@ -1058,6 +1058,6 @@ let define =
       let etm = mk_exists(f,hd(hyp th))
       let th1 = prove_general_recursive_function_exists etm
       let th2 = new_specification[fst(Choice.get <| dest_var f)] th1
-      let g = mk_mconst(Choice.get <| dest_var f)
+      let g = Choice.get <| mk_mconst(Choice.get <| dest_var f)
       let th3 = PROVE_HYP th2 (INST [g,f] th)
       the_definitions := th3::(!the_definitions); th3

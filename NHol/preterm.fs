@@ -337,7 +337,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let rec untyped_t_of_pt = 
             function 
             | Varp(s, pty) -> mk_var(s, aty)
-            | Constp(s, pty) -> mk_mconst(s, Choice.get <| get_const_type s)
+            | Constp(s, pty) -> Choice.get <| mk_mconst(s, Choice.get <| get_const_type s)
             | Combp(l, r) -> Choice.get <| mk_comb(untyped_t_of_pt l, untyped_t_of_pt r)
             | Absp(v, bod) -> mk_gabs(untyped_t_of_pt v, untyped_t_of_pt bod)
             | Typing(ptm, pty) -> untyped_t_of_pt ptm
@@ -486,7 +486,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         | _ -> failwith "solve_preterm: Unhandled case."
 
     (* ----------------------------------------------------------------------- *)
-    (* Flag to indicate that Stvs were translated to real type Choice.get <| variables.      *)
+    (* Flag to indicate that Stvs were translated to real type variables.      *)
     (* ----------------------------------------------------------------------- *)
 
     let stvs_translated = ref false
@@ -512,7 +512,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let rec term_of_preterm ptm = 
             match ptm with
             | Varp(s, pty) -> mk_var(s, type_of_pretype pty)
-            | Constp(s, pty) -> mk_mconst(s, type_of_pretype pty)
+            | Constp(s, pty) -> Choice.get <| mk_mconst(s, type_of_pretype pty)
             | Combp(l, r) -> Choice.get <| mk_comb(term_of_preterm l, term_of_preterm r)
             | Absp(v, bod) -> mk_gabs(term_of_preterm v, term_of_preterm bod)
             | Typing(ptm, pty) -> term_of_preterm ptm

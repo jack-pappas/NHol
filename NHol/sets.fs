@@ -3790,7 +3790,7 @@ let REAL_SUP_EQ_INF =
 (* ------------------------------------------------------------------------- *)
 /// Dene a set or family of sets inductively.
 let new_inductive_set = 
-    let const_of_var v = mk_mconst(name_of v, Choice.get <| type_of v)
+    let const_of_var v = Choice.get <| mk_mconst(name_of v, Choice.get <| type_of v)
     let comb_all = 
         let rec f (n : int) (tm : term) : hol_type list -> term = 
             function 
