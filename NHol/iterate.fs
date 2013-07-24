@@ -309,8 +309,8 @@ let NUMSEG_CONV =
         if nst <> ns_tm
         then failwith "NUMSEG_CONV"
         else 
-            let m = dest_numeral mt
-            let n = dest_numeral nt
+            let m = Choice.get <| dest_numeral mt
+            let n = Choice.get <| dest_numeral nt
             if n </ m
             then 
                 MP_CONV NUM_LT_CONV (INST [mt, m_tm

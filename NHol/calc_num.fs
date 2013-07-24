@@ -711,7 +711,7 @@ let NUM_PRE_CONV =
     let pre = (parse_term @"PRE") in
     fun tm -> try let l,r = Choice.get <| dest_comb tm in
                   if not (l = pre) then fail() else
-                  let x = dest_numeral r in
+                  let x = Choice.get <| dest_numeral r in
                   if x = Int 0 then tth else
                   let tm' = mk_numeral (x - Int 1) in
                   let th1 = NUM_SUC_CONV (Choice.get <| mk_comb(suc,tm')) in
@@ -736,8 +736,8 @@ let NUM_SUB_CONV =
     let plus = (parse_term @"(+)")
     let le = (parse_term @"(<=)") in
     fun tm -> try let l,r = Choice.get <| dest_binop minus tm in
-                  let ln = dest_numeral l
-                  let rn = dest_numeral r in
+                  let ln = Choice.get <| dest_numeral l
+                  let rn = Choice.get <| dest_numeral r in
                   if  ln <= rn then
                     let pth = INST [l,p; r,n] pth0
                     let th0 = EQT_ELIM(NUM_LE_CONV (Choice.get <| mk_binop le l r)) in
@@ -774,10 +774,10 @@ let NUM_DIV_CONV,NUM_MOD_CONV =
       let tm2 = lhand(concl th2) in
       MP th2 (EQT_ELIM(NUM_LT_CONV tm2)) in
     (fun tm -> try let xt,yt = Choice.get <| dest_binop dtm tm in
-                   CONJUNCT1(NUM_DIVMOD_CONV (dest_numeral xt) (dest_numeral yt))
+                   CONJUNCT1(NUM_DIVMOD_CONV (Choice.get <| dest_numeral xt) (Choice.get <| dest_numeral yt))
                with Failure _ as e -> nestedFailwith e "NUM_DIV_CONV"),
     (fun tm -> try let xt,yt = Choice.get <| dest_binop mtm tm in
-                   CONJUNCT2(NUM_DIVMOD_CONV (dest_numeral xt) (dest_numeral yt))
+                   CONJUNCT2(NUM_DIVMOD_CONV (Choice.get <| dest_numeral xt) (Choice.get <| dest_numeral yt))
                with Failure _ as e -> nestedFailwith e "NUM_MOD_CONV");;
 
 /// Proves what the factorial of a natural number numeral is.
@@ -814,7 +814,7 @@ let NUM_FACT_CONV =
     fun tm ->
       try let l,r = Choice.get <| dest_comb tm in
           if fst(Choice.get <| dest_const l) = "FACT"
-          then NUM_FACT_CONV (dest_numeral r)
+          then NUM_FACT_CONV (Choice.get <| dest_numeral r)
           else fail()
       with Failure _ as e -> nestedFailwith e "NUM_FACT_CONV";;
 
@@ -885,7 +885,7 @@ let NUM_REDUCE_TAC = CONV_TAC NUM_REDUCE_CONV;;
 let num_CONV =
     let SUC_tm = (parse_term @"SUC") in
     fun tm ->
-      let n = dest_numeral tm - Int 1 in
+      let n = Choice.get (dest_numeral tm) - Int 1 in
       if n < Int 0 then failwith "num_CONV" else
       let tm' = mk_numeral n in
       SYM(NUM_SUC_CONV (Choice.get <| mk_comb(SUC_tm,tm')));;

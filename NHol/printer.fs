@@ -341,7 +341,7 @@ let pp_print_term =
             with
             | Failure _ -> 
                 try 
-                    pp_print_string fmt (string_of_num(dest_numeral tm))
+                    pp_print_string fmt (string_of_num(Choice.get <| dest_numeral tm))
                 with
                 | Failure _ -> 
                     try 
@@ -438,8 +438,8 @@ let pp_print_term =
                                                 try 
                                                     if s <> "DECIMAL" then fail()
                                                     else 
-                                                        let n_num = dest_numeral(hd args)
-                                                        let n_den = dest_numeral(hd(tl args))
+                                                        let n_num = Choice.get <| dest_numeral(hd args)
+                                                        let n_den = Choice.get <| dest_numeral(hd(tl args))
                                                         if not(powerof10 n_den) then fail()
                                                         else 
                                                             let s_num = string_of_num(quo_num n_num n_den)

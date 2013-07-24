@@ -773,7 +773,7 @@ let NUM_RING =
      REPEAT(FIRST_X_ASSUM (CHOOSE_THEN SUBST1_TAC << REWRITE_RULE[LE_EXISTS])) |>THEN<|
      ASM_MESON_TAC[NUM_INTEGRAL_LEMMA; ADD_SYM; MULT_SYM]) in
   let rawring =
-    RING(dest_numeral,mk_numeral,NUM_EQ_CONV,
+    RING(Choice.get << dest_numeral, mk_numeral, NUM_EQ_CONV,
          genvar bool_ty,(parse_term @"(+):num->num->num"),genvar bool_ty,
          genvar bool_ty,(parse_term @"(*):num->num->num"),genvar bool_ty,
          (parse_term @"(EXP):num->num->num"),

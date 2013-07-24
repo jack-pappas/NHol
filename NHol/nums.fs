@@ -292,7 +292,7 @@ let mk_numeral =
 /// Maps a nonnegative integer to corresponding numeral term.
 let mk_small_numeral n = mk_numeral(Int n)
 /// Converts a HOL numeral term to machine integer.
-let dest_small_numeral t = Num.int_of_num(dest_numeral t)
+let dest_small_numeral t = Num.int_of_num(Choice.get <| dest_numeral t)
 /// Tests if a term is a natural number numeral.
 let is_numeral =
     /// Tests for failure.
@@ -300,7 +300,7 @@ let is_numeral =
         try f x |> ignore; true
         with Failure _ -> false
     
-    can dest_numeral
+    can (Choice.get << dest_numeral)
 /// List of all constant specifications introduced so far.
 let the_specifications = ref []
 

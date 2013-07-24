@@ -543,11 +543,11 @@ let dest_numeral =
     fun tm -> 
         try 
             let l, r = Choice.get <| dest_comb tm
-            if fst(Choice.get <| dest_const l) = "NUMERAL" then dest_num r
-            else fail()
+            if fst(Choice.get <| dest_const l) = "NUMERAL" then Choice.succeed <| dest_num r
+            else Choice.fail()
         with
         | Failure _ as e ->
-            nestedFailwith e "dest_numeral"
+            Choice.nestedFailwith e "dest_numeral"
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for generalized abstractions.                                      *)
@@ -601,6 +601,7 @@ let mk_gabs =
 
 /// Iteratively makes a generalized abstraction.
 let list_mk_gabs(vs, bod) = itlist (curry mk_gabs) vs bod
+
 /// Breaks apart an iterated generalized or basic abstraction.
 let strip_gabs = splitlist dest_gabs
 

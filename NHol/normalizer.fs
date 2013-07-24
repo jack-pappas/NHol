@@ -540,7 +540,7 @@ let SEMIRING_NORMALIZERS_CONV =
                         let dest_varpow tm = 
                             try 
                                 let x, n = dest_pow tm
-                                (x, dest_numeral n)
+                                (x, Choice.get <| dest_numeral n)
                             with
                             | Failure _ -> 
                                 (tm, (if is_semiring_constant tm

@@ -69,17 +69,17 @@ let is_realintconst tm =
     match tm with
     | Comb(Const("real_of_num", _), n) -> is_numeral n
     | Comb(Const("real_neg", _), Comb(Const("real_of_num", _), n)) -> 
-        is_numeral n && not(dest_numeral n = num_0)
+        is_numeral n && not(Choice.get <| dest_numeral n = num_0)
     | _ -> false
 
 /// Converts an integer literal of type :real to an F# number.
 let dest_realintconst tm = 
     match tm with
-    | Comb(Const("real_of_num", _), n) -> dest_numeral n
+    | Comb(Const("real_of_num", _), n) -> Choice.get <| dest_numeral n
     | Comb(Const("real_neg", _), Comb(Const("real_of_num", _), n)) -> 
-        let nn = dest_numeral n
+        let nn = Choice.get <| dest_numeral n
         if nn <> num_0
-        then minus_num(dest_numeral n)
+        then minus_num(Choice.get <| dest_numeral n)
         else failwith "dest_realintconst"
     | _ -> failwith "dest_realintconst"
 
@@ -437,8 +437,8 @@ let REAL_INT_ADD_CONV =
                 else 
                     let m = Choice.get <| rand(Choice.get <| rand l)
                     let n = Choice.get <| rand r
-                    let m' = dest_numeral m
-                    let n' = dest_numeral n
+                    let m' = Choice.get <| dest_numeral m
+                    let n' = Choice.get <| dest_numeral n
                     if m' <= n'
                     then 
                         let p = mk_numeral(n' - m')
@@ -462,8 +462,8 @@ let REAL_INT_ADD_CONV =
             then 
                 let m = Choice.get <| rand l
                 let n = Choice.get <| rand(Choice.get <| rand r)
-                let m' = dest_numeral m
-                let n' = dest_numeral n
+                let m' = Choice.get <| dest_numeral m
+                let n' = Choice.get <| dest_numeral n
                 if n' <= m'
                 then 
                     let p = mk_numeral(m' - n')
