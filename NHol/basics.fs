@@ -500,10 +500,10 @@ let dest_neg tm =
 let is_uexists = is_binder "?!"
 
 /// Breaks apart a unique existence term.
-let dest_uexists = Choice.get << dest_binder "?!"
+let dest_uexists = dest_binder "?!"
 
 /// Breaks apart a `CONS pair' into head and tail.
-let dest_cons = Choice.get << dest_binary "CONS"
+let dest_cons = dest_binary "CONS"
 
 /// Tests a term to see if it is an application of CONS.
 let is_cons = is_binary "CONS"
@@ -511,7 +511,7 @@ let is_cons = is_binary "CONS"
 /// Iteratively breaks apart a list term.
 let dest_list tm = 
     try 
-        let tms, nil = splitlist dest_cons tm
+        let tms, nil = splitlist (Choice.get << dest_cons) tm
         if fst(Choice.get <| dest_const nil) = "NIL" then tms
         else fail()
     with
