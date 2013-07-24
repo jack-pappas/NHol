@@ -97,14 +97,14 @@ let enter =
         | Failure _ -> false
     let rec sinsert x l = 
         match l with
-        | [] -> [x]
+        | [] -> Choice.succeed [x]
         | hd :: tl -> 
-            if canon_eq hd x then failwith "sinsert"
-            elif canon_lt x hd then x :: l
-            else hd :: (sinsert x tl)
+            if canon_eq hd x then Choice.failwith "sinsert"
+            elif canon_lt x hd then Choice.succeed (x :: l)
+            else Choice.succeed (hd :: (Choice.get <| sinsert x tl))
     let set_insert x l = 
         try 
-            sinsert x l
+            Choice.get <|sinsert x l
         with
         | Failure "sinsert" -> l
     let rec net_update lconsts (elem, tms, Netnode(edges, tips)) = 
