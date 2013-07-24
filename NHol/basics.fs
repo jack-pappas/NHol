@@ -56,21 +56,29 @@ let dest_fun_ty ty =
 
 /// Tests if one type occurs in another.
 let rec occurs_in ty bigty =
-    bigty = ty || is_type bigty && exists (occurs_in ty) (snd(Choice.get <| dest_type bigty))
+    match dest_type bigty with
+    | Success(_, ty0) ->
+        bigty = ty || is_type bigty && exists (occurs_in ty) ty0
+    | Error _ -> false
 
 /// The call tysubst [ty1',ty1; ... ; tyn',tyn] ty will systematically traverse the type ty
 /// and replace the topmost instances of any tyi encountered with the corresponding tyi'.
 /// In the (usual) case where all the tyi are type variables, this is the same as type_subst,
 /// but also works when they are not.
-let rec tysubst alist ty =
-    // OPTIMIZE : Use Option.fillWith from ExtCore.
-    match rev_assoc ty alist with
-    | Some x -> x
-    | None ->
-        if is_vartype ty then ty
-        else 
-            let tycon, tyvars = Choice.get <| dest_type ty
-            Choice.get <| mk_type(tycon, map (tysubst alist) tyvars)
+let tysubst alist ty =
+    let rec tysubst alist ty =
+        // OPTIMIZE : Use Option.fillWith from ExtCore.
+        match rev_assoc ty alist with
+        | Some x -> x
+        | None ->
+            if is_vartype ty then ty
+            else 
+                let tycon, tyvars = Choice.get <| dest_type ty
+                Choice.get <| mk_type(tycon, map (tysubst alist) tyvars)
+    try
+        Choice.succeed <| tysubst alist ty
+    with Failure s ->
+        Choice.failwith s
 
 (* ------------------------------------------------------------------------- *)
 (* A bit more syntax.                                                        *)

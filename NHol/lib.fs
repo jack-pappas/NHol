@@ -175,7 +175,7 @@ module Option =
 
     let toChoiceWithError msg value =
         match value with
-        | Some v -> Choice1Of2 v
+        | Some v -> Choice.succeed v
         | None -> Choice.failwith msg
 
 

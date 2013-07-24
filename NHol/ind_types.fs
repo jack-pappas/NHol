@@ -1582,11 +1582,11 @@ let define_type_raw =
         let tyins0 = 
             map (fun f -> 
                     let domty, ranty = Choice.get <| dest_fun_ty(Choice.get <| type_of f)
-                    tysubst tyal0 domty, ranty) pevs0
+                    Choice.get <| tysubst tyal0 domty, ranty) pevs0
         let tyins1 = 
             map (fun f -> 
                     let domty, ranty = Choice.get <| dest_fun_ty(Choice.get <| type_of f)
-                    tysubst tyal1 domty, ranty) pevs1
+                    Choice.get <| tysubst tyal1 domty, ranty) pevs1
         let tth0 = INST_TYPE tyins0 sth0
         let tth1 = INST_TYPE tyins1 sth1
         let evs0, bod0 = strip_exists(concl tth0)
