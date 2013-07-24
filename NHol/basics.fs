@@ -221,15 +221,19 @@ let subst =
 
 /// Changes the name of a bound variable.
 let alpha v tm = 
-    let v0, bod = 
-        try 
-            Choice.get <| dest_abs tm
-        with
-        | Failure _ as e ->
-            nestedFailwith e "alpha: Not an abstraction"
-    if v = v0 then tm
-    elif Choice.get <| type_of v = (Choice.get <| type_of v0) && not(vfree_in v bod) then Choice.get <| mk_abs(v, Choice.get <| vsubst [v, v0] bod)
-    else failwith "alpha: Invalid new variable"
+    choice {
+        let! (v0, bod) = 
+            dest_abs tm 
+            |> Choice.bindError (fun e -> Choice.nestedFailwith e "alpha: Not an abstraction")
+        if v = v0 then return tm
+        else
+            let! ty = type_of v
+            let! ty0 = type_of v0
+            if ty = ty0 && not(vfree_in v bod) then 
+                let! sub = vsubst [v, v0] bod
+                return! mk_abs(v, sub)
+            else return! Choice.failwith "alpha: Invalid new variable"
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Type matching.                                                            *)

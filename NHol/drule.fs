@@ -478,12 +478,12 @@ let term_unify : term list -> term -> term -> instantiation =
 let deep_alpha = 
     let tryalpha v tm = 
         try 
-            alpha v tm
+            Choice.get <| alpha v tm
         with
         | Failure _ -> 
             try 
                 let v' = Choice.get <| variant (frees tm) v
-                alpha v' tm
+                Choice.get <| alpha v' tm
             with
             | Failure _ -> tm
     let rec deep_alpha env tm = 

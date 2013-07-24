@@ -432,8 +432,8 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                             let gtm = concl gth
                             let l, r = Choice.get <| dest_eq gtm
                             let v' = Choice.get <| variant (frees gtm) v
-                            let l' = alpha v' l
-                            let r' = alpha v' r
+                            let l' = Choice.get <| alpha v' l
+                            let r' = Choice.get <| alpha v' r
                             EQ_MP (ALPHA gtm (Choice.get <| mk_eq(l', r'))) gth)
                 else Choice2Of2 <| Exception "GEN_SUB_CONV")
 

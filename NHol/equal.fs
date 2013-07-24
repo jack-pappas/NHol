@@ -106,14 +106,14 @@ let SYM th =
     let lth = REFL l
     EQ_MP (MK_COMB(AP_TERM (Choice.get <| rator(Choice.get <| rator tm)) th, lth)) lth
 
-/// Proves equality of alpha-equivalent terms.
+/// Proves equality of Choice.get <| alpha-equivalent terms.
 let ALPHA tm1 tm2 = 
     TRANS (REFL tm1) (REFL tm2)
     |> Choice.mapError (fun _ -> Exception "ALPHA")
 
 /// Renames the bound variable of a lambda-abstraction.
 let ALPHA_CONV v tm = 
-    let res = alpha v tm
+    let res = Choice.get <| alpha v tm
     ALPHA tm res
 
 /// Renames the bound variable of an abstraction or binder.
@@ -217,8 +217,8 @@ let ABS_CONV : conv -> conv =
             let gtm = concl gth
             let l, r = Choice.get <| dest_eq gtm
             let v' = Choice.get <| variant (frees gtm) v
-            let l' = alpha v' l
-            let r' = alpha v' r
+            let l' = Choice.get <| alpha v' l
+            let r' = Choice.get <| alpha v' r
             EQ_MP (ALPHA gtm (Choice.get <| mk_eq(l', r'))) gth)
 
 /// Applies conversion to the Choice.get <| body of a binder.
