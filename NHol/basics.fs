@@ -429,6 +429,7 @@ let mk_binop op tm1 =
 
 /// Makes an iterative application of a binary operator.
 let list_mk_binop op = end_itlist(fun x -> Choice.get << mk_binop op x)
+
 /// Repeatedly breaks apart an iterated binary operator into components.
 let binops op = striplist(Choice.get << dest_binop op)
 
@@ -440,10 +441,10 @@ let binops op = striplist(Choice.get << dest_binop op)
 let is_conj = is_binary "/\\"
 
 /// Term destructor for conjunctions.
-let dest_conj = Choice.get << dest_binary "/\\"
+let dest_conj = dest_binary "/\\"
 
 /// Iteratively breaks apart a conjunction.
-let conjuncts = striplist dest_conj
+let conjuncts = striplist (Choice.get << dest_conj)
 
 /// Tests if a term is an application of implication.
 let is_imp = is_binary "==>"
@@ -454,7 +455,7 @@ let dest_imp = Choice.get << dest_binary "==>"
 /// Tests a term to see if it is a universal quantification.
 let is_forall = is_binder "!"
 
-/// Breaks apart a universally quantified term into quantified variable and Choice.get <| body.
+/// Breaks apart a universally quantified term into quantified variable and body.
 let dest_forall = Choice.get << dest_binder "!"
 
 /// Iteratively breaks apart universal quantifications.

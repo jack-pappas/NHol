@@ -764,7 +764,7 @@ let (CONJ_TAC : tactic) =
                 match l with
                 | [th1; th2] -> CONJ th1 th2
                 | _ -> Choice2Of2 <| Exception "CONJ_TAC.fun1: Unhandled case."
-            let l, r = dest_conj w
+            let l, r = Choice.get <| dest_conj w
             (null_meta, [asl, l; asl, r], fun _ tl -> fun1 tl)
             |> Choice1Of2
         v |> Choice.mapError (fun _ -> Exception "CONJ_TAC: Failure.")
@@ -877,7 +877,7 @@ let (MATCH_MP_TAC : thm_tactic) =
 /// Applies two theorem-tactics to the corresponding conjuncts of a theorem.
 let CONJUNCTS_THEN2 : thm_tactic -> thm_tactic -> thm_tactic =
     fun ttac1 ttac2 cth ->
-        let c1,c2 = dest_conj(concl cth)
+        let c1,c2 = Choice.get <| dest_conj(concl cth)
         fun gl -> 
             (ttac1(ASSUME c1) |> THEN <| ttac2(ASSUME c2)) gl
             |> Choice.bind (fun (ti,gls,jfn) ->

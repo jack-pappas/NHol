@@ -866,7 +866,7 @@ let instantiate_casewise_recursion,
             (LAND_CONV (funpow 2 GABS_CONV (BINDER_CONV (BINDER_CONV (rewr_forall_th) |>THENC<|  rewr_forall_th)) ))) |>THENC<|
         ELIM_LISTOPS_CONV) (hd(hyp th6))
       let th8 = PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th7))) th6
-      let wfasm,cdasm = dest_conj(hd(hyp th8))
+      let wfasm,cdasm = Choice.get <| dest_conj(hd(hyp th8))
       let th9 = PROVE_HYP (CONJ (ASSUME wfasm) (ASSUME cdasm)) th8
       let th10 = SIMPLIFY_WELLDEFINEDNESS_CONV cdasm
       let th11 = PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th10))) th9

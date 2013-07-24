@@ -74,7 +74,7 @@ let CONJ_ACI_RULE =
     and use_fun fn tm = 
         if is_conj tm
         then 
-            let l, r = dest_conj tm
+            let l, r = Choice.get <| dest_conj tm
             CONJ (use_fun fn l) (use_fun fn r)
         else apply fn tm
     fun fm -> 
@@ -868,7 +868,7 @@ let ASM_FOL_TAC =
             try 
                 let l, r = 
                     try 
-                        dest_conj tm
+                        Choice.get <| dest_conj tm
                     with
                     | Failure _ -> dest_disj tm
                 get_heads lconsts l (get_heads lconsts r sofar)

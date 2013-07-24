@@ -224,7 +224,7 @@ let GEN_MESON_TAC =
         with
         | Failure _ -> 
             try 
-                let l, r = dest_conj tm
+                let l, r = Choice.get <| dest_conj tm
                 let fl = fol_of_form env consts l
                 let fr = fol_of_form env consts r
                 Conj(fl, fr)
@@ -764,7 +764,7 @@ let GEN_MESON_TAC =
                 with
                 | Failure _ -> 
                     try 
-                        let l, r = dest_conj tm
+                        let l, r = Choice.get <| dest_conj tm
                         fm_consts l (fm_consts r acc)
                     with
                     | Failure _ -> 

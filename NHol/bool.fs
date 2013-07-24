@@ -170,7 +170,7 @@ let CONJUNCT1 =
         let th3 = EQ_MP th2 (ASSUME <| parse_term @"P /\ Q")
         EQT_ELIM(BETA_RULE(AP_THM th3 <| parse_term @"\(p:bool) (q:bool). p"))
     fun th -> 
-        let l, r = dest_conj(concl th)
+        let l, r = Choice.get <| dest_conj (concl th)
         PROVE_HYP th (INST [l, P; r, Q] pth)
         |> Choice.mapError (fun _ -> Exception "CONJUNCT1")
 
@@ -184,7 +184,7 @@ let CONJUNCT2 =
         let th3 = EQ_MP th2 (ASSUME <| parse_term @"P /\ Q")
         EQT_ELIM(BETA_RULE(AP_THM th3 <| parse_term @"\(p:bool) (q:bool). q"))
     fun th -> 
-        let l, r = dest_conj(concl th)
+        let l, r = Choice.get <| dest_conj (concl th)
         PROVE_HYP th (INST [l, P; r, Q] pth)
         |> Choice.mapError (fun _ -> Exception "CONJUNCT2")
 
