@@ -217,7 +217,7 @@ let GEN_MESON_TAC =
         | Failure _ -> fol_of_atom env consts tm
     let rec fol_of_form env consts tm = 
         try 
-            let v, bod = dest_forall tm
+            let v, bod = Choice.get <| dest_forall tm
             let fv = fol_of_var v
             let fbod = fol_of_form (v :: env) (subtract consts [v]) bod
             Forallq(fv, fbod)
@@ -756,7 +756,7 @@ let GEN_MESON_TAC =
         (* OPTIMIZE :   Modify the code below to use option instead of try/catch. *)
         let rec fm_consts tm ((preds, funs) as acc) = 
             try 
-                fm_consts (snd(dest_forall tm)) acc
+                fm_consts (snd(Choice.get <| dest_forall tm)) acc
             with
             | Failure _ -> 
                 try 
@@ -1068,7 +1068,7 @@ let GEN_MESON_TAC =
         <| RULE_ASSUM_TAC
                (repeat
                     (fun th -> 
-                        SPEC (genvar(Choice.get <| type_of(fst(dest_forall(concl th))))) th))
+                        SPEC (genvar(Choice.get <| type_of(fst(Choice.get <| dest_forall(concl th))))) th))
         |> THEN <| REPEAT(FIRST_X_ASSUM(CONJUNCTS_THEN' ASSUME_TAC))
         |> THEN <| RULE_ASSUM_TAC(CONV_RULE(ASSOC_CONV DISJ_ASSOC))
         |> THEN <| REPEAT(FIRST_X_ASSUM SUBST_VAR_TAC)

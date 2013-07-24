@@ -673,7 +673,7 @@ let X_GEN_TAC x' =
         fun (asl, w) -> 
             let x, bod = 
                 try 
-                    dest_forall w
+                    Choice.get <| dest_forall w
                 with
                 | Failure _ as e ->
                     nestedFailwith e "X_GEN_TAC: Not universally quantified"
@@ -736,7 +736,7 @@ let EXISTS_TAC t (asl, w) =
 let GEN_TAC : tactic = 
     fun (asl, w) -> 
         try 
-            let x = fst(dest_forall w)
+            let x = fst(Choice.get <| dest_forall w)
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
             let x' = mk_primed_var avoids x
             X_GEN_TAC x' (asl, w)

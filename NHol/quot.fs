@@ -106,7 +106,7 @@ let lift_function =
         let mk = Choice.get <| rator mrt
         let ety = Choice.get <| type_of mrt
         fun (refl_th, trans_th) fname wth -> 
-            let wtm = repeat (snd << dest_forall) (concl wth)
+            let wtm = repeat (snd << Choice.get << dest_forall) (concl wth)
             let wfvs = frees wtm
             let hyps, con = 
                 try 

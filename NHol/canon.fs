@@ -861,7 +861,7 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
 let ASM_FOL_TAC = 
     let rec get_heads lconsts tm (cheads, vheads as sofar) = 
         try 
-            let v, bod = dest_forall tm
+            let v, bod = Choice.get <| dest_forall tm
             get_heads (subtract lconsts [v]) bod sofar
         with
         | Failure _ -> 

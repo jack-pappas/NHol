@@ -99,7 +99,7 @@ let EXISTS_EQUATION =
 /// Deduce inductive definitions properties from an explicit assignment.
 let derive_nonschematic_inductive_relations = 
     let getconcl tm = 
-        let bod = repeat (snd << dest_forall) tm
+        let bod = repeat (snd << Choice.get << dest_forall) tm
         try 
             snd(Choice.get <| dest_imp bod)
         with

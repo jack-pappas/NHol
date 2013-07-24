@@ -842,7 +842,7 @@ let define_type_raw_001 =
             << GEN_REWRITE_RULE LAND_CONV tybij2
         let FINRULE = GEN_REWRITE_RULE RAND_CONV tybij1
         fun th -> 
-            let av, bimp = dest_forall(concl th)
+            let av, bimp = Choice.get <| dest_forall(concl th)
             let pv = lhand(Choice.get <| body(Choice.get <| rator(Choice.get <| rand bimp)))
             let p, v = Choice.get <| dest_comb pv
             let mk, dest = assoc p consindex |> Option.getOrFailWith "find"
@@ -910,7 +910,7 @@ let define_type_raw_001 =
         let ERULE = GEN_REWRITE_RULE I (map snd tybijpairs)
         let simplify_fxthm rthm fxth = 
             let pat = funpow 4 (Choice.get << rand) (concl fxth)
-            if is_imp(repeat (snd << dest_forall) (concl rthm))
+            if is_imp(repeat (snd << Choice.get << dest_forall) (concl rthm))
             then 
                 let th1 = PART_MATCH (Choice.get << rand << Choice.get << rand) rthm pat
                 let tms1 = conjuncts(lhand(concl th1))
@@ -1034,7 +1034,7 @@ let define_type_raw_001 =
             let rethm = itlist EXISTS_EQUATION seqs rthm
             let fethm = CHOOSE (fn, eth) rethm
             let pcons = 
-                map (repeat (Choice.get << rator) << Choice.get << rand << repeat(snd << dest_forall)) 
+                map (repeat (Choice.get << rator) << Choice.get << rand << repeat(snd << Choice.get << dest_forall)) 
                     (conjuncts(concl rthm))
             GENL pcons fethm
     fun def -> 

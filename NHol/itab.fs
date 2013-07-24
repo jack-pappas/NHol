@@ -94,7 +94,7 @@ let ITAUT_TAC =
                                                    genvar
                                                        (Choice.get <| type_of
                                                             (fst
-                                                                 (dest_forall
+                                                                 (Choice.get <| dest_forall
                                                                       (concl th))))
                                                META_SPEC_TAC gv th
                                                |> THEN <| ITAUT_TAC (gv :: mvs) (n - 2)

@@ -456,10 +456,10 @@ let dest_imp = dest_binary "==>"
 let is_forall = is_binder "!"
 
 /// Breaks apart a universally quantified term into quantified variable and body.
-let dest_forall = Choice.get << dest_binder "!"
+let dest_forall = dest_binder "!"
 
 /// Iteratively breaks apart universal quantifications.
-let strip_forall = splitlist dest_forall
+let strip_forall = splitlist (Choice.get << dest_forall)
 
 /// Tests a term to see if it as an existential quantification.
 let is_exists = is_binder "?"

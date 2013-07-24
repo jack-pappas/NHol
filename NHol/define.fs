@@ -898,7 +898,7 @@ let instantiate_casewise_recursion,
         REWRITE_TAC[LET_DEF; LET_END_DEF] |>THEN<|
         REPEAT ADMISS_TAC |>THEN<|
         TRY(W(fun (asl,w) -> 
-                let v = fst(dest_forall w)
+                let v = fst(Choice.get <| dest_forall w)
                 X_GEN_TAC v |>THEN<|
                 MAP_EVERY
                   (fun v -> TRY(GEN_REWRITE_TAC I [FORALL_PAIR_THM]) |>THEN<|

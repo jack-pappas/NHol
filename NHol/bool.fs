@@ -330,7 +330,7 @@ let ISPEC t th =
     // TODO: eliminate exceptions here
     let x, _ = 
         try 
-            dest_forall(concl th)
+            Choice.get <| dest_forall(concl th)
         with
         | Failure _ as e ->
             nestedFailwith e "ISPEC: input theorem not universally quantified"
