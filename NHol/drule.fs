@@ -100,7 +100,7 @@ let rec BETAS_CONV tm =
     match tm with
     | Comb(Abs(_, _), _) -> BETA_CONV tm
     | Comb(Comb(_, _), _) -> (RATOR_CONV(THENC BETAS_CONV BETA_CONV)) tm
-    | _ -> Choice2Of2 <| Exception "BETAS_CONV"
+    | _ -> Choice.failwith "BETAS_CONV"
 
 (* ------------------------------------------------------------------------- *)
 (* Instantiators.                                                            *)
@@ -170,7 +170,7 @@ let INSTANTIATE : instantiation -> thm -> thm =
         else THENC (RATOR_CONV(BETAS_CONV(n - 1))) (TRY_CONV BETA_CONV) tm
     let rec HO_BETAS bcs pat tm = 
         if is_var pat || is_const pat
-        then Choice2Of2 <| Exception ""
+        then Choice.failwith ""
         else 
             let bv, bod = Choice.get <| dest_abs tm
             ABS bv (HO_BETAS bcs (Choice.get <| body pat) bod)
@@ -182,7 +182,7 @@ let INSTANTIATE : instantiation -> thm -> thm =
                         |> Option.getOrFailWith "find"
                     if length args = n
                     then BETAS_CONV n tm
-                    else Choice2Of2 <| Exception ""
+                    else Choice.failwith ""
                 v |> Choice.bindError (fun _ -> 
                     let lpat, rpat = Choice.get <| dest_comb pat
                     let ltm, rtm = Choice.get <| dest_comb tm
@@ -214,7 +214,7 @@ let INSTANTIATE : instantiation -> thm -> thm =
                         let eth = HO_BETAS bcs (concl ith) (concl tth)
                         EQ_MP eth tth
                     v |> Choice.bindError ( fun _ -> tth)
-            else Choice2Of2 <| Exception "INSTANTIATE: term or type var free in assumptions"
+            else Choice.failwith "INSTANTIATE: term or type var free in assumptions"
 
 /// Apply a higher-order instantiation to assumptions and conclusion of a theorem.
 let INSTANTIATE_ALL : instantiation -> thm -> thm = 
@@ -549,7 +549,7 @@ let PART_MATCH, GEN_PART_MATCH =
             let insts = term_match lconsts (partfn abod) tm
             let fth = INSTANTIATE insts ath
             if hyp fth <> hyp ath
-            then Choice2Of2 <| Exception "PART_MATCH: instantiated hyps"
+            then Choice.failwith "PART_MATCH: instantiated hyps"
             else 
                 let tm' = partfn(concl fth)
                 if compare tm' tm = 0
@@ -571,7 +571,7 @@ let PART_MATCH, GEN_PART_MATCH =
             let eth = INSTANTIATE insts (GENL fvs ath)
             let fth = itlist (fun v th -> snd(SPEC_VAR th)) fvs eth
             if hyp fth <> hyp ath
-            then Choice2Of2 <| Exception "PART_MATCH: instantiated hyps"
+            then Choice.failwith "PART_MATCH: instantiated hyps"
             else 
                 let tm' = partfn(concl fth)
                 if compare tm' tm = 0

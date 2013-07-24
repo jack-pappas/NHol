@@ -435,7 +435,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                             let l' = Choice.get <| alpha v' l
                             let r' = Choice.get <| alpha v' r
                             EQ_MP (ALPHA gtm (Choice.get <| mk_eq(l', r'))) gth)
-                else Choice2Of2 <| Exception "GEN_SUB_CONV")
+                else Choice.failwith "GEN_SUB_CONV")
 
     let rec ONCE_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) 
             lev tm = 

@@ -50,7 +50,7 @@ open tactics
 let UNIFY_ACCEPT_TAC mvs th (asl, w) = 
     let insts = term_unify mvs (concl th) w
     (([], insts), [], let th' = INSTANTIATE insts th in fun i [] -> INSTANTIATE i th')
-    |> Choice1Of2
+    |> Choice.succeed
 
 (* ------------------------------------------------------------------------- *)
 (* The actual prover, as a tactic.                                           *)
@@ -79,7 +79,7 @@ let ITAUT_TAC =
 
     let rec ITAUT_TAC mvs n gl = 
         if n <= 0
-        then Choice2Of2 <| Exception "ITAUT_TAC: Too deep"
+        then Choice.failwith "ITAUT_TAC: Too deep"
         else 
             ((FIRST_ASSUM(UNIFY_ACCEPT_TAC mvs))
              |> ORELSE <| (ACCEPT_TAC TRUTH)

@@ -217,7 +217,7 @@ let MP =
         let ant, con = Choice.get <| dest_imp(concl ith)
         if aconv ant (concl th) then 
             PROVE_HYP th (PROVE_HYP ith (INST [ant, p; con, q] <| pth()))
-        else Choice2Of2 <| Exception "MP: theorems do not agree"
+        else Choice.failwith "MP: theorems do not agree"
 
 /// Discharges an assumption.
 let DISCH = 
@@ -484,7 +484,7 @@ let DISJ_CASES =
     fun th0 th1 th2 -> 
             let c1 = concl th1
             let c2 = concl th2
-            if not(aconv c1 c2) then Choice2Of2 <| Exception "DISJ_CASES"
+            if not(aconv c1 c2) then Choice.failwith "DISJ_CASES"
             else 
                 let l, r = dest_disj(concl th0)
                 let th = 
@@ -561,7 +561,7 @@ let CONTR =
     let f_tm = parse_term @"F"
     let pth() = SPEC P (EQ_MP F_DEF (ASSUME <| parse_term @"F"))
     fun tm th -> 
-        if concl th <> f_tm then Choice2Of2 <| Exception "CONTR"
+        if concl th <> f_tm then Choice.failwith "CONTR"
         else PROVE_HYP th (INST [tm, P] <| pth())
 
 (* ------------------------------------------------------------------------- *)

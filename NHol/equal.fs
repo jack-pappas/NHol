@@ -131,7 +131,7 @@ let MK_BINOP op (lth, rth) = MK_COMB(AP_TERM op lth, rth)
 (* ------------------------------------------------------------------------- *)
 
 /// Conversion that always fails.
-let NO_CONV : conv = fun tm -> Choice2Of2 <| Exception "NO_CONV"
+let NO_CONV : conv = fun tm -> Choice.failwith "NO_CONV"
 
 /// Conversion that always succeeds and leaves a term unchanged.
 let ALL_CONV : conv = REFL
@@ -170,7 +170,7 @@ let CHANGED_CONV : conv -> conv =
     fun conv tm -> 
         let th = conv tm
         let l, r = Choice.get <| dest_eq(concl th)
-        if aconv l r then Choice2Of2 <| Exception "CHANGED_CONV"
+        if aconv l r then Choice.failwith "CHANGED_CONV"
         else th
 
 /// Attempts to apply a conversion; applies identity conversion in case of failure.
