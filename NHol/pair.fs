@@ -597,10 +597,10 @@ let (LET_TAC : tactic) =
     fun (asl, w as gl) ->  
             let path = 
                 try 
-                    find_path is_trivlet w
+                    Choice.get <| find_path is_trivlet w
                 with
-                | Failure _ -> find_path is_let w
-            let tm = follow_path path w
+                | Failure _ -> Choice.get <| find_path is_let w
+            let tm = Choice.get <| follow_path path w
             let assigs, bod = Choice.get <| dest_let tm
             let abbrevs = 
                 mapfilter (fun (x, y) -> 
@@ -620,5 +620,5 @@ let (LET_TAC : tactic) =
                                 SUBST_ALL_TAC th'
                                 |> THEN <| ASSUME_TAC th')) deprths
              |> THEN <| W(fun (asl', w') -> 
-                                let tm' = follow_path path w'
+                                let tm' = Choice.get <| follow_path path w'
                                 CONV_TAC(PATH_CONV path (K(let_CONV tm'))))) gl

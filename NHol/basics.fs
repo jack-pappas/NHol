@@ -682,7 +682,11 @@ let find_path =
                 "r" :: (find_path p (Choice.get <| rand tm))
             with
             | Failure _ -> "l" :: (find_path p (Choice.get <| rator tm))
-    fun p tm -> implode(find_path p tm)
+    fun p tm -> 
+        try
+            Choice.succeed <| implode(find_path p tm)
+        with Failure s ->
+            Choice.failwith s
 
 /// Find the subterm of a given term indicated by a path.
 let follow_path = 
@@ -692,4 +696,8 @@ let follow_path =
         | "l" :: t -> follow_path t (Choice.get <| rator tm)
         | "r" :: t -> follow_path t (Choice.get <| rand tm)
         | _ :: t -> follow_path t (Choice.get <| body tm)
-    fun s tm -> follow_path (explode s) tm
+    fun s tm -> 
+        try
+            Choice.succeed <| follow_path (explode s) tm
+        with Failure s ->
+            Choice.failwith s
