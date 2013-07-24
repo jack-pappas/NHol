@@ -145,11 +145,16 @@ let mk_binary s =
 (* ------------------------------------------------------------------------- *)
 
 /// Pick a list of variants of variables, avoiding a list of variables and each other.
-let rec variants av vs = 
-    if vs = [] then []
-    else 
-        let vh = Choice.get <| variant av (hd vs)
-        vh :: (variants (vh :: av) (tl vs))
+let variants av vs =
+    let rec variants av vs = 
+        if vs = [] then []
+        else 
+            let vh = Choice.get <| variant av (hd vs)
+            vh :: (variants (vh :: av) (tl vs))
+    try
+        Choice.succeed <| variants av vs
+    with Failure s ->
+        Choice.failwith s
 
 (* ------------------------------------------------------------------------- *)
 (* Gets all variables (free and/or bound) in a term.                         *)
@@ -197,7 +202,7 @@ let subst =
         else 
             let ts, xs = unzip theta
             fun tm -> 
-                let gs = variants (variables tm) (map (genvar << Choice.get << type_of) xs)
+                let gs = Choice.get <| variants (variables tm) (map (genvar << Choice.get << type_of) xs)
                 let tm' = ssubst (zip gs xs) tm
                 if tm' == tm then tm
                 else Choice.get <| vsubst (zip ts gs) tm'

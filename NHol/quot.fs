@@ -117,7 +117,7 @@ let lift_function =
             let rvs = map lhand rels
             let qvs = map lhs eqs
             let evs = 
-                variants wfvs (map (fun v -> mk_var(fst(Choice.get <| dest_var v), ety)) rvs)
+                Choice.get <| variants wfvs (map (fun v -> mk_var(fst(Choice.get <| dest_var v), ety)) rvs)
             let mems = 
                 map2 (fun rv ev -> Choice.get <| mk_comb(Choice.get <| mk_comb(dest, ev), rv)) rvs evs
             let lcon, rcon = Choice.get <| dest_comb con

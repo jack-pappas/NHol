@@ -1267,7 +1267,7 @@ let prove_constructors_injective =
         let fn = genvar ty
         let dtm = Choice.get <| mk_eq(Choice.get <| mk_comb(fn, pat), rt)
         let eth = prove_recursive_functions_exist ax (list_mk_forall(args, dtm))
-        let args' = variants args args
+        let args' = Choice.get <| variants args args
         let atm = Choice.get <| mk_eq(pat, list_mk_comb(f, args'))
         let ath = ASSUME atm
         let bth = AP_TERM fn ath
@@ -1310,7 +1310,7 @@ let prove_constructors_distinct =
                         if is_numeral t
                         then t, []
                         else strip_comb t
-                    list_mk_comb(f, variants args args)) pat
+                    list_mk_comb(f, Choice.get <| variants args args)) pat
         let pairs = allopairs (curry (Choice.get << mk_eq)) pat pat'
         let nths = map (REWRITE << AP_TERM fn << ASSUME) pairs
         let fths = 

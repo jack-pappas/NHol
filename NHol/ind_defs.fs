@@ -229,7 +229,7 @@ let derive_nonschematic_inductive_relations =
         let ants, concs = unzip(map dest_imp bodies)
         let rels = map (repeat (Choice.get << rator)) concs
         let avoids = variables closed
-        let rels' = variants avoids rels
+        let rels' = Choice.get <| variants avoids rels
         let crels = zip rels' rels
         let prime_fn = subst crels
         let closed' = prime_fn closed
@@ -472,7 +472,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
         else 
             let avoids = variables(list_mk_conj clauses)
             let hack_fn tm = mk_var(fst(Choice.get <| dest_var(repeat (Choice.get << rator) tm)), Choice.get <| type_of tm)
-            let grels = variants avoids (map hack_fn schems)
+            let grels = Choice.get <| variants avoids (map hack_fn schems)
             let crels = zip grels schems
             let clauses' = map (subst crels) clauses
             clauses', snd(strip_comb(hd schems))
@@ -542,7 +542,7 @@ let derive_strong_induction =
         let iant, icon = dest_imp ibod
         let ns, prrs = unzip(map dest_ibod (conjuncts icon))
         let rs, ps = unzip prrs
-        let gs = variants (variables ibod) ps
+        let gs = Choice.get <| variants (variables ibod) ps
         let svs, tvs = chop_list (length ovs - length ns) ovs
         let sth = SPECL svs rth
         let jth = SPECL svs ith
