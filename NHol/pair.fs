@@ -248,7 +248,7 @@ let new_definition =
         let rec depair gv arg = 
             try 
                 let l, r = dest_pair arg
-                (depair (list_mk_icomb "FST" [gv]) l) @ (depair (list_mk_icomb "SND" [gv]) r) //deleted new line before @
+                (depair (Choice.get <| list_mk_icomb "FST" [gv]) l) @ (depair (Choice.get <| list_mk_icomb "SND" [gv]) r) //deleted new line before @
             with
             | Failure _ -> [gv, arg]
         fun arg -> 

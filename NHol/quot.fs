@@ -128,7 +128,7 @@ let lift_function =
             let datm = Choice.get <| mk_abs(u, detm)
             let def = 
                 if is_eq con
-                then list_mk_icomb "@" [datm]
+                then Choice.get <| list_mk_icomb "@" [datm]
                 else Choice.get <| mk_comb(mk, datm)
             let newargs = 
                 map (fun e -> 

@@ -259,7 +259,6 @@ let type_match vty cty sofar =
     with Failure s ->
         Choice.failwith s 
 
-
 (* ------------------------------------------------------------------------- *)
 (* Conventional matching version of mk_const (but with a sanity test).       *)
 (* ------------------------------------------------------------------------- *)
@@ -283,11 +282,17 @@ let mk_mconst(c, ty) =
 
 /// Makes a combination, instantiating types in rator if necessary.
 let mk_icomb(tm1, tm2) = 
-    match Choice.get <| dest_type(Choice.get <| type_of tm1) with
-    | "fun", [ty; _] ->
-        let tyins = Choice.get <| type_match ty (Choice.get <| type_of tm2) []
-        Choice.get <| mk_comb(Choice.get <| inst tyins tm1, tm2)
-    | _ -> failwith "mk_icomb: Unhandled case."
+    choice {
+        let! ty1 = type_of tm1
+        let! (s, ty1') = dest_type ty1
+        match (s, ty1') with
+        | "fun", [ty; _] ->
+            let! ty2 = type_of tm2
+            let! tyins = type_match ty ty2 []
+            let! tm1' = inst tyins tm1
+            return mk_comb(tm1', tm2)
+        | _ -> return! Choice.failwith "mk_icomb: Unhandled case."
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Instantiates types for constant c and iteratively makes combination.      *)
@@ -295,15 +300,20 @@ let mk_icomb(tm1, tm2) =
 
 /// Applies constant to list of arguments, instantiating constant type as needed.
 let list_mk_icomb cname args = 
-    let atys, _ = nsplit (Choice.get << dest_fun_ty) args (Choice.get <| get_const_type cname)
-    let tyin = itlist2 (fun g a -> Choice.get << type_match g (Choice.get <| type_of a)) atys args []
-    list_mk_comb(Choice.get <| mk_const(cname, tyin), args)
+    let list_mk_icomb cname args = 
+        let atys, _ = nsplit (Choice.get << dest_fun_ty) args (Choice.get <| get_const_type cname)
+        let tyin = itlist2 (fun g a -> Choice.get << type_match g (Choice.get <| type_of a)) atys args []
+        list_mk_comb(Choice.get <| mk_const(cname, tyin), args)
+    try
+        Choice.succeed <| list_mk_icomb cname args
+    with Failure s ->
+        Choice.failwith s 
 
 (* ------------------------------------------------------------------------- *)
-(* Free Choice.get <| variables in assumption list and conclusion of a theorem.            *)
+(* Free variables in assumption list and conclusion of a theorem.            *)
 (* ------------------------------------------------------------------------- *)
 
-/// Returns a list of the Choice.get <| variables free in a theorem's assumptions and conclusion.
+/// Returns a list of the variables free in a theorem's assumptions and conclusion.
 let thm_frees th = 
     let asl, c = dest_thm th
     itlist (union << frees) asl (frees c)

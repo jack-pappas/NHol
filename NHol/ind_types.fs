@@ -1662,7 +1662,7 @@ let define_type_raw =
                                                                                     t2)))) 
                         efvs1) efvs0
         let isotms = 
-            map2 (fun ff gg -> list_mk_icomb "ISO" [ff; gg]) efvs0 efvs2
+            map2 (fun ff gg -> Choice.get <| list_mk_icomb "ISO" [ff; gg]) efvs0 efvs2
         let ctm = list_mk_conj isotms
         let cth1 = ISO_EXPAND_CONV ctm
         let ctm1 = Choice.get <| rand(concl cth1)
