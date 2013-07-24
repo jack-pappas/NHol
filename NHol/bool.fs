@@ -72,8 +72,8 @@ let is_iff tm =
 /// Term destructor for logical equivalence.
 let dest_iff tm = 
     match tm with
-    | Comb(Comb(Const("=", Tyapp("fun", [Tyapp("bool", []); _])), l), r) -> (l, r)
-    | _ -> failwith "dest_iff"
+    | Comb(Comb(Const("=", Tyapp("fun", [Tyapp("bool", []); _])), l), r) -> Choice.succeed (l, r)
+    | _ -> Choice.failwith "dest_iff"
 
 /// Constructs a logical equivalence (Boolean equation).
 let mk_iff = 
@@ -259,11 +259,11 @@ let ADD_ASSUM tm th = MP (DISCH tm th) (ASSUME tm)
 /// Derives forward and backward implication from equality of boolean terms.
 let EQ_IMP_RULE = 
     let peq = parse_term @"p <=> q"
-    let p, q = dest_iff peq
+    let p, q = Choice.get <| dest_iff peq
     let pth1() = DISCH peq (DISCH p (EQ_MP (ASSUME peq) (ASSUME p)))
     let pth2() = DISCH peq (DISCH q (EQ_MP (SYM(ASSUME peq)) (ASSUME q)))
     fun th -> 
-        let l, r = dest_iff(concl th)
+        let l, r = Choice.get <| dest_iff(concl th)
         MP (INST [l, p; r, q] <| pth1()) th, MP (INST [l, p; r, q] <| pth2()) th
 
 /// Implements the transitivity of implication.
