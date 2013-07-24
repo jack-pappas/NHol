@@ -559,8 +559,7 @@ let dest_numeral =
 (* ------------------------------------------------------------------------- *)
 
 /// Breaks apart a generalized abstraction into abstracted varstruct and body.
-// TODO: recheck why we need to add type annotation here
-let dest_gabs : _ -> Choice<_, exn> = 
+let dest_gabs = 
     let dest_geq = dest_binary "GEQ"
     fun tm -> 
         choice { 
@@ -577,7 +576,7 @@ let dest_gabs : _ -> Choice<_, exn> =
                     let! ltm' = rand ltm
                     return (ltm', rtm)
         }
-        |> Choice.bindError (fun e -> nestedFailwith e "dest_gabs: Not a generalized abstraction")
+        |> Choice.bindError (fun e -> Choice.nestedFailwith e "dest_gabs: Not a generalized abstraction")
 
 /// Tests if a term is a basic or generalized abstraction.
 let is_gabs x =
@@ -592,7 +591,7 @@ let mk_gabs =
     let mk_geq(t1, t2) = 
         let p = Choice.get <| mk_const("GEQ", [Choice.get <| type_of t1, aty])
         Choice.get <| mk_comb(Choice.get <| mk_comb(p, t1), t2)
-    fun (tm1, tm2) -> 
+    let mk_gabs (tm1, tm2) = 
         if is_var tm1 then Choice.get <| mk_abs(tm1, tm2)
         else 
             let fvs = frees tm1
@@ -600,9 +599,15 @@ let mk_gabs =
             let f = Choice.get <| variant (frees tm1 @ frees tm2) (mk_var("f", fty))
             let bod = Choice.get <| mk_abs(f, list_mk_forall(fvs, mk_geq(Choice.get <| mk_comb(f, tm1), tm2)))
             Choice.get <| mk_comb(Choice.get <| mk_const("GABS", [fty, aty]), bod)
+    fun (tm1, tm2) ->
+        try
+            Choice.succeed <| mk_gabs (tm1, tm2)
+        with Failure s ->
+            Choice.failwith s
+
 
 /// Iteratively makes a generalized abstraction.
-let list_mk_gabs(vs, bod) = itlist (curry mk_gabs) vs bod
+let list_mk_gabs(vs, bod) = itlist (curry (Choice.get << mk_gabs)) vs bod
 
 /// Breaks apart an iterated generalized or basic abstraction.
 let strip_gabs = splitlist (Choice.get << dest_gabs)
@@ -613,25 +618,23 @@ let strip_gabs = splitlist (Choice.get << dest_gabs)
 
 /// Breaks apart a let-expression.
 let dest_let tm = 
-    try 
+    choice { 
         let l, aargs = strip_comb tm
-        if fst(Choice.get <| dest_const l) <> "LET" then fail()
+        let! (l', _ ) = dest_const l
+        if l' <> "LET" then return! Choice.fail()
         else 
             let vars, lebod = strip_gabs(hd aargs)
             let eqs = zip vars (tl aargs)
-            let le, bod = Choice.get <| dest_comb lebod
-            if fst(Choice.get <| dest_const le) = "LET_END" then eqs, bod
-            else fail()
-    with
-    | Failure _ as e ->
-        nestedFailwith e "dest_let: not a let-term"
+            let! (le, bod) = dest_comb lebod
+            let! (le', _ ) = dest_const le
+            if le' = "LET_END" then return (eqs, bod)
+            else return! Choice.fail()
+    }
+    |> Choice.bindError (fun e -> Choice.nestedFailwith e "dest_let: not a let-term")
 
 /// Tests a term to see if it is a let-expression.
 let is_let x =
-    try
-        dest_let x |> ignore
-        true
-    with Failure _ -> false
+    Choice.isResult (dest_let x)
 
 /// Constructs a let-expression.
 let mk_let(assigs, bod) = 

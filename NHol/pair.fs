@@ -571,7 +571,7 @@ let let_CONV =
 let (LET_TAC : tactic) = 
     let is_trivlet tm = 
         try 
-            let assigs, bod = dest_let tm
+            let assigs, bod = Choice.get <| dest_let tm
             forall (uncurry (=)) assigs
         with
         | Failure _ -> false
@@ -601,7 +601,7 @@ let (LET_TAC : tactic) =
                 with
                 | Failure _ -> find_path is_let w
             let tm = follow_path path w
-            let assigs, bod = dest_let tm
+            let assigs, bod = Choice.get <| dest_let tm
             let abbrevs = 
                 mapfilter (fun (x, y) -> 
                         if x = y

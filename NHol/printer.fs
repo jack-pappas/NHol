@@ -416,7 +416,7 @@ let pp_print_term =
                                         with
                                         | Failure _ -> 
                                             try 
-                                                let eqs, bod = dest_let tm
+                                                let eqs, bod = Choice.get <| dest_let tm
                                                 (if prec = 0 then pp_open_hvbox fmt 0
                                                  else 
                                                      (pp_open_hvbox fmt 1
