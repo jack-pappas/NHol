@@ -3126,7 +3126,7 @@ let SET_OF_LIST_EQ_EMPTY =
 (* ------------------------------------------------------------------------- *)
 /// Breaks apart a set enumeration.
 let dest_setenum = 
-    let fn = splitlist(dest_binary "INSERT")
+    let fn = splitlist(Choice.get << dest_binary "INSERT")
     fun tm -> 
         let l, n = fn tm
         if is_const n && fst(Choice.get <| dest_const n) = "EMPTY"
@@ -3807,7 +3807,7 @@ let new_inductive_set =
     let remove_in_conv ptm : conv = 
         let rconv = REWR_CONV(SYM(mk_eqin ptm))
         fun tm -> 
-            let htm = fst(strip_comb(snd(dest_binary "IN" tm)))
+            let htm = fst(strip_comb(snd(Choice.get <| dest_binary "IN" tm)))
             if htm = ptm
             then rconv tm
             else fail()
@@ -3816,7 +3816,7 @@ let new_inductive_set =
     let rule_head tm = 
         let tm = snd(strip_forall tm)
         let tm = snd(splitlist (dest_binop(parse_term @"(==>)")) tm)
-        let tm = snd(dest_binary "IN" tm)
+        let tm = snd(Choice.get <| dest_binary "IN" tm)
         fst(strip_comb tm)
     let find_pvars = setify << map rule_head << binops(parse_term @"(/\)")
     fun tm -> 

@@ -1558,7 +1558,7 @@ let INTEGER_TAC_001 =
         // CAUTION: change from value to function to delay System.Exception
         let pth() = INT_ARITH(parse_term @"!a x. a = &0 <=> x = x + a")
         let is_defined v t = 
-            let mons = striplist (dest_binary "int_add") t
+            let mons = striplist (Choice.get << dest_binary "int_add") t
             mem v mons && forall (fun m -> v = m || not(free_in v m)) mons
         fun vars tm -> 
             let th = INT_POLYEQ_CONV tm

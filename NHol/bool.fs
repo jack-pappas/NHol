@@ -137,7 +137,7 @@ let EQT_INTRO =
 let AND_DEF = new_basic_definition <| parse_term @"(/\) = \p q. (\f:bool->bool->bool. f p q) = (\f. f T T)"
 
 /// Constructs a conjunction.
-let mk_conj = mk_binary "/\\"
+let mk_conj = Choice.get << mk_binary "/\\"
 
 /// Constructs the conjunction of a list of terms.
 let list_mk_conj = end_itlist(curry mk_conj)
@@ -203,7 +203,7 @@ let CONJUNCTS = striplist CONJ_PAIR
 let IMP_DEF = new_basic_definition <| parse_term @"(==>) = \p q. p /\ q <=> p"
 
 /// Constructs an implication.
-let mk_imp = mk_binary "==>"
+let mk_imp = Choice.get << mk_binary "==>"
 
 /// Implements the Modus Ponens inference rule.
 let MP = 
@@ -438,7 +438,7 @@ let SIMPLE_CHOOSE v th = CHOOSE (v, ASSUME(mk_exists(v, hd(hyp th)))) th
 let OR_DEF = new_basic_definition <| parse_term @"(\/) = \p q. !r. (p ==> r) ==> (q ==> r) ==> r"
 
 /// Constructs a disjunction.
-let mk_disj = mk_binary "\\/"
+let mk_disj = Choice.get << mk_binary "\\/"
 
 /// Constructs the disjunction of a list of terms.
 let list_mk_disj = end_itlist(curry mk_disj)

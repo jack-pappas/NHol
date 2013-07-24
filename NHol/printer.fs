@@ -382,7 +382,7 @@ let pp_print_term =
                                     try 
                                         if s <> "INSERT" then fail()
                                         else 
-                                            let mems, oth = splitlist (dest_binary "INSERT") tm
+                                            let mems, oth = splitlist (Choice.get << dest_binary "INSERT") tm
                                             if is_const oth && fst(Choice.get <| dest_const oth) = "EMPTY" then 
                                                 (pp_print_string fmt "{"
                                                  print_term_sequence ", " 14 mems

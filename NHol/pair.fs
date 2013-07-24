@@ -215,7 +215,7 @@ let pair_RECURSION =
 let is_pair = is_binary ","
 
 /// Breaks apart a pair into two separate terms.
-let dest_pair = dest_binary ","
+let dest_pair = Choice.get << dest_binary ","
 
 /// Constructs object-level pair from a pair of terms.
 let mk_pair = 

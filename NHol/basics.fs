@@ -125,18 +125,20 @@ let is_binary s tm =
 /// Breaks apart an instance of a binary operator with given name.
 let dest_binary s tm = 
     match tm with
-    | Comb(Comb(Const(s', _), l), r) when s' = s -> (l, r)
-    | _ -> failwith "dest_binary"
+    | Comb(Comb(Const(s', _), l), r) when s' = s -> 
+        Choice.succeed (l, r)
+    | _ -> 
+        Choice.failwith "dest_binary"
 
 /// Constructs an instance of a named monomorphic binary operator.
 let mk_binary s = 
-    let c = Choice.get <| mk_const(s, [])
+    let c = mk_const(s, [])
     fun (l, r) -> 
         try 
-            Choice.get <| mk_comb(Choice.get <| mk_comb(c, l), r)
+            mk_comb(Choice.get <| mk_comb(Choice.get <| c, l), r)
         with
         | Failure _ as e ->
-            nestedFailwith e "mk_binary"
+            Choice.nestedFailwith e "mk_binary"
 
 (* ------------------------------------------------------------------------- *)
 (* Produces a sequence of variants, considering previous inventions.         *)
@@ -383,7 +385,7 @@ let binops op = striplist(dest_binop op)
 let is_conj = is_binary "/\\"
 
 /// Term destructor for conjunctions.
-let dest_conj = dest_binary "/\\"
+let dest_conj = Choice.get << dest_binary "/\\"
 
 /// Iteratively breaks apart a conjunction.
 let conjuncts = striplist dest_conj
@@ -392,7 +394,7 @@ let conjuncts = striplist dest_conj
 let is_imp = is_binary "==>"
 
 /// Breaks apart an implication into antecedent and consequent.
-let dest_imp = dest_binary "==>"
+let dest_imp = Choice.get << dest_binary "==>"
 
 /// Tests a term to see if it is a universal quantification.
 let is_forall = is_binder "!"
@@ -416,7 +418,7 @@ let strip_exists = splitlist dest_exists
 let is_disj = is_binary "\\/"
 
 /// Breaks apart a disjunction into the two disjuncts.
-let dest_disj = dest_binary "\\/"
+let dest_disj = Choice.get << dest_binary "\\/"
 
 /// Iteratively breaks apart a disjunction.
 let disjuncts = striplist dest_disj
@@ -443,7 +445,7 @@ let is_uexists = is_binder "?!"
 /// Breaks apart a unique existence term.
 let dest_uexists = dest_binder "?!"
 /// Breaks apart a `CONS pair' into head and tail.
-let dest_cons = dest_binary "CONS"
+let dest_cons = Choice.get << dest_binary "CONS"
 /// Tests a term to see if it is an application of CONS.
 let is_cons = is_binary "CONS"
 
@@ -503,7 +505,7 @@ let dest_numeral =
 
 /// Breaks apart a generalized abstraction into abstracted varstruct and Choice.get <| body.
 let dest_gabs = 
-    let dest_geq = dest_binary "GEQ"
+    let dest_geq = Choice.get << dest_binary "GEQ"
     fun tm -> 
         try 
             if is_abs tm then Choice.get <| dest_abs tm
