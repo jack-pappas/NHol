@@ -395,7 +395,7 @@ let REAL_INT_ADD_CONV =
     let neg_tm = (parse_term @"(--)")
     let amp_tm = (parse_term @"&")
     let add_tm = (parse_term @"(+)")
-    let dest = dest_binop(parse_term @"(+)")
+    let dest = Choice.get << dest_binop(parse_term @"(+)")
     let m_tm = (parse_term @"m:num")
     let n_tm = (parse_term @"n:num")
     let pth0 = prove((parse_term @"(--(&m) + &m = &0) /\

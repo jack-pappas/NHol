@@ -471,7 +471,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
         ONCE_REWRITE_TAC[AC ADD_AC
          (parse_term @"a + (b + c) + d + e = (a + c + d) + (b + e)")] |>THEN<|
         SIMP_TAC[EQ_ADD_RCANCEL] |>THEN<| REWRITE_TAC[ADD_AC]) in
-      let dest_mul = dest_binop (parse_term @"(* )") in
+      let dest_mul = Choice.get << dest_binop (parse_term @"(* )") in
       let mk_raw_numeral =
         let Z = Choice.get <| mk_const("_0",[])
         let BIT0 = Choice.get <| mk_const("BIT0",[])
@@ -507,7 +507,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
            (BIT1 _0 * x = x) /\
            (x * BIT1 _0 = x)"),
           REWRITE_TAC[BIT1; DENUMERAL MULT_CLAUSES]) in
-        let mk_mul = mk_binop (parse_term @"(* )") in
+        let mk_mul = fun x -> Choice.get << mk_binop (parse_term @"(* )") x in
         let odds = map (fun x -> 2 * x + 1) (0--7) in
         let nums = map (fun n -> mk_raw_numeral(Int n)) odds in
         let pairs = allpairs mk_mul nums nums in
@@ -674,15 +674,15 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
         if b = BIT0 then
           let th1 = NUM_EXP_CONV l r' in
           let tm1 = Choice.get <| rand(concl th1) in
-          let th2 = NUM_MULT_CONV' (mk_binop mul tm1 tm1) in
+          let th2 = NUM_MULT_CONV' (Choice.get <| mk_binop mul tm1 tm1) in
           let tm2 = Choice.get <| rand(concl th2) in
           MP (MP (INST [l,x; r',n; tm1,y; tm2,z] pth0) th1) th2
         else
           let th1 = NUM_EXP_CONV l r' in
           let tm1 = Choice.get <| rand(concl th1) in
-          let th2 = NUM_MULT_CONV' (mk_binop mul tm1 tm1) in
+          let th2 = NUM_MULT_CONV' (Choice.get <| mk_binop mul tm1 tm1) in
           let tm2 = Choice.get <| rand(concl th2) in
-          let th3 = NUM_MULT_CONV' (mk_binop mul l tm2) in
+          let th3 = NUM_MULT_CONV' (Choice.get <| mk_binop mul l tm2) in
           let tm3 = Choice.get <| rand(concl th3) in
           MP (MP (MP (INST [l,x; r',n; tm1,y; tm2,w; tm3,z] pth1) th1) th2) th3 in
       fun tm -> try let th = tconv tm in
@@ -735,18 +735,18 @@ let NUM_SUB_CONV =
     let minus = (parse_term @"(-)")
     let plus = (parse_term @"(+)")
     let le = (parse_term @"(<=)") in
-    fun tm -> try let l,r = dest_binop minus tm in
+    fun tm -> try let l,r = Choice.get <| dest_binop minus tm in
                   let ln = dest_numeral l
                   let rn = dest_numeral r in
                   if  ln <= rn then
                     let pth = INST [l,p; r,n] pth0
-                    let th0 = EQT_ELIM(NUM_LE_CONV (mk_binop le l r)) in
+                    let th0 = EQT_ELIM(NUM_LE_CONV (Choice.get <| mk_binop le l r)) in
                     MP pth th0
                   else
                     let kn = ln - rn in
                     let k = mk_numeral kn in
                     let pth = INST [k,m; l,p; r,n] pth1
-                    let th0 = NUM_ADD_CONV (mk_binop plus k r) in
+                    let th0 = NUM_ADD_CONV (Choice.get <| mk_binop plus k r) in
                     MP pth th0
               with Failure _ as e -> nestedFailwith e "NUM_SUB_CONV";;
 
@@ -773,10 +773,10 @@ let NUM_DIV_CONV,NUM_MOD_CONV =
       let th2 = MP th0 th1 in
       let tm2 = lhand(concl th2) in
       MP th2 (EQT_ELIM(NUM_LT_CONV tm2)) in
-    (fun tm -> try let xt,yt = dest_binop dtm tm in
+    (fun tm -> try let xt,yt = Choice.get <| dest_binop dtm tm in
                    CONJUNCT1(NUM_DIVMOD_CONV (dest_numeral xt) (dest_numeral yt))
                with Failure _ as e -> nestedFailwith e "NUM_DIV_CONV"),
-    (fun tm -> try let xt,yt = dest_binop mtm tm in
+    (fun tm -> try let xt,yt = Choice.get <| dest_binop mtm tm in
                    CONJUNCT2(NUM_DIVMOD_CONV (dest_numeral xt) (dest_numeral yt))
                with Failure _ as e -> nestedFailwith e "NUM_MOD_CONV");;
 
@@ -807,7 +807,7 @@ let NUM_FACT_CONV =
       let tm0 = Choice.get <| rand(concl th0) in
       let th1 = NUM_FACT_CONV (n - Int 1) in
       let tm1 = Choice.get <| rand(concl th1) in
-      let th2 = NUM_MULT_CONV (mk_binop mul tm0 tm1) in
+      let th2 = NUM_MULT_CONV (Choice.get <| mk_binop mul tm0 tm1) in
       let tm2 = Choice.get <| rand(concl th2) in
       let pth = INST [tmx,x; tm0, y; tm1,w; tm2,z] pth_suc in
       MP (MP (MP pth th0) th1) th2 in

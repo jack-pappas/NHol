@@ -402,6 +402,7 @@ let mk_binder op =
             let! tm'' = mk_abs(v, tm)
             return! mk_comb(tm', tm'')
         }
+
 (* ------------------------------------------------------------------------- *)
 (* Syntax for binary operators.                                              *)
 (* ------------------------------------------------------------------------- *)
@@ -415,18 +416,21 @@ let is_binop op tm =
 /// Breaks apart an application of a given binary operator to two arguments.
 let dest_binop op tm = 
     match tm with
-    | Comb(Comb(op', l), r) when op' = op -> (l, r)
-    | _ -> failwith "dest_binop"
+    | Comb(Comb(op', l), r) when op' = op -> 
+        Choice.succeed(l, r)
+    | _ -> 
+        Choice.failwith "dest_binop"
 
 /// The call 'mk_binop op l r' returns the term '(op l) r'.
 let mk_binop op tm1 = 
-    let f = Choice.get <| mk_comb(op, tm1)
-    fun tm2 -> Choice.get <| mk_comb(f, tm2)
+    let f = mk_comb(op, tm1)
+    fun tm2 ->
+        f  |> Choice.bind (fun f -> mk_comb(f, tm2)) 
 
 /// Makes an iterative application of a binary operator.
-let list_mk_binop op = end_itlist(mk_binop op)
+let list_mk_binop op = end_itlist(fun x -> Choice.get << mk_binop op x)
 /// Repeatedly breaks apart an iterated binary operator into components.
-let binops op = striplist(dest_binop op)
+let binops op = striplist(Choice.get << dest_binop op)
 
 (* ------------------------------------------------------------------------- *)
 (* Some common special cases                                                 *)

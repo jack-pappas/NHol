@@ -204,8 +204,8 @@ let REAL_RAT_LE_CONV =
     let x2 = (parse_term @"x2:real")
     let y1 = (parse_term @"y1:real")
     let y2 = (parse_term @"y2:real")
-    let dest_le = dest_binop(parse_term @"(<=)")
-    let dest_div = dest_binop(parse_term @"(/)")
+    let dest_le = Choice.get << dest_binop(parse_term @"(<=)")
+    let dest_div = Choice.get << dest_binop(parse_term @"(/)")
     let RAW_REAL_RAT_LE_CONV tm = 
         let l, r = dest_le tm
         let lx, ly = dest_div l
@@ -237,8 +237,8 @@ let REAL_RAT_LT_CONV =
     let x2 = (parse_term @"x2:real")
     let y1 = (parse_term @"y1:real")
     let y2 = (parse_term @"y2:real")
-    let dest_lt = dest_binop(parse_term @"(<)")
-    let dest_div = dest_binop(parse_term @"(/)")
+    let dest_lt = Choice.get << dest_binop(parse_term @"(<)")
+    let dest_div = Choice.get << dest_binop(parse_term @"(/)")
     let RAW_REAL_RAT_LT_CONV tm = 
         let l, r = dest_lt tm
         let lx, ly = dest_div l
@@ -272,8 +272,8 @@ let REAL_RAT_EQ_CONV =
     let x2 = (parse_term @"x2:real")
     let y1 = (parse_term @"y1:real")
     let y2 = (parse_term @"y2:real")
-    let dest_eq = dest_binop(parse_term @"(=) :real->real->bool")
-    let dest_div = dest_binop(parse_term @"(/)")
+    let dest_eq = Choice.get << dest_binop(parse_term @"(=) :real->real->bool")
+    let dest_div = Choice.get << dest_binop(parse_term @"(/)")
     let RAW_REAL_RAT_EQ_CONV tm = 
         let l, r = dest_eq tm
         let lx, ly = dest_div l
@@ -384,8 +384,8 @@ let REAL_RAT_ADD_CONV =
                   |> THEN <| MATCH_MP_TAC REAL_LT_MUL
                   |> THEN <| ASM_REWRITE_TAC []
                   DISCH_THEN(fun th -> ASM_REWRITE_TAC [MATCH_MP RAT_LEMMA5 th])])
-  let dest_divop = dest_binop(parse_term @"(/)")
-  let dest_addop = dest_binop(parse_term @"(+)")
+  let dest_divop = Choice.get << dest_binop(parse_term @"(/)")
+  let dest_addop = Choice.get << dest_binop(parse_term @"(+)")
   let x1 = (parse_term @"x1:real")
   let x2 = (parse_term @"x2:real")
   let x3 = (parse_term @"x3:real")
@@ -460,8 +460,8 @@ let REAL_RAT_MUL_CONV =
         |> THEN <| ASM_REWRITE_TAC [real_div; REAL_INV_MUL]
         |> THEN <| ONCE_REWRITE_TAC [AC REAL_MUL_AC (parse_term @"((d1 * u1) * (id2 * iv1)) * ((d2 * u2) * id1 * iv2) = (u1 * u2) * (iv1 * iv2) * (id2 * d2) * (id1 * d1)")]
         |> THEN <| ASM_SIMP_TAC [REAL_MUL_LINV; REAL_MUL_RID])
-    let dest_divop = dest_binop(parse_term @"(/)")
-    let dest_mulop = dest_binop(parse_term @"(*)")
+    let dest_divop = Choice.get << dest_binop(parse_term @"(/)")
+    let dest_mulop = Choice.get << dest_binop(parse_term @"(*)")
     let x1 = (parse_term @"x1:real")
     let x2 = (parse_term @"x2:real")
     let y1 = (parse_term @"y1:real")
@@ -710,8 +710,8 @@ let REAL_RING,real_ideal_cofactors =
 (* ------------------------------------------------------------------------- *)
 /// Produces identity proving ideal membership over the reals.
 let REAL_IDEAL_CONV =
-   let mk_add = mk_binop (parse_term @"( + ):real->real->real")
-   let mk_mul = mk_binop (parse_term @"( * ):real->real->real")
+   let mk_add = fun x -> Choice.get << mk_binop (parse_term @"( + ):real->real->real") x
+   let mk_mul = fun x -> Choice.get << mk_binop (parse_term @"( * ):real->real->real") x
    fun tms tm ->
      let cfs = real_ideal_cofactors tms tm
      let tm' = end_itlist mk_add (map2 mk_mul cfs tms)

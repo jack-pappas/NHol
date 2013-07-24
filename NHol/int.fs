@@ -1172,7 +1172,7 @@ let INT_ADD_CONV =
     let neg_tm = (parse_term @"(--)")
     let amp_tm = (parse_term @"&")
     let add_tm = (parse_term @"(+)")
-    let dest = dest_binop(parse_term @"(+)")
+    let dest = Choice.get << dest_binop(parse_term @"(+)")
     let m_tm = (parse_term @"m:num")
     let n_tm = (parse_term @"n:num")
     let pth0 = prove((parse_term @"(--(&m) + &m = &0) /\
@@ -1456,12 +1456,12 @@ let INT_DIV_CONV, INT_REM_CONV =
                           |> THENC <| INT_LT_CONV) tm3))
     (fun tm -> 
         try 
-            let l, r = dest_binop dtm tm
+            let l, r = Choice.get <| dest_binop dtm tm
             CONJUNCT1(INT_DIVMOD_CONV (dest_intconst l) (dest_intconst r))
         with
         | Failure _ as e -> nestedFailwith e "INT_DIV_CONV"), (fun tm -> 
         try 
-            let l, r = dest_binop mtm tm
+            let l, r = Choice.get <| dest_binop mtm tm
             CONJUNCT2(INT_DIVMOD_CONV (dest_intconst l) (dest_intconst r))
         with
         | Failure _ as e -> nestedFailwith e "INT_MOD_CONV");;
@@ -1598,10 +1598,10 @@ let INTEGER_TAC_001 =
         let mul_tm = (parse_term @"(int_mul)")
         let add_tm = (parse_term @"(int_add)")
         let neg_tm = (parse_term @"(int_neg)")
-        let dest_mul = dest_binop mul_tm
-        let dest_add = dest_binop add_tm
-        let mk_mul = mk_binop mul_tm
-        let mk_add = mk_binop add_tm
+        let dest_mul = Choice.get << dest_binop mul_tm
+        let dest_add = Choice.get << dest_binop add_tm
+        let mk_mul = fun x -> Choice.get << mk_binop mul_tm x
+        let mk_add = fun x -> Choice.get << mk_binop add_tm x
         let scrub_var v m = 
             let ps = striplist dest_mul m
             let ps' = subtract ps [v]

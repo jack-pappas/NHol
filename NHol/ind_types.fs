@@ -608,7 +608,7 @@ let define_type_raw_001 =
                             (mk_injector epstms alltys iargs)
                     with
                     | Failure _ -> beps_tm
-                let rarg = itlist (mk_binop fcons) rargs bottail
+                let rarg = itlist (fun x -> Choice.get << mk_binop fcons x) rargs bottail
                 let conty = itlist (fun ty -> Choice.get << mk_fun_ty ty) (map (Choice.get << type_of) args) recty
                 let condef = 
                     list_mk_comb(constr, [sucivate n
@@ -996,7 +996,7 @@ let define_type_raw_001 =
             let ty = Choice.get <| type_of(hd isocons)
             let fcons = Choice.get <| mk_const("FCONS", [ty, aty])
             let fnil = Choice.get <| mk_const("FNIL", [ty, aty])
-            let bigfun = itlist (mk_binop fcons) isocons fnil
+            let bigfun = itlist (fun x -> Choice.get << mk_binop fcons x) isocons fnil
             let eth = ISPEC bigfun CONSTR_REC
             let fn = Choice.get <| rator(Choice.get <| rand(hd(conjuncts(concl rath))))
             let betm = 

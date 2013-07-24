@@ -748,7 +748,7 @@ let mk_list(tms, ty) =
         then nil
         else 
             let cons = Choice.get <| mk_const("CONS", [ty, aty])
-            itlist (mk_binop cons) tms nil
+            itlist (fun x -> Choice.get << mk_binop cons x) tms nil
     with
     | Failure _ as e -> nestedFailwith e "mk_list"
 

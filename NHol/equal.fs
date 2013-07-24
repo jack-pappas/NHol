@@ -320,7 +320,7 @@ let TOP_SWEEP_CONV (c : conv) : conv = TRY_CONV (TOP_SWEEP_QCONV c)
 let rec DEPTH_BINOP_CONV op conv tm = 
     match tm with
     | Comb(Comb(op', l), r) when op' = op -> 
-        let l, r = dest_binop op tm
+        let l, r = Choice.get <| dest_binop op tm
         let lth = DEPTH_BINOP_CONV op conv l
         let rth = DEPTH_BINOP_CONV op conv r
         MK_COMB(AP_TERM op' lth, rth)

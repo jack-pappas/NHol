@@ -190,10 +190,10 @@ let SEMIRING_NORMALIZERS_CONV =
                     let x_tm = mk_var("x", ty)
                     let y_tm = mk_var("y", ty)
                     let z_tm = mk_var("z", ty)
-                    let dest_add = dest_binop add_tm
-                    let dest_mul = dest_binop mul_tm
+                    let dest_add = Choice.get << dest_binop add_tm
+                    let dest_mul = Choice.get << dest_binop mul_tm
                     let dest_pow tm = 
-                        let l, r = dest_binop pow_tm tm
+                        let l, r = Choice.get <| dest_binop pow_tm tm
                         if is_numeral r
                         then l, r
                         else failwith "dest_pow"
@@ -208,7 +208,7 @@ let SEMIRING_NORMALIZERS_CONV =
                             let nthm_2 = SPECL [x_tm; y_tm] (CONJUNCT2 rth)
                             let sub_tm = Choice.get <| rator(Choice.get <| rator(lhand(concl nthm_2)))
                             let neg_tm = Choice.get <| rator(lhand(concl nthm_1))
-                            let dest_sub = dest_binop sub_tm
+                            let dest_sub = Choice.get << dest_binop sub_tm
                             let is_sub = is_binop sub_tm
                             (nthm_1, nthm_2, sub_tm, neg_tm, dest_sub, is_sub)
                     fun variable_order -> 

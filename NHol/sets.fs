@@ -3147,7 +3147,7 @@ let mk_setenum =
     fun (l, ty) -> 
         let insert_tm = Choice.get <| inst [ty, aty] insert_atm
         let nil_tm = Choice.get <| inst [ty, aty] nil_atm
-        itlist (mk_binop insert_tm) l nil_tm
+        itlist (fun x -> Choice.get << mk_binop insert_tm x) l nil_tm
 
 /// Constructs an explicit set enumeration from a nonempty list of elements.
 let mk_fset l = mk_setenum(l, Choice.get <| type_of(hd l))
@@ -3815,7 +3815,7 @@ let new_inductive_set =
         transf << ONCE_DEPTH_CONV << FIRST_CONV << map remove_in_conv
     let rule_head tm = 
         let tm = snd(strip_forall tm)
-        let tm = snd(splitlist (dest_binop(parse_term @"(==>)")) tm)
+        let tm = snd(splitlist (Choice.get << dest_binop(parse_term @"(==>)")) tm)
         let tm = snd(Choice.get <| dest_binary "IN" tm)
         fst(strip_comb tm)
     let find_pvars = setify << map rule_head << binops(parse_term @"(/\)")
