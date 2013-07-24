@@ -287,7 +287,7 @@ let IMP_TRANS =
 let FORALL_DEF = new_basic_definition <| parse_term @"(!) = \P:A->bool. P = \x. T"
 
 /// Term constructor for universal quantification.
-let mk_forall = mk_binder "!"
+let mk_forall = Choice.get << mk_binder "!"
 
 /// Iteratively constructs a universal quantification.
 let list_mk_forall(vs, bod) = itlist (curry mk_forall) vs bod
@@ -383,7 +383,7 @@ let GEN_ALL th =
 let EXISTS_DEF = new_basic_definition <| parse_term @"(?) = \P:A->bool. !q. (!x. P x ==> q) ==> q"
 
 /// Term constructor for existential quantification.
-let mk_exists = mk_binder "?"
+let mk_exists = Choice.get << mk_binder "?"
 
 /// Multiply existentially quantifies both sides of an equation using the given Choice.get <| variables.
 let list_mk_exists(vs, bod) = itlist (curry mk_exists) vs bod
@@ -571,7 +571,7 @@ let CONTR =
 let EXISTS_UNIQUE_DEF = new_basic_definition <| parse_term @"(?!) = \P:A->bool. ((?) P) /\ (!x y. P x /\ P y ==> x = y)"
 
 /// Term constructor for unique existence.
-let mk_uexists = mk_binder "?!"
+let mk_uexists = Choice.get << mk_binder "?!"
 
 /// Deduces existence from unique existence.
 let EXISTENCE = 

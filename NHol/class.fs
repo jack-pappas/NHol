@@ -96,9 +96,9 @@ parse_as_binder "@"
 let is_select = is_binder "@"
 
 /// Breaks apart a choice term into selected variable and Choice.get <| body.
-let dest_select = dest_binder "@"
+let dest_select = Choice.get << dest_binder "@"
 /// Constructs a choice binding.
-let mk_select = mk_binder "@"
+let mk_select = Choice.get << mk_binder "@"
 let SELECT_AX = new_axiom(parse_term @"!P (x:A). P x ==> P((@) P)")
 
 (* ------------------------------------------------------------------------- *)

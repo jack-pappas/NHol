@@ -374,7 +374,7 @@ let find_terms =
 (* ------------------------------------------------------------------------- *)
 (* General syntax for binders.                                               *)
 (*                                                                           *)
-(* NB! The "mk_binder" function expects polytype "A", which is the domain.   *)
+(* NB! The "Choice.get << mk_binder" function expects polytype "A", which is the domain.   *)
 (* ------------------------------------------------------------------------- *)
 
 /// Tests if a term is a binder construct with named constant.
@@ -386,14 +386,22 @@ let is_binder s tm =
 /// Breaks apart a "binder".
 let dest_binder s tm = 
     match tm with
-    | Comb(Const(s', _), Abs(x, t)) when s' = s -> (x, t)
-    | _ -> failwith "dest_binder"
+    | Comb(Const(s', _), Abs(x, t)) when s' = s -> 
+        Choice.succeed(x, t)
+    | _ -> 
+        Choice.failwith "dest_binder"
 
 /// Constructs a term with a named constant applied to an abstraction.
 let mk_binder op = 
-    let c = Choice.get <| mk_const(op, [])
-    fun (v, tm) -> Choice.get <| mk_comb(Choice.get <| inst [Choice.get <| type_of v, aty] c, Choice.get <| mk_abs(v, tm))
-
+    let c = mk_const(op, [])
+    fun (v, tm) -> 
+        choice {
+            let! tv = type_of v
+            let! c' = c 
+            let! tm' = inst [tv, aty] c'
+            let! tm'' = mk_abs(v, tm)
+            return! mk_comb(tm', tm'')
+        }
 (* ------------------------------------------------------------------------- *)
 (* Syntax for binary operators.                                              *)
 (* ------------------------------------------------------------------------- *)
@@ -443,7 +451,7 @@ let dest_imp = Choice.get << dest_binary "==>"
 let is_forall = is_binder "!"
 
 /// Breaks apart a universally quantified term into quantified variable and Choice.get <| body.
-let dest_forall = dest_binder "!"
+let dest_forall = Choice.get << dest_binder "!"
 
 /// Iteratively breaks apart universal quantifications.
 let strip_forall = splitlist dest_forall
@@ -452,7 +460,7 @@ let strip_forall = splitlist dest_forall
 let is_exists = is_binder "?"
 
 /// Breaks apart an existentially quantified term into quantified variable and Choice.get <| body.
-let dest_exists = dest_binder "?"
+let dest_exists = Choice.get << dest_binder "?"
 
 /// Iteratively breaks apart existential quantifications.
 let strip_exists = splitlist dest_exists
@@ -486,7 +494,7 @@ let dest_neg tm =
 /// Tests if a term is of the form `there exists a unique ...'
 let is_uexists = is_binder "?!"
 /// Breaks apart a unique existence term.
-let dest_uexists = dest_binder "?!"
+let dest_uexists = Choice.get << dest_binder "?!"
 /// Breaks apart a `CONS pair' into head and tail.
 let dest_cons = Choice.get << dest_binary "CONS"
 /// Tests a term to see if it is an application of CONS.
