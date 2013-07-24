@@ -106,7 +106,7 @@ let ITAUT_TAC =
                            |> THEN <| ITAUT_TAC mvs n
                            |> THEN <| NO_TAC)
              |> ORELSE <| (fun gl -> 
-                 let gv = genvar(Choice.get <| type_of(fst(dest_exists(snd gl))))
+                 let gv = genvar(Choice.get <| type_of(fst(Choice.get <| dest_exists(snd gl))))
                  (X_META_EXISTS_TAC gv
                   |> THEN <| ITAUT_TAC (gv :: mvs) (n - 2)
                   |> THEN <| NO_TAC) gl)

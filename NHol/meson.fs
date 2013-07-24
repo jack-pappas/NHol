@@ -231,7 +231,7 @@ let GEN_MESON_TAC =
             with
             | Failure _ -> 
                 try 
-                    let l, r = dest_disj tm
+                    let l, r = Choice.get <| dest_disj tm
                     let fl = fol_of_form env consts l
                     let fr = fol_of_form env consts r
                     Disj(fl, fr)
@@ -760,7 +760,7 @@ let GEN_MESON_TAC =
             with
             | Failure _ -> 
                 try 
-                    fm_consts (snd(dest_exists tm)) acc
+                    fm_consts (snd(Choice.get <| dest_exists tm)) acc
                 with
                 | Failure _ -> 
                     try 
@@ -769,7 +769,7 @@ let GEN_MESON_TAC =
                     with
                     | Failure _ -> 
                         try 
-                            let l, r = dest_disj tm
+                            let l, r = Choice.get <| dest_disj tm
                             fm_consts l (fm_consts r acc)
                         with
                         | Failure _ -> 
@@ -900,7 +900,7 @@ let GEN_MESON_TAC =
         let rec BRAND_TRANS th = 
             let tm = concl th
             try 
-                let l, r = dest_disj tm
+                let l, r = Choice.get <| dest_disj tm
                 if is_eq l
                 then 
                     let lth = ASSUME l

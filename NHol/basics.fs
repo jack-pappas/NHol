@@ -465,19 +465,19 @@ let strip_forall = splitlist (Choice.get << dest_forall)
 let is_exists = is_binder "?"
 
 /// Breaks apart an existentially quantified term into quantified variable and body.
-let dest_exists = Choice.get << dest_binder "?"
+let dest_exists = dest_binder "?"
 
 /// Iteratively breaks apart existential quantifications.
-let strip_exists = splitlist dest_exists
+let strip_exists = splitlist (Choice.get << dest_exists)
 
 /// Tests a term to see if it is a disjunction.
 let is_disj = is_binary "\\/"
 
 /// Breaks apart a disjunction into the two disjuncts.
-let dest_disj = Choice.get << dest_binary "\\/"
+let dest_disj = dest_binary "\\/"
 
 /// Iteratively breaks apart a disjunction.
-let disjuncts = striplist dest_disj
+let disjuncts = striplist (Choice.get << dest_disj)
 
 /// Tests a term to see if it is a logical negation.
 let is_neg tm = 
@@ -486,7 +486,7 @@ let is_neg tm =
     | Success("~", _) -> true
     | _ -> false
 
-/// Breaks apart a negation, returning its Choice.get <| body.
+/// Breaks apart a negation, returning its body.
 let dest_neg tm =
     dest_comb tm
     |> Choice.bind (fun (n, p) ->

@@ -695,7 +695,7 @@ let X_CHOOSE_TAC x' xth =
     let xtm = concl xth
     let x, bod = 
         try 
-            dest_exists xtm
+            Choice.get <| dest_exists xtm
         with
         | Failure _ as e ->
             nestedFailwith e "X_CHOOSE_TAC: not existential"
@@ -720,7 +720,7 @@ let X_CHOOSE_TAC x' xth =
 let EXISTS_TAC t (asl, w) = 
     let v, bod = 
         try 
-            dest_exists w
+            Choice.get <| dest_exists w
         with
         | Failure _ as e ->
             nestedFailwith e "EXISTS_TAC: Goal not existentially quantified"
@@ -747,7 +747,7 @@ let GEN_TAC : tactic =
 let CHOOSE_TAC : thm_tactic = 
     fun xth g -> 
         let f = 
-            let x = fst(dest_exists(concl xth))
+            let x = fst(Choice.get <| dest_exists(concl xth))
             fun (asl, w) -> 
                 let avoids = 
                     itlist (union << thm_frees << snd) asl 
@@ -777,7 +777,7 @@ let DISJ1_TAC : tactic =
                 match l with
                 | [a] -> a
                 | _ -> Choice.failwith "DISJ1_TAC.fun1: Unhandled case."
-            let l, r = dest_disj w
+            let l, r = Choice.get <| dest_disj w
             (null_meta, [asl, l], fun i tl -> DISJ1 (fun1 tl) (instantiate i r))
             |> Choice.succeed
         v |> Choice.mapError (fun _ -> Exception "DISJ1_TAC: Failure.")
@@ -790,7 +790,7 @@ let DISJ2_TAC : tactic =
                 match l with
                 | [a] -> a
                 | _ -> Choice.failwith "DISJ2_TAC.fun1: Unhandled case."
-            let l, r = dest_disj w
+            let l, r = Choice.get <| dest_disj w
             (null_meta, [asl, r], fun i tl -> DISJ2 (instantiate i l) (fun1 tl))
             |> Choice.succeed
         v |> Choice.mapError (fun _ -> Exception "DISJ2_TAC: Failure.")
@@ -804,7 +804,7 @@ let DISJ_CASES_TAC : thm_tactic =
                 | [th1; th2] -> DISJ_CASES (INSTANTIATE_ALL i dth) th1 th2
                 | _ -> Choice.failwith "DISJ_CASES_TAC.fun1: Unhandled case."
             let dtm = concl dth
-            let l, r = dest_disj dtm
+            let l, r = Choice.get <| dest_disj dtm
             let thl = ASSUME l
             let thr = ASSUME r
             fun (asl, w) -> 
@@ -1025,7 +1025,7 @@ let (X_META_EXISTS_TAC : term -> tactic) =
                     match l with
                     | [a] -> a
                     | _ -> Choice.failwith "X_META_EXISTS_TAC.fun1: Unhandled case."
-                let v, bod = dest_exists w
+                let v, bod = Choice.get <| dest_exists w
                 (([t], null_inst), [asl, Choice.get <| vsubst [t, v] bod], fun i tl -> EXISTS (instantiate i w, instantiate i t) (fun1 tl))
                 |> Choice.succeed
         with
@@ -1033,7 +1033,7 @@ let (X_META_EXISTS_TAC : term -> tactic) =
 
 /// Changes existentially quantified variable to metavariable.
 let META_EXISTS_TAC((asl, w) as gl) = 
-    let v = fst(dest_exists w)
+    let v = fst(Choice.get <| dest_exists w)
     let avoids = itlist (union << frees << concl << snd) asl (frees w)
     let v' = mk_primed_var avoids v
     X_META_EXISTS_TAC v' gl

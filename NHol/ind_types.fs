@@ -79,7 +79,7 @@ let INJ_INVERSE2 =
    |> THEN <| EQ_TAC
    |> THEN <| STRIP_TAC
    |> THEN <| ASM_REWRITE_TAC []
-   |> THEN <| W(EXISTS_TAC << Choice.get <| rand << snd << dest_exists << snd)
+   |> THEN <| W(EXISTS_TAC << Choice.get <| rand << snd << Choice.get <| dest_exists << snd)
    |> THEN <| REFL_TAC)
 #else
     Choice.succeed <| Sequent([], parse_term @"!P. (!x1 y1 x2 y2. P x1 y1 = P x2 y2 <=> x1 = x2 /\ y1 = y2)
@@ -1271,7 +1271,7 @@ let prove_constructors_injective =
         let atm = Choice.get <| mk_eq(pat, list_mk_comb(f, args'))
         let ath = ASSUME atm
         let bth = AP_TERM fn ath
-        let cth1 = SPECL args (ASSUME(snd(dest_exists(concl eth))))
+        let cth1 = SPECL args (ASSUME(snd(Choice.get <| dest_exists(concl eth))))
         let cth2 = INST (zip args' args) cth1
         let pth = TRANS (TRANS (SYM cth1) bth) cth2
         let qth = DEPAIR pth
@@ -1302,7 +1302,7 @@ let prove_constructors_distinct =
         let defs = 
             map2 (fun l r -> list_mk_forall(frees(Choice.get <| rand l), Choice.get <| mk_eq(l, r))) ls nums
         let eth = prove_recursive_functions_exist ax (list_mk_conj defs)
-        let ev, bod = dest_exists(concl eth)
+        let ev, bod = Choice.get <| dest_exists(concl eth)
         let REWRITE = GEN_REWRITE_RULE ONCE_DEPTH_CONV (CONJUNCTS(ASSUME bod))
         let pat' = 
             map (fun t -> 
@@ -1350,7 +1350,7 @@ let prove_cases_thm =
     let rec prove_disj tm = 
         if is_disj tm
         then 
-            let l, r = dest_disj tm
+            let l, r = Choice.get <| dest_disj tm
             try 
                 DISJ1 (prove_triv l) r
             with

@@ -809,7 +809,7 @@ let instantiate_casewise_recursion,
       PURE_REWRITE_CONV[PAIRWISE; ALL; GSYM CONJ_ASSOC; AND_CLAUSES] |>THENC<|
       TOP_DEPTH_CONV GEN_BETA_CONV
     let tuple_function_existence tm =
-      let f,def = dest_exists tm
+      let f,def = Choice.get <| dest_exists tm
       let domtys0,ranty0 = splitlist (Choice.get << dest_fun_ty) (Choice.get <| type_of f)
       let nargs =
         itlist
@@ -830,7 +830,7 @@ let instantiate_casewise_recursion,
       SIMPLE_CHOOSE f' (PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th2))) th1)
     let pinstantiate_casewise_recursion def =
       try PART_MATCH I EXISTS_REFL def with Failure _ ->
-      let f,bod = dest_exists def
+      let f,bod = Choice.get <| dest_exists def
       let cjs = conjuncts bod
       let eqs = map (snd << strip_forall) cjs
       let lefts,rights = unzip(map (Choice.get << dest_eq) eqs)
@@ -851,7 +851,7 @@ let instantiate_casewise_recursion,
       let th2 = CONV_RULE (BINDER_CONV
                     (LAND_CONV(GABS_CONV rewr_forall_th) |>THENC<|
                      EXPAND_PAIRED_ALL_CONV)) th1
-      let f2,bod2 = dest_exists(concl th2)
+      let f2,bod2 = Choice.get <| dest_exists(concl th2)
       let ths3 = 
         map (CONV_RULE (COMB2_CONV (funpow 2 RAND_CONV GEN_BETA_CONV) (RATOR_CONV BETA_CONV |>THENC<| GEN_BETA_CONV)) << SPEC_ALL) (CONJUNCTS(ASSUME bod2))
       let ths4 = 
@@ -885,7 +885,7 @@ let instantiate_casewise_recursion,
     let break_down_admissibility th1 =
       if hyp th1 = [] then th1 else
       let def = concl th1
-      let f,bod = dest_exists def
+      let f,bod = Choice.get <| dest_exists def
       let cjs = conjuncts bod
       let eqs = map (snd << strip_forall) cjs
       let lefts,rights = unzip(map (Choice.get << dest_eq) eqs)
@@ -893,7 +893,7 @@ let instantiate_casewise_recursion,
       let parms0 = freesl(unions arglists)
       let parms = if parms0 <> [] then parms0 else [genvar aty]
       let wfasm = find is_exists (hyp th1)
-      let ord,bod = dest_exists wfasm
+      let ord,bod = Choice.get <| dest_exists wfasm
       let SIMP_ADMISS_TAC =
         REWRITE_TAC[LET_DEF; LET_END_DEF] |>THEN<|
         REPEAT ADMISS_TAC |>THEN<|
@@ -932,10 +932,10 @@ let instantiate_casewise_recursion,
         let _,_,sth =
             assoc tyname (!inductive_type_store)
             |> Option.getOrFailWith "find"
-        let ty,zty = Choice.get <| dest_fun_ty (Choice.get <| type_of(fst(dest_exists(snd(strip_forall(concl sth))))))
+        let ty,zty = Choice.get <| dest_fun_ty (Choice.get <| type_of(fst(Choice.get <| dest_exists(snd(strip_forall(concl sth))))))
         let rth = INST_TYPE [num_ty,zty] sth
         let avs,bod = strip_forall(concl rth)
-        let ev,cbod = dest_exists bod
+        let ev,cbod = Choice.get <| dest_exists bod
         let process_clause k t =
           let avs,eq = strip_forall t
           let l,r = Choice.get <| dest_eq eq
@@ -949,17 +949,17 @@ let instantiate_casewise_recursion,
         let def = map2 process_clause (1--length cjs) cjs
         prove_recursive_functions_exist sth (list_mk_conj def)
     let INDUCTIVE_MEASURE_THEN tac (asl,w) =
-      let ev,bod = dest_exists w
+      let ev,bod = Choice.get <| dest_exists w
       let ty = fst(Choice.get <| dest_type(fst(Choice.get <| dest_fun_ty(Choice.get <| type_of ev))))
       let th = prove_depth_measure_exists ty
-      let ev',bod' = dest_exists(concl th)
+      let ev',bod' = Choice.get <| dest_exists(concl th)
       let th' = INST_TYPE(Choice.get <| type_match (Choice.get <| type_of ev') (Choice.get <| type_of ev) []) th
       (MP_TAC th' |>THEN<| MATCH_MP_TAC MONO_EXISTS |>THEN<|
        GEN_TAC |>THEN<| DISCH_THEN(fun th -> REWRITE_TAC[th]) |>THEN<| tac) (asl,w)
     let CONSTANT_MEASURE_THEN =
       let one_tm = (parse_term @"1")
       fun tac (asl,w) ->
-        let ev,bod = dest_exists w
+        let ev,bod = Choice.get <| dest_exists w
         let ty = fst(Choice.get <| dest_fun_ty(Choice.get <| type_of ev))
         (EXISTS_TAC(Choice.get <| mk_abs(genvar ty,one_tm)) |>THEN<| tac) (asl,w)
     let GUESS_MEASURE_THEN tac =
@@ -1003,7 +1003,7 @@ let instantiate_casewise_recursion,
     let GUESS_ORDERING_TAC =
       let false_tm = (parse_term @"\x:A y:A. F")
       W(fun (asl,w) ->
-            let ty = fst(Choice.get <| dest_fun_ty(Choice.get <| type_of(fst(dest_exists w))))
+            let ty = fst(Choice.get <| dest_fun_ty(Choice.get <| type_of(fst(Choice.get <| dest_exists w))))
             EXISTS_TAC(Choice.get <| inst [ty,aty] false_tm) |>THEN<|
             REWRITE_TAC[WF_FALSE] |>THEN<| NO_TAC) |>ORELSE<|
       GUESS_WF_THEN

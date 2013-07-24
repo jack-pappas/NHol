@@ -486,7 +486,7 @@ let DISJ_CASES =
             let c2 = concl th2
             if not(aconv c1 c2) then Choice.failwith "DISJ_CASES"
             else 
-                let l, r = dest_disj(concl th0)
+                let l, r = Choice.get <| dest_disj(concl th0)
                 let th = 
                     INST [l, P; r, Q; c1, R] <| pth()
                 PROVE_HYP (DISCH r th2) (PROVE_HYP (DISCH l th1) (PROVE_HYP th0 th))

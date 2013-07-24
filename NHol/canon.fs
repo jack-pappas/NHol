@@ -95,7 +95,7 @@ let DISJ_ACI_RULE =
     let a_tm = (parse_term @"a:bool")
     let b_tm = (parse_term @"b:bool")
     let NOT_DISJ_PAIR th = 
-        let p, q = dest_disj(Choice.get <| rand(concl th))
+        let p, q = Choice.get <| dest_disj(Choice.get <| rand(concl th))
         let ilist = 
             [p, a_tm
              q, b_tm]
@@ -115,7 +115,7 @@ let DISJ_ACI_RULE =
     and use_fun fn tm = 
         if is_disj tm
         then 
-            let l, r = dest_disj tm
+            let l, r = Choice.get <| dest_disj tm
             NOT_DISJ (use_fun fn l) (use_fun fn r)
         else apply fn tm
     fun fm -> 
@@ -870,7 +870,7 @@ let ASM_FOL_TAC =
                     try 
                         Choice.get <| dest_conj tm
                     with
-                    | Failure _ -> dest_disj tm
+                    | Failure _ -> Choice.get <| dest_disj tm
                 get_heads lconsts l (get_heads lconsts r sofar)
             with
             | Failure _ -> 

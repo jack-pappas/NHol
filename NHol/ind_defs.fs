@@ -106,7 +106,7 @@ let derive_nonschematic_inductive_relations =
         | Failure _ -> bod
     let CONJ_ACI_RULE = AC CONJ_ACI
     let SIMPLE_DISJ_PAIR th = 
-        let l, r = dest_disj(hd(hyp th))
+        let l, r = Choice.get <| dest_disj(hd(hyp th))
         PROVE_HYP (DISJ1 (ASSUME l) r) th, PROVE_HYP (DISJ2 l (ASSUME r)) th
     let HALF_BETA_EXPAND args th = GENL args (RIGHT_BETAS args th)
     let AND_IMPS_CONV tm = 

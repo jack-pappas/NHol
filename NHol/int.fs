@@ -1646,7 +1646,7 @@ let INTEGER_TAC_001 =
         if not(is_exists tm)
         then REFL tm
         else 
-            let ev, bod = dest_exists tm
+            let ev, bod = Choice.get <| dest_exists tm
             let gv = genvar(Choice.get <| type_of ev)
             (GEN_ALPHA_CONV gv
              |> THENC <| BINDER_CONV GENVAR_EXISTS_CONV) tm
