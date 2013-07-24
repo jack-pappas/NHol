@@ -1768,7 +1768,7 @@ let INTEGER_TAC =
             let can f x = 
                 try f x |> ignore; true
                 with Failure _ -> false
-            find_terms (can dest_gcd) w in
+            Choice.get <| find_terms (can dest_gcd) w in
           let ths = map (fun tm -> let a,b = dest_gcd tm in SPECL [a;b] int_gcd) gts
           MAP_EVERY MP_TAC ths |> THEN <|
           MAP_EVERY SPEC_TAC (zip gts (map (genvar << Choice.get << type_of) gts))) in
@@ -1861,7 +1861,7 @@ let ARITH_RULE =
     let th1 = init_conv tm in
     let tm1 = Choice.get <| rand(concl th1) in
     let avs,bod = strip_forall tm1 in
-    let nim = setify(find_terms is_numimage bod) in
+    let nim = setify(Choice.get <| find_terms is_numimage bod) in
     let gvs = map (genvar << Choice.get << type_of) nim in
     let pths = map (fun v -> SPEC (Choice.get <| rand v) INT_POS) nim in
     let ibod = itlist (curry mk_imp << concl) pths bod in

@@ -782,7 +782,7 @@ let REAL_FIELD =
               not(is_ratconst(Choice.get <| rand tm))
   let BASIC_REAL_FIELD tm =
     let is_freeinv t = is_inv t && free_in t tm
-    let itms = setify(map (Choice.get << rand) (find_terms is_freeinv tm))
+    let itms = setify(map (Choice.get << rand) (Choice.get <| find_terms is_freeinv tm))
     let hyps = map (fun t -> SPEC t REAL_MUL_RINV) itms
     let tm' = itlist (fun th t -> mk_imp(concl th,t)) hyps tm
     let th1 = setup_conv tm'

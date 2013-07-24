@@ -263,7 +263,7 @@ let TAUT_001 =
         (PROP_REWRITE_TAC
          |> THEN <| W
                 ((fun t1 t2 -> t1 |> THEN <| t2)(REWRITE_TAC []) << BOOL_CASES_TAC 
-                 << hd << sort free_in << find_terms ok << snd))(asl, w)
+                 << hd << sort free_in << Choice.get << find_terms ok << snd))(asl, w)
     let TAUT_001_TAC = REPEAT(GEN_TAC
                               |> ORELSE <| CONJ_TAC)
                        |> THEN <| REPEAT RTAUT_001_TAC
@@ -522,7 +522,7 @@ let TAUT =
          |> THEN <| W
                 ((fun t1 t2 -> t1
                                |> THEN <| t2)(REWRITE_TAC []) << BOOL_CASES_TAC 
-                 << hd << sort free_in << find_terms ok << snd))(asl, w)
+                 << hd << sort free_in << Choice.get << find_terms ok << snd))(asl, w)
     let TAUT_TAC = REPEAT(GEN_TAC
                           |> ORELSE <| CONJ_TAC)
                    |> THEN <| REPEAT RTAUT_TAC

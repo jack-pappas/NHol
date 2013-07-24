@@ -355,12 +355,20 @@ let rec find_term p tm =
 /// Searches a term for all subterms that satisfy a predicate.
 let find_terms = 
     let rec accum tl p tm = 
-        let tl' = 
-            if p tm then insert tm tl
-            else tl
-        if is_abs tm then accum tl' p (Choice.get <| body tm)
-        elif is_comb tm then accum (accum tl' p (Choice.get <| rator tm)) p (Choice.get <| rand tm)
-        else tl'
+        choice {
+            let tl' = 
+                if p tm then insert tm tl
+                else tl
+            if is_abs tm then 
+                let! tm' = body tm
+                return! accum tl' p tm'
+            elif is_comb tm then
+                let! rat = rator tm
+                let! tl'' = accum tl' p rat
+                let! ran = rand tm
+                return! accum tl'' p ran
+            else return tl'
+        }
     accum []
 
 (* ------------------------------------------------------------------------- *)

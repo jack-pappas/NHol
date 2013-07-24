@@ -663,7 +663,7 @@ let SELECT_ELIM_TAC =
                         (PINST [Choice.get <| type_of(Choice.get <| bndvar atm), aty] [atm, ptm] pth)
                 else failwith "SELECT_ELIM_THM: not a select-term"
         fun tm -> 
-            PURE_REWRITE_CONV (map SELECT_ELIM_THM (find_terms is_select tm)) tm
+            PURE_REWRITE_CONV (map SELECT_ELIM_THM (Choice.get <| find_terms is_select tm)) tm
     let SELECT_ELIM_ICONV = 
         let SELECT_AX_THM = 
             let pth = ISPEC (parse_term @"P:A->bool") SELECT_AX

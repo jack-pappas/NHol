@@ -667,7 +667,7 @@ let HIGHER_REWRITE_CONV =
             let stm = 
                 if top
                 then Choice.get <| find_term pred tm
-                else hd(sort free_in (find_terms pred tm))
+                else hd(sort free_in (Choice.get <| find_terms pred tm))
             let pat = hd(look_fn stm)
             let _, tmin, tyin = term_match [] pat stm
             let pred, (th, beta_fn) =

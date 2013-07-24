@@ -920,7 +920,8 @@ let GEN_MESON_TAC =
                      BRANDE(SYM th)]
                 else [th]
         let find_eqs = 
-            find_terms(fun t -> 
+            Choice.get << 
+                find_terms(fun t -> 
                     try 
                         fst(Choice.get <| dest_const t) = "="
                     with
@@ -964,7 +965,7 @@ let GEN_MESON_TAC =
             then grab_constants (Choice.get <| rand tm) (grab_constants (lhand tm) acc)
             elif is_neg tm
             then grab_constants (Choice.get <| rand tm) acc
-            else union (find_terms is_const tm) acc
+            else union (Choice.get <| find_terms is_const tm) acc
         let match_consts(tm1, tm2) = 
             let s1, ty1 = Choice.get <| dest_const tm1
             let s2, ty2 = Choice.get <| dest_const tm2
