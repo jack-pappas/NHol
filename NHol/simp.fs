@@ -55,7 +55,7 @@ type gconv = int * conv
 /// Uses an instance of a given equation to rewrite a term.
 let REWR_CONV = PART_MATCH lhs
 /// Basic conditional rewriting conversion.
-let IMP_REWR_CONV = PART_MATCH(lhs << snd << dest_imp)
+let IMP_REWR_CONV = PART_MATCH(lhs << snd << Choice.get << dest_imp)
 
 (* ------------------------------------------------------------------------- *)
 (* Versions with ordered rewriting. We must have l' > r' for the rewrite     *)
@@ -180,7 +180,7 @@ let net_of_conv tm conv sofar = enter [] (tm, (2, conv)) sofar
 (* ------------------------------------------------------------------------- *)
 /// Add a congruence rule to a net.
 let net_of_cong th sofar = 
-    let conc, n = repeat (fun (tm, m) -> snd(dest_imp tm), m + 1) (concl th, 0)
+    let conc, n = repeat (fun (tm, m) -> snd(Choice.get <| dest_imp tm), m + 1) (concl th, 0)
     if n = 0
     then failwith "net_of_cong: Non-implicational congruence"
     else 
@@ -211,7 +211,7 @@ let mk_rewrites =
         else 
             let jth = itlist DISCH conds th
             let kth = CONV_RULE (REPEATC IMP_CONJ_CONV) jth
-            let cond, eqn = dest_imp(concl kth)
+            let cond, eqn = Choice.get <| dest_imp(concl kth)
             let fvs = 
                 subtract (subtract (frees cond) (frees eqn)) (freesl oldhyps)
             itlist IMP_EXISTS_RULE fvs kth
@@ -382,7 +382,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                     Choice.get <| dest_eq bod, ss, I
                 with
                 | Failure _ -> 
-                    let cxt, deq = dest_imp bod
+                    let cxt, deq = Choice.get <| dest_imp bod
                     Choice.get <| dest_eq deq, AUGMENT_SIMPSET (ASSUME cxt) ss, DISCH cxt
             let eth, triv' = 
                 try 

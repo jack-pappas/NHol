@@ -450,7 +450,7 @@ let conjuncts = striplist (Choice.get << dest_conj)
 let is_imp = is_binary "==>"
 
 /// Breaks apart an implication into antecedent and consequent.
-let dest_imp = Choice.get << dest_binary "==>"
+let dest_imp = dest_binary "==>"
 
 /// Tests a term to see if it is a universal quantification.
 let is_forall = is_binder "!"

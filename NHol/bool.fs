@@ -214,7 +214,7 @@ let MP =
         let th2 = EQ_MP th1 (ASSUME <| parse_term @"p ==> q")
         CONJUNCT2(EQ_MP (SYM th2) (ASSUME <| parse_term @"p:bool"))
     fun ith th -> 
-        let ant, con = dest_imp(concl ith)
+        let ant, con = Choice.get <| dest_imp(concl ith)
         if aconv ant (concl th) then 
             PROVE_HYP th (PROVE_HYP ith (INST [ant, p; con, q] <| pth()))
         else Choice2Of2 <| Exception "MP: theorems do not agree"
@@ -270,12 +270,12 @@ let EQ_IMP_RULE =
 let IMP_TRANS = 
     let pq = parse_term @"p ==> q"
     let qr = parse_term @"q ==> r"
-    let p, q = dest_imp pq
+    let p, q = Choice.get <| dest_imp pq
     let r = Choice.get <| rand qr
     let pth() = itlist DISCH [pq; qr; p] (MP (ASSUME qr) (MP (ASSUME pq) (ASSUME p)))
     fun th1 th2 -> 
-        let x, y = dest_imp(concl th1)
-        let y', z = dest_imp(concl th2)
+        let x, y = Choice.get <| dest_imp(concl th1)
+        let y', z = Choice.get <| dest_imp(concl th2)
         if y <> y' then failwith "IMP_TRANS"
         else 
             MP (MP (INST [x, p; y, q; z, r] <| pth()) th1) th2

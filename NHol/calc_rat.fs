@@ -419,7 +419,7 @@ let REAL_RAT_ADD_CONV =
                    x3', x3
                    y3', y3] pth
          let th1 = funpow 3 (MP_CONV REAL_INT_LT_CONV) th0
-         let tm2, tm3 = Choice.get <| dest_eq(fst(dest_imp(concl th1)))
+         let tm2, tm3 = Choice.get <| dest_eq(fst(Choice.get <| dest_imp(concl th1)))
          let th2 = (LAND_CONV(BINOP_CONV REAL_INT_MUL_CONV
                               |> THENC <| REAL_INT_ADD_CONV)
                     |> THENC <| REAL_INT_MUL_CONV) tm2

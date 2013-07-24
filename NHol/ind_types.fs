@@ -754,7 +754,7 @@ let define_type_raw_001 =
     let instantiate_induction_theorem consindex ith = 
         let avs, bod = strip_forall(concl ith)
         let corlist = 
-            map ((repeat (Choice.get << rator) ||>> repeat (Choice.get << rator)) << dest_imp << Choice.get << body << Choice.get << rand) 
+            map ((repeat (Choice.get << rator) ||>> repeat (Choice.get << rator)) << Choice.get << dest_imp << Choice.get << body << Choice.get << rand) 
                 (conjuncts(Choice.get <| rand bod))
         let consindex' = 
             map (fun v -> 
@@ -794,7 +794,7 @@ let define_type_raw_001 =
             let avs, bimp = strip_forall tm
             if is_imp bimp
             then 
-                let ant, con = dest_imp bimp
+                let ant, con = Choice.get <| dest_imp bimp
                 let ths = map (CONV_RULE BETA_CONV) (CONJUNCTS(ASSUME ant))
                 let tths, pths = unzip(map CONJ_PAIR ths)
                 let tth = MATCH_MP (SPEC_ALL rthm) (end_itlist CONJ tths)
@@ -1383,7 +1383,7 @@ let prove_cases_thm =
         let xs = make_args "x" (freesl pats) (map (Choice.get << type_of << hd) rpatlist)
         let xpreds = map2 mk_exclauses xs rpatlist
         let ith = BETA_RULE(INST (zip xpreds preds) (SPEC_ALL th))
-        let eclauses = conjuncts(fst(dest_imp(concl ith)))
+        let eclauses = conjuncts(fst(Choice.get <| dest_imp(concl ith)))
         MP ith (end_itlist CONJ (map prove_eclause eclauses));;
 
 inductive_type_store 
@@ -1494,7 +1494,7 @@ let define_type_raw =
                 if is_eq bod
                 then REFL(Choice.get <| rand bod)
                 else 
-                    let ant, con = dest_imp bod
+                    let ant, con = Choice.get <| dest_imp bod
                     let ith = SUBS_CONV (CONJUNCTS(ASSUME ant)) (lhs con)
                     DISCH ant ith
             GENL avs bth
@@ -1502,7 +1502,7 @@ let define_type_raw =
             let tm = concl th
             if is_imp tm
             then 
-                let ant, con = dest_imp(concl th)
+                let ant, con = Choice.get <| dest_imp(concl th)
                 let cjs = conjuncts ant
                 let cths = map TRIV_IMP_CONV cjs
                 MP th (end_itlist CONJ cths)
@@ -2068,7 +2068,7 @@ let FORALL_UNWIND_CONV =
     let rec FORALL_UNWIND_CONV tm = 
         try 
             let avs, bod = strip_forall tm
-            let ant, con = dest_imp bod
+            let ant, con = Choice.get <| dest_imp bod
             let eqs = conjuncts ant
             let eq = 
                 find (fun tm -> 

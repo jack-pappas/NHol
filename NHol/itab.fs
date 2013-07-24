@@ -111,7 +111,7 @@ let ITAUT_TAC =
                   |> THEN <| ITAUT_TAC (gv :: mvs) (n - 2)
                   |> THEN <| NO_TAC) gl)
              |> ORELSE <| (FIRST_ASSUM(fun th -> 
-                                   SUBGOAL_THEN (fst(dest_imp(concl th))) 
+                                   SUBGOAL_THEN (fst(Choice.get <| dest_imp(concl th))) 
                                        (fun ath -> ASSUME_TAC(MP th ath))
                                    |> THEN <| ITAUT_TAC mvs (n - 1)
                                    |> THEN <| NO_TAC))) gl

@@ -305,7 +305,7 @@ let CONTRAPOS_CONV =
     let pth = TAUT_001(parse_term @"(a ==> b) <=> (~b ==> ~a)")
     fun tm -> 
         try 
-            let P, Q = dest_imp tm
+            let P, Q = Choice.get <| dest_imp tm
             INST [P, a
                   Q, b] pth
         with

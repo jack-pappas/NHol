@@ -2911,7 +2911,7 @@ let REAL_COMPLETE_SOMEPOS =
                      HREAL_COMPLETE)
          |> THEN <| BETA_TAC
          |> THEN 
-         <| W(C SUBGOAL_THEN MP_TAC << funpow 2 (fst << dest_imp) << snd)
+         <| W(C SUBGOAL_THEN MP_TAC << funpow 2 (fst << Choice.get << dest_imp) << snd)
          |> THENL 
          <| [CONJ_TAC
              |> THENL <| [EXISTS_TAC(parse_term @"(h:real->hreal) x")
@@ -3023,7 +3023,7 @@ let REAL_COMPLETE =
                          REAL_COMPLETE_SOMEPOS)
              |> THEN <| BETA_TAC
              |> THEN 
-             <| W(C SUBGOAL_THEN MP_TAC << funpow 2 (fst << dest_imp) << snd)
+             <| W(C SUBGOAL_THEN MP_TAC << funpow 2 (fst << Choice.get << dest_imp) << snd)
              |> THENL 
              <| [CONJ_TAC
                  |> THENL 

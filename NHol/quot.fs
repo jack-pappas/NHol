@@ -110,7 +110,7 @@ let lift_function =
             let wfvs = frees wtm
             let hyps, con = 
                 try 
-                    (conjuncts ||>> I)(dest_imp wtm)
+                    (conjuncts ||>> I)(Choice.get <| dest_imp wtm)
                 with
                 | Failure _ -> [], wtm
             let eqs, rels = partition is_eq hyps

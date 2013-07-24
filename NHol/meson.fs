@@ -774,7 +774,7 @@ let GEN_MESON_TAC =
                         with
                         | Failure _ -> 
                             try 
-                                let l, r = dest_imp tm
+                                let l, r = Choice.get <| dest_imp tm
                                 fm_consts l (fm_consts r acc)
                             with
                             | Failure _ -> 

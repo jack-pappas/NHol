@@ -581,7 +581,7 @@ let instantiate_casewise_recursion,
         GEN_REWRITE_CONV DEPTH_CONV [AND_CLAUSES; OR_CLAUSES]
       let SIMPLIFY_CASE_DISTINCTNESS_CLAUSE tm =
         let avs,bod = strip_forall tm
-        let ant,cons = dest_imp bod
+        let ant,cons = Choice.get <| dest_imp bod
         let ath = RECTYPE_ARITH_EQ_CONV ant
         let atm = Choice.get <| rand(concl ath)
         let bth = 

@@ -101,7 +101,7 @@ let derive_nonschematic_inductive_relations =
     let getconcl tm = 
         let bod = repeat (snd << dest_forall) tm
         try 
-            snd(dest_imp bod)
+            snd(Choice.get <| dest_imp bod)
         with
         | Failure _ -> bod
     let CONJ_ACI_RULE = AC CONJ_ACI
@@ -155,7 +155,7 @@ let derive_nonschematic_inductive_relations =
         let avs, bimp = strip_forall cls
         let ant, con = 
             try 
-                dest_imp bimp
+                Choice.get <| dest_imp bimp
             with
             | Failure _ -> t_tm, bimp
         let rel, xargs = strip_comb con
@@ -226,7 +226,7 @@ let derive_nonschematic_inductive_relations =
         let closed = list_mk_conj clauses
         let clauses = conjuncts closed
         let vargs, bodies = unzip(map strip_forall clauses)
-        let ants, concs = unzip(map dest_imp bodies)
+        let ants, concs = unzip(map (Choice.get << dest_imp) bodies)
         let rels = map (repeat (Choice.get << rator)) concs
         let avoids = Choice.get <| variables closed
         let rels' = Choice.get <| variants avoids rels
@@ -346,10 +346,10 @@ let MONO_TAC =
     let imp = (parse_term @"(==>)")
     let IMP_REFL = ITAUT(parse_term @"!p. p ==> p")
     let BACKCHAIN_TAC th = 
-        let match_fn = PART_MATCH (snd << dest_imp) th
+        let match_fn = PART_MATCH (snd << Choice.get << dest_imp) th
         fun (asl, w) -> 
             let th1 = match_fn w
-            let ant, con = dest_imp(concl th1)
+            let ant, con = Choice.get <| dest_imp(concl th1)
             let fun1 l =
                 match l with
                 | [a] -> a
@@ -358,7 +358,7 @@ let MONO_TAC =
             |> Choice1Of2
 
     let MONO_ABS_TAC(asl, w) = 
-        let ant, con = dest_imp w
+        let ant, con = Choice.get <| dest_imp w
         let vars = snd(strip_comb con)
         let rnum = length vars - 1
         let hd1, args1 = strip_ncomb rnum ant
@@ -368,7 +368,7 @@ let MONO_TAC =
         let th3 = MK_COMB(AP_TERM imp th1, th2)
         CONV_TAC (REWR_CONV th3) (asl, w)
     let APPLY_MONOTAC tacs (asl, w) = 
-        let a, c = dest_imp w
+        let a, c = Choice.get <| dest_imp w
         if aconv a c
         then ACCEPT_TAC (SPEC a IMP_REFL) (asl, w)
         else 
@@ -461,7 +461,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
             map (fun cls -> 
                     let avs, bod = strip_forall cls
                     pare_comb avs (try 
-                                       snd(dest_imp bod)
+                                       snd(Choice.get <| dest_imp bod)
                                    with
                                    | Failure _ -> bod)) clauses
         let schems = setify schem
@@ -517,14 +517,14 @@ let derive_strong_induction =
         let avs, ibod = strip_forall tm
         let n = length avs
         let prator = funpow n (Choice.get << rator)
-        let ant, con = dest_imp ibod
+        let ant, con = Choice.get <| dest_imp ibod
         n, (prator ant, prator con)
     let rec prove_triv tm = 
         if is_conj tm
         then CONJ (prove_triv(lhand tm)) (prove_triv(Choice.get <| rand tm))
         else 
             let avs, bod = strip_forall tm
-            let a, c = dest_imp bod
+            let a, c = Choice.get <| dest_imp bod
             let ths = CONJUNCTS(ASSUME a)
             let th = find (aconv c << concl) ths
             GENL avs (DISCH a th)
@@ -534,12 +534,12 @@ let derive_strong_induction =
         else 
             let avs, bod = strip_forall(concl th)
             let th1 = SPECL avs th
-            let a = fst(dest_imp(concl th1))
+            let a = fst(Choice.get <| dest_imp(concl th1))
             GENL avs (DISCH a (CONJUNCT2(UNDISCH th1)))
     let MATCH_IMPS = MATCH_MP MONO_AND
     fun (rth, ith) -> 
         let ovs, ibod = strip_forall(concl ith)
-        let iant, icon = dest_imp ibod
+        let iant, icon = Choice.get <| dest_imp ibod
         let ns, prrs = unzip(map dest_ibod (conjuncts icon))
         let rs, ps = unzip prrs
         let gs = Choice.get <| variants (Choice.get <| variables ibod) ps
@@ -560,7 +560,7 @@ let derive_strong_induction =
             let avs, bod = strip_forall itm
             if is_imp bod
             then 
-                let a, c = dest_imp bod
+                let a, c = Choice.get <| dest_imp bod
                 let mgoal = mk_imp(gimps, mk_imp(Choice.get <| vsubst (zip gs ps) a, a))
                 let mth = ASSUME(list_mk_forall(gs @ ps @ avs, mgoal))
                 let ith_r = BETA_RULE(SPECL (prs @ rs @ avs) mth)

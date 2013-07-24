@@ -86,7 +86,7 @@ let MK_EXISTS =
 
 /// Removes antecedent of implication theorem by solving it with a conversion.
 let MP_CONV (cnv : conv) th = 
-    let l, r = dest_imp(concl th)
+    let l, r = Choice.get <| dest_imp(concl th)
     let ath = cnv l
 
     MP th (EQT_ELIM ath)
@@ -591,7 +591,7 @@ let MATCH_MP ith =
         let v = 
             let tm = concl ith
             let avs, bod = strip_forall tm
-            let ant, con = dest_imp bod
+            let ant, con = Choice.get <| dest_imp bod
             let svs, pvs = partition (C vfree_in ant) avs
             if pvs = []
             then ith
@@ -600,7 +600,7 @@ let MATCH_MP ith =
                 let th2 = GENL svs (DISCH ant (GENL pvs (UNDISCH th1)))
                 MP (DISCH tm th2) ith
         v |> Choice.mapError (fun _ -> Exception "MATCH_MP: Not an implication")
-    let match_fun = PART_MATCH (fst << dest_imp) sth
+    let match_fun = PART_MATCH (fst << Choice.get << dest_imp) sth
     fun th -> 
         MP (match_fun(concl th)) th
         |> Choice.mapError (fun _ -> Exception "MATCH_MP: No match")

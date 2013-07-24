@@ -585,7 +585,7 @@ let DISCH_TAC : tactic =
     let f_tm = parse_term @"F"
     fun (asl, w) -> 
         let v = 
-            let ant, c = dest_imp w
+            let ant, c = Choice.get <| dest_imp w
             let th1 = ASSUME ant
             let fun1 l =
                 match l with
@@ -827,26 +827,26 @@ let (CONTR_TAC : thm_tactic) =
         | Failure _ -> Choice2Of2 <| Exception "CONTR_TAC: Failure."
 
 /// Solves a goal which is an instance of the supplied theorem.
-let (MATCH_ACCEPT_TAC:thm_tactic) =
+let MATCH_ACCEPT_TAC : thm_tactic =
     let propagate_thm th i l =
         match l with
         | [] -> INSTANTIATE_ALL i th
         | _ -> Choice2Of2 <| Exception "MATCH_ACCEPT_TAC.propagate_thm: Unhandled case."
     let rawtac th (asl,w) =
         try let ith = PART_MATCH I th w
-            (null_meta,[],propagate_thm ith)
+            (null_meta, [], propagate_thm ith)
             |> Choice1Of2
         with Failure _ -> Choice2Of2 <| Exception "ACCEPT_TAC"
     fun th -> REPEAT GEN_TAC |> THEN <| rawtac th
 
 /// Reduces the goal using a supplied implication, with matching.
-let (MATCH_MP_TAC : thm_tactic) = 
+let MATCH_MP_TAC : thm_tactic = 
     fun th -> 
         let sth = 
             try 
                 let tm = concl th
                 let avs, bod = strip_forall tm
-                let ant, con = dest_imp bod
+                let ant, con = Choice.get <| dest_imp bod
                 let th1 = SPECL avs (ASSUME tm)
                 let th2 = UNDISCH th1
                 let evs = 
@@ -856,7 +856,7 @@ let (MATCH_MP_TAC : thm_tactic) =
                 MP (DISCH tm (GEN_ALL(DISCH tm3 (UNDISCH th3)))) th
             with
             | Failure _ -> Choice2Of2 <| Exception "MATCH_MP_TAC: Bad theorem"
-        let match_fun = PART_MATCH (snd << dest_imp) sth
+        let match_fun = PART_MATCH (snd << Choice.get << dest_imp) sth
         fun (asl, w) -> 
             try 
                 let fun1 l =
@@ -864,7 +864,7 @@ let (MATCH_MP_TAC : thm_tactic) =
                     | [a] -> a
                     | _ -> Choice2Of2 <| Exception "MATCH_MP_TAC.fun1: Unhandled case."
                 let xth = match_fun w
-                let lant = fst(dest_imp(concl xth))
+                let lant = fst(Choice.get <| dest_imp(concl xth))
                 (null_meta, [asl, lant], fun i tl -> MP (INSTANTIATE_ALL i xth) (fun1 tl))
                 |> Choice1Of2
             with
