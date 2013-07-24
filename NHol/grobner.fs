@@ -684,7 +684,7 @@ let NUM_SIMPLIFY_CONV =
         try f x |> ignore; true
         with Failure _ -> false
     
-    can (find_term (fun t -> is_forall t || is_exists t || is_uexists t))
+    can (Choice.get << find_term (fun t -> is_forall t || is_exists t || is_uexists t))
   let BETA2_CONV = RATOR_CONV BETA_CONV |>THENC<| BETA_CONV
   let PRE_ELIM_THM'' = CONV_RULE (RAND_CONV NNF_CONV) PRE_ELIM_THM
   let SUB_ELIM_THM'' = CONV_RULE (RAND_CONV NNF_CONV) SUB_ELIM_THM
@@ -707,7 +707,7 @@ let NUM_SIMPLIFY_CONV =
        RAND_CONV (NUM_MULTIPLY_CONV (not pos)) tm
     else
        try 
-           let t = find_term (fun t -> is_pre t && free_in t tm) tm in
+           let t = Choice.get <| find_term (fun t -> is_pre t && free_in t tm) tm in
            let ty = Choice.get <| type_of t in
            let v = genvar ty in
            let p = Choice.get <| mk_abs(v,Choice.get <| subst [v,t] tm) in
@@ -719,7 +719,7 @@ let NUM_SIMPLIFY_CONV =
        with 
        | Failure _ -> 
        try
-           let t = find_term (fun t -> is_sub t && free_in t tm) tm in
+           let t = Choice.get <| find_term (fun t -> is_sub t && free_in t tm) tm in
            let ty = Choice.get <| type_of t in
            let v = genvar ty in
            let p = Choice.get <| mk_abs(v,Choice.get <| subst [v,t] tm) in
@@ -730,7 +730,7 @@ let NUM_SIMPLIFY_CONV =
        with 
        | Failure _ -> 
        try
-           let t = find_term (fun t -> is_divmod t && free_in t tm) tm in
+           let t = Choice.get <| find_term (fun t -> is_divmod t && free_in t tm) tm in
            let x = lhand t 
            let y = Choice.get <| rand t in
            let dtm = Choice.get <| mk_comb(Choice.get <| mk_comb(div_tm,x),y)

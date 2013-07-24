@@ -861,7 +861,7 @@ let GEN_REAL_ARITH =
         let is_min = is_binop(parse_term @"real_min")
         let is_abs t = is_comb t && Choice.get <| rator t = abs_tm
         let eliminate_construct p c tm = 
-            let t = find_term (fun t -> p t && free_in t tm) tm
+            let t = Choice.get <| find_term (fun t -> p t && free_in t tm) tm
             let v = genvar(Choice.get <| type_of t)
             let th0 = SYM(BETA_CONV(Choice.get <| mk_comb(Choice.get <| mk_abs(v, Choice.get <| subst [v, t] tm), t)))
             let p, ax = Choice.get <| dest_comb(Choice.get <| rand(concl th0))

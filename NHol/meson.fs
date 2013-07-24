@@ -935,7 +935,7 @@ let GEN_MESON_TAC =
             let can f x = 
                 try f x |> ignore; true
                 with Failure _ -> false
-            if exists (can(find_term is_eq << concl)) ths
+            if exists (can(Choice.get << find_term is_eq << concl)) ths
             then 
                 let ths' = map BRAND_CONGS ths
                 let ths'' = itlist (union' equals_thm << BRAND_TRANS) ths' []

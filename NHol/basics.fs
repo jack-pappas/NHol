@@ -325,12 +325,16 @@ let thm_frees th =
 /// Tests if one term is free in another.
 let rec free_in tm1 tm2 = 
     if aconv tm1 tm2 then true
-    elif is_comb tm2 then 
-        let l, r = Choice.get <| dest_comb tm2
-        free_in tm1 l || free_in tm1 r
+    elif is_comb tm2 then
+        match dest_comb tm2 with
+        | Success(l, r ) ->
+            free_in tm1 l || free_in tm1 r
+        | Error _ -> false
     elif is_abs tm2 then 
-        let bv, bod = Choice.get <| dest_abs tm2
-        not(vfree_in bv tm1) && free_in tm1 bod
+        match dest_abs tm2 with
+        | Success(bv, bod) ->
+            not(vfree_in bv tm1) && free_in tm1 bod
+        | Error _ -> false
     else false
 
 (* ------------------------------------------------------------------------- *)
@@ -339,17 +343,14 @@ let rec free_in tm1 tm2 =
 
 /// Searches a term for a subterm that satises a given predicate.
 let rec find_term p tm = 
-    if p tm then tm
-    elif is_abs tm then find_term p (Choice.get <| body tm)
-    elif is_comb tm then 
-        let l, r = Choice.get <| dest_comb tm
-        try 
+    if p tm then Choice.succeed tm
+    elif is_abs tm then Choice.bind (find_term p) (body tm)
+    elif is_comb tm then
+        dest_comb tm
+        |> Choice.bind (fun (l, r) -> 
             find_term p l
-        with
-        // TODO : If this should only catch failures from this function,
-        // change the wildcard _ to "find_term".
-        | Failure _ -> find_term p r
-    else failwith "find_term"
+            |> Choice.bindError (fun _ -> find_term p r))
+    else Choice.failwith "find_term"
 
 /// Searches a term for all subterms that satisfy a predicate.
 let find_terms = 

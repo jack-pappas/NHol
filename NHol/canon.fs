@@ -678,7 +678,7 @@ let SELECT_ELIM_TAC =
                     GENL fvs th2
                 else failwith "SELECT_AX_THM: not a select-term"
         let SELECT_ELIM_ICONV tm = 
-            let t = find_term is_select tm
+            let t = Choice.get <| find_term is_select tm
             let th1 = SELECT_AX_THM t
             let itm = mk_imp(concl th1, tm)
             let th2 = DISCH_ALL(MP (ASSUME itm) th1)

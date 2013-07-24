@@ -1147,7 +1147,7 @@ let define_type_raw_002 =
                     | _ -> failwith "mk_inls: Unhnadled case."
             fun ty -> 
                 let bods = mk_inls ty
-                map (fun t -> Choice.get <| mk_abs(find_term is_var t, t)) bods
+                map (fun t -> Choice.get <| mk_abs(Choice.get <| find_term is_var t, t)) bods
         let mk_outls = 
             let rec mk_inls sof ty = 
                 if is_vartype ty

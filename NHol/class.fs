@@ -151,7 +151,7 @@ let SELECT_CONV =
                 is_select t && 
                 let bv, bod = dest_select t
                 aconv tm (Choice.get <| vsubst [t, bv] bod)
-            let pickeps = find_term is_epsok tm
+            let pickeps = Choice.get <| find_term is_epsok tm
             let abs = Choice.get <| rand pickeps
             let ty = Choice.get <| type_of(Choice.get <| bndvar abs)
             CONV_RULE (LAND_CONV BETA_CONV) (PINST [ty, aty] [abs, P] pth)
@@ -259,7 +259,7 @@ let TAUT_001 =
     let PROP_REWRITE_TAC = REWRITE_TAC []
     let RTAUT_001_TAC(asl, w) = 
         let ok t = 
-            Choice.get <| type_of t = bool_ty && can (find_term is_var) t && free_in t w
+            Choice.get <| type_of t = bool_ty && can (Choice.get << find_term is_var) t && free_in t w
         (PROP_REWRITE_TAC
          |> THEN <| W
                 ((fun t1 t2 -> t1 |> THEN <| t2)(REWRITE_TAC []) << BOOL_CASES_TAC 
@@ -517,7 +517,7 @@ let TAUT =
     let PROP_REWRITE_TAC = REWRITE_TAC []
     let RTAUT_TAC(asl, w) = 
         let ok t =
-            Choice.get <| type_of t = bool_ty && can (find_term is_var) t && free_in t w
+            Choice.get <| type_of t = bool_ty && can (Choice.get << find_term is_var) t && free_in t w
         (PROP_REWRITE_TAC
          |> THEN <| W
                 ((fun t1 t2 -> t1
