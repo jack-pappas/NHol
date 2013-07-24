@@ -103,7 +103,7 @@ module Choice =
         | Choice2Of2 error ->
             binding error
 
-    let bindBoth (resultBinding : 'T -> Choice<'U, _>) (errorBinding : 'Error -> Choice<_, 'Failure>) value =
+    let bindEither (resultBinding : 'T -> Choice<'U, _>) (errorBinding : 'Error -> Choice<_, 'Failure>) value =
         match value with
         | Choice1Of2 result ->
             resultBinding result
@@ -169,8 +169,6 @@ module Ratio =
 (* NHol-specific helper functions which don't belong in ExtCore or           *)
 (* FSharp.Compatibility.OCaml.                                               *)
 (* ------------------------------------------------------------------------- *)
-
-let inline tuple x = (x, x)
 
 module Option =
     /// Gets the value associated with an option; if the option is None,

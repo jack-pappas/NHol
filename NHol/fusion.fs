@@ -73,8 +73,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     let the_type_constants = 
-        ref ["bool", 0;
-             "fun", 2]
+        ref ["bool", 0; "fun", 2]
     
     (* ------------------------------------------------------------------------- *)
     (* Return all the defined types.                                             *)
@@ -90,8 +89,10 @@ module Hol_kernel =
     /// Returns the arity of a type constructor.
     let get_type_arity s =
         match assoc s !the_type_constants with
-        | Some result -> Choice.succeed result
-        | None -> Choice.failwith "find"
+        | Some result -> 
+            Choice.succeed result
+        | None -> 
+            Choice.failwith "find"
     
     (* ------------------------------------------------------------------------- *)
     (* Declare a new type.                                                       *)
@@ -99,8 +100,10 @@ module Hol_kernel =
 
     /// Declares a new type or type constructor.
     let new_type(name, arity) =
-        if Choice.isResult <| get_type_arity name then Choice.failwith("new_type: type " + name + " has already been declared")
-        else Choice.succeed (the_type_constants := (name, arity) :: (!the_type_constants))
+        if Choice.isResult <| get_type_arity name then 
+            Choice.failwith("new_type: type " + name + " has already been declared")
+        else 
+            Choice.succeed (the_type_constants := (name, arity) :: (!the_type_constants))
     
     (* ------------------------------------------------------------------------- *)
     (* Basic type constructors.                                                  *)
@@ -110,9 +113,10 @@ module Hol_kernel =
     let mk_type(tyop, args) =  
         let arity = get_type_arity tyop
         arity 
-        |> Choice.bindBoth (fun arity ->      
-            if arity = length args then Choice.succeed <| Tyapp(tyop, args)
-            else Choice.failwith ("mk_type: wrong number of arguments to " + tyop))
+        |> Choice.bindEither 
+            (fun arity ->      
+                if arity = length args then Choice.succeed <| Tyapp(tyop, args)
+                else Choice.failwith ("mk_type: wrong number of arguments to " + tyop))
             (fun e -> Choice.nestedFailwith e ("mk_type: type " + tyop + " has not been defined"))
     
     /// Constructs a type variable of the given name.
@@ -201,8 +205,10 @@ module Hol_kernel =
     /// Gets the generic type of a constant from the name of the constant.
     let get_const_type s =
         match assoc s !the_term_constants with
-        | Some result -> Choice.succeed result
-        | None -> Choice.failwith "find"
+        | Some result -> 
+            Choice.succeed result
+        | None -> 
+            Choice.failwith "find"
     
     (* ------------------------------------------------------------------------- *)
     (* Declare a new constant.                                                   *)
@@ -210,8 +216,10 @@ module Hol_kernel =
 
     /// Declares a new constant.
     let new_constant(name, ty) =
-        if Choice.isResult <| get_const_type name then Choice.failwith("new_constant: constant " + name + " has already been declared")
-        else Choice.succeed (the_term_constants := (name, ty) :: (!the_term_constants))
+        if Choice.isResult <| get_const_type name then 
+            Choice.failwith("new_constant: constant " + name + " has already been declared")
+        else 
+            Choice.succeed (the_term_constants := (name, ty) :: (!the_term_constants))
     
     (* ------------------------------------------------------------------------- *)
     (* Finds the type of a term (assumes it is well-typed).                      *)
@@ -278,8 +286,10 @@ module Hol_kernel =
     /// Constructs an abstraction.
     let mk_abs(bvar, bod) = 
         match bvar with
-        | Var(_, _) -> Choice.succeed <| Abs(bvar, bod)
-        | _ -> Choice.failwith "mk_abs: not a variable"
+        | Var(_, _) -> 
+            Choice.succeed <| Abs(bvar, bod)
+        | _ -> 
+            Choice.failwith "mk_abs: not a variable"
     
     /// Constructs a combination.
     let mk_comb(f, a) = 
@@ -291,7 +301,8 @@ module Hol_kernel =
                 |> Choice.bind (fun ta ->
                     if compare ty ta = 0 then Choice.succeed <| Comb(f, a)
                     else Choice.failwith "mk_comb: types do not agree")
-            | _ -> Choice.failwith "mk_comb: types do not agree")
+            | _ -> 
+                Choice.failwith "mk_comb: types do not agree")
 
     (* ------------------------------------------------------------------------- *)
     (* Primitive destructors.                                                    *)
@@ -300,26 +311,34 @@ module Hol_kernel =
     /// Breaks apart a variable into name and type.
     let dest_var = 
         function 
-        | Var(s, ty) -> Choice.succeed (s, ty)
-        | _ -> Choice.failwith "dest_var: not a variable"
+        | Var(s, ty) -> 
+            Choice.succeed (s, ty)
+        | _ -> 
+            Choice.failwith "dest_var: not a variable"
     
     /// Breaks apart a constant into name and type.
     let dest_const = 
         function 
-        | Const(s, ty) -> Choice.succeed (s, ty)
-        | _ -> Choice.failwith "dest_const: not a constant"
+        | Const(s, ty) -> 
+            Choice.succeed (s, ty)
+        | _ -> 
+            Choice.failwith "dest_const: not a constant"
     
     /// Breaks apart a combination (function application) into rator and rand.
     let dest_comb = 
         function 
-        | Comb(f, x) -> Choice.succeed (f, x)
-        | _ -> Choice.failwith "dest_comb: not a combination"
+        | Comb(f, x) -> 
+            Choice.succeed (f, x)
+        | _ -> 
+            Choice.failwith "dest_comb: not a combination"
     
     /// Breaks apart an abstraction into abstracted variable and body.
     let dest_abs = 
         function 
-        | Abs(v, b) -> Choice.succeed (v, b)
-        | _ -> Choice.failwith "dest_abs: not an abstraction"
+        | Abs(v, b) -> 
+            Choice.succeed (v, b)
+        | _ -> 
+            Choice.failwith "dest_abs: not an abstraction"
     
     (* ------------------------------------------------------------------------- *)
     (* Finds the variables free in a term (list of terms).                       *)
@@ -488,14 +507,18 @@ module Hol_kernel =
     /// Returns the operator from a combination (function application).
     let rator tm = 
         match tm with
-        | Comb(l, r) -> Choice.succeed l
-        | _ -> Choice.failwith "rator: Not a combination"
+        | Comb(l, r) -> 
+            Choice.succeed l
+        | _ -> 
+            Choice.failwith "rator: Not a combination"
     
     /// Returns the operand from a combination (function application).
     let rand tm = 
         match tm with
-        | Comb(l, r) -> Choice.succeed r
-        | _ -> Choice.failwith "rand: Not a combination"
+        | Comb(l, r) -> 
+            Choice.succeed r
+        | _ -> 
+            Choice.failwith "rand: Not a combination"
     
     (* ------------------------------------------------------------------------- *)
     (* Syntax operations for equations.                                          *)
@@ -509,8 +532,10 @@ module Hol_kernel =
     /// Term destructor for equality.
     let dest_eq tm = 
         match tm with
-        | Comb(Comb(Const("=", _), l), r) -> Choice.succeed (l, r)
-        | _ -> Choice.failwith "dest_eq"
+        | Comb(Comb(Const("=", _), l), r) -> 
+            Choice.succeed (l, r)
+        | _ -> 
+            Choice.failwith "dest_eq"
     
     (* ------------------------------------------------------------------------- *)
     (* Useful to have term union modulo alpha-conversion for assumption lists.   *)
@@ -654,7 +679,8 @@ module Hol_kernel =
         | Comb(Abs(v, bod), arg) when compare arg v = 0 -> 
             safe_mk_eq tm bod
             |> Choice.map (fun tm -> Sequent([], tm))
-        | _ -> Choice.failwith "BETA: not a trivial beta-redex"
+        | _ -> 
+            Choice.failwith "BETA: not a trivial beta-redex"
     
     (* ------------------------------------------------------------------------- *)
     (* Rules connected with deduction.                                           *)
@@ -778,12 +804,15 @@ module Hol_kernel =
         | Success (Sequent(asl, c)) ->
             if exists (Choice.isResult << get_const_type) [absname; repname] then 
                 Choice.failwithPair "new_basic_type_definition: Constant(s) already in use"
-            elif not(asl = []) then Choice.failwithPair "new_basic_type_definition: Assumptions in theorem"
+            elif not(asl = []) then 
+                Choice.failwithPair "new_basic_type_definition: Assumptions in theorem"
             else
                 match dest_comb c with
-                | Error e -> Choice.nestedFailwithPair e "new_basic_type_definition: Not a combination"
+                | Error e -> 
+                    Choice.nestedFailwithPair e "new_basic_type_definition: Not a combination"
                 | Success(P, x) ->
-                    if not(freesin [] P) then Choice.failwithPair "new_basic_type_definition: Predicate is not closed"
+                    if not(freesin [] P) then 
+                        Choice.failwithPair "new_basic_type_definition: Predicate is not closed"
                     else 
                         match type_vars_in_term P with
                         | Success tvs ->
@@ -801,14 +830,19 @@ module Hol_kernel =
                                         let rep = Const(repname, repty)
                                         let a = Var("a", aty)
                                         let r = Var("r", rty)
-                                        (mk_comb(rep, a) |> Choice.bind (fun b -> safe_mk_eq (Comb(abs, b)) a) |> Choice.map (fun tm -> Sequent([], tm))),
+                                        (mk_comb(rep, a) 
+                                         |> Choice.bind (fun b -> safe_mk_eq (Comb(abs, b)) a) 
+                                         |> Choice.map (fun tm -> Sequent([], tm))),
                                         (mk_comb(abs, r)
                                          |> Choice.bind (fun b1 -> mk_comb(rep, b1) |> Choice.bind (fun b2 -> safe_mk_eq b2 r))
                                          |> Choice.bind (fun tm -> safe_mk_eq (Comb(P, r)) tm |> Choice.map (fun tm' -> Sequent([], tm'))))
                                     | _ -> Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
-                                | Error ex -> (Choice2Of2 ex, Choice2Of2 ex)
-                            | Error _ -> Choice.failwithPair "new_basic_type_definition: Type already defined"
-                        | Error ex -> (Choice2Of2 ex, Choice2Of2 ex)
+                                | Error ex -> 
+                                    (Choice2Of2 ex, Choice2Of2 ex)
+                            | Error _ -> 
+                                Choice.failwithPair "new_basic_type_definition: Type already defined"
+                        | Error ex -> 
+                            (Choice2Of2 ex, Choice2Of2 ex)
         | Error _ ->
             Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
 
