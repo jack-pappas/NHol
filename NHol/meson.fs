@@ -138,7 +138,7 @@ let GEN_MESON_TAC =
             let n = !vcounter
             let m = n + 1
             if m >= offinc
-            then failwith "inc_vcounter: too many variables"
+            then failwith "inc_vcounter: too many Choice.get <| variables"
             else 
                 (vcounter := m
                  n)
@@ -290,7 +290,7 @@ let GEN_MESON_TAC =
         else p, args'
     (* ----------------------------------------------------------------------- *)
     (* Main unification function, maintaining a "graph" instantiation.         *)
-    (* We implicitly apply an offset to variables in the second term, so this  *)
+    (* We implicitly apply an offset to Choice.get <| variables in the second term, so this  *)
     (* is not symmetric between the arguments.                                 *)
     (* ----------------------------------------------------------------------- *)
     let rec istriv env x t = 
@@ -865,7 +865,7 @@ let GEN_MESON_TAC =
                 let gv = genvar(Choice.get <| type_of tm)
                 let eq = Choice.get <| mk_eq(gv, tm)
                 let th' = CLAUSIFY(DISCH eq (SUBS [SYM(ASSUME eq)] th))
-                let tms' = map (subst [gv, tm]) (tl tms)
+                let tms' = map (Choice.get << subst [gv, tm]) (tl tms)
                 BRAND tms' th'
         let BRAND_CONGS th = 
             let lconsts = freesl(hyp th)

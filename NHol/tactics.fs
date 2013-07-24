@@ -650,7 +650,7 @@ let SPEC_TAC : term * term -> tactic =
                 match l with
                 | [a] -> a
                 | _ -> Choice2Of2 <| Exception "LABEL_TAC.fun1: Unhandled case."
-            (null_meta, [asl, mk_forall(x, subst [x, t] w)], fun i tl -> SPEC (instantiate i t) (fun1 tl))
+            (null_meta, [asl, mk_forall(x, Choice.get <| subst [x, t] w)], fun i tl -> SPEC (instantiate i t) (fun1 tl))
             |> Choice1Of2
         v |> Choice.mapError (fun _ -> Exception "SPEC_TAC: Failure.")
 
@@ -983,7 +983,7 @@ let (UNDISCH_THEN : term -> thm_tactic -> tactic) =
 let FIRST_X_ASSUM ttac = FIRST_ASSUM(fun th -> UNDISCH_THEN (concl th) ttac)
 
 (* ------------------------------------------------------------------------- *)
-(* Subgoaling and freezing variables (latter is especially useful now).      *)
+(* Subgoaling and freezing Choice.get <| variables (latter is especially useful now).      *)
 (* ------------------------------------------------------------------------- *)
 
 /// Introduces a lemma as a new subgoal.
@@ -1002,7 +1002,7 @@ let SUBGOAL_TAC s tm prfs =
         SUBGOAL_THEN tm (LABEL_TAC s) |> THENL <| [p; ALL_TAC]
     |  [] -> fun _ -> Choice2Of2 <| Exception "SUBGOAL_TAC: no subproof given"
 
-/// 'Freezes' a theorem to prevent instantiation of its free variables.
+/// 'Freezes' a theorem to prevent instantiation of its free Choice.get <| variables.
 let (FREEZE_THEN : thm_tactical) = 
     fun ttac th (asl, w) -> 
         ttac (ASSUME(concl th)) (asl, w)
@@ -1293,7 +1293,7 @@ let g t =
     (if fvs <> []
      then 
          let errmsg = end_itlist (fun s t -> s + ", " + t) fvs
-         warn true ("Free variables in goal: " + errmsg)
+         warn true ("Free Choice.get <| variables in goal: " + errmsg)
      else ())
     set_goal([], t)
 

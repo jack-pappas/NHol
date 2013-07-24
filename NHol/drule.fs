@@ -248,7 +248,7 @@ let INSTANTIATE_ALL : instantiation -> thm -> thm =
 (*                                                                           *)
 (* Note: in the event of spillover patterns, this may return false results;  *)
 (* but there's usually an implicit check outside that the match worked       *)
-(* anyway. A test could be put in (see if any "env" variables are left in    *)
+(* anyway. A test could be put in (see if any "env" Choice.get <| variables are left in    *)
 (* the term after abstracting out the pattern instances) but it'd be slower. *)
 (* ------------------------------------------------------------------------- *)
 
@@ -397,7 +397,7 @@ let term_match : term list -> term -> term -> instantiation =
                                         (if is_var p
                                          then p
                                          else genvar(Choice.get <| type_of p)), p) pats
-                            let ctm' = subst ginsts ctm
+                            let ctm' = Choice.get <| subst ginsts ctm
                             let gvs = map fst ginsts
                             let abstm = list_mk_abs(gvs, ctm')
                             let vinsts = safe_inserta (abstm, vhop) insts
@@ -426,7 +426,7 @@ let term_match : term list -> term -> term -> instantiation =
 /// Unify two terms.
 let term_unify : term list -> term -> term -> instantiation = 
     let augment1 sofar (s, x) = 
-        let s' = subst sofar s
+        let s' = Choice.get <| subst sofar s
         if vfree_in x s && not(s = x)
         then failwith "augment_insts"
         else (s', x)
@@ -462,7 +462,7 @@ let term_unify : term list -> term -> term -> instantiation =
         elif is_abs tm1
         then 
             let tm1' = Choice.get <| body tm1
-            let tm2' = subst [Choice.get <| bndvar tm1, Choice.get <| bndvar tm2] (Choice.get <| body tm2)
+            let tm2' = Choice.get <| subst [Choice.get <| bndvar tm1, Choice.get <| bndvar tm2] (Choice.get <| body tm2)
             unify vars tm1' tm2' sofar
         else 
             let l1, r1 = Choice.get <| dest_comb tm1
@@ -674,7 +674,7 @@ let HIGHER_REWRITE_CONV =
                 assoc pat ass_list
                 |> Option.getOrFailWith "find"
             let gv = genvar(Choice.get <| type_of stm)
-            let abs = Choice.get <| mk_abs(gv, subst [gv, stm] tm)
+            let abs = Choice.get <| mk_abs(gv, Choice.get <| subst [gv, stm] tm)
             let _, tmin0, tyin0 = term_match [] pred abs
             CONV_RULE beta_fn (INST tmin (INST tmin0 (INST_TYPE tyin0 th)))
 

@@ -620,7 +620,7 @@ let instantiate_casewise_recursion,
               else failwith "EXISTS_PAT_CONV" in
 
 (* ------------------------------------------------------------------------- *)
-(* Hack a proforma to introduce new pairing or pattern variables.            *)
+(* Hack a proforma to introduce new pairing or pattern Choice.get <| variables.            *)
 (* ------------------------------------------------------------------------- *)
 
   let HACK_PROFORMA,EACK_PROFORMA =
@@ -823,7 +823,7 @@ let instantiate_casewise_recursion,
                        (mk_var(fst(Choice.get <| dest_var f), Choice.get <| mk_fun_ty dty ranty))
       let gvs = map genvar domtys
       let f'' = list_mk_abs(gvs,Choice.get <| mk_comb(f',end_itlist (curry mk_pair) gvs))
-      let def' = subst [f'',f] def
+      let def' = Choice.get <| subst [f'',f] def
       let th1 = EXISTS (tm,f'') (ASSUME def')
       in let bth = BETAS_CONV (list_mk_comb(f'',gvs))
       let th2 = GEN_REWRITE_CONV TOP_DEPTH_CONV [bth] (hd(hyp th1))

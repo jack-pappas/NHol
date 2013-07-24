@@ -190,10 +190,10 @@ let unspaced_binops =
 let prebroken_binops = ref ["==>"]
 
 (* ------------------------------------------------------------------------- *)
-(* Force explicit indications of bound variables in set abstractions.        *)
+(* Force explicit indications of bound Choice.get <| variables in set abstractions.        *)
 (* ------------------------------------------------------------------------- *)
 
-/// Determines whether bound variables in set abstractions are made explicit.
+/// Determines whether bound Choice.get <| variables in set abstractions are made explicit.
 let print_unambiguous_comprehensions = ref false
 
 (* ------------------------------------------------------------------------- *)

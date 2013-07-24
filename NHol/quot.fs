@@ -192,7 +192,7 @@ let lift_function =
 (* ------------------------------------------------------------------------- *)
 (* Lifts a theorem. This can be done by higher order rewriting alone.        *)
 (*                                                                           *)
-(* NB! All and only the first order variables must be bound by quantifiers.  *)
+(* NB! All and only the first order Choice.get <| variables must be bound by quantifiers.  *)
 (* ------------------------------------------------------------------------- *)
 /// Lifts a theorem to quotient type from representing type.
 let lift_theorem = 

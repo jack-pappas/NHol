@@ -45,20 +45,20 @@ open printer
 let ignore_constant_varstruct = ref true
 
 (* ------------------------------------------------------------------------- *)
-(* Flags controlling the treatment of invented type variables in quotations. *)
+(* Flags controlling the treatment of invented type Choice.get <| variables in quotations. *)
 (* It can be treated as an error, result in a warning, ||  neither of those.  *)
 (* ------------------------------------------------------------------------- *)
 
-/// Determined if user is warned about invented type variables.
+/// Determined if user is warned about invented type Choice.get <| variables.
 let type_invention_warning = ref true
-/// Determines if invented type variables are treated as an error.
+/// Determines if invented type Choice.get <| variables are treated as an error.
 let type_invention_error = ref false
 
 (* ------------------------------------------------------------------------- *)
 (* Implicit types ||  type schemes for non-constants.                         *)
 (* ------------------------------------------------------------------------- *)
 
-/// Restrict variables to a particular type or type scheme.
+/// Restrict Choice.get <| variables to a particular type or type scheme.
 let the_implicit_types = ref([] : (string * hol_type) list)
 
 (* ------------------------------------------------------------------------- *)
@@ -269,7 +269,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         | _ -> failwith "pretype_subst: Unexpected form of pretype"
 
     (* ----------------------------------------------------------------------- *)
-    (* Convert type to pretype with new Stvs for all type variables.           *)
+    (* Convert type to pretype with new Stvs for all type Choice.get <| variables.           *)
     (* ----------------------------------------------------------------------- *)
 
     let pretype_instance ty = 
@@ -486,7 +486,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         | _ -> failwith "solve_preterm: Unhandled case."
 
     (* ----------------------------------------------------------------------- *)
-    (* Flag to indicate that Stvs were translated to real type variables.      *)
+    (* Flag to indicate that Stvs were translated to real type Choice.get <| variables.      *)
     (* ----------------------------------------------------------------------- *)
 
     let stvs_translated = ref false
@@ -518,8 +518,8 @@ let type_of_pretype, term_of_preterm, retypecheck =
             | Typing(ptm, pty) -> term_of_preterm ptm
         let report_type_invention() = 
             if !stvs_translated then 
-                if !type_invention_error then failwith "typechecking error (cannot infer type of variables)"
-                else warn !type_invention_warning "inventing type variables"
+                if !type_invention_error then failwith "typechecking error (cannot infer type of Choice.get <| variables)"
+                else warn !type_invention_warning "inventing type Choice.get <| variables"
         fun ptm -> 
             stvs_translated := false
             let tm = term_of_preterm ptm

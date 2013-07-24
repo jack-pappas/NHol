@@ -306,7 +306,7 @@ let SPEC =
         CONV_RULE BETA_CONV (MP (PINST [snd(Choice.get <| dest_var(Choice.get <| bndvar abs)), aty] [abs, P; tm, x] <| pth()) th)
         |> Choice.mapError (fun _ -> Exception "SPEC")
 
-/// Specializes zero or more variables in the conclusion of a theorem.
+/// Specializes zero or more Choice.get <| variables in the conclusion of a theorem.
 let SPECL tms th = 
     rev_itlist SPEC tms th
     |> Choice.mapError (fun _ -> Exception "SPEC")
@@ -320,7 +320,7 @@ let SPEC_VAR th =
     let bv = Choice.get <| variant (thm_frees th) (Choice.get <| bndvar(Choice.get <| rand(concl th)))
     bv, SPEC bv th
 
-/// Specializes the conclusion of a theorem with its own quantified variables.
+/// Specializes the conclusion of a theorem with its own quantified Choice.get <| variables.
 let rec SPEC_ALL th = 
     if is_forall(concl th) then SPEC_ALL(snd(SPEC_VAR th))
     else th
@@ -364,13 +364,13 @@ let GEN =
             let rth = INST [phi, ptm] qth
             EQ_MP rth th'
 
-/// Generalizes zero or more variables in the conclusion of a theorem.
+/// Generalizes zero or more Choice.get <| variables in the conclusion of a theorem.
 let GENL = itlist GEN
 
 let dest_thm thm =
     dest_thm (Choice.get thm)
 
-/// Generalizes the conclusion of a theorem over its own free variables.
+/// Generalizes the conclusion of a theorem over its own free Choice.get <| variables.
 let GEN_ALL th = 
     let asl, c = dest_thm th
     let vars = subtract (frees c) (freesl asl)
@@ -385,7 +385,7 @@ let EXISTS_DEF = new_basic_definition <| parse_term @"(?) = \P:A->bool. !q. (!x.
 /// Term constructor for existential quantification.
 let mk_exists = mk_binder "?"
 
-/// Multiply existentially quantifies both sides of an equation using the given variables.
+/// Multiply existentially quantifies both sides of an equation using the given Choice.get <| variables.
 let list_mk_exists(vs, bod) = itlist (curry mk_exists) vs bod
 
 /// Introduces existential quantification given a particular witness.

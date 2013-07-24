@@ -269,11 +269,11 @@ let new_definition =
             let fn, args = strip_comb l
             let gargs, reps = (I ||>> unions)(unzip(map depair args))
             let l' = list_mk_comb(fn, gargs)
-            let r' = subst reps r
+            let r' = Choice.get <| subst reps r
             let th1 = new_definition(Choice.get <| mk_eq(l', r'))
             let slist = zip args gargs
             let th2 = INST slist (SPEC_ALL th1)
-            let xreps = map (subst slist << fst) reps
+            let xreps = map (Choice.get << subst slist << fst) reps
             let threps = map (SYM << PURE_REWRITE_CONV [FST; SND]) xreps
             let th3 = TRANS th2 (SYM(SUBS_CONV threps r))
             let th4 = GEN_ALL(GENL avs th3)
@@ -391,13 +391,13 @@ let GEN_BETA_CONV =
             let th1 = SUBS_CONV prjs bod
             let bod' = Choice.get <| rand(concl th1)
             let gv = genvar(Choice.get <| type_of vstr)
-            let pat = Choice.get <| mk_abs(gv, subst [gv, vstr] bod')
+            let pat = Choice.get <| mk_abs(gv, Choice.get <| subst [gv, vstr] bod')
             let th2 = TRANS (BETA_CONV(Choice.get <| mk_comb(pat, vstr))) (SYM th1)
             let avs = fst(strip_forall(Choice.get <| body(Choice.get <| rand l)))
             let th3 = GENL (fst(strip_forall(Choice.get <| body(Choice.get <| rand l)))) th2
             let efn = genvar(Choice.get <| type_of pat)
             let th4 = 
-                EXISTS (mk_exists(efn, subst [efn, pat] (concl th3)), pat) th3
+                EXISTS (mk_exists(efn, Choice.get <| subst [efn, pat] (concl th3)), pat) th3
             let th5 = 
                 CONV_RULE (funpow (length avs + 1) BINDER_CONV GEQ_CONV) th4
             let th6 = CONV_RULE BETA_CONV (GABS_RULE th5)

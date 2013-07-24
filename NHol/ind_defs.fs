@@ -204,7 +204,7 @@ let derive_nonschematic_inductive_relations =
         let rels = itlist (insert << fst) uncs []
         let xargs = rels |> map (fun x -> assoc x uncs |> Option.getOrFailWith "find")
         let closed = list_mk_conj clauses
-        let avoids = variables closed
+        let avoids = Choice.get <| variables closed
         let flargs = make_args "a" avoids (map (Choice.get << type_of) (end_itlist (@) xargs))
         let zargs = zip rels (shareout xargs flargs)
         let cargs = uncs |> map (fun (r, a) -> assoc r zargs |> Option.getOrFailWith "find")
@@ -228,10 +228,10 @@ let derive_nonschematic_inductive_relations =
         let vargs, bodies = unzip(map strip_forall clauses)
         let ants, concs = unzip(map dest_imp bodies)
         let rels = map (repeat (Choice.get << rator)) concs
-        let avoids = variables closed
+        let avoids = Choice.get <| variables closed
         let rels' = Choice.get <| variants avoids rels
         let crels = zip rels' rels
-        let prime_fn = subst crels
+        let prime_fn = Choice.get << subst crels
         let closed' = prime_fn closed
         let mk_def arg con = 
             Choice.get <| mk_eq
@@ -267,7 +267,7 @@ let derive_nonschematic_inductive_relations =
         let rulethms = map2 prove_rule monothms (zip closthms defthms)
         let rulethm = end_itlist CONJ rulethms
         let dtms = map2 (curry list_mk_abs) vargs ants
-        let double_fn = subst(zip dtms rels)
+        let double_fn = Choice.get << subst(zip dtms rels)
         let mk_unbetas tm dtm = 
             let avs, bod = strip_forall tm
             let il, r = Choice.get <| dest_comb bod
@@ -415,7 +415,7 @@ let prove_monotonicity_hyps =
         itlist PROVE_HYP mths th
 
 (* ========================================================================= *)
-(* Part 3: The final user wrapper, with schematic variables added.           *)
+(* Part 3: The final user wrapper, with schematic Choice.get <| variables added.           *)
 (* ========================================================================= *)
 /// List of all definitions introduced so far.
 let the_inductive_definitions = ref []
@@ -468,13 +468,13 @@ let prove_inductive_relations_exist, new_inductive_definition =
         if is_var(hd schem)
         then (clauses, [])
         elif not(length(setify(map (snd << strip_comb) schems)) = 1)
-        then failwith "Schematic variables not used consistently"
+        then failwith "Schematic Choice.get <| variables not used consistently"
         else 
-            let avoids = variables(list_mk_conj clauses)
+            let avoids = Choice.get <| variables(list_mk_conj clauses)
             let hack_fn tm = mk_var(fst(Choice.get <| dest_var(repeat (Choice.get << rator) tm)), Choice.get <| type_of tm)
             let grels = Choice.get <| variants avoids (map hack_fn schems)
             let crels = zip grels schems
-            let clauses' = map (subst crels) clauses
+            let clauses' = map (Choice.get << subst crels) clauses
             clauses', snd(strip_comb(hd schems))
     let find_redefinition tm (rth, ith, cth as trip) = 
         if aconv tm (concl rth)
@@ -542,11 +542,11 @@ let derive_strong_induction =
         let iant, icon = dest_imp ibod
         let ns, prrs = unzip(map dest_ibod (conjuncts icon))
         let rs, ps = unzip prrs
-        let gs = Choice.get <| variants (variables ibod) ps
+        let gs = Choice.get <| variants (Choice.get <| variables ibod) ps
         let svs, tvs = chop_list (length ovs - length ns) ovs
         let sth = SPECL svs rth
         let jth = SPECL svs ith
-        let gimps = subst (zip gs rs) icon
+        let gimps = Choice.get <| subst (zip gs rs) icon
         let prs = 
             map2 
                 (fun n (r, p) -> 

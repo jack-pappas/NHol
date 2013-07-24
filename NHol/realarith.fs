@@ -863,7 +863,7 @@ let GEN_REAL_ARITH =
         let eliminate_construct p c tm = 
             let t = find_term (fun t -> p t && free_in t tm) tm
             let v = genvar(Choice.get <| type_of t)
-            let th0 = SYM(BETA_CONV(Choice.get <| mk_comb(Choice.get <| mk_abs(v, subst [v, t] tm), t)))
+            let th0 = SYM(BETA_CONV(Choice.get <| mk_comb(Choice.get <| mk_abs(v, Choice.get <| subst [v, t] tm), t)))
             let p, ax = Choice.get <| dest_comb(Choice.get <| rand(concl th0))
             CONV_RULE (RAND_CONV(BINOP_CONV(RAND_CONV BETA_CONV))) 
                 (TRANS th0 (c p ax))

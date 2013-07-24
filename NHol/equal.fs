@@ -385,7 +385,7 @@ let SUBS_CONV ths tm =
         else 
             let lefts = map (lhand << concl) ths
             let gvs = map (genvar << Choice.get << type_of) lefts
-            let pat = subst (zip gvs lefts) tm
+            let pat = Choice.get <| subst (zip gvs lefts) tm
             let abs = list_mk_abs(gvs, pat)
             let th = 
                 rev_itlist (fun y x -> CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(x, y))) 

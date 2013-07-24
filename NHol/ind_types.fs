@@ -539,7 +539,7 @@ let define_type_raw_001 =
 
     let SCRUB_EQUATION eq (th, insts) = 
         (*HA*)
-        let eq' = itlist subst (map (fun t -> [t]) insts) eq
+        let eq' = itlist (fun x -> Choice.get << subst x) (map (fun t -> [t]) insts) eq
         let l, r = Choice.get <| dest_eq eq'
         (MP (INST [r, l] (DISCH eq' th)) (REFL r), (r, l) :: insts)
 
@@ -812,7 +812,7 @@ let define_type_raw_001 =
                 let argsgen = 
                     map (fun tm -> mk_var(fst(Choice.get <| dest_var(Choice.get <| rand tm)), Choice.get <| type_of tm)) 
                         argsin
-                let asmgen = subst (zip argsgen argsin) asmin
+                let asmgen = Choice.get <| subst (zip argsgen argsin) asmin
                 let asmquant = 
                     list_mk_forall(snd(strip_comb(Choice.get <| rand(Choice.get <| rand asmgen))), asmgen)
                 let th1 = INST (zip argsin argsgen) (SPEC_ALL(ASSUME asmquant))
@@ -970,7 +970,7 @@ let define_type_raw_001 =
                 let cctm, itm = Choice.get <| dest_comb ccitm
                 let rargs, iargs = partition (C free_in rtm) args
                 let xths = map (extract_arg itm) iargs
-                let cargs' = map (subst [i, itm] << lhand << concl) xths
+                let cargs' = map (Choice.get << subst [i, itm] << lhand << concl) xths
                 let indices = map sucivate (0 -- (length rargs - 1))
                 let rindexed = map (curry (Choice.get << mk_comb) r) indices
                 let rargs' = 
@@ -1792,7 +1792,7 @@ let define_type_raw =
             let isoth, rclauses = 
                 prove_inductive_types_isomorphic n k (ith0, rth0) (ith1, rth1)
             let irth3 = CONJ ith1 rth1
-            let vtylist = itlist (insert << Choice.get << type_of) (variables(concl irth3)) []
+            let vtylist = itlist (insert << Choice.get << type_of) (Choice.get <| variables(concl irth3)) []
             let isoths = CONJUNCTS isoth
             let isotys = 
                 map (hd << snd << Choice.get << dest_type << Choice.get << type_of << lhand << concl) isoths
@@ -1897,7 +1897,7 @@ let define_type s =
 (* Unwinding, and application of patterns. Add easy cases to default net.    *)
 (* ------------------------------------------------------------------------- *)
 
-// UNWIND_CONV: Eliminates existentially quantified variables that are equated to something.
+// UNWIND_CONV: Eliminates existentially quantified Choice.get <| variables that are equated to something.
 // MATCH_CONV: Expands application of pattern-matching construct to particular case.
 let UNWIND_CONV, MATCH_CONV = 
     let pth_0 = 
@@ -2047,7 +2047,7 @@ let UNWIND_CONV, MATCH_CONV =
     (CHANGED_CONV UNWIND_CONV, (MATCH_SEQPATTERN_CONV_GEN
                                 |> ORELSEC <| MATCH_ONEPATTERN_CONV_GEN))
 
-/// Eliminates universally quantified variables that are equated to something.
+/// Eliminates universally quantified Choice.get <| variables that are equated to something.
 let FORALL_UNWIND_CONV = 
     let PUSH_FORALL_CONV = 
         let econv = REWR_CONV SWAP_FORALL_THM

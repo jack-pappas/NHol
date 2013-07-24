@@ -63,7 +63,7 @@ let rec occurs_in ty bigty =
 
 /// The call tysubst [ty1',ty1; ... ; tyn',tyn] ty will systematically traverse the type ty
 /// and replace the topmost instances of any tyi encountered with the corresponding tyi'.
-/// In the (usual) case where all the tyi are type variables, this is the same as type_subst,
+/// In the (usual) case where all the tyi are type Choice.get <| variables, this is the same as type_subst,
 /// but also works when they are not.
 let tysubst alist ty =
     let rec tysubst alist ty =
@@ -144,7 +144,7 @@ let mk_binary s =
 (* Produces a sequence of variants, considering previous inventions.         *)
 (* ------------------------------------------------------------------------- *)
 
-/// Pick a list of variants of variables, avoiding a list of variables and each other.
+/// Pick a list of variants of Choice.get <| variables, avoiding a list of Choice.get <| variables and each other.
 let variants av vs =
     let rec variants av vs = 
         if vs = [] then []
@@ -163,14 +163,17 @@ let variants av vs =
 /// Determines the variables used, free or bound, in a given term.
 let variables = 
     let rec vars(acc, tm) = 
-        if is_var tm then insert tm acc
-        elif is_const tm then acc
+        if is_var tm then Choice.succeed <| insert tm acc
+        elif is_const tm then Choice.succeed <| acc
         elif is_abs tm then 
-            let v, bod = Choice.get <| dest_abs tm
-            vars(insert v acc, bod)
-        else 
-            let l, r = Choice.get <| dest_comb tm
-            vars(vars(acc, l), r)
+            dest_abs tm
+            |> Choice.bind (fun (v, bod) ->
+                vars(insert v acc, bod))
+        else
+            dest_comb tm
+            |> Choice.bind (fun (l, r) ->
+                vars(acc, l) 
+                |> Choice.bind (fun l' -> vars(l', r)))            
     fun tm -> vars([], tm)
 
 (* ------------------------------------------------------------------------- *)
@@ -196,16 +199,21 @@ let subst =
                     let ilist' = filter (not << (vfree_in v) << snd) ilist
                     Choice.get <| mk_abs(v, ssubst ilist' bod)
                 | _ -> tm
-    fun ilist -> 
+    let subst ilist =
         let theta = filter (fun (s, t) -> compare s t <> 0) ilist
         if theta = [] then (fun tm -> tm)
         else 
             let ts, xs = unzip theta
             fun tm -> 
-                let gs = Choice.get <| variants (variables tm) (map (genvar << Choice.get << type_of) xs)
+                let gs = Choice.get <| variants (Choice.get <| variables tm) (map (genvar << Choice.get << type_of) xs)
                 let tm' = ssubst (zip gs xs) tm
                 if tm' == tm then tm
                 else Choice.get <| vsubst (zip ts gs) tm'
+    fun ilist tm ->
+        try
+            Choice.succeed <| subst ilist tm
+        with Failure s ->
+            Choice.failwith s     
 
 (* ------------------------------------------------------------------------- *)
 (* Alpha conversion term operation.                                          *)
@@ -259,7 +267,7 @@ let mk_mconst(c, ty) =
         nestedFailwith e "mk_const: generic type cannot be instantiated"
 
 (* ------------------------------------------------------------------------- *)
-(* Like mk_comb, but instantiates type variables in Choice.get <| rator if necessary.      *)
+(* Like mk_comb, but instantiates type Choice.get <| variables in Choice.get <| rator if necessary.      *)
 (* ------------------------------------------------------------------------- *)
 
 /// Makes a combination, instantiating types in Choice.get <| rator if necessary.
@@ -281,10 +289,10 @@ let list_mk_icomb cname args =
     list_mk_comb(Choice.get <| mk_const(cname, tyin), args)
 
 (* ------------------------------------------------------------------------- *)
-(* Free variables in assumption list and conclusion of a theorem.            *)
+(* Free Choice.get <| variables in assumption list and conclusion of a theorem.            *)
 (* ------------------------------------------------------------------------- *)
 
-/// Returns a list of the variables free in a theorem's assumptions and conclusion.
+/// Returns a list of the Choice.get <| variables free in a theorem's assumptions and conclusion.
 let thm_frees th = 
     let asl, c = dest_thm th
     itlist (union << frees) asl (frees c)

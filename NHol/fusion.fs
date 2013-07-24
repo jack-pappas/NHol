@@ -151,22 +151,22 @@ module Hol_kernel =
     let is_vartype = Choice.isResult << dest_vartype
     
     (* ------------------------------------------------------------------------- *)
-    (* Return the type variables in a type and in a list of types.               *)
+    (* Return the type Choice.get <| variables in a type and in a list of types.               *)
     (* ------------------------------------------------------------------------- *)
 
-    /// Returns a list of the type variables in a type.
+    /// Returns a list of the type Choice.get <| variables in a type.
     let rec tyvars = function 
         | (Tyapp(_, args)) -> itlist (union << tyvars) args []
         | (Tyvar v as tv) -> [tv]
     
     (* ------------------------------------------------------------------------- *)
-    (* Substitute types for type variables.                                      *)
+    (* Substitute types for type Choice.get <| variables.                                      *)
     (*                                                                           *)
-    (* NB: non-variables in subst list are just ignored (a check would be        *)
+    (* NB: non-Choice.get <| variables in Choice.get <| subst list are just ignored (a check would be        *)
     (* repeated many times), as are repetitions (first possibility is taken).    *)
     (* ------------------------------------------------------------------------- *)
 
-    /// Substitute chosen types for type variables in a type.
+    /// Substitute chosen types for type Choice.get <| variables in a type.
     let rec type_subst i ty = 
         match ty with
         | Tyapp(tycon, args) -> 
@@ -341,10 +341,10 @@ module Hol_kernel =
             Choice.failwith "dest_abs: not an abstraction"
     
     (* ------------------------------------------------------------------------- *)
-    (* Finds the variables free in a term (list of terms).                       *)
+    (* Finds the Choice.get <| variables free in a term (list of terms).                       *)
     (* ------------------------------------------------------------------------- *)
 
-    /// Returns a list of the variables free in a term.
+    /// Returns a list of the Choice.get <| variables free in a term.
     let rec frees tm = 
         match tm with
         | Var(_, _) -> [tm]
@@ -352,13 +352,13 @@ module Hol_kernel =
         | Abs(bv, bod) -> subtract (frees bod) [bv]
         | Comb(s, t) -> union (frees s) (frees t)
     
-    /// Returns a list of the free variables in a list of terms.
+    /// Returns a list of the free Choice.get <| variables in a list of terms.
     let freesl tml = itlist (union << frees) tml []
     
     (* ------------------------------------------------------------------------- *)
-    (* Whether all free variables in a term appear in a list.                    *)
+    (* Whether all free Choice.get <| variables in a term appear in a list.                    *)
     (* ------------------------------------------------------------------------- *)
-    /// Tests if all free variables of a term appear in a list.
+    /// Tests if all free Choice.get <| variables of a term appear in a list.
     let rec freesin acc tm = 
         match tm with
         | Var(_, _) -> mem tm acc
@@ -378,10 +378,10 @@ module Hol_kernel =
         | _ -> compare tm v = 0
     
     (* ------------------------------------------------------------------------- *)
-    (* Finds the type variables (free) in a term.                                *)
+    (* Finds the type Choice.get <| variables (free) in a term.                                *)
     (* ------------------------------------------------------------------------- *)
 
-    /// Returns the set of type variables used in a term.
+    /// Returns the set of type Choice.get <| variables used in a term.
     let type_vars_in_term tm = 
         let rec type_vars_in_term tm = 
             match tm with
@@ -408,10 +408,10 @@ module Hol_kernel =
             | _ -> Choice.failwith "variant: not a variable"
     
     (* ------------------------------------------------------------------------- *)
-    (* Substitution primitive (substitution for variables only!)                 *)
+    (* Substitution primitive (substitution for Choice.get <| variables only!)                 *)
     (* ------------------------------------------------------------------------- *)
 
-    /// Substitute terms for variables inside a term.
+    /// Substitute terms for Choice.get <| variables inside a term.
     let vsubst = 
         let vsubst ilist tm = 
             let rec vsubst ilist tm = 
@@ -452,7 +452,7 @@ module Hol_kernel =
 
     exception Clash of term
     
-    /// Instantiate type variables in a term.
+    /// Instantiate type Choice.get <| variables in a term.
     let inst = 
         let inst env tyin tm =
             let rec inst env tyin tm = 
@@ -726,7 +726,7 @@ module Hol_kernel =
                 Choice.failwith s
         Choice.bind (INST_TYPE theta) thm
     
-    /// Instantiates free variables in a theorem.
+    /// Instantiates free Choice.get <| variables in a theorem.
     let INST theta thm =
         // TODO: revise this
         let INST theta (Sequent(asl, c)) = 
@@ -775,7 +775,7 @@ module Hol_kernel =
                 type_vars_in_term r
                 |> Choice.bind (fun ty' ->
                     if not(subset ty' (tyvars ty)) then 
-                        Choice.failwith "new_definition: Type variables not reflected in constant"
+                        Choice.failwith "new_definition: Type Choice.get <| variables not reflected in constant"
                     else 
                         new_constant(cname, ty)
                         |> Choice.bind (fun () ->

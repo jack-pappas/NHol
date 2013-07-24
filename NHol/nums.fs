@@ -339,7 +339,7 @@ let new_specification =
         if not(asl = [])
         then failwith "new_specification: Assumptions not allowed in theorem"
         elif not(frees c = [])
-        then failwith "new_specification: Free variables in predicate"
+        then failwith "new_specification: Free Choice.get <| variables in predicate"
         else 
             let avs = fst(strip_exists c)
             if length names = 0 || length names > length avs

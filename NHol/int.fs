@@ -1822,7 +1822,7 @@ let num_gcd = new_definition(parse_term @"gcd(a,b) = num_of_int(gcd(&a,&b))")
 
 (* ------------------------------------------------------------------------- *)
 (* Map an assertion over N to an integer equivalent.                         *)
-(* To make this work nicely, all variables of type num should be quantified. *)
+(* To make this work nicely, all Choice.get <| variables of type num should be quantified. *)
 (* ------------------------------------------------------------------------- *)
 
 /// Maps an assertion over natural numbers to equivalent over reals.
@@ -1865,7 +1865,7 @@ let ARITH_RULE =
     let gvs = map (genvar << Choice.get << type_of) nim in
     let pths = map (fun v -> SPEC (Choice.get <| rand v) INT_POS) nim in
     let ibod = itlist (curry mk_imp << concl) pths bod in
-    let gbod = subst (zip gvs nim) ibod in
+    let gbod = Choice.get <| subst (zip gvs nim) ibod in
     let th2 = INST (zip nim gvs) (INT_ARITH gbod) in
     let th3 = GENL avs (rev_itlist (C MP) pths th2) in
     EQ_MP (SYM th1) th3;;
