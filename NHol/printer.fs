@@ -603,7 +603,7 @@ let pp_print_term =
                         let vs, bod = collectvs t
                         (false, v) :: vs, bod
                     elif is_gabs tm then 
-                        let v, t = dest_gabs tm
+                        let v, t = Choice.get <| dest_gabs tm
                         let vs, bod = collectvs t
                         (true, v) :: vs, bod
                     else [], tm
@@ -613,7 +613,7 @@ let pp_print_term =
                         let vs, bod = collectvs t
                         (false, v) :: vs, bod
                     elif is_gabs(Choice.get <| rand tm) then 
-                        let v, t = dest_gabs(Choice.get <| rand tm)
+                        let v, t = Choice.get <| dest_gabs(Choice.get <| rand tm)
                         let vs, bod = collectvs t
                         (true, v) :: vs, bod
                     else [], tm

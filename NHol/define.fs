@@ -675,7 +675,7 @@ let instantiate_casewise_recursion,
 (* ------------------------------------------------------------------------- *)
 
   let APPLY_PROFORMA_TAC th (asl,w as gl) =
-    let vs = fst(dest_gabs(Choice.get <| body(Choice.get <| rand w)))
+    let vs = fst(Choice.get <| dest_gabs(Choice.get <| body(Choice.get <| rand w)))
     let n = 1 + length(fst(splitlist dest_pair vs))
     (MATCH_MP_TAC(HACK_PROFORMA n th) |>THEN<| BETA_TAC) gl in
 
@@ -706,7 +706,7 @@ let instantiate_casewise_recursion,
     let had,args = strip_comb w
     if not(is_const had) then failwith "ADMISS_TAC" else
     let f,fbod = Choice.get <| dest_abs(last args)
-    let xtup,bod = dest_gabs fbod
+    let xtup,bod = Choice.get <| dest_gabs fbod
     let hop,args = strip_comb bod
     match (name_of had,name_of hop) with
       "superadmissible","COND"

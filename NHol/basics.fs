@@ -558,29 +558,31 @@ let dest_numeral =
 (* universal quantifiers --- but probably simplest. It has to go somewhere!  *)
 (* ------------------------------------------------------------------------- *)
 
-/// Breaks apart a generalized abstraction into abstracted varstruct and Choice.get <| body.
-let dest_gabs = 
-    let dest_geq = Choice.get << dest_binary "GEQ"
+/// Breaks apart a generalized abstraction into abstracted varstruct and body.
+// TODO: recheck why we need to add type annotation here
+let dest_gabs : _ -> Choice<_, exn> = 
+    let dest_geq = dest_binary "GEQ"
     fun tm -> 
-        try 
-            if is_abs tm then Choice.get <| dest_abs tm
+        choice { 
+            if is_abs tm then 
+                return! dest_abs tm
             else 
-                let l, r = Choice.get <| dest_comb tm
-                if not(fst(Choice.get <| dest_const l) = "GABS") then fail()
-                else 
-                    let ltm, rtm = dest_geq(snd(strip_forall(Choice.get <| body r)))
-                    Choice.get <| rand ltm, rtm
-        with
-        | Failure _ as e ->
-            nestedFailwith e "dest_gabs: Not a generalized abstraction"
+                let! (l, r) = dest_comb tm
+                let! (l', _) = dest_const l 
+                if not (l' = "GABS") then 
+                    return! Choice.fail()
+                else
+                    let! r' = body r
+                    let! (ltm, rtm) = dest_geq(snd(strip_forall r'))
+                    let! ltm' = rand ltm
+                    return (ltm', rtm)
+        }
+        |> Choice.bindError (fun e -> nestedFailwith e "dest_gabs: Not a generalized abstraction")
 
 /// Tests if a term is a basic or generalized abstraction.
 let is_gabs x =
-    try
-        dest_gabs x |> ignore
-        true
-    with Failure _ -> false
-
+    Choice.isResult (dest_gabs x)
+    
 /// Constructs a generalized abstraction.
 let mk_gabs = 
     let mk_forall(v, t) = 
@@ -603,7 +605,7 @@ let mk_gabs =
 let list_mk_gabs(vs, bod) = itlist (curry mk_gabs) vs bod
 
 /// Breaks apart an iterated generalized or basic abstraction.
-let strip_gabs = splitlist dest_gabs
+let strip_gabs = splitlist (Choice.get << dest_gabs)
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for let terms.                                                     *)

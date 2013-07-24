@@ -385,7 +385,7 @@ let GEN_BETA_CONV =
         with
         | Failure _ -> 
             let l, r = Choice.get <| dest_comb tm
-            let vstr, bod = dest_gabs l
+            let vstr, bod = Choice.get <| dest_gabs l
             let instn = term_match [] vstr r
             let prjs = create_iterated_projections vstr
             let th1 = SUBS_CONV prjs bod
