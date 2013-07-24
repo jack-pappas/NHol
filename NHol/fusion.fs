@@ -332,7 +332,7 @@ module Hol_kernel =
         | _ -> 
             Choice.failwith "dest_comb: not a combination"
     
-    /// Breaks apart an abstraction into abstracted variable and body.
+    /// Breaks apart an abstraction into abstracted variable and Choice.get <| body.
     let dest_abs = 
         function 
         | Abs(v, b) -> 

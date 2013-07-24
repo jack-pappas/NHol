@@ -99,7 +99,7 @@ let lift_function =
              |> THEN <| MATCH_ACCEPT_TAC SELECT_REFL)
     fun tybij2 -> 
         let tybl, tybr = Choice.get <| dest_comb(concl tybij2)
-        let eqvx = Choice.get <| rand(body(Choice.get <| rand(Choice.get <| rand tybl)))
+        let eqvx = Choice.get <| rand(Choice.get <| body(Choice.get <| rand(Choice.get <| rand tybl)))
         let eqv, xtm = Choice.get <| dest_comb eqvx
         let dmr, rtm = Choice.get <| dest_eq tybr
         let dest, mrt = Choice.get <| dest_comb dmr
@@ -154,7 +154,7 @@ let lift_function =
             let ith = INST (zip targs evs) eth
             let jth = SUBS (map (fun v -> INST [v, xtm] dme_th) rvs) ith
             let apop, uxtm = Choice.get <| dest_comb(Choice.get <| rand(concl jth))
-            let extm = body uxtm
+            let extm = Choice.get <| body uxtm
             let evs, bod = strip_exists extm
             let th1 = ASSUME bod
             let th2 = 

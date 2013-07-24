@@ -130,7 +130,7 @@ let lookup =
     let label_for_lookup tm = 
         let op, args = strip_comb tm
         if is_const op then Cnet(fst(Choice.get <| dest_const op), length args), args
-        elif is_abs op then Lnet(length args), (body op) :: args
+        elif is_abs op then Lnet(length args), (Choice.get <| body op) :: args
         else Lcnet(fst(Choice.get <| dest_var op), length args), args
     let rec follow(tms, Netnode(edges, tips)) = 
         match tms with

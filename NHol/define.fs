@@ -645,7 +645,7 @@ let instantiate_casewise_recursion,
       let conv i =
         let name = "x"+string i
         let cnv = ALPHA_CONV (mk_var(name,mk_vartype(mkname i)))
-        fun tm -> if is_abs tm && name_of(bndvar tm) <> name
+        fun tm -> if is_abs tm && name_of(Choice.get <| bndvar tm) <> name
                   then cnv tm else failwith "conv"
       let convs = FIRST_CONV (map conv (1--n))
       let th1 = INST_TYPE [ty,(parse_type @"P")] th
@@ -660,7 +660,7 @@ let instantiate_casewise_recursion,
       let conv i =
         let name = "t"+string i
         let cnv = ALPHA_CONV (mk_var(name,mk_vartype(mkname i)))
-        fun tm -> if is_abs tm && name_of(bndvar tm) <> name
+        fun tm -> if is_abs tm && name_of(Choice.get <| bndvar tm) <> name
                   then cnv tm else failwith "conv"
       let convs = FIRST_CONV (map conv (1--n))
       let th1 = INST_TYPE [ty,(parse_type @"Q")] th
@@ -675,12 +675,12 @@ let instantiate_casewise_recursion,
 (* ------------------------------------------------------------------------- *)
 
   let APPLY_PROFORMA_TAC th (asl,w as gl) =
-    let vs = fst(dest_gabs(body(Choice.get <| rand w)))
+    let vs = fst(dest_gabs(Choice.get <| body(Choice.get <| rand w)))
     let n = 1 + length(fst(splitlist dest_pair vs))
     (MATCH_MP_TAC(HACK_PROFORMA n th) |>THEN<| BETA_TAC) gl in
 
   let is_pattern p n tm =
-    try let f,args = strip_comb(snd(strip_exists (body(body tm))))
+    try let f,args = strip_comb(snd(strip_exists (Choice.get <| body(Choice.get <| body tm))))
         is_const f && name_of f = p && length args = n
     with Failure _ -> false in
 
@@ -717,13 +717,13 @@ let instantiate_casewise_recursion,
               CONV_TAC(ONCE_DEPTH_CONV EXISTS_PAT_CONV)) gl
     | "superadmissible","_MATCH" when
          is_pattern "_UNGUARDED_PATTERN" 2 (last args)
-          -> let n = length(fst(strip_exists(body(body(last args)))))
+          -> let n = length(fst(strip_exists(Choice.get <| body(Choice.get <| body(last args)))))
              let th = EACK_PROFORMA n SUPERADMISSIBLE_MATCH_UNGUARDED_PATTERN
              (APPLY_PROFORMA_TAC th |>THEN<| CONJ_TAC |>THENL<|
                [SIMPLIFY_MATCH_WELLDEFINED_TAC; ALL_TAC]) gl
     | "superadmissible","_MATCH" when
          is_pattern "_GUARDED_PATTERN" 3 (last args)
-          -> let n = length(fst(strip_exists(body(body(last args)))))
+          -> let n = length(fst(strip_exists(Choice.get <| body(Choice.get <| body(last args)))))
              let th = EACK_PROFORMA n SUPERADMISSIBLE_MATCH_GUARDED_PATTERN
              (APPLY_PROFORMA_TAC th |>THEN<| CONJ_TAC |>THENL<|
                [SIMPLIFY_MATCH_WELLDEFINED_TAC; ALL_TAC]) gl

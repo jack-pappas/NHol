@@ -510,7 +510,7 @@ let PRENEX_CONV =
 (* lists without duplicates, but do not remove subsumed disjuncts.           *)
 (*                                                                           *)
 (* In both cases the input term is supposed to be in NNF already. We do go   *)
-(* inside quantifiers and transform their body, but don't move them.         *)
+(* inside quantifiers and transform their Choice.get <| body, but don't move them.         *)
 (* ------------------------------------------------------------------------- *)
 // WEAK_DNF_CONV: Converts a term already in negation normal form into disjunctive normal form.
 // DNF_CONV: Converts a term already in negation normal form into disjunctive normal form.
@@ -660,7 +660,7 @@ let SELECT_ELIM_TAC =
                 if is_const stm && fst(Choice.get <| dest_const stm) = "@"
                 then 
                     CONV_RULE (LAND_CONV BETA_CONV) 
-                        (PINST [Choice.get <| type_of(bndvar atm), aty] [atm, ptm] pth)
+                        (PINST [Choice.get <| type_of(Choice.get <| bndvar atm), aty] [atm, ptm] pth)
                 else failwith "SELECT_ELIM_THM: not a select-term"
         fun tm -> 
             PURE_REWRITE_CONV (map SELECT_ELIM_THM (find_terms is_select tm)) tm
@@ -673,7 +673,7 @@ let SELECT_ELIM_TAC =
                 if is_const stm && fst(Choice.get <| dest_const stm) = "@"
                 then 
                     let fvs = frees atm
-                    let th1 = PINST [Choice.get <| type_of(bndvar atm), aty] [atm, ptm] pth
+                    let th1 = PINST [Choice.get <| type_of(Choice.get <| bndvar atm), aty] [atm, ptm] pth
                     let th2 = CONV_RULE (BINDER_CONV(BINOP_CONV BETA_CONV)) th1
                     GENL fvs th2
                 else failwith "SELECT_AX_THM: not a select-term"
@@ -728,7 +728,7 @@ let LAMBDA_ELIM_CONV =
         elif is_abs tm
         then tm
         elif is_forall tm || is_exists tm || is_uexists tm
-        then find_lambda(body(Choice.get <| rand tm))
+        then find_lambda(Choice.get <| body(Choice.get <| rand tm))
         else 
             let l, r = Choice.get <| dest_comb tm
             try 

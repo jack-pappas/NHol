@@ -95,7 +95,7 @@ parse_as_binder "@"
 /// Tests a term to see if it is a choice binding.
 let is_select = is_binder "@"
 
-/// Breaks apart a choice term into selected variable and body.
+/// Breaks apart a choice term into selected variable and Choice.get <| body.
 let dest_select = dest_binder "@"
 /// Constructs a choice binding.
 let mk_select = mk_binder "@"
@@ -131,7 +131,7 @@ let SELECT_RULE =
     fun th -> 
         try 
             let abs = Choice.get <| rand(concl th)
-            let ty = Choice.get <| type_of(bndvar abs)
+            let ty = Choice.get <| type_of(Choice.get <| bndvar abs)
             CONV_RULE BETA_CONV (MP (PINST [ty, aty] [abs, P] pth) th)
         with
         | Failure _ as e ->
@@ -153,7 +153,7 @@ let SELECT_CONV =
                 aconv tm (Choice.get <| vsubst [t, bv] bod)
             let pickeps = find_term is_epsok tm
             let abs = Choice.get <| rand pickeps
-            let ty = Choice.get <| type_of(bndvar abs)
+            let ty = Choice.get <| type_of(Choice.get <| bndvar abs)
             CONV_RULE (LAND_CONV BETA_CONV) (PINST [ty, aty] [abs, P] pth)
         with
         | Failure _ as e ->

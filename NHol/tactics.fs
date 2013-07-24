@@ -743,7 +743,7 @@ let GEN_TAC : tactic =
         with
         | Failure _ -> Choice2Of2 <| Exception "GEN_TAC"
 
-/// Adds the body of an existentially quantified theorem to the assumptions of a goal.
+/// Adds the Choice.get <| body of an existentially quantified theorem to the assumptions of a goal.
 let CHOOSE_TAC : thm_tactic = 
     fun xth g -> 
         let f = 
@@ -906,7 +906,7 @@ let (DISCH_THEN : thm_tactic -> tactic) =
 let (X_CHOOSE_THEN : term -> thm_tactical) =
     fun x ttac th -> X_CHOOSE_TAC x th |> THEN <| POP_ASSUM ttac
 
-/// Applies a tactic generated from the body of existentially quantified theorem.
+/// Applies a tactic generated from the Choice.get <| body of existentially quantified theorem.
 let (CHOOSE_THEN : thm_tactical) =
     fun ttac th -> CHOOSE_TAC th |> THEN <| POP_ASSUM ttac
 

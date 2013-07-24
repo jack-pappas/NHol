@@ -86,26 +86,27 @@ let tysubst alist ty =
 
 /// Returns the bound variable of an abstraction.
 let bndvar tm = 
-    try 
-        fst(Choice.get <| dest_abs tm)
-    with
-    | Failure _ as e ->
-        nestedFailwith e "bndvar: Not an abstraction"
+    match dest_abs tm with
+    | Success(tm0, _) -> Choice.succeed tm0
+    | Error e ->
+        Choice.nestedFailwith e "bndvar: Not an abstraction"
 
 /// Returns the body of an abstraction.
 let body tm = 
-    try 
-        snd(Choice.get <| dest_abs tm)
-    with
-    | Failure _ as e ->
-        nestedFailwith e "body: Not an abstraction"
+    match dest_abs tm with
+    | Success(_, tm1) -> Choice.succeed tm1
+    | Error e ->
+        Choice.nestedFailwith e "body: Not an abstraction"
 
 /// Iteratively constructs combinations (function applications).
 let list_mk_comb(h, t) = rev_itlist (C(curry (Choice.get << mk_comb))) t h
+
 /// Iteratively constructs abstractions.
 let list_mk_abs(vs, bod) = itlist (curry (Choice.get << mk_abs)) vs bod
+
 /// Iteratively breaks apart combinations (function applications).
 let strip_comb = rev_splitlist (Choice.get << dest_comb)
+
 /// Iteratively breaks apart abstractions.
 let strip_abs = splitlist (Choice.get << dest_abs)
 
@@ -303,7 +304,7 @@ let rec free_in tm1 tm2 =
 /// Searches a term for a subterm that satises a given predicate.
 let rec find_term p tm = 
     if p tm then tm
-    elif is_abs tm then find_term p (body tm)
+    elif is_abs tm then find_term p (Choice.get <| body tm)
     elif is_comb tm then 
         let l, r = Choice.get <| dest_comb tm
         try 
@@ -320,7 +321,7 @@ let find_terms =
         let tl' = 
             if p tm then insert tm tl
             else tl
-        if is_abs tm then accum tl' p (body tm)
+        if is_abs tm then accum tl' p (Choice.get <| body tm)
         elif is_comb tm then accum (accum tl' p (Choice.get <| rator tm)) p (Choice.get <| rand tm)
         else tl'
     accum []
@@ -396,7 +397,7 @@ let dest_imp = dest_binary "==>"
 /// Tests a term to see if it is a universal quantification.
 let is_forall = is_binder "!"
 
-/// Breaks apart a universally quantified term into quantified variable and body.
+/// Breaks apart a universally quantified term into quantified variable and Choice.get <| body.
 let dest_forall = dest_binder "!"
 
 /// Iteratively breaks apart universal quantifications.
@@ -405,7 +406,7 @@ let strip_forall = splitlist dest_forall
 /// Tests a term to see if it as an existential quantification.
 let is_exists = is_binder "?"
 
-/// Breaks apart an existentially quantified term into quantified variable and body.
+/// Breaks apart an existentially quantified term into quantified variable and Choice.get <| body.
 let dest_exists = dest_binder "?"
 
 /// Iteratively breaks apart existential quantifications.
@@ -427,7 +428,7 @@ let is_neg tm =
     with
     | Failure _ -> false
 
-/// Breaks apart a negation, returning its body.
+/// Breaks apart a negation, returning its Choice.get <| body.
 let dest_neg tm = 
     try 
         let n, p = Choice.get <| dest_comb tm
@@ -500,7 +501,7 @@ let dest_numeral =
 (* universal quantifiers --- but probably simplest. It has to go somewhere!  *)
 (* ------------------------------------------------------------------------- *)
 
-/// Breaks apart a generalized abstraction into abstracted varstruct and body.
+/// Breaks apart a generalized abstraction into abstracted varstruct and Choice.get <| body.
 let dest_gabs = 
     let dest_geq = dest_binary "GEQ"
     fun tm -> 
@@ -510,7 +511,7 @@ let dest_gabs =
                 let l, r = Choice.get <| dest_comb tm
                 if not(fst(Choice.get <| dest_const l) = "GABS") then fail()
                 else 
-                    let ltm, rtm = dest_geq(snd(strip_forall(body r)))
+                    let ltm, rtm = dest_geq(snd(strip_forall(Choice.get <| body r)))
                     Choice.get <| rand ltm, rtm
         with
         | Failure _ as e ->
@@ -606,7 +607,7 @@ let make_args =
 let find_path = 
     let rec find_path p tm = 
         if p tm then []
-        elif is_abs tm then "b" :: (find_path p (body tm))
+        elif is_abs tm then "b" :: (find_path p (Choice.get <| body tm))
         else 
             try 
                 "r" :: (find_path p (Choice.get <| rand tm))
@@ -621,5 +622,5 @@ let follow_path =
         | [] -> tm
         | "l" :: t -> follow_path t (Choice.get <| rator tm)
         | "r" :: t -> follow_path t (Choice.get <| rand tm)
-        | _ :: t -> follow_path t (body tm)
+        | _ :: t -> follow_path t (Choice.get <| body tm)
     fun s tm -> follow_path (explode s) tm

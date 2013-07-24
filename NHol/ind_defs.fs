@@ -196,7 +196,7 @@ let derive_nonschematic_inductive_relations =
                 let th7 = end_itlist CONJ (map (REFL << snd) no)
                 let th8 = GENL avs (MP th6 th7)
                 IMP_ANTISYM_RULE (DISCH_ALL th5) (DISCH_ALL th8)
-        let ftm = funpow (length args) (body << Choice.get << rand) (Choice.get <| rand(concl eth))
+        let ftm = funpow (length args) (Choice.get << body << Choice.get << rand) (Choice.get <| rand(concl eth))
         TRANS eth (itlist MK_FORALL args (FORALL_IMPS_CONV ftm))
     let canonicalize_clauses clauses = 
         let concls = map getconcl clauses

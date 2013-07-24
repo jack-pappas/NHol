@@ -77,7 +77,7 @@ let BETA_CONV tm =
     BETA tm
     |> Choice.bindError (fun _ -> 
         let f, arg = Choice.get <| dest_comb tm
-        let v = bndvar f
+        let v = Choice.get <| bndvar f
         INST [arg, v] (BETA(Choice.get <| mk_comb(f, v))))
     |> Choice.mapError (fun _ -> Exception "BETA_CONV: Not a beta-redex")
 
@@ -204,7 +204,7 @@ let COMB2_CONV : conv -> conv -> conv =
 /// Applies a conversion to the two sides of an application.
 let COMB_CONV = W COMB2_CONV
 
-/// Applies a conversion to the body of an abstraction.
+/// Applies a conversion to the Choice.get <| body of an abstraction.
 let ABS_CONV : conv -> conv = 
     fun conv tm -> 
         let v, bod = Choice.get <| dest_abs tm
@@ -221,7 +221,7 @@ let ABS_CONV : conv -> conv =
             let r' = alpha v' r
             EQ_MP (ALPHA gtm (Choice.get <| mk_eq(l', r'))) gth)
 
-/// Applies conversion to the body of a binder.
+/// Applies conversion to the Choice.get <| body of a binder.
 let BINDER_CONV conv tm = 
     if is_abs tm then ABS_CONV conv tm
     else RAND_CONV (ABS_CONV conv) tm
@@ -350,7 +350,7 @@ let PAT_CONV =
         if mem pat xs then conv
         elif not(exists (fun x -> free_in x pat) xs) then ALL_CONV
         elif is_comb pat then COMB2_CONV (PCONV xs (Choice.get <| rator pat) conv) (PCONV xs (Choice.get <| rand pat) conv)
-        else ABS_CONV(PCONV xs (body pat) conv)
+        else ABS_CONV(PCONV xs (Choice.get <| body pat) conv)
     fun pat -> 
         let xs, pbod = strip_abs pat
         PCONV xs pbod

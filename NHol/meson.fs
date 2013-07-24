@@ -959,7 +959,7 @@ let GEN_MESON_TAC =
         let setify' le eq s = uniq' eq (sort le s)
         let rec grab_constants tm acc = 
             if is_forall tm || is_exists tm
-            then grab_constants (body(Choice.get <| rand tm)) acc
+            then grab_constants (Choice.get <| body(Choice.get <| rand tm)) acc
             elif is_iff tm || is_imp tm || is_conj tm || is_disj tm
             then grab_constants (Choice.get <| rand tm) (grab_constants (lhand tm) acc)
             elif is_neg tm

@@ -295,7 +295,7 @@ let PASSOC_DEF =
 (* ------------------------------------------------------------------------- *)
 (* Analog of ABS_CONV for generalized abstraction.                           *)
 (* ------------------------------------------------------------------------- *)
-/// Applies a conversion to the body of a generalized abstraction.
+/// Applies a conversion to the Choice.get <| body of a generalized abstraction.
 let GABS_CONV conv tm = 
     if is_abs tm
     then ABS_CONV conv tm
@@ -393,8 +393,8 @@ let GEN_BETA_CONV =
             let gv = genvar(Choice.get <| type_of vstr)
             let pat = Choice.get <| mk_abs(gv, subst [gv, vstr] bod')
             let th2 = TRANS (BETA_CONV(Choice.get <| mk_comb(pat, vstr))) (SYM th1)
-            let avs = fst(strip_forall(body(Choice.get <| rand l)))
-            let th3 = GENL (fst(strip_forall(body(Choice.get <| rand l)))) th2
+            let avs = fst(strip_forall(Choice.get <| body(Choice.get <| rand l)))
+            let th3 = GENL (fst(strip_forall(Choice.get <| body(Choice.get <| rand l)))) th2
             let efn = genvar(Choice.get <| type_of pat)
             let th4 = 
                 EXISTS (mk_exists(efn, subst [efn, pat] (concl th3)), pat) th3

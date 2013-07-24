@@ -375,7 +375,7 @@ let parse_preterm =
   let pmk_let (letbindings,body) =
     let vars,tms = unzip (map pdest_eq letbindings)
     let _ = warn(not (pairwise (fun s t -> intersect(pfrees s []) (pfrees t []) = []) vars)) "duplicate names on left of let-binding: latest is used"
-    let lend = Combp(Varp("LET_END",dpty),body)
+    let lend = Combp(Varp("LET_END",dpty), body)
     let abs = itlist (fun v t -> Absp(v,t)) vars lend
     let labs = Combp(Varp("LET",dpty),abs)
     rev_itlist (fun x f -> Combp(f,x)) tms labs

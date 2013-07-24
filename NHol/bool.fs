@@ -303,7 +303,7 @@ let SPEC =
         DISCH_ALL(EQT_ELIM th3)
     fun tm th ->
         let abs = Choice.get <| rand(concl th)
-        CONV_RULE BETA_CONV (MP (PINST [snd(Choice.get <| dest_var(bndvar abs)), aty] [abs, P; tm, x] <| pth()) th)
+        CONV_RULE BETA_CONV (MP (PINST [snd(Choice.get <| dest_var(Choice.get <| bndvar abs)), aty] [abs, P; tm, x] <| pth()) th)
         |> Choice.mapError (fun _ -> Exception "SPEC")
 
 /// Specializes zero or more variables in the conclusion of a theorem.
@@ -317,7 +317,7 @@ let thm_frees thm =
 
 /// Specializes the conclusion of a theorem, returning the chosen Choice.get <| variant.
 let SPEC_VAR th = 
-    let bv = Choice.get <| variant (thm_frees th) (bndvar(Choice.get <| rand(concl th)))
+    let bv = Choice.get <| variant (thm_frees th) (Choice.get <| bndvar(Choice.get <| rand(concl th)))
     bv, SPEC bv th
 
 /// Specializes the conclusion of a theorem with its own quantified variables.
@@ -582,6 +582,6 @@ let EXISTENCE =
         DISCH_ALL(CONJUNCT1 th2)
     fun th -> 
         let abs = Choice.get <| rand(concl th)
-        let ty = snd(Choice.get <| dest_var(bndvar abs))
+        let ty = snd(Choice.get <| dest_var(Choice.get <| bndvar abs))
         MP (PINST [ty, aty] [abs, P] <| pth()) th
         |> Choice.mapError (fun _ -> Exception "EXISTENCE")

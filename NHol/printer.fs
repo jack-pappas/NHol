@@ -318,7 +318,7 @@ let pp_print_term =
                     if b then 1 + 2 * f
                     else 2 * f) (map bool_of_term (rev tms)) 0
     let rec dest_clause tm = 
-        let pbod = snd(strip_exists(body(body tm)))
+        let pbod = snd(strip_exists(Choice.get <| body(Choice.get <| body tm)))
         let s, args = strip_comb pbod
         if name_of s = "_UNGUARDED_PATTERN" && length args = 2 then 
             [Choice.get <| rand(Choice.get <| rator(hd args));
@@ -393,7 +393,7 @@ let pp_print_term =
                                         try 
                                             if not(s = "GSPEC") then fail()
                                             else 
-                                                let evs, bod = strip_exists(body(Choice.get <| rand tm))
+                                                let evs, bod = strip_exists(Choice.get <| body(Choice.get <| rand tm))
                                                 let bod1, fabs = Choice.get <| dest_comb bod
                                                 let bod2, babs = Choice.get <| dest_comb bod1
                                                 let c = Choice.get <| rator bod2

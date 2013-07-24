@@ -754,7 +754,7 @@ let define_type_raw_001 =
     let instantiate_induction_theorem consindex ith = 
         let avs, bod = strip_forall(concl ith)
         let corlist = 
-            map ((repeat (Choice.get << rator) ||>> repeat (Choice.get << rator)) << dest_imp << body << Choice.get << rand) 
+            map ((repeat (Choice.get << rator) ||>> repeat (Choice.get << rator)) << dest_imp << Choice.get << body << Choice.get << rand) 
                 (conjuncts(Choice.get <| rand bod))
         let consindex' = 
             map (fun v -> 
@@ -843,7 +843,7 @@ let define_type_raw_001 =
         let FINRULE = GEN_REWRITE_RULE RAND_CONV tybij1
         fun th -> 
             let av, bimp = dest_forall(concl th)
-            let pv = lhand(body(Choice.get <| rator(Choice.get <| rand bimp)))
+            let pv = lhand(Choice.get <| body(Choice.get <| rator(Choice.get <| rand bimp)))
             let p, v = Choice.get <| dest_comb pv
             let mk, dest = assoc p consindex |> Option.getOrFailWith "find"
             let ty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of dest)))
@@ -870,7 +870,7 @@ let define_type_raw_001 =
                 (map (finish_induction_conclusion consindex tybijpairs) 
                      (CONJUNCTS th1))
         let th3 = DISCH asm th2
-        let preds = map (Choice.get << rator << body << Choice.get << rand) (conjuncts(Choice.get <| rand(concl th3)))
+        let preds = map (Choice.get << rator << Choice.get << body << Choice.get << rand) (conjuncts(Choice.get <| rand(concl th3)))
         let th4 = GENL preds th3
         let pasms = filter (C mem (map fst consindex) << lhand) (hyp th4)
         let th5 = itlist DISCH pasms th4
@@ -1004,7 +1004,7 @@ let define_type_raw_001 =
                 Choice.get <| vsubst [fn, v] bod
             let LCONV = REWR_CONV(ASSUME betm)
             let fnths = 
-                map (fun t -> RIGHT_BETAS [bndvar(Choice.get <| rand t)] (ASSUME t)) 
+                map (fun t -> RIGHT_BETAS [Choice.get <| bndvar(Choice.get <| rand t)] (ASSUME t)) 
                     (hyp rath)
             let SIMPER = 
                 PURE_REWRITE_RULE
@@ -2004,7 +2004,7 @@ let UNWIND_CONV, MATCH_CONV =
                                   |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [EXISTS_SIMP]))
     let MATCH_ONEPATTERN_CONV tm = 
         let th1 = GEN_REWRITE_CONV I [pth_3] tm
-        let tm' = body(Choice.get <| rand(lhand(Choice.get <| rand(concl th1))))
+        let tm' = Choice.get <| body(Choice.get <| rand(lhand(Choice.get <| rand(concl th1))))
         let th2 = 
             (INSIDE_EXISTS_CONV(GEN_REWRITE_CONV I [pth_4]
                                 |> THENC <| RAND_CONV BREAK_CONS_CONV)

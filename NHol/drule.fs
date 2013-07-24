@@ -119,7 +119,7 @@ let instantiate : instantiation -> term -> term =
         else 
             try 
                 let bv, bod = Choice.get <| dest_abs tm
-                Choice.get <| mk_abs(bv, ho_betas bcs (body pat) bod)
+                Choice.get <| mk_abs(bv, ho_betas bcs (Choice.get <| body pat) bod)
             with
             | Failure _ -> 
                 let hop, args = strip_comb pat
@@ -173,7 +173,7 @@ let INSTANTIATE : instantiation -> thm -> thm =
         then Choice2Of2 <| Exception ""
         else 
             let bv, bod = Choice.get <| dest_abs tm
-            ABS bv (HO_BETAS bcs (body pat) bod)
+            ABS bv (HO_BETAS bcs (Choice.get <| body pat) bod)
             |> Choice.bindError (fun _ ->
                 let hop, args = strip_comb pat
                 let v = 
@@ -461,8 +461,8 @@ let term_unify : term list -> term -> term -> instantiation =
             | Failure "find" -> augment_insts (tm1, tm2) sofar
         elif is_abs tm1
         then 
-            let tm1' = body tm1
-            let tm2' = subst [bndvar tm1, bndvar tm2] (body tm2)
+            let tm1' = Choice.get <| body tm1
+            let tm2' = subst [Choice.get <| bndvar tm1, Choice.get <| bndvar tm2] (Choice.get <| body tm2)
             unify vars tm1' tm2' sofar
         else 
             let l1, r1 = Choice.get <| dest_comb tm1
