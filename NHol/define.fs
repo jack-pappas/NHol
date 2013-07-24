@@ -1048,8 +1048,8 @@ let define =
         try f x |> ignore; true
         with Failure _ -> false
     let tm' = snd(strip_forall tm)
-    try let th,th' = tryfind (fun th -> th,PART_MATCH I th tm')
-                             (!the_definitions)
+    try let th,th' = tryfind (fun th -> Some (th,PART_MATCH I th tm')) (!the_definitions)
+                     |> Option.getOrFailWith "tryfind"
         if can (PART_MATCH I th') (concl th) then
          (warn true "Benign redefinition"; th')
         else failwith ""

@@ -152,7 +152,8 @@ let new_recursive_definition =
         th'
     fun ax tm -> 
         try 
-            let th = tryfind (find_redefinition tm) (!the_recursive_definitions)
+            let th = tryfind (Some << find_redefinition tm) (!the_recursive_definitions)
+                     |> Option.getOrFailWith "tryfind"
             warn true "Benign redefinition of recursive function"
             th
         with

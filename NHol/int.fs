@@ -1579,7 +1579,7 @@ let INTEGER_TAC_001 =
     let UNWIND_POLYS_CONV tm = 
         let vars, bod = strip_exists tm
         let cjs = conjuncts bod
-        let th1 = Choice.tryFind (ISOLATE_VARIABLE vars) cjs
+        let th1 = tryfind (Choice.toOption << ISOLATE_VARIABLE vars) cjs |> Option.toChoiceWithError "tryfind"
         let eq = lhand(concl th1)
         let bod' = list_mk_conj(eq :: (subtract cjs [eq]))
         let th2 = CONJ_ACI_RULE(Choice.get <| mk_eq(bod, bod'))
@@ -1635,7 +1635,10 @@ let INTEGER_TAC_001 =
         if evs = []
         then []
         else 
-            let eq, cfs = tryfind (isolate_variables evs ps) eqs
+            let eq, cfs = 
+                tryfind (Some << isolate_variables evs ps) eqs
+                |> Option.getOrFailWith "tryfind"
+                    
             let evs' = subtract evs (map snd cfs)
             let eqs' = map (subst_in_poly cfs) (subtract eqs [eq])
             cfs @ solve_idealism evs' ps eqs'

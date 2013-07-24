@@ -914,7 +914,8 @@ let ``{tryfind f [x1;_;xn]} returns {f xi} for the first {xi} in the list for  w
         if y = 0 then failwith ("^/: No successful application")
         else x / y
     
-    tryfind (fun x -> 12 ^/ x) [0;6;2;3;4;5]
+    tryfind (fun x -> Some <| 12 ^/ x) [0;6;2;3;4;5]
+    |> Option.getOrFailWith "tryfind"
     |> should equal 2
 
 [<Test>]
@@ -925,7 +926,8 @@ let ``{tryfind f [x1;_;xn]} fails if the application of the function fails for a
         if y = 0 then failwith ("^/: Attempt to divide by zero")
         else x / y
 
-    tryfind (fun x -> 12 ^/ x) [0] 
+    tryfind (fun x -> Some <| 12 ^/ x) [0]
+    |> Option.getOrFailWith "tryfind" 
     |> ignore
 
 (* flat tests *)

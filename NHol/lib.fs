@@ -77,6 +77,11 @@ module Choice =
         | Choice2Of2 error, _ ->
             Choice2Of2 error
 
+    /// Convert choice to option where Choice2Of2 is interpreted as None
+    let toOption value =
+        match value with
+        | Choice1Of2 result -> Some result
+        | Choice2Of2 _ -> None
 
     (* These functions are fairly specific to this project,
        and so probably won't be included in ExtCore. *)
@@ -109,16 +114,6 @@ module Choice =
             resultBinding result
         | Choice2Of2 error ->
             errorBinding error
-
-    let rec tryFind f xs = 
-        match xs with
-        | [] -> Choice2Of2 <| exn "tryfind"
-        | h :: t -> 
-            match f h with
-            | Choice1Of2 result ->
-                Choice1Of2 result
-            | Choice2Of2 _ -> tryFind f t
-
 
 (* ------------------------------------------------------------------------- *)
 (* Functions needed for OCaml compatibility. These augment or supercede      *)
@@ -177,6 +172,11 @@ module Option =
         match value with
         | Some x -> x
         | None -> failwith msg
+
+    let toChoiceWithError msg value =
+        match value with
+        | Some v -> Choice1Of2 v
+        | None -> Choice.failwith msg
 
 
 (* ------------------------------------------------------------------------- *)
@@ -488,14 +488,8 @@ let rec find p l =
 
 /// Returns the result of the first successful application of a function to the elements of a list.
 // OPTIMIZE : Make this an alias for List.tryFind.
-let rec tryfind f l = 
-    match l with
-    | [] -> failwith "tryfind"
-    | (h :: t) -> 
-        try 
-            f h
-        with
-        | Failure _ -> tryfind f t
+let rec tryfind f l =
+    List.tryPick f l
 
 /// Flattens a list of lists into one long list.
 // OPTIMIZE : Make this an alias for List.concat.
@@ -551,14 +545,19 @@ let insert x l =
 
 /// Computes the union of two 'sets'.
 let union l1 l2 = itlist insert l1 l2
+
 /// Performs the union of a set of sets.
 let unions l = itlist union l []
+
 /// Computes the intersection of two 'sets'.
 let intersect l1 l2 = filter (fun x -> mem x l2) l1
+
 /// Computes the set-theoretic difference of two 'sets'.
 let subtract l1 l2 = filter (fun x -> not(mem x l2)) l1
+
 /// Tests if one list is a subset of another.
 let subset l1 l2 = forall (fun t -> mem t l2) l1
+
 /// Tests two 'sets' for equality.
 let set_eq l1 l2 = subset l1 l2 && subset l2 l1
 

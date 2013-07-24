@@ -258,7 +258,8 @@ let new_definition =
         let avs, def = strip_forall tm
         try 
             let th, th' = 
-                tryfind (fun th -> th, PART_MATCH I th def) (!the_definitions)
+                tryfind (fun th -> Some (th, PART_MATCH I th def)) (!the_definitions)
+                |> Option.getOrFailWith "tryfind"
             ignore(PART_MATCH I th' (snd(strip_forall(concl th))))
             warn true "Benign redefinition"
             GEN_ALL(GENL avs th')

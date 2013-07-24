@@ -69,12 +69,14 @@ let ITAUT_TAC =
                (fun gl -> CONV_TAC (K(IMPLICATE(snd gl))) gl)           (* not     *)
                EQ_TAC]                                                  (* iff     *)
     let LEFT_REVERSIBLE_TAC th gl = 
-        Choice.tryFind (fun ttac -> ttac th gl)        
+        tryfind (fun ttac -> Choice.toOption <| ttac th gl)        
             [CONJUNCTS_THEN' ASSUME_TAC                                 (* and    *)
              DISJ_CASES_TAC                                             (* or     *)
              CHOOSE_TAC                                                 (* exists *)
              (fun th -> ASSUME_TAC(EQ_MP (IMPLICATE(concl th)) th))     (* not    *)
              (CONJUNCTS_THEN' MP_TAC << uncurry CONJ << EQ_IMP_RULE)]   (* iff    *)
+        |> Option.toChoiceWithError "tryfind"
+
     let rec ITAUT_TAC mvs n gl = 
         if n <= 0
         then Choice2Of2 <| Exception "ITAUT_TAC: Too deep"

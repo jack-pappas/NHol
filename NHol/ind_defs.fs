@@ -377,10 +377,11 @@ let MONO_TAC =
                     fst(Choice.get <| dest_const(repeat (Choice.get << rator) c))
                 with
                 | Failure _ -> ""
-            Choice.tryFind (fun (k, t) -> 
+            tryfind (fun (k, t) -> 
                     if k = cn
-                    then t(asl, w)
-                    else Choice2Of2 <| Exception "") tacs
+                    then Choice.toOption <| t(asl, w)
+                    else None) tacs
+            |> Option.toChoiceWithError "tryfind"
     fun gl -> 
         let tacs = 
             itlist (fun th l -> 
@@ -490,7 +491,8 @@ let prove_inductive_relations_exist, new_inductive_definition =
         derive_existence th2
     let new_inductive_definition tm = 
         try 
-            let th = tryfind (find_redefinition tm) (!the_inductive_definitions)
+            let th = tryfind (Some << find_redefinition tm) (!the_inductive_definitions)
+                     |> Option.getOrFailWith "tryfind"
             warn true "Benign redefinition of inductive predicate"
             th
         with

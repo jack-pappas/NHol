@@ -166,7 +166,9 @@ let RING_AND_IDEAL_CONV =
   (* Try this for all polynomials in a basis.                                *)
   (* ----------------------------------------------------------------------- *)
   
-  let reduceb cm basis = tryfind (fun p -> reduce1 cm p) basis
+  let reduceb cm basis = 
+    tryfind (fun p -> Some <| reduce1 cm p) basis
+    |> Option.getOrFailWith "tryfind"
   
   (* ----------------------------------------------------------------------- *)
   (* Reduction of a polynomial (always picking largest monomial possible).   *)

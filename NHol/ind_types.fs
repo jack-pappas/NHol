@@ -678,7 +678,9 @@ let define_type_raw_001 =
                                 find (fun th -> fst(strip_comb(concl th)) = p) 
                                     sofar) preds
                     MATCH_MP thm (end_itlist CONJ asms)
-                let newth = tryfind follow_horn useful
+                let newth = 
+                    tryfind (Some << follow_horn) useful
+                    |> Option.getOrFailWith "tryfind"
                 exhaust_inhabitations ths (newth :: sofar)
         let ithms = exhaust_inhabitations imps bases
         let exths = 
@@ -896,7 +898,8 @@ let define_type_raw_001 =
         let eqs = map2 (curry (Choice.get << mk_eq)) fns rights
         let fdefs = map ASSUME eqs
         let fxths1 = 
-            map (fun th1 -> Choice.tryFind (fun th2 -> MK_COMB(th2, th1)) fdefs) 
+            map (fun th1 -> tryfind (fun th2 -> Choice.toOption <| MK_COMB(th2, th1)) fdefs
+                            |> Option.toChoiceWithError "tryfind") 
                 conthms
         let fxths2 = map (fun th -> TRANS th (BETA_CONV(Choice.get <| rand(concl th)))) fxths1
         let mk_tybijcons(th1, th2) = 
@@ -1673,7 +1676,8 @@ let define_type_raw =
             let itha = SPEC_ALL ith0
             let icjs = conjuncts(Choice.get <| rand(concl itha))
             let cinsts = 
-                map (fun tm -> tryfind (fun vtm -> term_match [] vtm tm) icjs) 
+                map (fun tm -> tryfind (fun vtm -> Some <| term_match [] vtm tm) icjs
+                               |> Option.getOrFailWith "tryfind") 
                     (conjuncts(Choice.get <| rand ctm2))
             let tvs = 
                 subtract (fst(strip_forall(concl ith0))) 
@@ -1687,7 +1691,8 @@ let define_type_raw =
             let itha = SPEC_ALL ith1
             let icjs = conjuncts(Choice.get <| rand(concl itha))
             let cinsts = 
-                map (fun tm -> tryfind (fun vtm -> term_match [] vtm tm) icjs) 
+                map (fun tm -> tryfind (fun vtm -> Some <| term_match [] vtm tm) icjs
+                               |> Option.getOrFailWith "tryfind") 
                     (conjuncts(lhand ctm2))
             let tvs = 
                 subtract (fst(strip_forall(concl ith1))) 
@@ -1752,7 +1757,7 @@ let define_type_raw =
         let evs, bod = strip_exists(snd(strip_forall(concl rth)))
         let cjs = map (lhand << snd << strip_forall) (conjuncts bod)
         let rtys = map (hd << snd << Choice.get << dest_type << Choice.get << type_of) evs
-        let tyins = tryfind (fun vty -> type_match vty nty []) rtys
+        let tyins = tryfind (fun vty -> Some <| type_match vty nty []) rtys |> Option.getOrFailWith "tryfind"
         let cjs' = map (Choice.get << inst tyins << Choice.get << rand) (fst(chop_list k cjs))
         let mtys = itlist (insert << Choice.get << type_of) cjs' []
         let pcons = map (fun ty -> filter (fun t -> Choice.get <| type_of t = ty) cjs') mtys

@@ -458,7 +458,8 @@ let type_of_pretype, term_of_preterm, retypecheck =
             else 
                 tryfind (fun (_, (_, ty')) -> 
                         let ty' = pretype_instance ty'
-                        cont(unify (Some ptm) env ty' ty)) maps
+                        Some <| cont(unify (Some ptm) env ty' ty)) maps
+                |> Option.getOrFailWith "tryfind"
         | _ -> failwith "resolve_interface: Unhandled case."
     (* ----------------------------------------------------------------------- *)
     (* Hence apply throughout a preterm.                                       *)

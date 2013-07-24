@@ -382,7 +382,9 @@ let EVERY_ASSUM : thm_tactic -> tactic =
 
 /// Applied theorem-tactic to rst assumption possible.
 let FIRST_ASSUM : thm_tactic -> tactic = 
-    fun ttac (asl, w as g) -> Choice.tryFind (fun (_, th) -> ttac th g) asl
+    fun ttac (asl, w as g) -> 
+        tryfind (fun (_, th) -> Choice.toOption <| ttac th g) asl 
+        |> Option.toChoiceWithError "tryfind"
 
 /// Maps an inference rule over the assumptions of a goal.
 let RULE_ASSUM_TAC : (thm -> thm) -> tactic = 

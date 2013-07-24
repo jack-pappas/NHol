@@ -246,7 +246,8 @@ let mk_rewrites =
 let REWRITES_CONV net tm = 
     let pconvs = lookup tm net
     try 
-        tryfind (fun (_, cnv) -> cnv tm) pconvs
+        tryfind (fun (_, cnv) -> Some <| cnv tm) pconvs
+        |> Option.getOrFailWith "tryfind"
     with
     | Failure _ as e ->
         nestedFailwith e "REWRITES_CONV"
@@ -300,7 +301,9 @@ let basic_prover strat (Simpset(net, prover, provers, rewmaker) as ss) lev tm =
         |> Choice.bindError (fun _ -> REFL tm)
     EQT_ELIM sth
     |> Choice.bindError (fun _ ->
-        let tth = Choice.tryFind (fun pr -> apply_prover pr (Choice.get <| rand(concl sth))) provers
+        let tth = 
+            tryfind (fun pr -> Choice.toOption <| apply_prover pr (Choice.get <| rand(concl sth))) provers
+            |> Option.toChoiceWithError "tryfind"
         EQ_MP (SYM sth) tth)
 
 (* ------------------------------------------------------------------------- *)
@@ -353,19 +356,21 @@ let AUGMENT_SIMPSET cth (Simpset(net, prover, provers, rewmaker)) =
 let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP_SQCONV = 
     let IMP_REWRITES_CONV strat (Simpset(net, prover, provers, rewmaker) as ss) 
         lev pconvs tm = 
-        Choice.tryFind (fun (n, cnv) -> 
+        tryfind (fun (n, cnv) -> 
                 if n >= 4
-                then Choice2Of2 <| Exception ""
+                then None
                 else 
                     let th = cnv tm
                     let etm = concl th
                     if is_eq etm
-                    then th
+                    then Choice.toOption th
                     elif lev <= 0
-                    then Choice2Of2 <| Exception "IMP_REWRITES_CONV: Too deep"
+                    then None
                     else 
                         let cth = prover strat ss (lev - 1) (lhand etm)
-                        MP th cth) pconvs
+                        Choice.toOption <| MP th cth) pconvs
+        |> Option.toChoiceWithError "IMP_REWRITES_CONV: Too deep"
+
     let rec RUN_SUB_CONV strat ss lev triv th = 
         let tm = concl th
         if is_imp tm
@@ -396,12 +401,13 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         else th
     let GEN_SUB_CONV strat ss lev pconvs tm = 
         let v = 
-            Choice.tryFind (fun (n, cnv) -> 
+            tryfind (fun (n, cnv) -> 
                     if n < 4
-                    then Choice2Of2 <| Exception ""
+                    then None
                     else 
                         let th = cnv tm
-                        RUN_SUB_CONV strat ss lev true th) pconvs
+                        Choice.toOption <| RUN_SUB_CONV strat ss lev true th) pconvs
+            |> Option.toChoiceWithError "tryfind"
         v |> Choice.bindError (fun _ ->
                 if is_comb tm
                 then 
