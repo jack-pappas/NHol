@@ -787,7 +787,7 @@ let instantiate_casewise_recursion,
       fun parms tm ->
         let parm = end_itlist (curry mk_pair) parms
         let x,bod = Choice.get <| dest_abs tm
-        let tm' = mk_gabs(parm,Choice.get <| vsubst[parm,x] bod)
+        let tm' = Choice.get <| mk_gabs(parm,Choice.get <| vsubst[parm,x] bod)
         let th1 = BETA_CONV(Choice.get <| mk_comb(tm,parm))
         in let th2 = GEN_BETA_CONV (Choice.get <| mk_comb(tm',parm))
         let th3 = TRANS th1 (SYM th2)
@@ -838,8 +838,8 @@ let instantiate_casewise_recursion,
       let parms0 = freesl(unions arglists)
       let parms = if parms0 <> [] then parms0 else [genvar aty]
       let parm = end_itlist (curry mk_pair) parms
-      let ss = map (fun a -> mk_gabs(parm,end_itlist (curry mk_pair) a)) arglists
-      in let ts = map (fun a -> Choice.get <| mk_abs(f,mk_gabs(parm,a))) rights
+      let ss = map (fun a -> Choice.get <| mk_gabs(parm,end_itlist (curry mk_pair) a)) arglists
+      in let ts = map (fun a -> Choice.get <| mk_abs(f,Choice.get <| mk_gabs(parm,a))) rights
       let clauses = mk_flist(map2 (curry mk_pair) ss ts)
       let pth = ISPEC clauses RECURSION_SUPERADMISSIBLE
       let FIDDLE_CONV =

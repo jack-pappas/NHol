@@ -638,14 +638,17 @@ let is_let x =
 
 /// Constructs a let-expression.
 let mk_let(assigs, bod) = 
-    let lefts, rights = unzip assigs
-    let lend = Choice.get <| mk_comb(Choice.get <| mk_const("LET_END", [Choice.get <| type_of bod, aty]), bod)
-    let lbod = list_mk_gabs(lefts, lend)
-    let ty1, ty2 = Choice.get <| dest_fun_ty(Choice.get <| type_of lbod)
-    let ltm = 
-        Choice.get <| mk_const("LET", [ty1, aty;
-                         ty2, bty])
-    list_mk_comb(ltm, lbod :: rights)
+    choice {
+        let lefts, rights = unzip assigs
+        let! tb = type_of bod
+        let! tm = mk_const("LET_END", [tb, aty])
+        let! lend = mk_comb(tm, bod)
+        let lbod = list_mk_gabs(lefts, lend)
+        let! tlb = type_of lbod
+        let! (ty1, ty2) = dest_fun_ty tlb
+        let! ltm = mk_const("LET", [ty1, aty; ty2, bty])
+        return list_mk_comb(ltm, lbod :: rights)
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Useful function to create stylized arguments using numbers.               *)
@@ -654,12 +657,15 @@ let mk_let(assigs, bod) =
 /// Make a list of terms with stylized variable names.
 let make_args = 
     let rec margs n s avoid tys = 
-        if tys = [] then []
+        if tys = [] then Choice.succeed []
         else 
-            let v = Choice.get <| variant avoid (mk_var(s + (string n), hd tys))
-            v :: (margs (n + 1) s (v :: avoid) (tl tys))
+            let v = variant avoid (mk_var(s + (string n), hd tys))
+            v |> Choice.bind (fun v ->
+                (margs (n + 1) s (v :: avoid) (tl tys))
+                |> Choice.map (fun vs -> v :: vs))
     fun s avoid tys -> 
-        if length tys = 1 then [Choice.get <| variant avoid (mk_var(s, hd tys))]
+        if length tys = 1 then 
+            variant avoid (mk_var(s, hd tys)) |> Choice.map (fun x -> [x])
         else margs 0 s avoid tys
 
 (* ------------------------------------------------------------------------- *)

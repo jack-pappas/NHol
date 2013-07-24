@@ -587,7 +587,7 @@ let define_type_raw_001 =
                             if mem ty newtys
                             then recty
                             else ty) cargs
-                let args = make_args "a" [] ttys
+                let args = Choice.get <| make_args "a" [] ttys
                 let rargs, iargs = partition (fun t -> Choice.get <| type_of t = recty) args
                 let rec mk_injector epstms alltys iargs = 
                     if alltys = []
@@ -771,8 +771,8 @@ let define_type_raw_001 =
         let newtys = 
             map (hd << snd << Choice.get << dest_type << Choice.get << type_of << snd << snd) consindex'
         let ptypes = map (C (fun ty -> Choice.get << mk_fun_ty ty) bool_ty) newtys
-        let preds = make_args "P" [] ptypes
-        let args = make_args "x" [] (map (K recty) preds)
+        let preds = Choice.get <| make_args "P" [] ptypes
+        let args = Choice.get <| make_args "x" [] (map (K recty) preds)
         let lambs = 
             map2 
                 (fun (r, (m, d)) (p, a) ->
@@ -890,8 +890,8 @@ let define_type_raw_001 =
             (hd << snd << Choice.get << dest_type << Choice.get << type_of << fst << snd << hd) consindex
         let ranty = mk_vartype "Z"
         let fn = mk_var("fn", Choice.get <| mk_fun_ty recty ranty)
-        let fns = make_args "fn" [] (map (C (fun ty -> Choice.get << mk_fun_ty ty) ranty) domtys)
-        let args = make_args "a" [] domtys
+        let fns = Choice.get <| make_args "fn" [] (map (C (fun ty -> Choice.get << mk_fun_ty ty) ranty) domtys)
+        let args = Choice.get <| make_args "a" [] domtys
         let rights = 
             map2 (fun (_, (_, d)) a -> Choice.get <| mk_abs(a, Choice.get <| mk_comb(fn, Choice.get <| mk_comb(d, a)))) consindex 
                 args
@@ -1380,7 +1380,7 @@ let prove_cases_thm =
         let preds = itlist (insert << fst) spats []
         let rpatlist = 
             map (fun pr -> map snd (filter (fun (p, x) -> p = pr) spats)) preds
-        let xs = make_args "x" (freesl pats) (map (Choice.get << type_of << hd) rpatlist)
+        let xs = Choice.get <| make_args "x" (freesl pats) (map (Choice.get << type_of << hd) rpatlist)
         let xpreds = map2 mk_exclauses xs rpatlist
         let ith = BETA_RULE(INST (zip xpreds preds) (SPEC_ALL th))
         let eclauses = conjuncts(fst(Choice.get <| dest_imp(concl ith)))
@@ -1847,7 +1847,7 @@ let define_type_raw =
             map2 
                 (fun s r -> SYM(new_definition(Choice.get <| mk_eq(mk_var(s, Choice.get <| type_of r), r)))) 
                 truecons gencons
-        let tavs = make_args "f" [] (map (Choice.get << type_of) avs)
+        let tavs = Choice.get <| make_args "f" [] (map (Choice.get << type_of) avs)
         let ith1 = SUBS cdefs ith0
         let rth1 = GENL tavs (SUBS cdefs (SPECL tavs rth0))
         let retval = p, ith1, rth1
