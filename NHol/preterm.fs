@@ -114,7 +114,7 @@ let overload_interface(sym, tm) =
     let can f x = 
         try f x |> ignore; true
         with Failure _ -> false
-    if not(can (type_match gty ty) []) then failwith "Not an instance of type skeleton"
+    if not(can (Choice.get << type_match gty ty) []) then failwith "Not an instance of type skeleton"
     else 
         let ``interface`` = filter ((<>)(sym, namty)) (!the_interface)
         the_interface := (sym, namty) :: ``interface``
@@ -124,7 +124,7 @@ let prioritize_overload ty =
     do_list (fun (s, gty) -> 
             try 
                 let _, (n, t) = 
-                    find (fun (s', (n, t)) -> s' = s && mem ty (map fst (type_match gty t []))) (!the_interface)
+                    find (fun (s', (n, t)) -> s' = s && mem ty (map fst (Choice.get <| type_match gty t []))) (!the_interface)
                 overload_interface(s, mk_var(n, t))
             with
             | Failure _ -> ()) (!the_overload_skeletons)

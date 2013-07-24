@@ -63,7 +63,7 @@ let rec occurs_in ty bigty =
 
 /// The call tysubst [ty1',ty1; ... ; tyn',tyn] ty will systematically traverse the type ty
 /// and replace the topmost instances of any tyi encountered with the corresponding tyi'.
-/// In the (usual) case where all the tyi are type Choice.get <| variables, this is the same as type_subst,
+/// In the (usual) case where all the tyi are type variables, this is the same as type_subst,
 /// but also works when they are not.
 let tysubst alist ty =
     let rec tysubst alist ty =
@@ -144,7 +144,7 @@ let mk_binary s =
 (* Produces a sequence of variants, considering previous inventions.         *)
 (* ------------------------------------------------------------------------- *)
 
-/// Pick a list of variants of Choice.get <| variables, avoiding a list of Choice.get <| variables and each other.
+/// Pick a list of variants of Choice.get <| variables, avoiding a list of variables and each other.
 let variants av vs =
     let rec variants av vs = 
         if vs = [] then []
@@ -240,19 +240,25 @@ let alpha v tm =
 (* ------------------------------------------------------------------------- *)
 
 /// Computes a type instantiation to match one type to another.
-let rec type_match vty cty sofar = 
-    if is_vartype vty then
-        match rev_assoc vty sofar with
-        | Some x ->
-            if x = cty then sofar
+let type_match vty cty sofar = 
+    let rec type_match vty cty sofar = 
+        if is_vartype vty then
+            match rev_assoc vty sofar with
+            | Some x ->
+                if x = cty then sofar
+                else failwith "type_match"
+            | None ->
+                (cty, vty) :: sofar
+        else 
+            let vop, vargs = Choice.get <| dest_type vty
+            let cop, cargs = Choice.get <| dest_type cty
+            if vop = cop then itlist2 type_match vargs cargs sofar
             else failwith "type_match"
-        | None ->
-            (cty, vty) :: sofar
-    else 
-        let vop, vargs = Choice.get <| dest_type vty
-        let cop, cargs = Choice.get <| dest_type cty
-        if vop = cop then itlist2 type_match vargs cargs sofar
-        else failwith "type_match"
+    try
+        Choice.succeed <| type_match vty cty sofar
+    with Failure s ->
+        Choice.failwith s 
+
 
 (* ------------------------------------------------------------------------- *)
 (* Conventional matching version of mk_const (but with a sanity test).       *)
@@ -262,7 +268,7 @@ let rec type_match vty cty sofar =
 let mk_mconst(c, ty) = 
     try 
         let uty = Choice.get <| get_const_type c
-        let mat = type_match uty ty []
+        let mat = Choice.get <| type_match uty ty []
         let con = Choice.get <| mk_const(c, mat)
         if Choice.get <| type_of con = ty then con
         else fail()
@@ -271,14 +277,14 @@ let mk_mconst(c, ty) =
         nestedFailwith e "mk_const: generic type cannot be instantiated"
 
 (* ------------------------------------------------------------------------- *)
-(* Like mk_comb, but instantiates type Choice.get <| variables in Choice.get <| rator if necessary.      *)
+(* Like mk_comb, but instantiates type variables in rator if necessary.      *)
 (* ------------------------------------------------------------------------- *)
 
 /// Makes a combination, instantiating types in Choice.get <| rator if necessary.
 let mk_icomb(tm1, tm2) = 
     match Choice.get <| dest_type(Choice.get <| type_of tm1) with
     | "fun", [ty; _] ->
-        let tyins = type_match ty (Choice.get <| type_of tm2) []
+        let tyins = Choice.get <| type_match ty (Choice.get <| type_of tm2) []
         Choice.get <| mk_comb(Choice.get <| inst tyins tm1, tm2)
     | _ -> failwith "mk_icomb: Unhandled case."
 
@@ -289,7 +295,7 @@ let mk_icomb(tm1, tm2) =
 /// Applies constant to list of arguments, instantiating constant type as needed.
 let list_mk_icomb cname args = 
     let atys, _ = nsplit (Choice.get << dest_fun_ty) args (Choice.get <| get_const_type cname)
-    let tyin = itlist2 (fun g a -> type_match g (Choice.get <| type_of a)) atys args []
+    let tyin = itlist2 (fun g a -> Choice.get << type_match g (Choice.get <| type_of a)) atys args []
     list_mk_comb(Choice.get <| mk_const(cname, tyin), args)
 
 (* ------------------------------------------------------------------------- *)

@@ -284,7 +284,7 @@ let pp_print_term =
         if not(!reverse_interface_mapping) then s0
         else 
             try 
-                fst(find (fun (s, (s', ty)) -> s' = s0 && can (type_match ty ty0) []) (!the_interface))
+                fst(find (fun (s, (s', ty)) -> s' = s0 && can (Choice.get << type_match ty ty0) []) (!the_interface))
             with
             | Failure _ -> s0
     let rec DEST_BINARY c tm = 

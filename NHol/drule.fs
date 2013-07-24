@@ -327,7 +327,7 @@ let term_match : term list -> term -> term -> instantiation =
                 let sofar' = term_pmatch lconsts env lv lc sofar
                 term_pmatch lconsts env rv rc sofar'
     let get_type_insts insts = 
-        itlist (fun (t, x) -> type_match (snd(Choice.get <| dest_var x)) (Choice.get <| type_of t)) insts
+        itlist (fun (t, x) -> Choice.get << type_match (snd(Choice.get <| dest_var x)) (Choice.get <| type_of t)) insts
     let separate_insts insts = 
         let realinsts, patterns = partition (is_var << snd) insts
         let betacounts = 

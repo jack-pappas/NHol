@@ -336,7 +336,7 @@ let ISPEC t th =
             nestedFailwith e "ISPEC: input theorem not universally quantified"
     let tyins = 
         try 
-            type_match (snd(Choice.get <| dest_var x)) (Choice.get <| type_of t) []
+            Choice.get <| type_match (snd(Choice.get <| dest_var x)) (Choice.get <| type_of t) []
         with
         | Failure _ as e ->
             nestedFailwith e "ISPEC can't type-instantiate input theorem"
@@ -348,7 +348,7 @@ let ISPECL tms th =
         if tms = [] then th
         else 
             let avs = fst(chop_list (length tms) (fst(strip_forall(concl th))))
-            let tyins = itlist2 type_match (map (snd << Choice.get << dest_var) avs) (map (Choice.get << type_of) tms) []
+            let tyins = itlist2 (fun x y -> Choice.get << type_match x y) (map (snd << Choice.get << dest_var) avs) (map (Choice.get << type_of) tms) []
             SPECL tms (INST_TYPE tyins th)
             |> Choice.mapError (fun _ -> Exception "ISPECL")
 

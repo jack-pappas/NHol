@@ -745,7 +745,7 @@ let GEN_MESON_TAC =
         let eq_elim_RULE = MATCH_MP(TAUT(parse_term @"(a <=> b) ==> b \/ ~a"))
         let veq_tm = Choice.get <| rator(Choice.get <| rator(concl(hd eq_thms)))
         let create_equivalence_axioms(eq, _) = 
-            let tyins = type_match (Choice.get <| type_of veq_tm) (Choice.get <| type_of eq) []
+            let tyins = Choice.get <| type_match (Choice.get <| type_of veq_tm) (Choice.get <| type_of eq) []
             map (INST_TYPE tyins) eq_thms
         let rec tm_consts tm acc = 
             let fn, args = strip_comb tm
@@ -969,7 +969,7 @@ let GEN_MESON_TAC =
             let s1, ty1 = Choice.get <| dest_const tm1
             let s2, ty2 = Choice.get <| dest_const tm2
             if s1 = s2
-            then type_match ty1 ty2 []
+            then Choice.get <| type_match ty1 ty2 []
             else failwith "match_consts"
         let polymorph mconsts th = 
             let tvs = 

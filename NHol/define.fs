@@ -953,7 +953,7 @@ let instantiate_casewise_recursion,
       let ty = fst(Choice.get <| dest_type(fst(Choice.get <| dest_fun_ty(Choice.get <| type_of ev))))
       let th = prove_depth_measure_exists ty
       let ev',bod' = dest_exists(concl th)
-      let th' = INST_TYPE(type_match (Choice.get <| type_of ev') (Choice.get <| type_of ev) []) th
+      let th' = INST_TYPE(Choice.get <| type_match (Choice.get <| type_of ev') (Choice.get <| type_of ev) []) th
       (MP_TAC th' |>THEN<| MATCH_MP_TAC MONO_EXISTS |>THEN<|
        GEN_TAC |>THEN<| DISCH_THEN(fun th -> REWRITE_TAC[th]) |>THEN<| tac) (asl,w)
     let CONSTANT_MEASURE_THEN =
