@@ -25,6 +25,7 @@ module NHol.basics
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+open ExtCore.Control
 
 open NHol
 open lib

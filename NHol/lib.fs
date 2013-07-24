@@ -115,13 +115,6 @@ module Choice =
         | Choice2Of2 error ->
             errorBinding error
 
-type EitherBuilder() =
-    member __.Return a = Choice.succeed a
-    member __.Bind (m, f) = Choice.bind f m
-    member __.ReturnFrom m = m
-
-/// Choice computation expression
-let choice = EitherBuilder()
 
 (* ------------------------------------------------------------------------- *)
 (* Functions needed for OCaml compatibility. These augment or supercede      *)
