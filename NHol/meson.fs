@@ -210,7 +210,7 @@ let GEN_MESON_TAC =
             ff, map (fol_of_term env consts) args
     let fol_of_literal env consts tm = 
         try 
-            let tm' = dest_neg tm
+            let tm' = Choice.get <| dest_neg tm
             let p, a = fol_of_atom env consts tm'
             -p, a
         with
@@ -704,7 +704,7 @@ let GEN_MESON_TAC =
     let meson_to_hol = 
         let hol_negate tm = 
             try 
-                dest_neg tm
+                Choice.get <| dest_neg tm
             with
             | Failure _ -> mk_neg tm
         let merge_inst (t, x) current = (fol_subst current t, x) :: current
@@ -779,7 +779,7 @@ let GEN_MESON_TAC =
                             with
                             | Failure _ -> 
                                 try 
-                                    fm_consts (dest_neg tm) acc
+                                    fm_consts (Choice.get <| dest_neg tm) acc
                                 with
                                 | Failure _ -> 
                                     try 
@@ -873,7 +873,7 @@ let GEN_MESON_TAC =
             let atoms = 
                 map (fun t -> 
                         try 
-                            dest_neg t
+                            Choice.get <| dest_neg t
                         with
                         | Failure _ -> t) lits
             let eqs, noneqs = 

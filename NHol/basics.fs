@@ -464,7 +464,7 @@ let strip_forall = splitlist dest_forall
 /// Tests a term to see if it as an existential quantification.
 let is_exists = is_binder "?"
 
-/// Breaks apart an existentially quantified term into quantified variable and Choice.get <| body.
+/// Breaks apart an existentially quantified term into quantified variable and body.
 let dest_exists = Choice.get << dest_binder "?"
 
 /// Iteratively breaks apart existential quantifications.
@@ -481,27 +481,30 @@ let disjuncts = striplist dest_disj
 
 /// Tests a term to see if it is a logical negation.
 let is_neg tm = 
-    try 
-        fst(Choice.get <| dest_const(Choice.get <| rator tm)) = "~"
-    with
-    | Failure _ -> false
+    let v = rator tm |> Choice.bind dest_const
+    match v with
+    | Success("~", _) -> true
+    | _ -> false
 
 /// Breaks apart a negation, returning its Choice.get <| body.
-let dest_neg tm = 
-    try 
-        let n, p = Choice.get <| dest_comb tm
-        if fst(Choice.get <| dest_const n) = "~" then p
-        else fail()
-    with
-    | Failure _ as e ->
-        nestedFailwith e "dest_neg"
+let dest_neg tm =
+    dest_comb tm
+    |> Choice.bind (fun (n, p) ->
+        dest_const n
+        |> Choice.bind (fun (s, _ ) ->
+            if s = "~" then Choice.succeed p
+            else Choice.fail()))
+    |> Choice.bindError (fun e -> Choice.nestedFailwith e "dest_neg")
 
 /// Tests if a term is of the form `there exists a unique ...'
 let is_uexists = is_binder "?!"
+
 /// Breaks apart a unique existence term.
 let dest_uexists = Choice.get << dest_binder "?!"
+
 /// Breaks apart a `CONS pair' into head and tail.
 let dest_cons = Choice.get << dest_binary "CONS"
+
 /// Tests a term to see if it is an application of CONS.
 let is_cons = is_binary "CONS"
 

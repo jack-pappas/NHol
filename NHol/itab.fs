@@ -60,7 +60,7 @@ let ITAUT_TAC =
     let CONJUNCTS_THEN' ttac cth = ttac(CONJUNCT1 cth)
                                    |> THEN <| ttac(CONJUNCT2 cth)
     let IMPLICATE t = 
-        let th1 = AP_THM NOT_DEF (dest_neg t)
+        let th1 = AP_THM NOT_DEF (Choice.get <| dest_neg t)
         CONV_RULE (RAND_CONV BETA_CONV) th1
     let RIGHT_REVERSIBLE_TAC = 
         FIRST [CONJ_TAC                                                 (* and     *)

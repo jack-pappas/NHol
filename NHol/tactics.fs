@@ -599,7 +599,7 @@ let DISCH_TAC : tactic =
                     match l with
                     | [a] -> a
                     | _ -> Choice2Of2 <| Exception "DISCH_TAC.fun2: Unhandled case."
-                let ant = dest_neg w
+                let ant = Choice.get <| dest_neg w
                 let th1 = ASSUME ant
                 (null_meta, [("", th1) :: asl, f_tm], fun i thl -> NOT_INTRO(DISCH (instantiate i ant) (fun2 thl)))
                 |> Choice1Of2

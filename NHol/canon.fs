@@ -875,7 +875,7 @@ let ASM_FOL_TAC =
             with
             | Failure _ -> 
                 try 
-                    let tm' = dest_neg tm
+                    let tm' = Choice.get <| dest_neg tm
                     get_heads lconsts tm' sofar
                 with
                 | Failure _ -> 
