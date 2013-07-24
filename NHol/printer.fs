@@ -345,7 +345,7 @@ let pp_print_term =
                 with
                 | Failure _ -> 
                     try 
-                        (let tms = dest_list tm
+                        (let tms = Choice.get <| dest_list tm
                          try 
                              if fst(Choice.get <| dest_type(hd(snd(Choice.get <| dest_type(Choice.get <| type_of tm))))) <> "char" then fail()
                              else 

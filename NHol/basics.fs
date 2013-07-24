@@ -510,20 +510,16 @@ let is_cons = is_binary "CONS"
 
 /// Iteratively breaks apart a list term.
 let dest_list tm = 
-    try 
+    let v = 
         let tms, nil = splitlist (Choice.get << dest_cons) tm
-        if fst(Choice.get <| dest_const nil) = "NIL" then tms
-        else fail()
-    with
-    | Failure _ as e ->
-        nestedFailwith e "dest_list"
+        match dest_const nil with
+        | Success("NIL", _) -> Choice.succeed tms
+        | _ -> Choice.fail()
+    v |> Choice.bindError (fun e -> nestedFailwith e "dest_list")
 
 /// Tests a term to see if it is a list.
 let is_list x =
-    try
-        dest_list x |> ignore
-        true
-    with Failure _ -> false
+    Choice.isResult <| dest_list x
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for numerals.                                                      *)
