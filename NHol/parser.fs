@@ -560,7 +560,7 @@ let parse_type (s : string) =
 //    printfn "parsing type %s" s 
     let pty, l = (parse_pretype << lex << explode) s
     //printfn "pty, l <-- %A, %A" pty l
-    if l = [] then type_of_pretype pty
+    if l = [] then Choice.get <| type_of_pretype pty
     else failwith "Unparsed input following type"
 
 /// Parses a string into a HOL term.
@@ -568,7 +568,7 @@ let parse_term s =
 //    printfn "parsing term %s" s
     let ptm, l = (parse_preterm << lex << explode) s
     //printfn "l <-- %A" l
-    if l = [] then (term_of_preterm << (retypecheck [])) ptm
+    if l = [] then (Choice.get << term_of_preterm << (Choice.get << retypecheck [])) ptm
     else failwith "Unparsed input following term"
 
 

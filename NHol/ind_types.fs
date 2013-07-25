@@ -1067,7 +1067,7 @@ let define_type_raw_001 =
 let parse_inductive_type_specification = 
     let parse_type_loc src = 
         let pty, rst = parse_pretype src
-        type_of_pretype pty, rst
+        Choice.get <| type_of_pretype pty, rst
     let parse_type_conapp src = 
         let cn, sps = 
             match src with

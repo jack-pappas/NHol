@@ -40,6 +40,16 @@ open ExtCore.Control.Collections
 
 #endif
 
+// The exception fired by failwith is used as a control flow.
+// KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
+// Using exception as a control flow should be eliminated in the future.
+let (|Failure|_|)(exn : exn) = 
+    match exn with
+    | :? System.Collections.Generic.KeyNotFoundException -> Some exn.Message
+    | :? System.ArgumentException -> Some exn.Message
+    | Microsoft.FSharp.Core.Operators.Failure s -> Some s
+    | _ -> None
+
 (* ------------------------------------------------------------------------- *)
 (* Some ExtCore-related functions used within NHol.                          *)
 (* ------------------------------------------------------------------------- *)
@@ -100,6 +110,12 @@ module Choice =
     (* These functions are fairly specific to this project,
        and so probably won't be included in ExtCore. *)
 
+    let attempt f = 
+        try
+            succeed <| f()
+        with Failure s ->
+            failwith s           
+
     let fill defaultResult value =
         match value with
         | Choice1Of2 result -> result
@@ -144,16 +160,6 @@ module Choice =
 // It will also be defined in a future version of FSharp.Compatibility.OCaml.
 let inline (==) (x : 'T) (y : 'T) =
     System.Object.ReferenceEquals(x, y)
-
-// The exception fired by failwith is used as a control flow.
-// KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
-// Using exception as a control flow should be eliminated in the future.
-let (|Failure|_|)(exn : exn) = 
-    match exn with
-    | :? System.Collections.Generic.KeyNotFoundException -> Some exn.Message
-    | :? System.ArgumentException -> Some exn.Message
-    | Microsoft.FSharp.Core.Operators.Failure s -> Some s
-    | _ -> None
 
 module Ratio =
     open System.Diagnostics

@@ -59,10 +59,10 @@ let type_invention_warning = ref true
 let type_invention_error = ref false
 
 (* ------------------------------------------------------------------------- *)
-(* Implicit types ||  type schemes for non-constants.                         *)
+(* Implicit types or type schemes for non-constants.                         *)
 (* ------------------------------------------------------------------------- *)
 
-/// Restrict Choice.get <| variables to a particular type or type scheme.
+/// Restrict variables to a particular type or type scheme.
 let the_implicit_types = ref([] : (string * hol_type) list)
 
 (* ------------------------------------------------------------------------- *)
@@ -327,10 +327,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 if defined env i then solve env (apply env i)
                 else pty
             | _ -> pty
-        try
-            Choice.succeed <| solve env pty
-        with Failure s ->
-            Choice.failwith s
+        Choice.attempt (fun () -> solve env pty)
 
     (* ----------------------------------------------------------------------- *)
     (* Functions for display of preterms and pretypes, by converting them      *)
@@ -353,10 +350,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             | Utv v -> mk_vartype v
             | Ptycon(con, args) -> Choice.get <| mk_type(con, map (type_of_pretype' ns) args)
         fun pt ->
-            try
-                Choice.succeed <| string_of_type (type_of_pretype' stvs pt)
-            with Failure s ->
-                Choice.failwith s
+            Choice.attempt (fun () -> string_of_type (type_of_pretype' stvs pt))
 
     let string_of_preterm = 
         let rec untyped_t_of_pt = 
@@ -367,10 +361,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             | Absp(v, bod) -> Choice.get <| mk_gabs(untyped_t_of_pt v, untyped_t_of_pt bod)
             | Typing(ptm, pty) -> untyped_t_of_pt ptm
         fun pt ->
-            try
-                Choice.succeed <| string_of_term (untyped_t_of_pt pt)
-            with Failure s ->
-                Choice.failwith s
+            Choice.attempt (fun () -> string_of_term (untyped_t_of_pt pt))
 
     let string_of_ty_error env po = 
         let string_of_ty_error env = 
@@ -387,10 +378,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
                     " " + s + " has type " + string_of_type(Choice.get <| get_const_type s) + ", " + "it cannot be used with type " + sty2
                 | Varp(s, _) -> default_msg s
                 | t -> default_msg(Choice.get <| string_of_preterm t)
-        try
-            Choice.succeed <| string_of_ty_error env po
-        with Failure s ->
-            Choice.failwith s
+        Choice.attempt (fun () -> string_of_ty_error env po)
 
     (* ----------------------------------------------------------------------- *)
     (* Unification of types                                                    *)
@@ -422,14 +410,12 @@ let type_of_pretype, term_of_preterm, retypecheck =
                                  | None -> None
                                  | Some t -> Some(t, ty1, ty2)]
 
-        try
-            Choice.succeed <| unify ptm env ty1 ty2
-        with Failure s ->
-            Choice.failwith s
+        Choice.attempt (fun () -> unify ptm env ty1 ty2)
 
     (* ----------------------------------------------------------------------- *)
     (* Attempt to attach a given type to a term, performing unifications.      *)
     (* ----------------------------------------------------------------------- *)
+
     let typify ty (ptm, venv, uenv) =
         let rec typify ty (ptm, venv, uenv) =
             //printfn "typify --> %A:%A:%A:%A" ty ptm venv uenv 
@@ -477,49 +463,50 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 let bod', venv2, uenv2 = typify ty'' (bod, venv1 @ venv, uenv1)
                 Absp(v', bod'), venv2, uenv2
             | _ -> failwith "typify: unexpected constant at this stage"
-        try
-            Choice.succeed <| typify ty (ptm, venv, uenv)
-        with Failure s ->
-            Choice.failwith s
+        Choice.attempt (fun () -> typify ty (ptm, venv, uenv))
 
     (* ----------------------------------------------------------------------- *)
     (* Further specialize type constraints by resolving overloadings.          *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec resolve_interface ptm cont env = 
-        match ptm with
-        | Combp(f, x) -> resolve_interface f (resolve_interface x cont) env
-        | Absp(v, bod) -> resolve_interface v (resolve_interface bod cont) env
-        | Varp(_, _) -> cont env
-        | Constp(s, ty) -> 
-            let maps = filter (fun (s', _) -> s' = s) (!the_interface)
-            if maps = [] then cont env
-            else 
-                tryfind (fun (_, (_, ty')) -> 
-                        let ty' = pretype_instance ty'
-                        Some <| cont(Choice.get <| unify (Some ptm) env ty' ty)) maps
-                |> Option.getOrFailWith "tryfind"
-        | _ -> failwith "resolve_interface: Unhandled case."
+    let resolve_interface ptm cont env = 
+        let rec resolve_interface ptm cont env = 
+            match ptm with
+            | Combp(f, x) -> resolve_interface f (resolve_interface x cont) env
+            | Absp(v, bod) -> resolve_interface v (resolve_interface bod cont) env
+            | Varp(_, _) -> cont env
+            | Constp(s, ty) -> 
+                let maps = filter (fun (s', _) -> s' = s) (!the_interface)
+                if maps = [] then cont env
+                else 
+                    tryfind (fun (_, (_, ty')) -> 
+                            let ty' = pretype_instance ty'
+                            Some <| cont(Choice.get <| unify (Some ptm) env ty' ty)) maps
+                    |> Option.getOrFailWith "tryfind"
+            | _ -> failwith "resolve_interface: Unhandled case."
+        Choice.attempt (fun () -> resolve_interface ptm cont env)
 
     (* ----------------------------------------------------------------------- *)
     (* Hence apply throughout a preterm.                                       *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec solve_preterm env ptm = 
-        match ptm with
-        | Varp(s, ty) -> Varp(s, Choice.get <| solve env ty)
-        | Combp(f, x) -> Combp(solve_preterm env f, solve_preterm env x)
-        | Absp(v, bod) -> Absp(solve_preterm env v, solve_preterm env bod)
-        | Constp(s, ty) -> 
-            let tys = Choice.get <| solve env ty
-            try 
-                let _, (c', _) =
-                    Option.get <| find (fun (s', (c', ty')) -> s = s' && Choice.isResult <| unify None env (pretype_instance ty') ty) 
-                        (!the_interface)
-                pmk_cv(c', tys)
-            with
-            | Failure _ -> Constp(s, tys)
-        | _ -> failwith "solve_preterm: Unhandled case."
+    let solve_preterm env ptm = 
+        let rec solve_preterm env ptm = 
+            match ptm with
+            | Varp(s, ty) -> Varp(s, Choice.get <| solve env ty)
+            | Combp(f, x) -> Combp(solve_preterm env f, solve_preterm env x)
+            | Absp(v, bod) -> Absp(solve_preterm env v, solve_preterm env bod)
+            | Constp(s, ty) -> 
+                let tys = Choice.get <| solve env ty
+                try 
+                    let _, (c', _) =
+                        Option.get <| find (fun (s', (c', ty')) -> s = s' && Choice.isResult <| unify None env (pretype_instance ty') ty) 
+                            (!the_interface)
+                    pmk_cv(c', tys)
+                with
+                | Failure _ -> Constp(s, tys)
+            | _ -> failwith "solve_preterm: Unhandled case."
+        Choice.attempt (fun () -> solve_preterm env ptm)
 
     (* ----------------------------------------------------------------------- *)
     (* Flag to indicate that Stvs were translated to real type variables.      *)
@@ -531,14 +518,16 @@ let type_of_pretype, term_of_preterm, retypecheck =
     (* Pretype <-> type conversion; -> flags system type variable translation. *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec type_of_pretype ty = 
-        match ty with
-        | Stv n -> 
-            stvs_translated := true
-            let s = "?" + (string n)
-            mk_vartype(s)
-        | Utv(v) -> mk_vartype(v)
-        | Ptycon(con, args) -> Choice.get <| mk_type(con, map type_of_pretype args)
+    let type_of_pretype ty =
+        let rec type_of_pretype ty = 
+            match ty with
+            | Stv n -> 
+                stvs_translated := true
+                let s = "?" + (string n)
+                mk_vartype(s)
+            | Utv(v) -> mk_vartype(v)
+            | Ptycon(con, args) -> Choice.get <| mk_type(con, map type_of_pretype args)
+        Choice.attempt (fun () -> type_of_pretype ty)
 
     (* ----------------------------------------------------------------------- *)
     (* Maps preterms to terms.                                                 *)
@@ -547,8 +536,8 @@ let type_of_pretype, term_of_preterm, retypecheck =
     let term_of_preterm = 
         let rec term_of_preterm ptm = 
             match ptm with
-            | Varp(s, pty) -> mk_var(s, type_of_pretype pty)
-            | Constp(s, pty) -> Choice.get <| mk_mconst(s, type_of_pretype pty)
+            | Varp(s, pty) -> mk_var(s, Choice.get <| type_of_pretype pty)
+            | Constp(s, pty) -> Choice.get <| mk_mconst(s, Choice.get <| type_of_pretype pty)
             | Combp(l, r) -> Choice.get <| mk_comb(term_of_preterm l, term_of_preterm r)
             | Absp(v, bod) -> Choice.get <| mk_gabs(term_of_preterm v, term_of_preterm bod)
             | Typing(ptm, pty) -> term_of_preterm ptm
@@ -557,31 +546,39 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 if !type_invention_error then failwith "typechecking error (cannot infer type of variables)"
                 else warn !type_invention_warning "inventing type variables"
         fun ptm -> 
-            stvs_translated := false
-            let tm = term_of_preterm ptm
-            report_type_invention()
-            tm
+            Choice.attempt (fun () ->
+                stvs_translated := false
+                let tm = term_of_preterm ptm
+                report_type_invention()
+                tm)
 
     (* ----------------------------------------------------------------------- *)
     (* Overall typechecker: initial typecheck plus overload resolution pass.   *)
     (* ----------------------------------------------------------------------- *)
 
     let retypecheck venv ptm = 
-        let ty = new_type_var()
-        let ptm', _, env = 
-            try 
-                Choice.get <| typify ty (ptm, venv, undefined)
-            with
-            | Failure msg as e ->
-                let msg = "typechecking error (initial type assignment): " + msg
-                nestedFailwith e msg
+        let retypecheck venv ptm = 
+            let ty = new_type_var()
+            let ptm', _, env = 
+                try 
+                    Choice.get <| typify ty (ptm, venv, undefined)
+                with
+                | Failure msg as e ->
+                    let msg = "typechecking error (initial type assignment): " + msg
+                    nestedFailwith e msg
 
-        let env' = 
-            try 
-                resolve_interface ptm' id env
-            with
-            | Failure _ as e ->
-                nestedFailwith e "typechecking error (overload resolution)"
-        let ptm'' = solve_preterm env' ptm'
-        ptm''
+            let env' = 
+                try 
+                    Choice.get <| resolve_interface ptm' id env
+                with
+                | Failure _ as e ->
+                    nestedFailwith e "typechecking error (overload resolution)"
+            let ptm'' = solve_preterm env' ptm'
+            ptm''
+        // TODO: recheck this
+        try
+            retypecheck venv ptm
+        with Failure s ->
+            Choice.failwith s
+
     type_of_pretype, term_of_preterm, retypecheck
