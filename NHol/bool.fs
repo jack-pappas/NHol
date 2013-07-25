@@ -194,7 +194,7 @@ let CONJ_PAIR th =
     CONJUNCT1 th, CONJUNCT2 th
 
 /// Recursively splits conjunctions into a list of conjuncts.
-let CONJUNCTS = striplist CONJ_PAIR
+let CONJUNCTS = striplist (Some << CONJ_PAIR)
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for ==>                                                             *)

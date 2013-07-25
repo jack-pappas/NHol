@@ -1558,7 +1558,7 @@ let INTEGER_TAC_001 =
         // CAUTION: change from value to function to delay System.Exception
         let pth() = INT_ARITH(parse_term @"!a x. a = &0 <=> x = x + a")
         let is_defined v t = 
-            let mons = striplist (Choice.get << dest_binary "int_add") t
+            let mons = striplist (Choice.toOption << dest_binary "int_add") t
             mem v mons && forall (fun m -> v = m || not(free_in v m)) mons
         fun vars tm -> 
             let th = INT_POLYEQ_CONV tm
@@ -1603,7 +1603,7 @@ let INTEGER_TAC_001 =
         let mk_mul = fun x -> Choice.get << mk_binop mul_tm x
         let mk_add = fun x -> Choice.get << mk_binop add_tm x
         let scrub_var v m = 
-            let ps = striplist dest_mul m
+            let ps = striplist (Some << dest_mul) m
             let ps' = subtract ps [v]
             if ps' = []
             then one_tm
@@ -1617,7 +1617,7 @@ let INTEGER_TAC_001 =
         fun vars tm -> 
             let cmons, vmons = 
                 partition (fun m -> intersect (frees m) vars = []) 
-                    (striplist dest_add tm)
+                    (striplist (Some << dest_add) tm)
             let cofactors = map (fun v -> find_multipliers v vmons) vars
             let cnc = 
                 if cmons = []

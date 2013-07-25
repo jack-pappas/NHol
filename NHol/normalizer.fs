@@ -533,7 +533,7 @@ let SEMIRING_NORMALIZERS_CONV =
                         (* Ordering on monomials.                                                    *)
                         (* ------------------------------------------------------------------------- *)
                         let powervars tm = 
-                            let ptms = striplist dest_mul tm
+                            let ptms = striplist (Some << dest_mul) tm
                             if is_semiring_constant(hd ptms)
                             then tl ptms
                             else ptms

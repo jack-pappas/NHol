@@ -727,7 +727,7 @@ let ``{rev_splitlist} applies a binary destructor repeatedly in right-associativ
 [<Test>]
 let ``{striplist} applies a binary destructor repeatedly, flattening the construction tree into a list``() = 
 
-    striplist dest_conj (And (And (Atom 5,Atom 6), Atom 2))
+    striplist (Some << dest_conj) (And (And (Atom 5,Atom 6), Atom 2))
     |> should equal [Atom 5;Atom 6;Atom 2]
 
 (* nsplit tests *)

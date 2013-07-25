@@ -368,11 +368,10 @@ let rev_splitlist dest =
 /// Applies a binary destructor repeatedly, flattening the construction tree into a list.
 let striplist dest = 
     let rec strip x acc = 
-        try 
-            let l, r = dest x
+        match dest x with
+        | Some (l, r) ->
             strip l (strip r acc)
-        with
-        | Failure _ -> x :: acc
+        | None -> x :: acc
     fun x -> strip x []
 
 (* ------------------------------------------------------------------------- *)

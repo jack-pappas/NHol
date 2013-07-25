@@ -1799,7 +1799,7 @@ let define_type_raw =
             let ctylist = 
                 filter (fun ty -> exists (fun t -> occurs_in t ty) isotys) 
                     vtylist
-            let atylist = itlist (union << striplist (Choice.get << dest_fun_ty)) ctylist []
+            let atylist = itlist (union << striplist (Choice.toOption << dest_fun_ty)) ctylist []
             let isoths' = 
                 map (lift_type_bijections isoths) 
                     (filter (fun ty -> exists (fun t -> occurs_in t ty) isotys) 

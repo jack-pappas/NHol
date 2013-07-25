@@ -432,7 +432,7 @@ let mk_binop op tm1 =
 let list_mk_binop op = end_itlist(fun x -> Choice.get << mk_binop op x)
 
 /// Repeatedly breaks apart an iterated binary operator into components.
-let binops op = striplist(Choice.get << dest_binop op)
+let binops op = striplist(Choice.toOption << dest_binop op)
 
 (* ------------------------------------------------------------------------- *)
 (* Some common special cases                                                 *)
@@ -445,7 +445,7 @@ let is_conj = is_binary "/\\"
 let dest_conj = dest_binary "/\\"
 
 /// Iteratively breaks apart a conjunction.
-let conjuncts = striplist (Choice.get << dest_conj)
+let conjuncts = striplist (Choice.toOption << dest_conj)
 
 /// Tests if a term is an application of implication.
 let is_imp = is_binary "==>"
@@ -478,7 +478,7 @@ let is_disj = is_binary "\\/"
 let dest_disj = dest_binary "\\/"
 
 /// Iteratively breaks apart a disjunction.
-let disjuncts = striplist (Choice.get << dest_disj)
+let disjuncts = striplist (Choice.toOption << dest_disj)
 
 /// Tests a term to see if it is a logical negation.
 let is_neg tm = 
