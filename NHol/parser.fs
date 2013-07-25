@@ -261,7 +261,7 @@ let parse_pretype =
                 try
                     assoc s (type_abbrevs())
                     |> Option.getOrFailWith "find"
-                    |> pretype_of_type
+                    |> (Choice.get << pretype_of_type)
                 with
                 | Failure _ -> 
                     if (match get_type_arity s with

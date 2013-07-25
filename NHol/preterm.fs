@@ -28,6 +28,9 @@ module NHol.preterm
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+open ExtCore.Control.Collections
+
 open NHol
 open lib
 open fusion
@@ -186,11 +189,12 @@ let dpty = Ptycon("", [])
 
 /// Converts a type into a pretype.
 let rec pretype_of_type ty = 
-    try 
-        let con, args = Choice.get <| dest_type ty
-        Ptycon(con, map pretype_of_type args)
-    with
-    | Failure _ -> Utv(Choice.get <| dest_vartype ty)
+    choice {
+        let! con, args = dest_type ty
+        let! ps = Choice.List.map pretype_of_type args
+        return Ptycon(con, ps)
+    }
+    |> Choice.bindError (fun _ -> dest_vartype ty |> Choice.map Utv)
 
 (* ------------------------------------------------------------------------- *)
 (* Preterm syntax.                                                           *)
@@ -209,23 +213,31 @@ type preterm =
 
 /// Converts a term into a preterm.
 let rec preterm_of_term tm = 
-    try 
-        let n, ty = Choice.get <| dest_var tm
-        Varp(n, pretype_of_type ty)
-    with
-    | Failure _ -> 
-        try 
-            let n, ty = Choice.get <| dest_const tm
-            Constp(n, pretype_of_type ty)
-        with
-        | Failure _ -> 
-            try 
-                let v, bod = Choice.get <| dest_abs tm
-                Absp(preterm_of_term v, preterm_of_term bod)
-            with
-            | Failure _ -> 
-                let l, r = Choice.get <| dest_comb tm
-                Combp(preterm_of_term l, preterm_of_term r)
+    choice {
+        let! n, ty = dest_var tm
+        let! pt = pretype_of_type ty
+        return Varp(n, pt)
+    }
+    |> Choice.bindError (fun _ ->
+        choice {
+            let! n, ty = dest_const tm
+            let! pt = pretype_of_type ty
+            return Constp(n, pt)
+        })
+    |> Choice.bindError (fun _ ->
+        choice {
+            let! v, bod = dest_abs tm
+            let! pb = preterm_of_term bod
+            let! pv = preterm_of_term v
+            return Absp(pv, pb)
+        })
+    |> Choice.bindError (fun _ ->
+        choice {
+            let! l, r = dest_comb tm
+            let! l' = preterm_of_term l
+            let! r' = preterm_of_term r  
+            return Combp(l', r')
+        })
 
 (* ------------------------------------------------------------------------- *)
 (* Main pretype->type, preterm->term and retypechecking functions.           *)
@@ -278,8 +290,8 @@ let type_of_pretype, term_of_preterm, retypecheck =
     (* ----------------------------------------------------------------------- *)
 
     let pretype_instance ty = 
-        let gty = pretype_of_type ty
-        let tyvs = map pretype_of_type (tyvars ty)
+        let gty = Choice.get <| pretype_of_type ty
+        let tyvs = map (Choice.get << pretype_of_type) (tyvars ty)
         let subs = map (fun tv -> new_type_var(), tv) tyvs
         pretype_subst subs gty
 
@@ -289,11 +301,11 @@ let type_of_pretype, term_of_preterm, retypecheck =
 
     let get_generic_type cname = 
         match filter ((=) cname << fst) (!the_interface) with
-        | [_, (c, ty)] -> ty
+        | [_, (c, ty)] -> Choice.succeed ty
         | _ :: _ :: _ ->
             assoc cname (!the_overload_skeletons)
-            |> Option.getOrFailWith "find"
-        | [] -> Choice.get <| get_const_type cname
+            |> Option.toChoiceWithError "find"
+        | [] -> get_const_type cname
 
     (* ----------------------------------------------------------------------- *)
     (* Get the implicit generic type of a variable.                            *)
@@ -301,19 +313,24 @@ let type_of_pretype, term_of_preterm, retypecheck =
 
     let get_var_type vname =
         assoc vname !the_implicit_types
-        |> Option.getOrFailWith "find"
+        |> Option.toChoiceWithError "find"
 
     (* ----------------------------------------------------------------------- *)
     (* Unravel unifications and apply them to a type.                          *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec solve env pty = 
-        match pty with
-        | Ptycon(f, args) -> Ptycon(f, map (solve env) args)
-        | Stv(i) -> 
-            if defined env i then solve env (apply env i)
-            else pty
-        | _ -> pty
+    let solve env pty = 
+        let rec solve env pty = 
+            match pty with
+            | Ptycon(f, args) -> Ptycon(f, map (solve env) args)
+            | Stv(i) -> 
+                if defined env i then solve env (apply env i)
+                else pty
+            | _ -> pty
+        try
+            Choice.succeed <| solve env pty
+        with Failure s ->
+            Choice.failwith s
 
     (* ----------------------------------------------------------------------- *)
     (* Functions for display of preterms and pretypes, by converting them      *)
@@ -332,8 +349,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let rec type_of_pretype' ns = 
             function 
             | Stv n -> 
-                mk_vartype(if mem n ns then "?" + string n
-                           else "_")
+                mk_vartype(if mem n ns then "?" + string n else "_")
             | Utv v -> mk_vartype v
             | Ptycon(con, args) -> Choice.get <| mk_type(con, map (type_of_pretype' ns) args)
         string_of_type << type_of_pretype' stvs
@@ -352,8 +368,8 @@ let type_of_pretype, term_of_preterm, retypecheck =
         function 
         | None -> "unify: types cannot be unified " + "(you should not see this message, please report)"
         | Some(t, ty1, ty2) -> 
-            let ty1 = solve env ty1
-            let ty2 = solve env ty2
+            let ty1 = Choice.get <| solve env ty1
+            let ty2 = Choice.get <| solve env ty2
             let sty1 = string_of_pretype (free_stvs ty2) ty1
             let sty2 = string_of_pretype (free_stvs ty1) ty2
             let default_msg s = " " + s + " cannot have type " + sty1 + " and " + sty2 + " simultaneously"
@@ -415,15 +431,15 @@ let type_of_pretype, term_of_preterm, retypecheck =
             t, [], unify (Some ptm) uenv ty' ty
         | Varp(s, _) -> 
             warn (s <> "" && isnum s) "Non-numeral begins with a digit"
-            if not(is_hidden s) && can get_generic_type s then 
-                let pty = pretype_instance(get_generic_type s)
+            if not(is_hidden s) && can Choice.get <| get_generic_type s then 
+                let pty = pretype_instance(Choice.get <| get_generic_type s)
                 let ptm = Constp(s, pty)
                 ptm, [], unify (Some ptm) uenv pty ty
             else 
                 let ptm = Varp(s, ty)
-                if not(can get_var_type s) then ptm, [s, ty], uenv
+                if not(can Choice.get <| get_var_type s) then ptm, [s, ty], uenv
                 else 
-                    let pty = pretype_instance(get_var_type s)
+                    let pty = pretype_instance(Choice.get <| get_var_type s)
                     ptm, [s, ty], unify (Some ptm) uenv pty ty
         | Combp(f, x) -> 
             let ty'' = new_type_var()
@@ -472,11 +488,11 @@ let type_of_pretype, term_of_preterm, retypecheck =
 
     let rec solve_preterm env ptm = 
         match ptm with
-        | Varp(s, ty) -> Varp(s, solve env ty)
+        | Varp(s, ty) -> Varp(s, Choice.get <| solve env ty)
         | Combp(f, x) -> Combp(solve_preterm env f, solve_preterm env x)
         | Absp(v, bod) -> Absp(solve_preterm env v, solve_preterm env bod)
         | Constp(s, ty) -> 
-            let tys = solve env ty
+            let tys = Choice.get <| solve env ty
             try 
                 let _, (c', _) =
                     /// Tests for failure.
