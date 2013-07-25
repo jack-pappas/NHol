@@ -1286,13 +1286,17 @@ let num_of_string =
         | [] -> failwith "num_of_string: no digits after base indicator"
         | [h] -> valof b h
         | h :: t -> valof b h +/ b */ num_of_stringlist b t
-    fun s -> 
-        match explode(s) with
-        | [] -> failwith "num_of_string: no digits"
-        | "0" :: "x" :: hexdigits -> num_of_stringlist sixteen (rev hexdigits)
-        | "0" :: "b" :: bindigits -> num_of_stringlist two (rev bindigits)
-        | decdigits -> num_of_stringlist ten (rev decdigits)
-
+    fun s ->
+        try 
+            match explode(s) with
+            | [] -> failwith "num_of_string: no digits"
+            | "0" :: "x" :: hexdigits -> num_of_stringlist sixteen (rev hexdigits)
+            | "0" :: "b" :: bindigits -> num_of_stringlist two (rev bindigits)
+            | decdigits -> num_of_stringlist ten (rev decdigits)
+            |> Choice.succeed
+        with Failure s ->
+            Choice.failwith s
+            
 (* ------------------------------------------------------------------------- *)
 (* Convenient conversion between files and (lists of) strings.               *)
 (* ------------------------------------------------------------------------- *)

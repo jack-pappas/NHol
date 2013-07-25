@@ -585,7 +585,8 @@ let pp_print_term =
                                                                  // TODO: this converted form is a bit non-sense
                                                                  match dest_const l with
                                                                  | Success(s, _) -> 
-                                                                         mem s ["real_of_num"; "int_of_num"] |> ignore
+                                                                    if not <| mem s ["real_of_num"; "int_of_num"] then
+                                                                        pp_print_space fmt ()
                                                                  | Error _ -> pp_print_space fmt ()
                                                                  print_term 1000 r
                                                                  if prec = 1000 then pp_print_string fmt ")"

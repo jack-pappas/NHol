@@ -127,12 +127,12 @@ let overload_interface(sym, tm) =
 /// Give overloaded constants involving a given type priority in operator overloading.
 let prioritize_overload ty = 
     do_list (fun (s, gty) -> 
-            try 
-                let _, (n, t) = 
-                    Option.get <| find (fun (s', (n, t)) -> s' = s && mem ty (map fst (Choice.get <| type_match gty t []))) (!the_interface)
-                overload_interface(s, mk_var(n, t)) |> ignore
-            with
-            | Failure _ -> ()) (!the_overload_skeletons)
+        try 
+            let _, (n, t) = 
+                Option.get <| find (fun (s', (n, t)) -> s' = s && mem ty (map fst (Choice.get <| type_match gty t []))) (!the_interface)
+            Choice.get <| overload_interface(s, mk_var(n, t))
+        with
+        | Failure _ -> ()) (!the_overload_skeletons)
 
 (* ------------------------------------------------------------------------- *)
 (* Type abbreviations.                                                       *)
@@ -274,7 +274,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         | _ -> failwith "pretype_subst: Unexpected form of pretype"
 
     (* ----------------------------------------------------------------------- *)
-    (* Convert type to pretype with new Stvs for all type Choice.get <| variables.           *)
+    (* Convert type to pretype with new Stvs for all type variables.           *)
     (* ----------------------------------------------------------------------- *)
 
     let pretype_instance ty = 
@@ -409,8 +409,8 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 assoc s venv
                 |> Option.getOrFailWith "find"
             Varp(s, ty'), [], unify (Some ptm) uenv ty' ty
-        | Varp(s, _) when can num_of_string s -> 
-            let t = pmk_numeral(num_of_string s)
+        | Varp(s, _) when can Choice.get <| num_of_string s -> 
+            let t = pmk_numeral(Choice.get <| num_of_string s)
             let ty' = Ptycon("num", [])
             t, [], unify (Some ptm) uenv ty' ty
         | Varp(s, _) -> 

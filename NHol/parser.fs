@@ -354,15 +354,10 @@ let parse_preterm =
       [] -> true
     | h::t -> forall (r h) t && pairwise r t
   let rec pfrees ptm acc =
-    /// Tests for failure.
-    let can f x = 
-        try f x |> ignore; true
-        with Failure _ -> false
-
     match ptm with
       Varp(v,pty) ->
         if v = "" && pty = dpty then acc
-        elif Choice.isResult <| get_const_type v || can num_of_string v || exists (fun (w,_) -> v = w) (!the_interface) then acc
+        elif Choice.isResult <| get_const_type v || Choice.isResult <| num_of_string v || exists (fun (w,_) -> v = w) (!the_interface) then acc
         else insert ptm acc
     | Constp(_,_) -> acc
     | Combp(p1,p2) -> pfrees p1 (pfrees p2 acc)
@@ -470,8 +465,8 @@ let parse_preterm =
           if ropt = [] then l0, "1"
           else 
               let r0 = hd ropt
-              let n_l = num_of_string l0
-              let n_r = num_of_string r0
+              let n_l = Choice.get <| num_of_string l0
+              let n_r = Choice.get <| num_of_string r0
               let n_d = power_num (Int 10) (Int(String.length r0))
               let n_n = n_l */ n_d +/ n_r
               string_of_num n_n, string_of_num n_d
