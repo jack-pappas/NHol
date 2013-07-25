@@ -478,8 +478,8 @@ let rec mapfilter f l =
         with
         | Failure _ -> rest
 
-/// Returns the first element of a list which satises a predicate.
-// OPTIMIZE : Make this an alias for List.find.
+/// Returns the first element of a list which satisfies a predicate.
+// OPTIMIZE : Make this an alias for List.tryFind.
 let rec find p l = 
     match l with
     | [] -> failwith "find"
@@ -488,7 +488,7 @@ let rec find p l =
         else find p t
 
 /// Returns the result of the first successful application of a function to the elements of a list.
-// OPTIMIZE : Make this an alias for List.tryFind.
+// OPTIMIZE : Make this an alias for List.tryPick.
 let rec tryfind f l =
     List.tryPick f l
 
@@ -497,7 +497,7 @@ let rec tryfind f l =
 let flat l = itlist (@) l []
 
 /// Separates the first element of a list to satisfy a predicate from the rest of the list.
-// OPTIMIZE : Rewrite this function using a list-based zipper.
+// OPTIMIZE : Rewrite this function using ListZipper from ExtCore.
 let rec remove p l = 
     match l with
     | [] -> failwith "remove"
@@ -507,7 +507,7 @@ let rec remove p l =
             let y, n = remove p t
             y, h :: n
 
-/// Chops a list into two parts at a specied point.
+/// Chops a list into two parts at a specified point.
 // OPTIMIZE : Make this an alias for List.take.
 let rec chop_list n l = 
     if n = 0 then [], l
@@ -862,6 +862,7 @@ let rec qmap f l =
 (* ------------------------------------------------------------------------- *)
 
 /// Merges together two sorted lists with respect to a given ordering.
+// OPTIMIZE : Make this tail-recursive (just use an accumulator and call List.rev at the end).
 let rec merge ord l1 l2 = 
     match l1 with
     | [] -> l2
@@ -922,6 +923,7 @@ let undefined = Empty
 (* ------------------------------------------------------------------------- *)
 
 /// Tests if a finite partial function is defined nowhere.
+// OPTIMIZE : Replace with IntMap.isEmpty from ExtCore (once func<_,_> is replaced with IntMap).
 let is_undefined f = 
     match f with
     | Empty -> true
