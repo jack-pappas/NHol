@@ -242,7 +242,7 @@ let mk_rewrites =
 (* ------------------------------------------------------------------------- *)
 /// Apply a prioritized conversion net to the term at the top level.
 let REWRITES_CONV net tm = 
-    let pconvs = lookup tm net
+    let pconvs = Choice.get <| lookup tm net
     try 
         tryfind (fun (_, cnv) -> Some <| cnv tm) pconvs
         |> Option.getOrFailWith "tryfind"
@@ -437,17 +437,17 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
 
     let rec ONCE_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) 
             lev tm = 
-        let pconvs = lookup tm net
+        let pconvs = Choice.get <| lookup tm net
         try 
             IMP_REWRITES_CONV ONCE_DEPTH_SQCONV ss lev pconvs tm
         with
         | Failure _ -> GEN_SUB_CONV ONCE_DEPTH_SQCONV ss lev pconvs tm
     let rec DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm = 
-        let pconvs = lookup tm net
+        let pconvs = Choice.get <| lookup tm net
         try 
             let th1 = GEN_SUB_CONV DEPTH_SQCONV ss lev pconvs tm
             let tm1 = Choice.get <| rand(concl th1)
-            let pconvs1 = lookup tm1 net
+            let pconvs1 = Choice.get <| lookup tm1 net
             try 
                 TRANS th1 (IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs1 tm1)
             with
@@ -456,12 +456,12 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         | Failure _ -> IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs tm
     let rec REDEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev 
             tm = 
-        let pconvs = lookup tm net
+        let pconvs = Choice.get <| lookup tm net
         let th = 
             try 
                 let th1 = GEN_SUB_CONV REDEPTH_SQCONV ss lev pconvs tm
                 let tm1 = Choice.get <| rand(concl th1)
-                let pconvs1 = lookup tm1 net
+                let pconvs1 = Choice.get <| lookup tm1 net
                 try 
                     TRANS th1 
                         (IMP_REWRITES_CONV REDEPTH_SQCONV ss lev pconvs1 tm1)
@@ -476,7 +476,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         | Failure _ -> th
     let rec TOP_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev 
             tm = 
-        let pconvs = lookup tm net
+        let pconvs = Choice.get <| lookup tm net
         let th1 = 
             try 
                 IMP_REWRITES_CONV TOP_DEPTH_SQCONV ss lev pconvs tm
@@ -489,7 +489,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         | Failure _ -> th1
     let rec TOP_SWEEP_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev 
             tm = 
-        let pconvs = lookup tm net
+        let pconvs = Choice.get <| lookup tm net
         try 
             let th1 = IMP_REWRITES_CONV TOP_SWEEP_SQCONV ss lev pconvs tm
             try 

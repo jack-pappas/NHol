@@ -421,7 +421,7 @@ let CACHE_CONV (conv : conv) : conv =
     let net = ref empty_net
     fun tm -> 
         try 
-            tryfind (fun f -> Some <| f tm) (lookup tm (!net))
+            tryfind (fun f -> Some <| f tm) (Choice.get <| lookup tm (!net))
             |> Option.getOrFailWith "tryfind"
         with
         | Failure _ -> 

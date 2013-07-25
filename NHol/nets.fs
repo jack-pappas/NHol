@@ -139,29 +139,41 @@ let enter =
 /// Look up a term in a net and return possible matches.
 let lookup = 
     let label_for_lookup tm = 
-        let op, args = strip_comb tm
-        if is_const op then Cnet(fst(Choice.get <| dest_const op), length args), args
-        elif is_abs op then Lnet(length args), (Choice.get <| body op) :: args
-        else Lcnet(fst(Choice.get <| dest_var op), length args), args
-    let rec follow(tms, Netnode(edges, tips)) = 
-        match tms with
-        | [] -> tips
-        | (tm :: rtms) -> 
-            let label, ntms = label_for_lookup tm
-            let collection =
-                // OPTIMIZE : Use Option.map and Option.fill to replace the 'match' statement.
-                match assoc label edges with
-                | None -> []
-                | Some child ->
-                    follow(ntms @ rtms, child)
-
-            if label = Vnet then collection
+        choice {
+            let op, args = strip_comb tm
+            if is_const op then 
+                let! (s, _) = dest_const op
+                return Cnet(s, length args), args
+            elif is_abs op then 
+                let! tm = body op
+                return Lnet(length args), tm :: args
             else
-                // OPTIMIZE : Use Option.map and Option.fill to replace the 'match' statement.
-                match assoc Vnet edges with
-                | None -> collection
-                | Some x ->
-                    collection @ follow(rtms, x)
+                let! (s, _) = dest_var op
+                return Lcnet(s, length args), args
+        }
+
+    let rec follow(tms, Netnode(edges, tips)) = 
+        choice {
+            match tms with
+            | [] -> return tips
+            | (tm :: rtms) -> 
+                let! (label, ntms) = label_for_lookup tm
+                let! collection =
+                    // OPTIMIZE : Use Option.map and Option.fill to replace the 'match' statement.
+                    match assoc label edges with
+                    | None -> Choice.succeed []
+                    | Some child ->
+                        follow(ntms @ rtms, child)
+                if label = Vnet then 
+                    return collection
+                else
+                    // OPTIMIZE : Use Option.map and Option.fill to replace the 'match' statement.
+                    match assoc Vnet edges with
+                    | None -> return collection
+                    | Some x ->
+                        let! coll = follow(rtms, x) 
+                        return collection @ coll
+        }
 
     fun tm net -> follow([tm], net)
 
@@ -171,16 +183,12 @@ let lookup =
 
 /// Function to merge two nets.
 let merge_nets = 
-    let rec canon_eq x y = 
-        try 
-            compare x y = 0
-        with
-        | Failure _ -> false
-    and canon_lt x y = 
-        try 
-            compare x y < 0
-        with
-        | Failure _ -> false
+    let canon_eq x y = 
+        compare x y = 0
+        
+    let canon_lt x y = 
+        compare x y < 0
+        
     let rec set_merge l1 l2 = 
         if l1 = [] then l2
         elif l2 = [] then l1

@@ -661,7 +661,7 @@ let HIGHER_REWRITE_CONV =
             mapfilter (fun p -> 
                     if can (term_match [] p) t
                     then p
-                    else fail()) (lookup t mnet)
+                    else fail()) (Choice.get <| lookup t mnet)
         fun top tm -> 
             let pred t = not(look_fn t = []) && free_in t tm
             let stm = 
