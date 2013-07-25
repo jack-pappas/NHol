@@ -560,11 +560,10 @@ let define_type_raw_001 =
             else 
                 let h1 = hd s1
                 let s1' = tl s1
-                try 
-                    let _, s2' = remove (fun h2 -> h2 = h1) s2
+                match remove (fun h2 -> h2 = h1) s2 with
+                | Some (_, s2') ->
                     h1 :: (munion s1' s2')
-                with
-                | Failure _ -> h1 :: (munion s1' s2)
+                | None -> h1 :: (munion s1' s2)
         fun def -> 
             let newtys, rights = unzip def
             let tyargls = itlist ((@) << map snd) rights []
@@ -595,8 +594,7 @@ let define_type_raw_001 =
                     else 
                         let ty = hd alltys
                         try 
-                            let a, iargs' = 
-                                remove (fun t -> Choice.get <| type_of t = ty) iargs
+                            let a, iargs' =  Option.get <| remove (fun t -> Choice.get <| type_of t = ty) iargs
                             a :: (mk_injector (tl epstms) (tl alltys) iargs')
                         with
                         | Failure _ -> 

@@ -265,7 +265,7 @@ let pp_print_type, pp_print_qtype =
 let install_user_printer, delete_user_printer, try_user_printer = 
     let user_printers = ref([] : (string * (term -> unit)) list)
     (fun pr -> user_printers := pr :: (!user_printers)), 
-    (fun s -> user_printers := snd(remove (fun (s', _) -> s = s') (!user_printers))), 
+    (fun s -> user_printers := snd(Option.get <| remove (fun (s', _) -> s = s') (!user_printers))), 
     (fun tm -> tryfind (fun (_, pr) -> Some <| pr tm) (!user_printers) 
                |> Option.getOrFailWith "tryfind")
 

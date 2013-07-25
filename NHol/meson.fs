@@ -403,10 +403,8 @@ let GEN_MESON_TAC =
         let p' = -p
         let t' = (p', a)
         let ourancp, otheranc = 
-            try 
-                remove (fun (pr, _) -> pr = p') ancestors
-            with
-            | Failure _ -> (p', []), ancestors
+            remove (fun (pr, _) -> pr = p') ancestors
+            |> Option.fill ((p', []), ancestors)
         let ouranc = snd ourancp
         if exists (fun u -> fol_atom_eq insts t' (snd(fst u))) ouranc
         then failwith "insertan: loop"

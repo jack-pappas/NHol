@@ -497,12 +497,13 @@ let flat l = itlist (@) l []
 // OPTIMIZE : Rewrite this function using ListZipper from ExtCore.
 let rec remove p l = 
     match l with
-    | [] -> failwith "remove"
+    | [] -> None
     | (h :: t) -> 
-        if p(h) then h, t
+        if p(h) then Some (h, t)
         else 
-            let y, n = remove p t
-            y, h :: n
+            remove p t
+            |> Option.map (fun (y, n) ->
+                (y, h :: n))
 
 /// Chops a list into two parts at a specified point.
 // OPTIMIZE : Make this an alias for List.take.

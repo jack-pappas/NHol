@@ -113,10 +113,9 @@ let enter =
         | (tm :: rtms) -> 
             let label, ntms = label_to_store lconsts tm
             let child, others = 
-                try 
-                    (snd ||>> I)(remove (fun (x, y) -> x = label) edges)
-                with
-                | Failure _ -> (empty_net, edges)
+                match (remove (fun (x, y) -> x = label) edges) with
+                | Some x -> (snd ||>> I) x
+                | None -> (empty_net, edges)
             let new_child = net_update lconsts (elem, ntms @ rtms, child)
             Netnode((label, new_child) :: others, tips)
     fun lconsts (tm, elem) net -> net_update lconsts (elem, [tm], net)
@@ -183,10 +182,9 @@ let merge_nets =
             else h2 :: (set_merge l1 t2)
     let rec merge_nets(Netnode(l1, data1), Netnode(l2, data2)) = 
         let add_node ((lab, net) as p) l = 
-            try 
-                let (lab', net'), rest = remove (fun (x, y) -> x = lab) l
+            match remove (fun (x, y) -> x = lab) l with
+            | Some ((lab', net'), rest) ->
                 (lab', merge_nets(net, net')) :: rest
-            with
-            | Failure _ -> p :: l
+            | None -> p :: l
         Netnode(itlist add_node l2 (itlist add_node l1 []), set_merge data1 data2)
     merge_nets

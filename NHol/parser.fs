@@ -310,7 +310,7 @@ let install_parser, delete_parser, installed_parsers, try_user_parser =
     let parser_list = ref([] : (string * (lexcode list -> preterm * lexcode list)) list)
     (fun dat -> parser_list := dat :: (!parser_list)), (fun key -> 
         try 
-            parser_list := snd(remove (fun (key', _) -> key = key') (!parser_list))
+            parser_list := snd(Option.get <| remove (fun (key', _) -> key = key') (!parser_list))
         with
         | Failure _ -> ()), (fun () -> !parser_list), (fun i -> try_parsers (!parser_list) i)
 

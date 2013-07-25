@@ -636,7 +636,7 @@ let UNDISCH_TAC : term -> tactic =
                 match l with
                 | [a] -> a
                 | _ -> Choice.failwith "UNDISCH_TAC.fun1: Unhandled case."
-            let sthm, asl' = remove (fun (_, asm) -> aconv (concl asm) tm) asl
+            let sthm, asl' = Option.get <| remove (fun (_, asm) -> aconv (concl asm) tm) asl
             let thm = snd sthm
             (null_meta, [asl', mk_imp(tm, w)], fun i tl -> MP (fun1 tl) (INSTANTIATE_ALL i thm))
             |> Choice.succeed
@@ -976,7 +976,7 @@ let (STRIP_TAC : tactic) =
 /// Undischarges an assumption and applies theorem-tactic to it.
 let (UNDISCH_THEN : term -> thm_tactic -> tactic) = 
     fun tm ttac (asl, w) -> 
-        let thp, asl' = remove (fun (_, th) -> aconv (concl th) tm) asl
+        let thp, asl' = Option.get <| remove (fun (_, th) -> aconv (concl th) tm) asl
         ttac (snd thp) (asl', w)
 
 /// Applies theorem-tactic to first assumption possible, extracting assumption.

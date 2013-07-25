@@ -494,7 +494,7 @@ let deep_alpha =
                 let v, bod = Choice.get <| dest_abs tm
                 let vn, vty = Choice.get <| dest_var v
                 try 
-                    let (vn', _), newenv = remove (fun (_, x) -> x = vn) env
+                    let (vn', _), newenv = Option.get <| remove (fun (_, x) -> x = vn) env
                     let v' = mk_var(vn', vty)
                     let tm' = tryalpha v' tm
                     let iv, ib = Choice.get <| dest_abs tm'
