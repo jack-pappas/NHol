@@ -21,8 +21,11 @@ limitations under the License.
 #if INTERACTIVE
 open System
 
-open FSharp.Compatibility.OCaml;;
-open FSharp.Compatibility.OCaml.Num;;
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
+open ExtCore.Control.Collections
 #else
 /// Various useful general library functions.
 module NHol.lib
@@ -31,6 +34,9 @@ open System
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
+open ExtCore.Control.Collections
 
 #endif
 
@@ -82,6 +88,14 @@ module Choice =
         match value with
         | Choice1Of2 result -> Some result
         | Choice2Of2 _ -> None
+
+    module List =
+        /// Don't know why this function is missing from ExtCore 
+        let map (mapping : 'T -> Choice<'U, 'Error>) (list : 'T list) =
+            list 
+            |> List.toArray 
+            |> Choice.Array.map mapping
+            |> Choice.map Array.toList
 
     (* These functions are fairly specific to this project,
        and so probably won't be included in ExtCore. *)
