@@ -352,7 +352,11 @@ let type_of_pretype, term_of_preterm, retypecheck =
                 mk_vartype(if mem n ns then "?" + string n else "_")
             | Utv v -> mk_vartype v
             | Ptycon(con, args) -> Choice.get <| mk_type(con, map (type_of_pretype' ns) args)
-        string_of_type << type_of_pretype' stvs
+        fun pt ->
+            try
+                Choice.succeed <| string_of_type (type_of_pretype' stvs pt)
+            with Failure s ->
+                Choice.failwith s
 
     let string_of_preterm = 
         let rec untyped_t_of_pt = 
@@ -362,22 +366,31 @@ let type_of_pretype, term_of_preterm, retypecheck =
             | Combp(l, r) -> Choice.get <| mk_comb(untyped_t_of_pt l, untyped_t_of_pt r)
             | Absp(v, bod) -> Choice.get <| mk_gabs(untyped_t_of_pt v, untyped_t_of_pt bod)
             | Typing(ptm, pty) -> untyped_t_of_pt ptm
-        string_of_term << untyped_t_of_pt
+        fun pt ->
+            try
+                Choice.succeed <| string_of_term (untyped_t_of_pt pt)
+            with Failure s ->
+                Choice.failwith s
 
-    let string_of_ty_error env = 
-        function 
-        | None -> "unify: types cannot be unified " + "(you should not see this message, please report)"
-        | Some(t, ty1, ty2) -> 
-            let ty1 = Choice.get <| solve env ty1
-            let ty2 = Choice.get <| solve env ty2
-            let sty1 = string_of_pretype (free_stvs ty2) ty1
-            let sty2 = string_of_pretype (free_stvs ty1) ty2
-            let default_msg s = " " + s + " cannot have type " + sty1 + " and " + sty2 + " simultaneously"
-            match t with
-            | Constp(s, _) -> 
-                " " + s + " has type " + string_of_type(Choice.get <| get_const_type s) + ", " + "it cannot be used with type " + sty2
-            | Varp(s, _) -> default_msg s
-            | t -> default_msg(string_of_preterm t)
+    let string_of_ty_error env po = 
+        let string_of_ty_error env = 
+            function 
+            | None -> "Choice.get <| unify: types cannot be unified " + "(you should not see this message, please report)"
+            | Some(t, ty1, ty2) -> 
+                let ty1 = Choice.get <| solve env ty1
+                let ty2 = Choice.get <| solve env ty2
+                let sty1 = Choice.get <| string_of_pretype (free_stvs ty2) ty1
+                let sty2 = Choice.get <| string_of_pretype (free_stvs ty1) ty2
+                let default_msg s = " " + s + " cannot have type " + sty1 + " and " + sty2 + " simultaneously"
+                match t with
+                | Constp(s, _) -> 
+                    " " + s + " has type " + string_of_type(Choice.get <| get_const_type s) + ", " + "it cannot be used with type " + sty2
+                | Varp(s, _) -> default_msg s
+                | t -> default_msg(Choice.get <| string_of_preterm t)
+        try
+            Choice.succeed <| string_of_ty_error env po
+        with Failure s ->
+            Choice.failwith s
 
     (* ----------------------------------------------------------------------- *)
     (* Unification of types                                                    *)
@@ -386,83 +399,88 @@ let type_of_pretype, term_of_preterm, retypecheck =
     let rec istrivial ptm env x = 
         function 
         | Stv y as t -> y = x || defined env y && istrivial ptm env x (apply env y)
-        | Ptycon(f, args) as t when exists (istrivial ptm env x) args -> failwith(string_of_ty_error env ptm)
+        | Ptycon(f, args) as t when exists (istrivial ptm env x) args -> failwith(Choice.get <| string_of_ty_error env ptm)
         | (Ptycon _ | Utv _) -> false
 
     let unify ptm env ty1 ty2 = 
-        let rec unify env = 
-            function 
-            | [] -> env
-            | (ty1, ty2, _) :: oth when ty1 = ty2 -> unify env oth
-            | (Ptycon(f, fargs), Ptycon(g, gargs), ptm) :: oth -> 
-                if f = g && length fargs = length gargs then unify env (map2 (fun x y -> x, y, ptm) fargs gargs @ oth)
-                else failwith(string_of_ty_error env ptm)
-            | (Stv x, t, ptm) :: oth -> 
-                if defined env x then unify env ((apply env x, t, ptm) :: oth)
-                else 
-                    unify (if istrivial ptm env x t then env
-                           else (x |-> t) env) oth
-            | (t, Stv x, ptm) :: oth -> unify env ((Stv x, t, ptm) :: oth)
-            | (_, _, ptm) :: oth -> failwith(string_of_ty_error env ptm)
-        unify env [ty1, ty2, match ptm with
-                             | None -> None
-                             | Some t -> Some(t, ty1, ty2)]
+        let unify ptm env ty1 ty2 = 
+            let rec unify env = 
+                function 
+                | [] -> env
+                | (ty1, ty2, _) :: oth when ty1 = ty2 -> unify env oth
+                | (Ptycon(f, fargs), Ptycon(g, gargs), ptm) :: oth -> 
+                    if f = g && length fargs = length gargs then unify env (map2 (fun x y -> x, y, ptm) fargs gargs @ oth)
+                    else failwith(Choice.get <| string_of_ty_error env ptm)
+                | (Stv x, t, ptm) :: oth -> 
+                    if defined env x then unify env ((apply env x, t, ptm) :: oth)
+                    else 
+                        unify (if istrivial ptm env x t then env
+                               else (x |-> t) env) oth
+                | (t, Stv x, ptm) :: oth -> unify env ((Stv x, t, ptm) :: oth)
+                | (_, _, ptm) :: oth -> failwith(Choice.get <| string_of_ty_error env ptm)
+            unify env [ty1, ty2, match ptm with
+                                 | None -> None
+                                 | Some t -> Some(t, ty1, ty2)]
+
+        try
+            Choice.succeed <| unify ptm env ty1 ty2
+        with Failure s ->
+            Choice.failwith s
 
     (* ----------------------------------------------------------------------- *)
     (* Attempt to attach a given type to a term, performing unifications.      *)
     (* ----------------------------------------------------------------------- *)
-
-    let rec typify ty (ptm, venv, uenv) =
-        /// Tests for failure.
-        let can f x = 
-            try f x |> ignore; true
-            with Failure _ -> false
-
-        //printfn "typify --> %A:%A:%A:%A" ty ptm venv uenv 
-        match ptm with
-        | Varp(s, _) when (Option.isSome <| assoc s venv) -> 
-            let ty' =
-                assoc s venv
-                |> Option.getOrFailWith "find"
-            Varp(s, ty'), [], unify (Some ptm) uenv ty' ty
-        | Varp(s, _) when can Choice.get <| num_of_string s -> 
-            let t = pmk_numeral(Choice.get <| num_of_string s)
-            let ty' = Ptycon("num", [])
-            t, [], unify (Some ptm) uenv ty' ty
-        | Varp(s, _) -> 
-            warn (s <> "" && isnum s) "Non-numeral begins with a digit"
-            if not(is_hidden s) && can Choice.get <| get_generic_type s then 
-                let pty = pretype_instance(Choice.get <| get_generic_type s)
-                let ptm = Constp(s, pty)
-                ptm, [], unify (Some ptm) uenv pty ty
-            else 
-                let ptm = Varp(s, ty)
-                if not(can Choice.get <| get_var_type s) then ptm, [s, ty], uenv
+    let typify ty (ptm, venv, uenv) =
+        let rec typify ty (ptm, venv, uenv) =
+            //printfn "typify --> %A:%A:%A:%A" ty ptm venv uenv 
+            match ptm with
+            | Varp(s, _) when (Option.isSome <| assoc s venv) -> 
+                let ty' =
+                    assoc s venv
+                    |> Option.getOrFailWith "find"
+                Varp(s, ty'), [], Choice.get <| unify (Some ptm) uenv ty' ty
+            | Varp(s, _) when Choice.isResult <| num_of_string s -> 
+                let t = pmk_numeral(Choice.get <| num_of_string s)
+                let ty' = Ptycon("num", [])
+                t, [], Choice.get <| unify (Some ptm) uenv ty' ty
+            | Varp(s, _) -> 
+                warn (s <> "" && isnum s) "Non-numeral begins with a digit"
+                if not(is_hidden s) && Choice.isResult <| get_generic_type s then 
+                    let pty = pretype_instance(Choice.get <| get_generic_type s)
+                    let ptm = Constp(s, pty)
+                    ptm, [], Choice.get <| unify (Some ptm) uenv pty ty
                 else 
-                    let pty = pretype_instance(Choice.get <| get_var_type s)
-                    ptm, [s, ty], unify (Some ptm) uenv pty ty
-        | Combp(f, x) -> 
-            let ty'' = new_type_var()
-            let ty' = Ptycon("fun", [ty''; ty])
-            let f', venv1, uenv1 = typify ty' (f, venv, uenv)
-            let x', venv2, uenv2 = typify ty'' (x, venv1 @ venv, uenv1)
-            Combp(f', x'), (venv1 @ venv2), uenv2
-        | Typing(tm, pty) -> typify ty (tm, venv, unify (Some tm) uenv ty pty)
-        | Absp(v, bod) -> 
-            let ty', ty'' = 
-                match ty with
-                | Ptycon("fun", [ty'; ty'']) -> ty', ty''
-                | _ -> new_type_var(), new_type_var()
-            let ty''' = Ptycon("fun", [ty'; ty''])
-            let uenv0 = unify (Some ptm) uenv ty''' ty
-            let v', venv1, uenv1 = 
-                let v', venv1, uenv1 = typify ty' (v, [], uenv0)
-                match v' with
-                | Constp(s, _) when !ignore_constant_varstruct -> Varp(s, ty'), [s, ty'], uenv0
-                | _ -> v', venv1, uenv1
-            let bod', venv2, uenv2 = typify ty'' (bod, venv1 @ venv, uenv1)
-            Absp(v', bod'), venv2, uenv2
-        | _ -> failwith "typify: unexpected constant at this stage"
+                    let ptm = Varp(s, ty)
+                    if not(Choice.isResult <| get_var_type s) then ptm, [s, ty], uenv
+                    else 
+                        let pty = pretype_instance(Choice.get <| get_var_type s)
+                        ptm, [s, ty], Choice.get <| unify (Some ptm) uenv pty ty
+            | Combp(f, x) -> 
+                let ty'' = new_type_var()
+                let ty' = Ptycon("fun", [ty''; ty])
+                let f', venv1, uenv1 = typify ty' (f, venv, uenv)
+                let x', venv2, uenv2 = typify ty'' (x, venv1 @ venv, uenv1)
+                Combp(f', x'), (venv1 @ venv2), uenv2
+            | Typing(tm, pty) -> typify ty (tm, venv, Choice.get <| unify (Some tm) uenv ty pty)
+            | Absp(v, bod) -> 
+                let ty', ty'' = 
+                    match ty with
+                    | Ptycon("fun", [ty'; ty'']) -> ty', ty''
+                    | _ -> new_type_var(), new_type_var()
+                let ty''' = Ptycon("fun", [ty'; ty''])
+                let uenv0 = Choice.get <| unify (Some ptm) uenv ty''' ty
+                let v', venv1, uenv1 = 
+                    let v', venv1, uenv1 = typify ty' (v, [], uenv0)
+                    match v' with
+                    | Constp(s, _) when !ignore_constant_varstruct -> Varp(s, ty'), [s, ty'], uenv0
+                    | _ -> v', venv1, uenv1
+                let bod', venv2, uenv2 = typify ty'' (bod, venv1 @ venv, uenv1)
+                Absp(v', bod'), venv2, uenv2
+            | _ -> failwith "typify: unexpected constant at this stage"
+        try
+            Choice.succeed <| typify ty (ptm, venv, uenv)
+        with Failure s ->
+            Choice.failwith s
 
     (* ----------------------------------------------------------------------- *)
     (* Further specialize type constraints by resolving overloadings.          *)
@@ -479,9 +497,10 @@ let type_of_pretype, term_of_preterm, retypecheck =
             else 
                 tryfind (fun (_, (_, ty')) -> 
                         let ty' = pretype_instance ty'
-                        Some <| cont(unify (Some ptm) env ty' ty)) maps
+                        Some <| cont(Choice.get <| unify (Some ptm) env ty' ty)) maps
                 |> Option.getOrFailWith "tryfind"
         | _ -> failwith "resolve_interface: Unhandled case."
+
     (* ----------------------------------------------------------------------- *)
     (* Hence apply throughout a preterm.                                       *)
     (* ----------------------------------------------------------------------- *)
@@ -495,11 +514,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             let tys = Choice.get <| solve env ty
             try 
                 let _, (c', _) =
-                    /// Tests for failure.
-                    let can f x = 
-                        try f x |> ignore; true
-                        with Failure _ -> false
-                    Option.get <| find (fun (s', (c', ty')) -> s = s' && can (unify None env (pretype_instance ty')) ty) 
+                    Option.get <| find (fun (s', (c', ty')) -> s = s' && Choice.isResult <| unify None env (pretype_instance ty') ty) 
                         (!the_interface)
                 pmk_cv(c', tys)
             with
@@ -555,7 +570,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
         let ty = new_type_var()
         let ptm', _, env = 
             try 
-                typify ty (ptm, venv, undefined)
+                Choice.get <| typify ty (ptm, venv, undefined)
             with
             | Failure msg as e ->
                 let msg = "typechecking error (initial type assignment): " + msg
