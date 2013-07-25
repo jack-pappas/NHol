@@ -68,22 +68,25 @@ parse_as_infix("treal_mul", (20, "right"))
 parse_as_infix("treal_add", (16, "right"))
 parse_as_infix("treal_le", (12, "right"))
 parse_as_infix("treal_eq", (10, "right"))
-make_overloadable "+" (parse_type @"A->A->A")
-make_overloadable "-" (parse_type @"A->A->A")
-make_overloadable "*" (parse_type @"A->A->A")
-make_overloadable "/" (parse_type @"A->A->A")
-make_overloadable "<" (parse_type @"A->A->bool")
-make_overloadable "<=" (parse_type @"A->A->bool")
-make_overloadable ">" (parse_type @"A->A->bool")
-make_overloadable ">=" (parse_type @"A->A->bool")
-make_overloadable "--" (parse_type @"A->A")
-make_overloadable "pow" (parse_type @"A->num->A")
-make_overloadable "inv" (parse_type @"A->A")
-make_overloadable "abs" (parse_type @"A->A")
-make_overloadable "max" (parse_type @"A->A->A")
-make_overloadable "min" (parse_type @"A->A->A")
-make_overloadable "&" (parse_type @"num->A")
-do_list overload_interface ["+", (parse_term @"(+):num->num->num")
+
+make_overloadable "+" (parse_type @"A->A->A") |> ignore
+make_overloadable "-" (parse_type @"A->A->A") |> ignore
+make_overloadable "*" (parse_type @"A->A->A") |> ignore
+make_overloadable "/" (parse_type @"A->A->A") |> ignore
+make_overloadable "<" (parse_type @"A->A->bool") |> ignore
+make_overloadable "<=" (parse_type @"A->A->bool") |> ignore
+make_overloadable ">" (parse_type @"A->A->bool") |> ignore
+make_overloadable ">=" (parse_type @"A->A->bool") |> ignore
+make_overloadable "--" (parse_type @"A->A") |> ignore
+make_overloadable "pow" (parse_type @"A->num->A") |> ignore
+make_overloadable "inv" (parse_type @"A->A") |> ignore
+make_overloadable "abs" (parse_type @"A->A") |> ignore
+make_overloadable "max" (parse_type @"A->A->A") |> ignore
+make_overloadable "min" (parse_type @"A->A->A") |> ignore
+make_overloadable "&" (parse_type @"num->A") |> ignore
+
+do_list (ignore << overload_interface)
+                           ["+", (parse_term @"(+):num->num->num")
                             "-", (parse_term @"(-):num->num->num")
                             "*", (parse_term @"(*):num->num->num")
                             "<", (parse_term @"(<):num->num->bool")
@@ -2129,9 +2132,11 @@ let NADD_INV_WELLDEF =
 let hreal_tybij = 
     define_quotient_type "hreal" ("mk_hreal", "dest_hreal") (parse_term @"(===)")
 
-do_list overload_interface ["+", (parse_term @"hreal_add:hreal->hreal->hreal")
+do_list (ignore << overload_interface)
+                           ["+", (parse_term @"hreal_add:hreal->hreal->hreal")
                             "*", (parse_term @"hreal_mul:hreal->hreal->hreal")
                             "<=", (parse_term @"hreal_le:hreal->hreal->bool")]
+
 do_list override_interface ["&", (parse_term @"hreal_of_num:num->hreal")
                             "inv", (parse_term @"hreal_inv:hreal->hreal")]
 
@@ -2776,7 +2781,9 @@ let REAL_ADD_SYM, REAL_ADD_ASSOC, REAL_ADD_LID, REAL_ADD_LINV, REAL_MUL_SYM, REA
 parse_as_prefix "--"
 parse_as_infix("/", (22, "left"))
 parse_as_infix("pow", (24, "left"))
-do_list overload_interface ["+", (parse_term @"real_add:real->real->real")
+
+do_list (ignore << overload_interface) 
+                           ["+", (parse_term @"real_add:real->real->real")
                             "-", (parse_term @"real_sub:real->real->real")
                             "*", (parse_term @"real_mul:real->real->real")
                             "/", (parse_term @"real_div:real->real->real")

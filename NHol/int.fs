@@ -138,7 +138,8 @@ let int_eq =
 (* Set up interface map.                                                     *)
 (* ------------------------------------------------------------------------- *)
 
-do_list overload_interface ["+", (parse_term @"int_add:int->int->int")
+do_list (ignore << overload_interface) 
+                           ["+", (parse_term @"int_add:int->int->int")
                             "-", (parse_term @"int_sub:int->int->int")
                             "*", (parse_term @"int_mul:int->int->int")
                             "<", (parse_term @"int_lt:int->int->bool")
@@ -1496,10 +1497,10 @@ let INT_REDUCE_CONV = DEPTH_CONV INT_RED_CONV
 (* Set up overloading so we can use same symbols for N, Z and even R.        *)
 (* ------------------------------------------------------------------------- *)
 
-make_overloadable "divides" (parse_type @"A->A->bool");;
-make_overloadable "mod" (parse_type @"A->A->A->bool");;
-make_overloadable "coprime" (parse_type @"A#A->bool");;
-make_overloadable "gcd" (parse_type @"A#A->A");;
+make_overloadable "divides" (parse_type @"A->A->bool") |> ignore;;
+make_overloadable "mod" (parse_type @"A->A->A->bool") |> ignore;;
+make_overloadable "coprime" (parse_type @"A#A->bool") |> ignore;;
+make_overloadable "gcd" (parse_type @"A#A->A") |> ignore;;
 
 (* ------------------------------------------------------------------------- *)
 (* The general notion of congruence: just syntax for equivalence relation.   *)
@@ -1515,13 +1516,13 @@ let real_mod =
     new_definition
         (parse_term @"real_mod n (x:real) y = ?q. integer q /\ x - y = q * n")
 
-overload_interface("mod", (parse_term @"real_mod"));;
+overload_interface("mod", (parse_term @"real_mod")) |> ignore;;
 
 (* ------------------------------------------------------------------------- *)
 (* Integer divisibility.                                                     *)
 (* ------------------------------------------------------------------------- *)
 parse_as_infix("divides", (12, "right"))
-overload_interface("divides", (parse_term @"int_divides:int->int->bool"))
+overload_interface("divides", (parse_term @"int_divides:int->int->bool")) |> ignore
 
 let int_divides = new_definition(parse_term @"a divides b <=> ?x. b = a * x")
 
@@ -1530,7 +1531,7 @@ let int_divides = new_definition(parse_term @"a divides b <=> ?x. b = a * x")
 (* ------------------------------------------------------------------------- *)
 
 parse_as_prefix "mod"
-overload_interface("mod", (parse_term @"int_mod:int->int->int->bool"))
+overload_interface("mod", (parse_term @"int_mod:int->int->int->bool")) |> ignore
 
 let int_mod = new_definition(parse_term @"(mod n) x y = n divides (x - y)");;
 
@@ -1542,7 +1543,7 @@ let int_congruent =
 (* ------------------------------------------------------------------------- *)
 (* Integer coprimality.                                                      *)
 (* ------------------------------------------------------------------------- *)
-overload_interface("coprime", (parse_term @"int_coprime:int#int->bool"))
+overload_interface("coprime", (parse_term @"int_coprime:int#int->bool")) |> ignore
 
 let int_coprime = 
     new_definition(parse_term @"!a b. coprime(a,b) <=> ?x y. a * x + b * y = &1")
@@ -1805,10 +1806,10 @@ let NUM_OF_INT =
 (* ------------------------------------------------------------------------- *)
 (* Now define similar notions over the natural numbers.                      *)
 (* ------------------------------------------------------------------------- *)
-overload_interface("divides", (parse_term @"num_divides:num->num->bool"))
-overload_interface("mod", (parse_term @"num_mod:num->num->num->bool"))
-overload_interface("coprime", (parse_term @"num_coprime:num#num->bool"))
-overload_interface("gcd", (parse_term @"num_gcd:num#num->num"))
+overload_interface("divides", (parse_term @"num_divides:num->num->bool")) |> ignore
+overload_interface("mod", (parse_term @"num_mod:num->num->num->bool")) |> ignore
+overload_interface("coprime", (parse_term @"num_coprime:num#num->bool")) |> ignore
+overload_interface("gcd", (parse_term @"num_gcd:num#num->num")) |> ignore
 
 let num_divides = new_definition(parse_term @"a divides b <=> &a divides &b")
 

@@ -45,13 +45,14 @@ open printer
 let ignore_constant_varstruct = ref true
 
 (* ------------------------------------------------------------------------- *)
-(* Flags controlling the treatment of invented type Choice.get <| variables in quotations. *)
-(* It can be treated as an error, result in a warning, ||  neither of those.  *)
+(* Flags controlling the treatment of invented type variables in quotations. *)
+(* It can be treated as an error, result in a warning, or neither of those.  *)
 (* ------------------------------------------------------------------------- *)
 
-/// Determined if user is warned about invented type Choice.get <| variables.
+/// Determined if user is warned about invented type variables.
 let type_invention_warning = ref true
-/// Determines if invented type Choice.get <| variables are treated as an error.
+
+/// Determines if invented type variables are treated as an error.
 let type_invention_error = ref false
 
 (* ------------------------------------------------------------------------- *)
@@ -69,10 +70,10 @@ let the_implicit_types = ref([] : (string * hol_type) list)
 let make_overloadable s gty =
     match assoc s !the_overload_skeletons with
     | Some x ->
-        if x = gty then ()
-        else failwith "make_overloadable: differs from existing skeleton"
+        if x = gty then Choice.succeed ()
+        else Choice.failwith "make_overloadable: differs from existing skeleton"
     | None ->
-        the_overload_skeletons := (s, gty) :: (!the_overload_skeletons)
+        Choice.succeed (the_overload_skeletons := (s, gty) :: (!the_overload_skeletons))
 
 /// Remove all overload/interface mappings for an identifier.
 let remove_interface sym = 
@@ -82,42 +83,46 @@ let remove_interface sym =
 /// Remove a specific overload/interface mapping for an identifier.
 let reduce_interface(sym, tm) = 
     let namty = 
-        try 
-            Choice.get <| dest_const tm
-        with
-        | Failure _ -> Choice.get <| dest_var tm
-    the_interface := filter ((<>)(sym, namty)) (!the_interface)
+        dest_const tm
+        |> Choice.mapError (fun _ -> dest_var tm)
+    match namty with
+    | Success namty ->        
+        the_interface := filter ((<>)(sym, namty)) (!the_interface)
+    | Error _ ->
+        // NOTE: currently doing nothing if error case is supplied
+        ()
 
 /// Map identifier to specific underlying constant.
 let override_interface(sym, tm) = 
     let namty = 
-        try 
-            Choice.get <| dest_const tm
-        with
-        | Failure _ -> Choice.get <| dest_var tm
-    let ``interface`` = filter ((<>) sym << fst) (!the_interface)
-    the_interface := (sym, namty) :: ``interface``
+        dest_const tm
+        |> Choice.mapError (fun _ -> dest_var tm)
+    match namty with
+    | Success namty ->
+        let ``interface`` = filter ((<>) sym << fst) (!the_interface)
+        the_interface := (sym, namty) :: ``interface``
+    | Error _ ->
+        // NOTE: currently doing nothing if error case is supplied
+        ()
 
 /// Overload a symbol so it may denote a particular underlying constant.
 let overload_interface(sym, tm) = 
     let gty =
         match assoc sym (!the_overload_skeletons) with
-        | Some x -> x
+        | Some x -> Choice.succeed x
         | None ->
-            failwith("symbol \"" + sym + "\" is not overloadable")
-    let (name, ty) as namty = 
-        try 
-            Choice.get <| dest_const tm
-        with
-        | Failure _ -> Choice.get <| dest_var tm
-    /// Tests for failure.
-    let can f x = 
-        try f x |> ignore; true
-        with Failure _ -> false
-    if not(can (Choice.get << type_match gty ty) []) then failwith "Not an instance of type skeleton"
-    else 
-        let ``interface`` = filter ((<>)(sym, namty)) (!the_interface)
-        the_interface := (sym, namty) :: ``interface``
+            Choice.failwith("symbol \"" + sym + "\" is not overloadable")
+    gty
+    |> Choice.bind (fun gty ->
+        match dest_const tm |> Choice.mapError (fun _ -> dest_var tm) with
+        | Success ((name, ty) as namty) ->
+            if not(Choice.isResult <| type_match gty ty []) then 
+                Choice.failwith "Not an instance of type skeleton"
+            else 
+                let ``interface`` = filter ((<>)(sym, namty)) (!the_interface)
+                Choice.succeed (the_interface := (sym, namty) :: ``interface``)
+        // NOTE: currently doing nothing if error case is supplied
+        | Error _ -> Choice.succeed ())
 
 /// Give overloaded constants involving a given type priority in operator overloading.
 let prioritize_overload ty = 
@@ -125,7 +130,7 @@ let prioritize_overload ty =
             try 
                 let _, (n, t) = 
                     find (fun (s', (n, t)) -> s' = s && mem ty (map fst (Choice.get <| type_match gty t []))) (!the_interface)
-                overload_interface(s, mk_var(n, t))
+                overload_interface(s, mk_var(n, t)) |> ignore
             with
             | Failure _ -> ()) (!the_overload_skeletons)
 
@@ -518,8 +523,8 @@ let type_of_pretype, term_of_preterm, retypecheck =
             | Typing(ptm, pty) -> term_of_preterm ptm
         let report_type_invention() = 
             if !stvs_translated then 
-                if !type_invention_error then failwith "typechecking error (cannot infer type of Choice.get <| variables)"
-                else warn !type_invention_warning "inventing type Choice.get <| variables"
+                if !type_invention_error then failwith "typechecking error (cannot infer type of variables)"
+                else warn !type_invention_warning "inventing type variables"
         fun ptm -> 
             stvs_translated := false
             let tm = term_of_preterm ptm
