@@ -487,13 +487,9 @@ let parse_preterm =
       | _ -> raise Noparse
   
   and identifier x = 
-    /// Tests for failure.
-    let can f x = 
-        try f x |> ignore; true
-        with Failure _ -> false
     match x with
     | ((Ident s) :: rest) -> 
-          if can get_infix_status s || is_prefix s || parses_as_binder s then raise Noparse
+          if Option.isSome <| get_infix_status s || is_prefix s || parses_as_binder s then raise Noparse
           else s, rest
     | _ -> raise Noparse
   

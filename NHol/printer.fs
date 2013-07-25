@@ -150,9 +150,7 @@ let unparse_as_infix, parse_as_infix, get_infix_status, infixes =
     let infix_list = ref([] : (string * (int * string)) list)
     (fun n -> infix_list := filter (((<>) n) << fst) (!infix_list)), 
     (fun (n, d) -> infix_list := sort cmp ((n, d) :: (filter (((<>) n) << fst) (!infix_list)))), 
-    (fun n ->
-        assoc n !infix_list
-        |> Option.getOrFailWith "find"),
+    (fun n -> assoc n !infix_list),
     (fun () -> !infix_list)
 
 (* ------------------------------------------------------------------------- *)
@@ -269,9 +267,10 @@ let pp_print_type, pp_print_qtype =
 let install_user_printer, delete_user_printer, try_user_printer = 
     let user_printers = ref([] : (string * (term -> unit)) list)
     (fun pr -> user_printers := pr :: (!user_printers)), 
-    (fun s -> user_printers := snd(Option.get <| remove (fun (s', _) -> s = s') (!user_printers))), 
+    (fun s -> user_printers := snd(Option.get <| remove (fun (s', _) -> s = s') (!user_printers))),
+    // TODO: this function doesn't seem correct 
     (fun tm -> tryfind (fun (_, pr) -> Some <| pr tm) (!user_printers) 
-               |> Option.getOrFailWith "tryfind")
+               |> Option.toChoiceWithError "find")
 
 (* ------------------------------------------------------------------------- *)
 (* Printer for terms.                                                        *)
@@ -300,9 +299,11 @@ let pp_print_term =
         |> Choice.bindError (fun e -> Choice.nestedFailwith e "DEST_BINARY")
 
     and ARIGHT s = 
-        match snd (get_infix_status s) with
-        | "right" -> true
-        | _ -> false
+        match get_infix_status s with
+        | Some (_, "right") -> true
+        | Some _ -> false
+        // Add this to ensure the original meaning
+        | None -> failwith "find"
 
     let rec powerof10 n = 
         if abs_num n </ Int 1 then false
@@ -339,7 +340,7 @@ let pp_print_term =
                 let! tm2 = rator(hd(tl(tl args)))
                 return! Choice.List.map id [rand tm1; Choice.succeed <| hd(tl args); rand tm2]
             else 
-                return! Choice.failwith "Choice.get <| dest_clause"
+                return! Choice.failwith "dest_clause"
         }
 
     let rec dest_clauses tm = 
@@ -354,20 +355,18 @@ let pp_print_term =
                 return [cl]
         }
 
-    fun fmt -> 
+    fun fmt ->
         let rec print_term prec tm =
             (* OPTIMIZE: Modify these functions to use option -- these heavily-nested
                          try-catch blocks are extremely slow. *)
-            try 
-                try_user_printer tm
-            with
-            | Failure _ -> 
-                try 
-                    pp_print_string fmt (string_of_num(Choice.get <| dest_numeral tm))
-                with
-                | Failure _ -> 
-                    try 
-                        (let tms = Choice.get <| dest_list tm
+            match try_user_printer tm with
+            | Success _ -> ()
+            | Error _ -> 
+                match dest_numeral tm with
+                | Success tm -> pp_print_string fmt (string_of_num tm)
+                | Error _ -> 
+                    match dest_list tm with
+                    | Success tms ->
                          try 
                              if fst(Choice.get <| dest_type(hd(snd(Choice.get <| dest_type(Choice.get <| type_of tm))))) <> "char" then fail()
                              else 
@@ -378,20 +377,17 @@ let pp_print_term =
                          | Failure _ -> 
                              pp_print_string fmt "["
                              print_term_sequence "; " 0 tms
-                             pp_print_string fmt "]")
-                    with
-                    | Failure _ -> 
+                             pp_print_string fmt "]"
+                    | Error _ -> 
                         if is_gabs tm then print_binder prec tm
                         else 
                             let hop, args = strip_comb tm
                             let s0 = name_of hop
                             let ty0 = Choice.get <| type_of hop
                             let s = reverse_interface(s0, ty0)
-                            try 
-                                if s = "EMPTY" && is_const tm && args = [] then pp_print_string fmt "{}"
-                                else fail()
-                            with
-                            | Failure _ -> 
+                            
+                            if s = "EMPTY" && is_const tm && args = [] then pp_print_string fmt "{}"
+                            else 
                                 try 
                                     if s = "UNIV" && !typify_universal_set && is_const tm && args = [] then 
                                         let ty = fst(Choice.get <| dest_fun_ty(Choice.get <| type_of tm))
@@ -507,11 +503,6 @@ let pp_print_term =
                                                                  else pp_print_string fmt ")")
                                                         with
                                                         | Failure _ ->
-                                                            /// Tests for failure.
-                                                            let can f x = 
-                                                                try f x |> ignore; true
-                                                                with Failure _ -> false
-
                                                             if s = "COND" && length args = 3 then 
                                                                 (if prec = 0 then ()
                                                                  else pp_print_string fmt "("
@@ -551,7 +542,7 @@ let pp_print_term =
                                                                  else ())
                                                             elif parses_as_binder s && length args = 1 
                                                                  && is_gabs(hd args) then print_binder prec tm
-                                                            elif can get_infix_status s && length args = 2 then 
+                                                            elif Option.isSome <| get_infix_status s && length args = 2 then 
                                                                 let bargs = 
                                                                     if ARIGHT s then 
                                                                         let tms, tmt = splitlist (Choice.toOption << DEST_BINARY hop) tm
@@ -560,7 +551,7 @@ let pp_print_term =
                                                                         let tmt, tms = 
                                                                             rev_splitlist (Choice.toOption << DEST_BINARY hop) tm
                                                                         tmt :: tms
-                                                                let newprec = fst(get_infix_status s)
+                                                                let newprec = fst(Option.get <| get_infix_status s)
                                                                 (if newprec <= prec then 
                                                                      (pp_open_hvbox fmt 1
                                                                       pp_print_string fmt "(")
@@ -583,8 +574,7 @@ let pp_print_term =
                                                                  pp_close_box fmt ())
                                                             elif (is_const hop || is_var hop) && args = [] then 
                                                                 let s' = 
-                                                                    if parses_as_binder s || can get_infix_status s 
-                                                                       || is_prefix s then "(" + s + ")"
+                                                                    if parses_as_binder s || Option.isSome <| get_infix_status s || is_prefix s then "(" + s + ")"
                                                                     else s
                                                                 pp_print_string fmt s'
                                                             else 
@@ -593,17 +583,16 @@ let pp_print_term =
                                                                  if prec = 1000 then pp_print_string fmt "("
                                                                  else ()
                                                                  print_term 999 l
-                                                                 (if try 
-                                                                         mem (fst(Choice.get <| dest_const l)) ["real_of_num";
-                                                                                                  "int_of_num"]
-                                                                     with
-                                                                     | Failure _ -> false
-                                                                  then ()
-                                                                  else pp_print_space fmt ())
+                                                                 // TODO: this converted form is a bit non-sense
+                                                                 match dest_const l with
+                                                                 | Success(s, _) -> 
+                                                                         mem s ["real_of_num"; "int_of_num"] |> ignore
+                                                                 | Error _ -> pp_print_space fmt ()
                                                                  print_term 1000 r
                                                                  if prec = 1000 then pp_print_string fmt ")"
                                                                  else ()
                                                                  pp_close_box fmt ())
+
         and print_term_sequence sep prec tms = 
             if tms = [] then ()
             else 
@@ -613,6 +602,7 @@ let pp_print_term =
                  else 
                      (pp_print_string fmt sep
                       print_term_sequence sep prec ttms))
+
         and print_binder prec tm = 
             let absf = is_gabs tm
             let s = 
@@ -667,6 +657,7 @@ let pp_print_term =
              (if prec = 0 then ()
               else pp_print_string fmt ")")
              pp_close_box fmt ())
+
         and print_clauses cls = 
             match cls with
             | [c] -> print_clause c
@@ -676,6 +667,7 @@ let pp_print_term =
                  pp_print_string fmt "| "
                  print_clauses cs)
             | _ -> failwith "print_clauses: Unhandled case."
+
         and print_clause cl = 
             match cl with
             | [p; g; r] -> 
@@ -689,7 +681,12 @@ let pp_print_term =
                  pp_print_string fmt " -> "
                  print_term 1 r)
             | _ -> failwith "print_clause: Unhandled case."
-        print_term 0
+
+        fun tm ->
+            try
+                print_term 0 tm
+            with Failure s ->
+                ()
 
 (* ------------------------------------------------------------------------- *)
 (* Print term with quotes.                                                   *)
