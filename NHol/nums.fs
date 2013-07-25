@@ -352,7 +352,7 @@ let new_specification =
                 try 
                     let sth = 
                         snd
-                            (find 
+                            (Option.get <| find 
                                  (fun ((names', th'), sth') ->
                                          names' = names 
                                          && aconv (concl th') (concl th)) 

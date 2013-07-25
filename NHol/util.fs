@@ -16,7 +16,7 @@ limitations under the License.
 
 *)
 
-// This was done as a quick check to find conversion problems realted to the functions parse_term and parse_type.
+// This was done as a quick check to Option.get <| find conversion problems realted to the functions parse_term and parse_type.
 // It is by no means complete, but does identify problems that need attention.
 // Currently this only works with F# Interactive in Visual Studio.
 // To use just Ctrl-A to select all then Alt-Enter to send all lines to F# Interactive.

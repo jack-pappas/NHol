@@ -129,7 +129,7 @@ let prioritize_overload ty =
     do_list (fun (s, gty) -> 
             try 
                 let _, (n, t) = 
-                    find (fun (s', (n, t)) -> s' = s && mem ty (map fst (Choice.get <| type_match gty t []))) (!the_interface)
+                    Option.get <| find (fun (s', (n, t)) -> s' = s && mem ty (map fst (Choice.get <| type_match gty t []))) (!the_interface)
                 overload_interface(s, mk_var(n, t)) |> ignore
             with
             | Failure _ -> ()) (!the_overload_skeletons)
@@ -483,7 +483,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
                     let can f x = 
                         try f x |> ignore; true
                         with Failure _ -> false
-                    find (fun (s', (c', ty')) -> s = s' && can (unify None env (pretype_instance ty')) ty) 
+                    Option.get <| find (fun (s', (c', ty')) -> s = s' && can (unify None env (pretype_instance ty')) ty) 
                         (!the_interface)
                 pmk_cv(c', tys)
             with

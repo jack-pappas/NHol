@@ -359,7 +359,7 @@ let ASSUME_TAC = LABEL_TAC ""
 
 /// Apply a theorem-tactic to the the first assumption equal to given term.
 let FIND_ASSUM : thm_tactic -> term -> tactic = 
-    fun ttac t ((asl, w) as g) -> ttac (snd(find (fun (_, th) -> concl th = t) asl)) g
+    fun ttac t ((asl, w) as g) -> ttac (snd(Option.get <| find (fun (_, th) -> concl th = t) asl)) g
 
 /// Applies tactic generated from the first element of a goal's assumption list.
 let POP_ASSUM : thm_tactic -> tactic = 
@@ -401,7 +401,7 @@ let USE_THEN : string -> thm_tactic -> tactic =
     fun s ttac (asl, w as gl) -> 
         let th =            
             assoc s asl
-            |> Option.getOrFailWith ("USE_TAC: didn't find assumption " + s)
+            |> Option.getOrFailWith ("USE_TAC: didn't Option.get <| find assumption " + s)
 
         ttac th gl
 
@@ -410,7 +410,7 @@ let REMOVE_THEN : string -> thm_tactic -> tactic =
     fun s ttac (asl, w) -> 
         let th =
             assoc s asl
-            |> Option.getOrFailWith ("USE_TAC: didn't find assumption " + s)
+            |> Option.getOrFailWith ("USE_TAC: didn't Option.get <| find assumption " + s)
         let asl1, asl2 = chop_list (index s (map fst asl)) asl
         let asl' = asl1 @ tl asl2
         ttac th (asl', w)

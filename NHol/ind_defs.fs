@@ -168,7 +168,7 @@ let derive_nonschematic_inductive_relations =
                 let atm = itlist (curry mk_conj << Choice.get << mk_eq) (yes @ no) ant
                 let ths, tth = nsplit CONJ_PAIR plis (ASSUME atm)
                 let thl = 
-                    map (fun t -> find (fun th -> lhs(concl th) = t) ths) args
+                    map (fun t -> Option.get <| find (fun th -> lhs(concl th) = t) ths) args
                 let th0 = MP (SPECL avs (ASSUME cls)) tth
                 let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
                 let th2 = EQ_MP (SYM th1) th0
@@ -184,7 +184,7 @@ let derive_nonschematic_inductive_relations =
                 let atm = list_mk_conj(map (Choice.get << mk_eq) (yes @ no))
                 let ths = CONJUNCTS(ASSUME atm)
                 let thl = 
-                    map (fun t -> find (fun th -> lhs(concl th) = t) ths) args
+                    map (fun t -> Option.get <| find (fun th -> lhs(concl th) = t) ths) args
                 let th0 = SPECL avs (ASSUME cls)
                 let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
                 let th2 = EQ_MP (SYM th1) th0
@@ -526,7 +526,7 @@ let derive_strong_induction =
             let avs, bod = strip_forall tm
             let a, c = Choice.get <| dest_imp bod
             let ths = CONJUNCTS(ASSUME a)
-            let th = find (aconv c << concl) ths
+            let th = Option.get <| find (aconv c << concl) ths
             GENL avs (DISCH a th)
     let rec weaken_triv th = 
         if is_conj(concl th)

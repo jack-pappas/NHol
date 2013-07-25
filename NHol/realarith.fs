@@ -592,11 +592,11 @@ let REAL_LINEAR_PROVER =
         || (dom e = [one_tm] && not(p(apply e one_tm)))
     let rec linear_ineqs vars (les, lts) = 
         try 
-            find (contradictory(fun x -> x >/ num_0)) lts
+            Option.get <| find (contradictory(fun x -> x >/ num_0)) lts
         with
         | Failure _ -> 
             try 
-                find (contradictory(fun x -> x >=/ num_0)) les
+                Option.get <| find (contradictory(fun x -> x >=/ num_0)) les
             with
             | Failure _ -> 
                 if vars = []
@@ -650,7 +650,7 @@ let REAL_LINEAR_PROVER =
                     linear_ineqs (subtract vars [v]) (les', lts')
     let rec linear_eqs(eqs, les, lts) = 
         try 
-            find (contradictory(fun x -> x =/ num_0)) eqs
+            Option.get <| find (contradictory(fun x -> x =/ num_0)) eqs
         with
         | Failure _ -> 
             match eqs with

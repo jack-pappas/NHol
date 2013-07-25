@@ -124,7 +124,7 @@ let ``partition is equivalent to List.partition``() =
 let ``find is equivalent to List.find``() =
     assertProp "find" <| fun xs ->
         List.exists (fun x -> x > 0) xs ==> 
-            lazy (find (fun x -> x > 0) xs = List.find (fun x -> x > 0) xs)
+            lazy (find (fun x -> x > 0) xs = (Some <| List.find (fun x -> x > 0) xs))
 
 [<Test>]
 let ``index is equivalent to List.findIndex``() =

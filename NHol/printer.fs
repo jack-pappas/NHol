@@ -281,10 +281,9 @@ let pp_print_term =
     let reverse_interface(s0, ty0) =
         if not(!reverse_interface_mapping) then s0
         else 
-            try 
-                fst(find (fun (s, (s', ty)) -> s' = s0 && Choice.isResult <| type_match ty ty0 []) (!the_interface))
-            with
-            | Failure _ -> s0
+            match find (fun (s, (s', ty)) -> s' = s0 && Choice.isResult <| type_match ty ty0 []) (!the_interface) with
+            | Some(s0', _) -> s0'
+            | None -> s0
 
     let rec DEST_BINARY c tm = 
         choice { 

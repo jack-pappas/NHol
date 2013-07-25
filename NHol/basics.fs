@@ -186,10 +186,9 @@ let subst =
     let rec ssubst ilist tm = 
         if ilist = [] then tm
         else 
-            try 
-                fst(find ((aconv tm) << snd) ilist)
-            with
-            | Failure _ -> 
+            match find ((aconv tm) << snd) ilist with
+            | Some(tm', _) -> tm'
+            | None ->
                 match tm with
                 | Comb(f, x) -> 
                     let f' = ssubst ilist f

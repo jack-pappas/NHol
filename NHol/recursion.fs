@@ -85,7 +85,7 @@ let prove_recursive_functions_exist =
         let ixvs, ixbody = strip_exists(concl ixth)
         let ixtm = Choice.get <| subst (zip urfns ixvs) ixbody
         let ixths = CONJUNCTS(ASSUME ixtm)
-        let rixths = map (fun t -> find (aconv t << concl) ixths) rawcls
+        let rixths = map (fun t -> Option.get <| find (aconv t << concl) ixths) rawcls
         let rixth = itlist SIMPLE_EXISTS ufns (end_itlist CONJ rixths)
         PROVE_HYP ixth (itlist SIMPLE_CHOOSE urfns rixth)
     let canonize t = 

@@ -324,7 +324,7 @@ let GEN_BETA_CONV =
             let evs, bod = strip_exists(concl sth)
             let cjs = conjuncts bod
             let ourcj = 
-                find 
+                Option.get <| find 
                     ((=) conname << fst << Choice.get << dest_const << fst << strip_comb //check (=) conname, check all better
                      << Choice.get << rand << lhand << snd << strip_forall) cjs
             let n = index ourcj cjs

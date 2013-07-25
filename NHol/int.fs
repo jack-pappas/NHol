@@ -1567,11 +1567,11 @@ let INTEGER_TAC_001 =
                        |> THENC <| INT_POLYEQ_CONV) tm
             let v, th1 = 
                 try 
-                    find (fun v -> is_defined v (lhand(Choice.get <| rand(concl th)))) vars, 
+                    Option.get <| find (fun v -> is_defined v (lhand(Choice.get <| rand(concl th)))) vars, 
                     th'
                 with
                 | Failure _ -> 
-                    find (fun v -> is_defined v (lhand(Choice.get <| rand(concl th')))) vars, 
+                    Option.get <| find (fun v -> is_defined v (lhand(Choice.get <| rand(concl th')))) vars, 
                     th
             let th2 = 
                 TRANS th1 (SPECL [lhs(Choice.get <| rand(concl th1))

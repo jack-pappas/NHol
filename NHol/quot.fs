@@ -167,7 +167,7 @@ let lift_function =
                         end_itlist CONJ 
                             (map 
                                  (fun v -> 
-                                     find ((=)(lhand v) << lhand << concl) 
+                                     Option.get <| find ((=)(lhand v) << lhand << concl) 
                                          ethlist) hyps)
                     let th2d = MATCH_MP wth th2c
                     let th2e = 

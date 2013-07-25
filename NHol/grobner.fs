@@ -317,7 +317,7 @@ let RING_AND_IDEAL_CONV =
   
   let grobner_refute pols =
     let gb = grobner pols
-    snd(find (fun (p,h) -> length p = 1 && forall ((=)0) (snd(hd p))) gb)
+    snd(Option.get <| find (fun (p,h) -> length p = 1 && forall ((=)0) (snd(hd p))) gb)
   
   (* ----------------------------------------------------------------------- *)
   (* Turn proof into a certificate as sum of multipliers.                    *)

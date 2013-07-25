@@ -673,7 +673,7 @@ let define_type_raw_001 =
                     let asms = 
                         map 
                             (fun p -> 
-                                find (fun th -> fst(strip_comb(concl th)) = p) 
+                                Option.get <| find (fun th -> fst(strip_comb(concl th)) = p) 
                                     sofar) preds
                     MATCH_MP thm (end_itlist CONJ asms)
                 let newth = 
@@ -682,7 +682,7 @@ let define_type_raw_001 =
                 exhaust_inhabitations ths (newth :: sofar)
         let ithms = exhaust_inhabitations imps bases
         let exths = 
-            map (fun p -> find (fun th -> fst(strip_comb(concl th)) = p) ithms) 
+            map (fun p -> Option.get <| find (fun th -> fst(strip_comb(concl th)) = p) ithms) 
                 preds
         exths
     (* ----------------------------------------------------------------------- *)
@@ -692,7 +692,7 @@ let define_type_raw_001 =
         let extm = concl exth
         let epred = fst(strip_comb extm)
         let ename = fst(Choice.get <| dest_var epred)
-        let th1 = ASSUME(find (fun eq -> lhand eq = epred) (hyp exth))
+        let th1 = ASSUME(Option.get <| find (fun eq -> lhand eq = epred) (hyp exth))
         let th2 = TRANS th1 (SUBS_CONV cdefs (Choice.get <| rand(concl th1)))
         let th3 = EQ_MP (AP_THM th2 (Choice.get <| rand extm)) exth
         let th4, _ = itlist SCRUB_EQUATION (hyp th3) (th3, [])
@@ -738,7 +738,7 @@ let define_type_raw_001 =
             |> fst
         let defbod = Choice.get <| mk_comb(retmk, list_mk_comb(oldcon, newrights))
         let defrt = list_mk_abs(newargs, defbod)
-        let expth = find (fun th -> lhand(concl th) = oldcon) defs
+        let expth = Option.get <| find (fun th -> lhand(concl th) = oldcon) defs
         let rexpth = SUBS_CONV [expth] defrt
         let deflf = mk_var(fst(Choice.get <| dest_var oldcon), Choice.get <| type_of defrt)
         let defth = new_definition(Choice.get <| mk_eq(deflf, Choice.get <| rand(concl rexpth)))
@@ -1026,9 +1026,7 @@ let define_type_raw_001 =
                         consindex
                 map 
                     (fun ty -> 
-                        find 
-                            (fun t -> hd(snd(Choice.get <| dest_type(Choice.get <| type_of(lhand t)))) = ty) 
-                            unseqs) tys
+                        Option.get <| find (fun t -> hd(snd(Choice.get <| dest_type(Choice.get <| type_of(lhand t)))) = ty) unseqs) tys
             let rethm = itlist EXISTS_EQUATION seqs rthm
             let fethm = CHOOSE (fn, eth) rethm
             let pcons = 
@@ -1594,7 +1592,7 @@ let define_type_raw =
         let lcjs1, rcjsx = 
             chop_list k 
                 (map (snd << strip_forall) (snd(chop_list n (conjuncts bod1))))
-        let rcjs1 = map (fun t -> find (clause_corresponds t) rcjsx) rcjs0
+        let rcjs1 = map (fun t -> Option.get <| find (clause_corresponds t) rcjsx) rcjs0
         let proc_clause tm0 tm1 = 
             let l0, r0 = Choice.get <| dest_eq tm0
             let l1, r1 = Choice.get <| dest_eq tm1
@@ -1602,18 +1600,14 @@ let define_type_raw =
             let con0, vargs0 = strip_comb(Choice.get <| rand l0)
             let gargs0 = map (genvar << Choice.get << type_of) wargs0
             let nestf0 =
-                /// Tests for failure.
-                let can f x = 
-                    try f x |> ignore; true
-                    with Failure _ -> false
                 map 
                     (fun a -> 
-                        can (find(fun t -> is_comb t && Choice.get <| rand t = a)) wargs0) 
+                        Option.isSome <| find(fun t -> is_comb t && Choice.get <| rand t = a) wargs0) 
                     vargs0
             let targs0 = 
                 map2 (fun a f -> 
                         if f
-                        then find (fun t -> is_comb t && Choice.get <| rand t = a) wargs0
+                        then Option.get <| find (fun t -> is_comb t && Choice.get <| rand t = a) wargs0
                         else a) vargs0 nestf0
             let gvlist0 = zip wargs0 gargs0
             let xargs =
@@ -1630,7 +1624,7 @@ let define_type_raw =
             let targs1 = 
                 map2 (fun a f -> 
                         if f
-                        then find (fun t -> is_comb t && Choice.get <| rand t = a) wargs1
+                        then Option.get <| find (fun t -> is_comb t && Choice.get <| rand t = a) wargs1
                         else a) vargs1 nestf0
             let gvlist1 = zip wargs1 gargs1
             let xargs =
@@ -1651,7 +1645,7 @@ let define_type_raw =
         let efvs2 = 
             map 
                 (fun t1 -> 
-                    find 
+                    Option.get <| find 
                         (fun t2 -> 
                             hd(tl(snd(Choice.get <| dest_type(Choice.get <| type_of t1)))) = hd
                                                                      (snd
@@ -1712,7 +1706,7 @@ let define_type_raw =
     let SCRUB_ASSUMPTION th = 
         let hyps = hyp th
         let eqn = 
-            find (fun t -> 
+            Option.get <| find (fun t -> 
                     let x = lhs t
                     forall (fun u -> not(free_in x (Choice.get <| rand u))) hyps) hyps
         let l, r = Choice.get <| dest_eq eqn
@@ -1751,7 +1745,7 @@ let define_type_raw =
             match assoc tycon !inductive_type_store with
             | Some x -> x
             | None ->
-                failwith("Can't find definition for nested type: " + tycon)
+                failwith("Can't Option.get <| find definition for nested type: " + tycon)
         let evs, bod = strip_exists(snd(strip_forall(concl rth)))
         let cjs = map (lhand << snd << strip_forall) (conjuncts bod)
         let rtys = map (hd << snd << Choice.get << dest_type << Choice.get << type_of) evs
@@ -1783,7 +1777,7 @@ let define_type_raw =
             let xtyal = 
                 map (fun ty -> 
                         let s = Choice.get <| dest_vartype ty
-                        find (fun t -> fst(Choice.get <| dest_type t) = s) xnewtys, ty) 
+                        Option.get <| find (fun t -> fst(Choice.get <| dest_type t) = s) xnewtys, ty) 
                     (map fst cls)
             let ith0 = INST_TYPE xtyal ith
             let rth0 = INST_TYPE xtyal rth
@@ -1880,11 +1874,11 @@ let define_type s =
         then failwith "define_type: multiple instances of a constructor"
         elif exists (Choice.isResult << get_type_arity << Choice.get << dest_vartype) newtypes
         then 
-            let t = find (Choice.isResult << get_type_arity) (map (Choice.get << dest_vartype) newtypes)
+            let t = Option.get <| find (Choice.isResult << get_type_arity) (map (Choice.get << dest_vartype) newtypes)
             failwith("define_type: type :" + t + " already defined")
         elif exists (Choice.isResult << get_const_type) constructors
         then 
-            let t = find (Choice.isResult << get_const_type) constructors
+            let t = Option.get <| find (Choice.isResult << get_const_type) constructors
             failwith("define_type: constant " + t + " already defined")
         else 
             let retval = define_type_raw_002 defspec
@@ -1966,7 +1960,7 @@ let UNWIND_CONV, MATCH_CONV =
             let evs, bod = strip_exists tm
             let eqs = conjuncts bod
             try 
-                let eq = find (fun tm -> 
+                let eq = Option.get <| find (fun tm -> 
                     is_eq tm &&
                     let l, r = Choice.get <| dest_eq tm
                     (mem l evs && not(free_in l r)) || 
@@ -2069,7 +2063,7 @@ let FORALL_UNWIND_CONV =
             let ant, con = Choice.get <| dest_imp bod
             let eqs = conjuncts ant
             let eq = 
-                find (fun tm -> 
+                Option.get <| find (fun tm -> 
                     is_eq tm && 
                     let l, r = Choice.get <| dest_eq tm
                     (mem l avs && not(free_in l r)) || 

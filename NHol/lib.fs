@@ -495,16 +495,12 @@ let rec mapfilter f l =
 
 /// Returns the first element of a list which satisfies a predicate.
 // OPTIMIZE : Make this an alias for List.tryFind.
-let rec find p l = 
-    match l with
-    | [] -> failwith "find"
-    | (h :: t) -> 
-        if p(h) then h
-        else find p t
+let find p l =
+    List.tryFind p l
 
 /// Returns the result of the first successful application of a function to the elements of a list.
 // OPTIMIZE : Make this an alias for List.tryPick.
-let rec tryfind f l =
+let tryfind f l =
     List.tryPick f l
 
 /// Flattens a list of lists into one long list.
@@ -520,8 +516,7 @@ let rec remove p l =
         if p(h) then Some (h, t)
         else 
             remove p t
-            |> Option.map (fun (y, n) ->
-                (y, h :: n))
+            |> Option.map (fun (y, n) -> (y, h :: n))
 
 /// Chops a list into two parts at a specified point.
 // OPTIMIZE : Make this an alias for List.take.

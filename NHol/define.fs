@@ -892,7 +892,7 @@ let instantiate_casewise_recursion,
       let arglists = map (snd << strip_comb) lefts
       let parms0 = freesl(unions arglists)
       let parms = if parms0 <> [] then parms0 else [genvar aty]
-      let wfasm = find is_exists (hyp th1)
+      let wfasm = Option.get <| find is_exists (hyp th1)
       let ord,bod = Choice.get <| dest_exists wfasm
       let SIMP_ADMISS_TAC =
         REWRITE_TAC[LET_DEF; LET_END_DEF] |>THEN<|
@@ -1010,7 +1010,7 @@ let instantiate_casewise_recursion,
        (REWRITE_TAC[FORALL_PAIR_THM] |>THEN<| ARITH_TAC)
     fun etm ->
       let th = pure_prove_recursive_function_exists etm
-      try let wtm = find is_exists (hyp th)
+      try let wtm = Option.get <| find is_exists (hyp th)
           let wth = prove(wtm,PRE_GUESS_TAC |>THEN<| GUESS_ORDERING_TAC)
           PROVE_HYP wth th
       with Failure _ -> th in
