@@ -26,6 +26,8 @@ module NHol.nets
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -75,49 +77,59 @@ let empty_net = Netnode([], [])
 /// Insert a new element into a net.
 let enter = 
     let label_to_store lconsts tm = 
-        let op, args = strip_comb tm
-        if is_const op then Cnet(fst(Choice.get <| dest_const op), length args), args
-        elif is_abs op then 
-            let bv, bod = Choice.get <| dest_abs op
-            let bod' = 
-                if mem bv lconsts then Choice.get <| vsubst [genvar(Choice.get <| type_of bv), bv] bod
-                else bod
-            Lnet(length args), bod' :: args
-        elif mem op lconsts then Lcnet(fst(Choice.get <| dest_var op), length args), args
-        else Vnet, []
-    let rec canon_eq x y = 
-        try 
-            Unchecked.compare x y = 0
-        with
-        | Failure _ -> false
-    and canon_lt x y = 
-        try 
-            Unchecked.compare x y < 0
-        with
-        | Failure _ -> false
+        choice {
+            let op, args = strip_comb tm
+            if is_const op then
+                let! (s, _) = dest_const op
+                return Cnet(s, length args), args
+            elif is_abs op then 
+                let! (bv, bod) = dest_abs op
+                if mem bv lconsts then
+                    let! tb = type_of bv
+                    let! bod' = vsubst [genvar tb, bv] bod
+                    return Lnet(length args), bod' :: args
+                else
+                    return Lnet(length args), bod :: args                
+            elif mem op lconsts then
+                let! (s, _) = dest_var op 
+                return Lcnet(s, length args), args
+            else 
+                return Vnet, []
+        }
+
+    let canon_eq x y = 
+        Unchecked.compare x y = 0
+
+    let canon_lt x y = 
+        Unchecked.compare x y < 0
+
     let rec sinsert x l = 
         match l with
         | [] -> Choice.succeed [x]
         | hd :: tl -> 
             if canon_eq hd x then Choice.failwith "sinsert"
             elif canon_lt x hd then Choice.succeed (x :: l)
-            else Choice.succeed (hd :: (Choice.get <| sinsert x tl))
+            else 
+                sinsert x tl
+                |> Choice.map (fun tl -> hd :: tl)
+
     let set_insert x l = 
-        try 
-            Choice.get <|sinsert x l
-        with
-        | Failure "sinsert" -> l
+        sinsert x l
+        |> Choice.fill l
+
     let rec net_update lconsts (elem, tms, Netnode(edges, tips)) = 
-        match tms with
-        | [] -> Netnode(edges, set_insert elem tips)
-        | (tm :: rtms) -> 
-            let label, ntms = label_to_store lconsts tm
-            let child, others = 
-                match (remove (fun (x, y) -> x = label) edges) with
-                | Some x -> (snd ||>> I) x
-                | None -> (empty_net, edges)
-            let new_child = net_update lconsts (elem, ntms @ rtms, child)
-            Netnode((label, new_child) :: others, tips)
+        choice {
+            match tms with
+            | [] -> return Netnode(edges, set_insert elem tips)
+            | (tm :: rtms) -> 
+                let! (label, ntms) = label_to_store lconsts tm
+                let child, others = 
+                    match (remove (fun (x, y) -> x = label) edges) with
+                    | Some x -> (snd ||>> I) x
+                    | None -> (empty_net, edges)
+                let! new_child = net_update lconsts (elem, ntms @ rtms, child)
+                return Netnode((label, new_child) :: others, tips)
+        }
     fun lconsts (tm, elem) net -> net_update lconsts (elem, [tm], net)
 
 (* ------------------------------------------------------------------------- *)

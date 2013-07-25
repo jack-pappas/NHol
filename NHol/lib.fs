@@ -31,8 +31,8 @@ open System
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
-#endif
 
+#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Some ExtCore-related functions used within NHol.                          *)
@@ -86,6 +86,11 @@ module Choice =
     (* These functions are fairly specific to this project,
        and so probably won't be included in ExtCore. *)
 
+    let fill defaultResult value =
+        match value with
+        | Choice1Of2 result -> result
+        | Choice2Of2 _ -> defaultResult
+
     let inline fail () =
         failwith ""
 
@@ -114,7 +119,6 @@ module Choice =
             resultBinding result
         | Choice2Of2 error ->
             errorBinding error
-
 
 (* ------------------------------------------------------------------------- *)
 (* Functions needed for OCaml compatibility. These augment or supercede      *)

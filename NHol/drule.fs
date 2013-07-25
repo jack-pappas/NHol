@@ -652,7 +652,7 @@ let HIGHER_REWRITE_CONV =
         let preds, pats = unzip(map (Choice.get << dest_comb) lefts)
         let beta_fns = map2 BETA_VAR preds concs
         let ass_list = zip pats (zip preds (zip thl beta_fns))
-        let mnet = itlist (fun p n -> enter [] (p, p) n) pats empty_net
+        let mnet = itlist (fun p n -> Choice.get <| enter [] (p, p) n) pats empty_net
         let look_fn t =
             /// Tests for failure.
             let can f x = 

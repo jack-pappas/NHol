@@ -141,39 +141,37 @@ let net_of_thm rep th =
         
         can << term_match lconsts
     match tm with
-    | Comb(Comb(Const("=", _), (Abs(x, Comb(Var(s, ty) as v, x')) as l)), v') when x' = x 
-                                                                                   && v' = v 
-                                                                                   && not
-                                                                                          (x = v) -> 
+    | Comb(Comb(Const("=", _), (Abs(x, Comb(Var(s, ty) as v, x')) as l)), v') 
+        when x' = x && v' = v && not (x = v) -> 
         let conv tm = 
             match tm with
             | Abs(y, Comb(t, y')) when y = y' && not(free_in y t) -> 
                 INSTANTIATE (term_match [] v t) th
             | _ -> failwith "REWR_CONV (ETA_AX special case)"
-        enter lconsts (l, (1, conv))
+        Choice.get << enter lconsts (l, (1, conv))
     | Comb(Comb(Const("=", _), l), r) -> 
         if rep && free_in l r
         then 
             let th' = EQT_INTRO th
-            enter lconsts (l, (1, REWR_CONV th'))
+            Choice.get << enter lconsts (l, (1, REWR_CONV th'))
         elif rep && matchable l r && matchable r l
-        then enter lconsts (l, (1, ORDERED_REWR_CONV term_order th))
-        else enter lconsts (l, (1, REWR_CONV th))
+        then Choice.get << enter lconsts (l, (1, ORDERED_REWR_CONV term_order th))
+        else Choice.get << enter lconsts (l, (1, REWR_CONV th))
     | Comb(Comb(_, t), Comb(Comb(Const("=", _), l), r)) -> 
         if rep && free_in l r
         then 
             let th' = DISCH t (EQT_INTRO(UNDISCH th))
-            enter lconsts (l, (3, IMP_REWR_CONV th'))
+            Choice.get << enter lconsts (l, (3, IMP_REWR_CONV th'))
         elif rep && matchable l r && matchable r l
-        then enter lconsts (l, (3, ORDERED_IMP_REWR_CONV term_order th))
-        else enter lconsts (l, (3, IMP_REWR_CONV th))
+        then Choice.get << enter lconsts (l, (3, ORDERED_IMP_REWR_CONV term_order th))
+        else Choice.get << enter lconsts (l, (3, IMP_REWR_CONV th))
     | _ -> failwith "net_of_thm: Unhandled case."
 
 (* ------------------------------------------------------------------------- *)
 (* Create a gconv net for a conversion with a term index.                    *)
 (* ------------------------------------------------------------------------- *)
 // TODO : Add brief synopsis from hol-light reference manual.
-let net_of_conv tm conv sofar = enter [] (tm, (2, conv)) sofar
+let net_of_conv tm conv sofar = Choice.get <| enter [] (tm, (2, conv)) sofar
 
 (* ------------------------------------------------------------------------- *)
 (* Create a gconv net for a congruence rule (in canonical form!)             *)
@@ -186,7 +184,7 @@ let net_of_cong th sofar =
     else 
         let pat = lhs conc
         let conv = GEN_PART_MATCH (lhand << funpow n (Choice.get << rand)) th
-        enter [] (pat, (4, conv)) sofar
+        Choice.get <| enter [] (pat, (4, conv)) sofar
 
 (* ------------------------------------------------------------------------- *)
 (* Rewrite maker for ordinary and conditional rewrites (via "cf" flag).      *)

@@ -153,7 +153,7 @@ let DISJ_CANON_CONV tm =
 (* followed by a clausal form inner core, such as MESON.                     *)
 (*                                                                           *)
 (* To avoid some duplicate computation, this function will in general        *)
-(* enter a recursion where it simultaneously computes NNF representations    *)
+(* Choice.get <| enter a recursion where it simultaneously computes NNF representations    *)
 (* for "p" and "~p", so the user needs to supply an atomic "conversion"      *)
 (* that does the same.                                                       *)
 (* ------------------------------------------------------------------------- *)

@@ -426,5 +426,5 @@ let CACHE_CONV (conv : conv) : conv =
         with
         | Failure _ -> 
             let th = conv tm
-            net := enter [] (tm, ALPHA_HACK th) (!net)
+            net := Choice.get <| enter [] (tm, ALPHA_HACK th) (!net)
             th
