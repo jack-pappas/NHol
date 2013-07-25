@@ -711,7 +711,7 @@ let dest_conj x =
 [<Test>]
 let ``{splitlist} applies a binary destructor repeatedly in left-associative mode``() = 
 
-    splitlist dest_conj (And (And (Atom 5, Atom 6), Atom 2))
+    splitlist (Some << dest_conj) (And (And (Atom 5, Atom 6), Atom 2))
     |> should equal ([And (Atom 5, Atom 6)], Atom 2)
 
 (* rev_splitlist tests *)
@@ -719,7 +719,7 @@ let ``{splitlist} applies a binary destructor repeatedly in left-associative mod
 [<Test>]
 let ``{rev_splitlist} applies a binary destructor repeatedly in right-associative mode``() = 
 
-    rev_splitlist dest_conj (And (And (Atom 5, Atom 6), Atom 2))
+    rev_splitlist (Some << dest_conj) (And (And (Atom 5, Atom 6), Atom 2))
     |> should equal (Atom 5, [Atom 6;Atom 2])
 
 (* striplist tests *)

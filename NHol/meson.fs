@@ -800,8 +800,8 @@ let GEN_MESON_TAC =
                 splitlist (fun ty -> 
                         let op, l = Choice.get <| dest_type ty
                         if op = "fun"
-                        then hd l, hd(tl l)
-                        else fail()) (Choice.get <| type_of tm)
+                        then Some (hd l, hd(tl l))
+                        else None) (Choice.get <| type_of tm)
             let ctys = fst(chop_list len atys)
             let largs = map genvar ctys
             let rargs = map genvar ctys

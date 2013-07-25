@@ -676,7 +676,7 @@ let instantiate_casewise_recursion,
 
   let APPLY_PROFORMA_TAC th (asl,w as gl) =
     let vs = fst(Choice.get <| dest_gabs(Choice.get <| body(Choice.get <| rand w)))
-    let n = 1 + length(fst(splitlist dest_pair vs))
+    let n = 1 + length(fst(splitlist (Some << dest_pair) vs))
     (MATCH_MP_TAC(HACK_PROFORMA n th) |>THEN<| BETA_TAC) gl in
 
   let is_pattern p n tm =
@@ -810,7 +810,7 @@ let instantiate_casewise_recursion,
       TOP_DEPTH_CONV GEN_BETA_CONV
     let tuple_function_existence tm =
       let f,def = Choice.get <| dest_exists tm
-      let domtys0,ranty0 = splitlist (Choice.get << dest_fun_ty) (Choice.get <| type_of f)
+      let domtys0,ranty0 = splitlist (Choice.toOption << dest_fun_ty) (Choice.get <| type_of f)
       let nargs =
         itlist
          (max << length << snd << strip_comb << lhs << snd << strip_forall)

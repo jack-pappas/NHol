@@ -3126,7 +3126,7 @@ let SET_OF_LIST_EQ_EMPTY =
 (* ------------------------------------------------------------------------- *)
 /// Breaks apart a set enumeration.
 let dest_setenum = 
-    let fn = splitlist(Choice.get << dest_binary "INSERT")
+    let fn = splitlist(Choice.toOption << dest_binary "INSERT")
     fun tm -> 
         let l, n = fn tm
         if is_const n && fst(Choice.get <| dest_const n) = "EMPTY"
@@ -3800,7 +3800,7 @@ let new_inductive_set =
                     Choice.get <| variant (Choice.get <| variables tm) (mk_var("x" + string n, ty))
                 f (n + 1) (Choice.get <| mk_comb(tm, v)) tys
         fun tm -> 
-            let tys = fst(splitlist (Choice.get << dest_fun_ty) (Choice.get <| type_of tm))
+            let tys = fst(splitlist (Choice.toOption << dest_fun_ty) (Choice.get <| type_of tm))
             f 0 tm tys
     let mk_eqin = REWR_CONV(GSYM IN) << comb_all
     let transf conv = rhs << concl << conv
@@ -3815,7 +3815,7 @@ let new_inductive_set =
         transf << ONCE_DEPTH_CONV << FIRST_CONV << map remove_in_conv
     let rule_head tm = 
         let tm = snd(strip_forall tm)
-        let tm = snd(splitlist (Choice.get << dest_binop(parse_term @"(==>)")) tm)
+        let tm = snd(splitlist (Choice.toOption << dest_binop(parse_term @"(==>)")) tm)
         let tm = snd(Choice.get <| dest_binary "IN" tm)
         fst(strip_comb tm)
     let find_pvars = setify << map rule_head << binops(parse_term @"(/\)")

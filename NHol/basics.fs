@@ -106,10 +106,10 @@ let list_mk_comb(h, t) = rev_itlist (C(curry (Choice.get << mk_comb))) t h
 let list_mk_abs(vs, bod) = itlist (curry (Choice.get << mk_abs)) vs bod
 
 /// Iteratively breaks apart combinations (function applications).
-let strip_comb = rev_splitlist (Choice.get << dest_comb)
+let strip_comb = rev_splitlist (Choice.toOption << dest_comb)
 
 /// Iteratively breaks apart abstractions.
-let strip_abs = splitlist (Choice.get << dest_abs)
+let strip_abs = splitlist (Choice.toOption << dest_abs)
 
 (* ------------------------------------------------------------------------- *)
 (* Generic syntax to deal with some binary operators.                        *)
@@ -460,7 +460,7 @@ let is_forall = is_binder "!"
 let dest_forall = dest_binder "!"
 
 /// Iteratively breaks apart universal quantifications.
-let strip_forall = splitlist (Choice.get << dest_forall)
+let strip_forall = splitlist (Choice.toOption << dest_forall)
 
 /// Tests a term to see if it as an existential quantification.
 let is_exists = is_binder "?"
@@ -469,7 +469,7 @@ let is_exists = is_binder "?"
 let dest_exists = dest_binder "?"
 
 /// Iteratively breaks apart existential quantifications.
-let strip_exists = splitlist (Choice.get << dest_exists)
+let strip_exists = splitlist (Choice.toOption << dest_exists)
 
 /// Tests a term to see if it is a disjunction.
 let is_disj = is_binary "\\/"
@@ -512,7 +512,7 @@ let is_cons = is_binary "CONS"
 /// Iteratively breaks apart a list term.
 let dest_list tm = 
     let v = 
-        let tms, nil = splitlist (Choice.get << dest_cons) tm
+        let tms, nil = splitlist (Choice.toOption << dest_cons) tm
         match dest_const nil with
         | Success("NIL", _) -> Choice.succeed tms
         | _ -> Choice.fail()
@@ -611,7 +611,7 @@ let mk_gabs =
 let list_mk_gabs(vs, bod) = itlist (curry (Choice.get << mk_gabs)) vs bod
 
 /// Breaks apart an iterated generalized or basic abstraction.
-let strip_gabs = splitlist (Choice.get << dest_gabs)
+let strip_gabs = splitlist (Choice.toOption << dest_gabs)
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for let terms.                                                     *)

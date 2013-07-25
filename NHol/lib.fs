@@ -350,21 +350,19 @@ let rec rev_itlist2 f l1 l2 b =
 
 /// Applies a binary destructor repeatedly in left-associative mode.
 let rec splitlist dest x = 
-    try 
-        let l, r = dest x
+    match dest x with
+    | Some (l, r) ->
         let ls, res = splitlist dest r
         (l :: ls, res)
-    with
-    | Failure _ -> ([], x)
+    | None -> ([], x)
 
 /// Applies a binary destructor repeatedly in right-associative mode.
 let rev_splitlist dest = 
     let rec rsplist ls x = 
-        try 
-            let l, r = dest x
+        match dest x with
+        | Some (l, r) ->
             rsplist (r :: ls) l
-        with
-        | Failure _ -> (x, ls)
+        | None -> (x, ls)
     fun x -> rsplist [] x
 
 /// Applies a binary destructor repeatedly, flattening the construction tree into a list.

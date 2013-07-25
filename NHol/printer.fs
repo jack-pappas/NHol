@@ -382,7 +382,7 @@ let pp_print_term =
                                     try 
                                         if s <> "INSERT" then fail()
                                         else 
-                                            let mems, oth = splitlist (Choice.get << dest_binary "INSERT") tm
+                                            let mems, oth = splitlist (Choice.toOption << dest_binary "INSERT") tm
                                             if is_const oth && fst(Choice.get <| dest_const oth) = "EMPTY" then 
                                                 (pp_print_string fmt "{"
                                                  print_term_sequence ", " 14 mems
@@ -532,11 +532,11 @@ let pp_print_term =
                                                             elif can get_infix_status s && length args = 2 then 
                                                                 let bargs = 
                                                                     if ARIGHT s then 
-                                                                        let tms, tmt = splitlist (DEST_BINARY hop) tm
+                                                                        let tms, tmt = splitlist (Some << DEST_BINARY hop) tm
                                                                         tms @ [tmt]
                                                                     else 
                                                                         let tmt, tms = 
-                                                                            rev_splitlist (DEST_BINARY hop) tm
+                                                                            rev_splitlist (Some << DEST_BINARY hop) tm
                                                                         tmt :: tms
                                                                 let newprec = fst(get_infix_status s)
                                                                 (if newprec <= prec then 
