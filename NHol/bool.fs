@@ -27,6 +27,7 @@ open System
 open FSharp.Compatibility.OCaml
 
 open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open lib
@@ -347,8 +348,8 @@ let SPEC =
         DISCH_ALL(EQT_ELIM th3)
     fun tm th ->
         choice {
-            let! tm = Choice.map concl th
-            let! abs = rand tm
+            let! tm' = Choice.map concl th
+            let! abs = rand tm'
             let! ba = bndvar abs
             let! db = dest_var ba
             return! CONV_RULE BETA_CONV (MP (PINST [snd db, aty] [abs, P; tm, x] <| pth()) th)
@@ -362,64 +363,75 @@ let SPECL tms th =
 
 /// Specializes the conclusion of a theorem, returning the chosen variant.
 let SPEC_VAR th = 
-    let bv = Choice.get <| variant (thm_frees <| Choice.get th) (Choice.get <| bndvar(Choice.get <| rand(concl <| Choice.get th)))
-    bv, SPEC bv th
+    let bv = 
+        let ts = Choice.map thm_frees th
+        let t = Choice.bind (Choice.bind bndvar << rand << concl) th
+        (ts, t) ||> Choice.bind2 variant
+    bv, Choice.bind (fun bv -> SPEC bv th) bv
 
 /// Specializes the conclusion of a theorem with its own quantified variables.
 let rec SPEC_ALL th = 
-    if is_forall(concl <| Choice.get th) then SPEC_ALL(snd(SPEC_VAR th))
-    else th
+    Choice.map concl th
+    |> Choice.bind (fun tm ->
+        if is_forall tm then SPEC_ALL(snd(SPEC_VAR th))
+        else th)
 
 /// Specializes a theorem, with type instantiation if necessary.
 let ISPEC t th = 
-    // TODO: eliminate exceptions here
-    let x, _ = 
-        try 
-            Choice.get <| dest_forall(concl <| Choice.get th)
-        with
-        | Failure _ as e ->
-            nestedFailwith e "ISPEC: input theorem not universally quantified"
-    let tyins = 
-        try 
-            Choice.get <| type_match (snd(Choice.get <| dest_var x)) (Choice.get <| type_of t) []
-        with
-        | Failure _ as e ->
-            nestedFailwith e "ISPEC can't type-instantiate input theorem"
-    SPEC t (INST_TYPE tyins th)
-    |> Choice.mapError (fun _ -> Exception "ISPEC: type variable(s) free in assumptions")
+    Choice.bind (dest_forall << concl) th
+    |> Choice.bindError (fun e -> Choice.nestedFailwith e "ISPEC: input theorem not universally quantified")
+    |> Choice.bind (fun (x, _) ->
+        let tyins = 
+            choice { 
+                let! (_, ty) = dest_var x
+                let! ty' = type_of t
+                return! type_match ty ty' []
+            }
+        match tyins with
+        | Success tyins ->
+            SPEC t (INST_TYPE tyins th)
+        | Error e ->
+            Choice.nestedFailwith e "ISPEC can't type-instantiate input theorem")
+    |> Choice.bindError (fun _ -> Choice.failwith "ISPEC: type variable(s) free in assumptions")
 
 /// Specializes a theorem zero or more times, with type instantiation if necessary.
 let ISPECL tms th = 
         if tms = [] then th
         else 
             let avs = fst(chop_list (length tms) (fst(strip_forall(concl <| Choice.get th))))
-            let tyins = itlist2 (fun x y -> Choice.get << type_match x y) (map (snd << Choice.get << dest_var) avs) (map (Choice.get << type_of) tms) []
-            SPECL tms (INST_TYPE tyins th)
-            |> Choice.mapError (fun _ -> Exception "ISPECL")
+            
+            let tyins = 
+                match Choice.List.map (Choice.map snd << dest_var) avs, Choice.List.map type_of tms with
+                | Success avs, Success tms ->
+                    Choice.List.fold (fun acc (x, y) -> type_match x y acc) [] (zip avs tms)
+                | _ -> Choice.failwith "ISPECL.tyins"
+            tyins
+            |> Choice.bind (fun tyins -> SPECL tms (INST_TYPE tyins th))
+            |> Choice.bindError (fun _ -> Choice.failwith "ISPECL")
 
 /// Generalizes the conclusion of a theorem.
 let GEN = 
     let pth() = SYM(CONV_RULE (RAND_CONV BETA_CONV) (AP_THM FORALL_DEF <| parse_term @"P:A->bool"))
-    fun x -> 
-        let qth = INST_TYPE [snd(Choice.get <| dest_var x), aty] <| pth()
-        let ptm = Choice.get <| rand(Choice.get <| rand(concl <| Choice.get qth))
-        fun th -> 
+    fun x th -> 
+        choice {
+            let! (_, ty) = dest_var x
+            let qth = INST_TYPE [ty, aty] <| pth()
+            let! ptm = Choice.bind (Choice.bind rand << rand << concl) qth        
             let th' = ABS x (EQT_INTRO th)
-            let phi = Choice.get <| lhand(concl <| Choice.get th')
+            let! phi = Choice.bind (lhand << concl) th'
             let rth = INST [phi, ptm] qth
-            EQ_MP rth th'
+            return! EQ_MP rth th'
+        }
 
-/// Generalizes zero or more Choice.get <| variables in the conclusion of a theorem.
+/// Generalizes zero or more variables in the conclusion of a theorem.
 let GENL = itlist GEN
 
-let dest_thm thm =
-    dest_thm (Choice.get thm)
-
-/// Generalizes the conclusion of a theorem over its own free Choice.get <| variables.
+/// Generalizes the conclusion of a theorem over its own free variables.
 let GEN_ALL th = 
-    let asl, c = dest_thm th
-    let vars = subtract (frees c) (freesl asl)
-    GENL vars th
+    Choice.map dest_thm th
+    |> Choice.bind (fun (asl, c) ->
+        let vars = subtract (frees c) (freesl asl)
+        GENL vars th)
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for ?                                                               *)
@@ -430,7 +442,7 @@ let EXISTS_DEF = new_basic_definition <| parse_term @"(?) = \P:A->bool. !q. (!x.
 /// Term constructor for existential quantification.
 let mk_exists = mk_binder "?"
 
-/// Multiply existentially quantifies both sides of an equation using the given Choice.get <| variables.
+/// Multiply existentially quantifies both sides of an equation using the given variables.
 let list_mk_exists(vs, bod) = itlist (curry (Choice.get << mk_exists)) vs bod
 
 /// Introduces existential quantification given a particular witness.
@@ -442,16 +454,24 @@ let EXISTS =
         let th2 = SPEC (parse_term @"x:A") (ASSUME <| parse_term @"!x:A. P x ==> Q")
         let th3 = DISCH (parse_term @"!x:A. P x ==> Q") (MP th2 (ASSUME <| parse_term @"(P:A->bool) x"))
         EQ_MP (SYM th1) (GEN (parse_term @"Q:bool") th3)
+
     fun (etm, stm) th -> 
-        let qf, abs = Choice.get <| dest_comb etm
-        let bth = BETA_CONV(Choice.get <| mk_comb(abs, stm))
-        let cth = 
-            PINST [Choice.get <| type_of stm, aty] [abs, P; stm, x] <| pth()
-        PROVE_HYP (EQ_MP (SYM bth) th) cth
-        |> Choice.mapError (fun _ -> Exception "EXISTS")
+        choice {
+            let! qf, abs = dest_comb etm
+            let bth = Choice.bind BETA_CONV (mk_comb(abs, stm))
+            let! sty = type_of stm
+            let cth = PINST [sty, aty] [abs, P; stm, x] <| pth()
+            return! PROVE_HYP (EQ_MP (SYM bth) th) cth
+        }
+        |> Choice.bindError (fun _ -> Choice.failwith "EXISTS")
 
 /// Introduces an existential quantifier over a variable in a theorem.
-let SIMPLE_EXISTS v th = EXISTS (Choice.get <| mk_exists(v, concl <| Choice.get th), v) th
+let SIMPLE_EXISTS v th = 
+    choice {
+        let! tm = Choice.map concl th
+        let! tm' = mk_exists(v, tm)
+        return! EXISTS (tm', v) th
+    }
 
 /// Eliminates existential quantification using deduction from a particular witness.
 let CHOOSE = 
@@ -462,19 +482,28 @@ let CHOOSE =
         let th2 = SPEC (parse_term @"Q:bool") (UNDISCH(fst(EQ_IMP_RULE th1)))
         DISCH_ALL(DISCH (parse_term @"(?) (P:A->bool)") (UNDISCH th2))
     fun (v, th1) th2 -> 
-        let abs = Choice.get <| rand(concl <| Choice.get th1)
-        let bv, bod = Choice.get <| dest_abs abs
-        let cmb = Choice.get <| mk_comb(abs, v)
-        let pat = Choice.get <| vsubst [v, bv] bod
-        let th3 = CONV_RULE BETA_CONV (ASSUME cmb)
-        let th4 = GEN v (DISCH cmb (MP (DISCH pat th2) th3))
-        let th5 = 
-            PINST [snd(Choice.get <| dest_var v), aty] [abs, P; concl <| Choice.get th2, Q] <| pth()
-        MP (MP th5 th4) th1
-        |> Choice.mapError (fun _ -> Exception "CHOOSE")
+        choice {
+            let! abs = Choice.bind (rand << concl) th1
+            let! bv, bod = dest_abs abs
+            let! cmb = mk_comb(abs, v)
+            let! pat = vsubst [v, bv] bod
+            let th3 = CONV_RULE BETA_CONV (ASSUME cmb)
+            let th4 = GEN v (DISCH cmb (MP (DISCH pat th2) th3))
+            let! (_, ty) = dest_var v
+            let! tm2 = Choice.map concl th2
+            let th5 = 
+                PINST [ty, aty] [abs, P; tm2, Q] <| pth()
+            return! MP (MP th5 th4) th1
+        }
+        |> Choice.bindError (fun _ -> Choice.failwith "CHOOSE")
 
 /// Existentially quantifies a hypothesis of a theorem.
-let SIMPLE_CHOOSE v th = CHOOSE (v, ASSUME(Choice.get <| mk_exists(v, hd(hyp <| Choice.get th)))) th
+let SIMPLE_CHOOSE v th = 
+    choice {
+        let! ts = Choice.map hyp th
+        let! t = mk_exists(v, hd ts)
+        return! CHOOSE (v, ASSUME t) th
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for \/                                                              *)
@@ -483,10 +512,10 @@ let SIMPLE_CHOOSE v th = CHOOSE (v, ASSUME(Choice.get <| mk_exists(v, hd(hyp <| 
 let OR_DEF = new_basic_definition <| parse_term @"(\/) = \p q. !r. (p ==> r) ==> (q ==> r) ==> r"
 
 /// Constructs a disjunction.
-let mk_disj = Choice.get << mk_binary "\\/"
+let mk_disj = mk_binary "\\/"
 
 /// Constructs the disjunction of a list of terms.
-let list_mk_disj = end_itlist(curry mk_disj)
+let list_mk_disj = end_itlist(curry (Choice.get << mk_disj))
 
 /// Introduces a right disjunct into the conclusion of a theorem.
 let DISJ1 = 
@@ -499,8 +528,9 @@ let DISJ1 =
         let th4 = GEN (parse_term @"t:bool") (DISCH (parse_term @"P ==> t") (DISCH (parse_term @"Q ==> t") th3))
         EQ_MP (SYM th2) th4
     fun th tm -> 
-        PROVE_HYP th (INST [concl <| Choice.get th, P; tm, Q] <| pth())
-        |> Choice.mapError (fun _ -> Exception "DISJ1")
+        Choice.map concl th
+        |> Choice.bind (fun tm' -> PROVE_HYP th (INST [tm', P; tm, Q] <| pth()))
+        |> Choice.bindError (fun _ -> Choice.failwith "DISJ1")
 
 /// Introduces a left disjunct into the conclusion of a theorem.
 let DISJ2 = 
@@ -513,8 +543,9 @@ let DISJ2 =
         let th4 = GEN (parse_term @"t:bool") (DISCH (parse_term @"P ==> t") (DISCH (parse_term @"Q ==> t") th3))
         EQ_MP (SYM th2) th4
     fun tm th -> 
-        PROVE_HYP th (INST [tm, P; concl <| Choice.get th, Q] <| pth())
-        |> Choice.mapError (fun _ -> Exception "DISJ2")
+        Choice.map concl th
+        |> Choice.bind (fun tm' -> PROVE_HYP th (INST [tm, P; tm', Q] <| pth()))
+        |> Choice.bindError (fun _ -> Choice.failwith "DISJ2")
 
 /// Eliminates disjunction by cases.
 let DISJ_CASES = 
@@ -527,19 +558,26 @@ let DISJ_CASES =
         let th3 = SPEC (parse_term @"R:bool") (EQ_MP th2 (ASSUME <| parse_term @"P \/ Q"))
         UNDISCH(UNDISCH th3)
     fun th0 th1 th2 -> 
-            let c1 = concl <| Choice.get th1
-            let c2 = concl <| Choice.get th2
-            if not(aconv c1 c2) then Choice.failwith "DISJ_CASES"
+        choice {
+            let! c1 = Choice.map concl th1
+            let! c2 = Choice.map concl th2
+            if not(aconv c1 c2) then 
+                return! Choice.failwith "DISJ_CASES"
             else 
-                let l, r = Choice.get <| dest_disj(concl <| Choice.get th0)
-                let th = 
-                    INST [l, P; r, Q; c1, R] <| pth()
-                PROVE_HYP (DISCH r th2) (PROVE_HYP (DISCH l th1) (PROVE_HYP th0 th))
-                |> Choice.mapError (fun _ -> Exception "DISJ_CASES")
+                let! l, r = Choice.bind (dest_disj << concl) th0
+                let th = INST [l, P; r, Q; c1, R] <| pth()
+                return! PROVE_HYP (DISCH r th2) (PROVE_HYP (DISCH l th1) (PROVE_HYP th0 th))
+                        |> Choice.bindError (fun _ -> Choice.failwith "DISJ_CASES")
+        }
 
 /// Disjoins hypotheses of two theorems with same conclusion.
 let SIMPLE_DISJ_CASES th1 th2 = 
-    DISJ_CASES (ASSUME(mk_disj(hd(hyp <| Choice.get th1), hd(hyp <| Choice.get th2)))) th1 th2
+    choice {
+        let! tl1 = Choice.map hyp th1
+        let! tl2 = Choice.map hyp th2
+        let! tm = mk_disj(hd tl1, hd tl2)
+        return! DISJ_CASES (ASSUME tm) th1 th2
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for negation and falsity.                                           *)
@@ -562,8 +600,9 @@ let NOT_ELIM =
     let P = parse_term @"P:bool"
     let pth() = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM NOT_DEF P)
     fun th -> 
-        EQ_MP (INST [Choice.get <| rand(concl <| Choice.get th), P] <| pth()) th
-        |> Choice.mapError (fun _ -> Exception "NOT_ELIM")
+        Choice.bind (rand << concl) th
+        |> Choice.bind (fun tm -> EQ_MP (INST [tm, P] <| pth()) th)
+        |> Choice.bindError (fun _ -> Choice.failwith "NOT_ELIM")
 
 /// <summary>
 /// Transforms <c>|- t ==> F</c> into <c>|- ~t</c>.
@@ -572,8 +611,9 @@ let NOT_INTRO =
     let P = parse_term @"P:bool"
     let pth() = SYM(CONV_RULE (RAND_CONV BETA_CONV) (AP_THM NOT_DEF P))
     fun th -> 
-        EQ_MP (INST [Choice.get <| rand(Choice.get <| rator(concl <| Choice.get th)), P] <| pth()) th
-        |> Choice.mapError (fun _ -> Exception "NOT_INTRO")
+        Choice.bind (Choice.bind rand << rator << concl) th
+        |> Choice.bind (fun tm -> EQ_MP (INST [tm, P] <| pth()) th)
+        |> Choice.bindError (fun _ -> Choice.failwith "NOT_INTRO")
 
 /// Converts negation to equality with F.
 let EQF_INTRO = 
@@ -583,8 +623,9 @@ let EQF_INTRO =
         let th2 = DISCH (parse_term @"F") (SPEC P (EQ_MP F_DEF (ASSUME <| parse_term @"F")))
         DISCH_ALL(IMP_ANTISYM_RULE th1 th2)
     fun th -> 
-        MP (INST [Choice.get <| rand(concl <| Choice.get th), P] <| pth()) th
-        |> Choice.mapError (fun _ -> Exception "EQF_INTRO")
+        Choice.bind (rand << concl) th
+        |> Choice.bind (fun tm -> MP (INST [tm, P] <| pth()) th)
+        |> Choice.bindError (fun _ -> Choice.failwith "EQF_INTRO")
 
 /// Replaces equality with F by negation.
 let EQF_ELIM = 
@@ -594,8 +635,9 @@ let EQF_ELIM =
         let th2 = DISCH P (SPEC (parse_term @"F") (EQ_MP F_DEF th1))
         DISCH_ALL(NOT_INTRO th2)
     fun th -> 
-        MP (INST [Choice.get <| rand(Choice.get <| rator(concl <| Choice.get th)), P] <| pth()) th
-        |> Choice.mapError (fun _ -> Exception "EQF_INTRO")
+        Choice.bind (Choice.bind rand << rator << concl) th
+        |> Choice.bind (fun tm -> MP (INST [tm, P] <| pth()) th)
+        |> Choice.bindError (fun _ -> Choice.failwith "EQF_ELIM")
 
 /// Implements the intuitionistic contradiction rule.
 let CONTR = 
@@ -603,8 +645,10 @@ let CONTR =
     let f_tm = parse_term @"F"
     let pth() = SPEC P (EQ_MP F_DEF (ASSUME <| parse_term @"F"))
     fun tm th -> 
-        if concl <| Choice.get th <> f_tm then Choice.failwith "CONTR"
-        else PROVE_HYP th (INST [tm, P] <| pth())
+        Choice.map concl th
+        |> Choice.bind (fun tm' ->
+            if tm' <> f_tm then Choice.failwith "CONTR"
+            else PROVE_HYP th (INST [tm, P] <| pth()))
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for unique existence.                                               *)
@@ -623,7 +667,10 @@ let EXISTENCE =
         let th2 = UNDISCH(fst(EQ_IMP_RULE th1))
         DISCH_ALL(CONJUNCT1 th2)
     fun th -> 
-        let abs = Choice.get <| rand(concl <| Choice.get th)
-        let ty = snd(Choice.get <| dest_var(Choice.get <| bndvar abs))
-        MP (PINST [ty, aty] [abs, P] <| pth()) th
-        |> Choice.mapError (fun _ -> Exception "EXISTENCE")
+        choice {
+            let! abs = Choice.bind (rand << concl) th
+            let! tm = bndvar abs
+            let! (_, ty) = dest_var tm
+            return! MP (PINST [ty, aty] [abs, P] <| pth()) th
+        }
+        |> Choice.bindError (fun _ -> Choice.failwith "EXISTENCE")

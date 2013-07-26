@@ -982,7 +982,7 @@ let GEN_MESON_TAC =
                     mapfilter (Some << match_consts)
                         (allpairs (fun x y -> x, y) pconsts mconsts)
                 let ths' = 
-                    setify' (fun th th' -> dest_thm th <= dest_thm th') 
+                    setify' (fun th th' -> dest_thm (Choice.get th) <= dest_thm (Choice.get th')) 
                         equals_thm (mapfilter (Some << C INST_TYPE th) tyins)
                 if ths' = []
                 then 

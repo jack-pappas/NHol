@@ -547,7 +547,7 @@ let RING_AND_IDEAL_CONV =
       let x,th1 = SPEC_VAR(CONJUNCT1(CONJUNCT2 RING_INTEGRAL)) in
       let y,th2 = SPEC_VAR th1 in
       let z,th3 = SPEC_VAR th2 in
-      let SUB_EQ_RULE = GEN_REWRITE_RULE I [SYM(INST [Choice.get <| mk_comb(ring_neg_tm,z),x] th3)] in
+      let SUB_EQ_RULE = GEN_REWRITE_RULE I [SYM(INST [Choice.get <| mk_comb(ring_neg_tm, Choice.get z), Choice.get x] th3)] in
       let initpols = map (CONV_RULE(BINOP_CONV RING_NORMALIZE_CONV) << SUB_EQ_RULE) eths in
       let ADD_RULE th1 th2 =
          CONV_RULE (BINOP_CONV RING_NORMALIZE_CONV)

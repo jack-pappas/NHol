@@ -168,7 +168,7 @@ let VALID : tactic -> tactic =
         tac(asl, w)
         |> Choice.bind (fun ((mvs, i), gls, just as res) ->
             let ths = map fake_thm gls
-            let asl', w' = dest_thm(just null_inst ths)
+            let asl', w' = dest_thm <| Choice.get(just null_inst ths)
             let asl'', w'' = inst_goal i (asl, w)
             let maxasms = 
                 itlist (fun (_, th) -> union(insert (concl <| Choice.get th) (hyp <| Choice.get th))) asl'' []
@@ -563,7 +563,7 @@ let BETA_TAC = CONV_TAC(REDEPTH_CONV BETA_CONV)
 /// Use an equation to substitute "safely" in goal.
 let SUBST_VAR_TAC th g = 
     let v = 
-        let asm, eq = dest_thm th
+        let asm, eq = dest_thm <| Choice.get th
         let l, r = Choice.get <| dest_eq eq
         if aconv l r
         then ALL_TAC g

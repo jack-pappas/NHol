@@ -335,11 +335,11 @@ let new_specification =
             specifies (n +/ Int 1) onames th'
     let specification_counter = ref(Int 0)
     fun names th -> 
-        let asl, c = dest_thm th
+        let asl, c = dest_thm <| Choice.get th
         if not(asl = [])
         then failwith "new_specification: Assumptions not allowed in theorem"
         elif not(frees c = [])
-        then failwith "new_specification: Free Choice.get <| variables in predicate"
+        then failwith "new_specification: Free variables in predicate"
         else 
             let avs = fst(strip_exists c)
             if length names = 0 || length names > length avs
