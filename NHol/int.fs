@@ -1655,7 +1655,7 @@ let INTEGER_TAC_001 =
         let evs, bod = strip_exists w
         let ps = 
             mapfilter 
-                (check(fun t -> Choice.get <| type_of t = int_ty) << lhs << concl << snd) asl
+                (Some << check(fun t -> Choice.get <| type_of t = int_ty) << lhs << concl << snd) asl
         let cfs = solve_idealism evs ps (map lhs (conjuncts bod))
         (MAP_EVERY EXISTS_TAC (map (fun v -> rev_assocd v cfs zero_tm) evs)
          |> THEN <| REPEAT(POP_ASSUM MP_TAC)

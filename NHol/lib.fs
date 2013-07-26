@@ -489,15 +489,8 @@ let rec partition p l =
 
 /// Applies a function to every element of a list, returning a list of results for those elements for which application succeeds.
 // OPTIMIZE : Make this an alias for List.choose.
-let rec mapfilter f l = 
-    match l with
-    | [] -> []
-    | (h :: t) -> 
-        let rest = mapfilter f t
-        try 
-            (f h) :: rest
-        with
-        | Failure _ -> rest
+let mapfilter f l = 
+    List.choose f l
 
 /// Returns the first element of a list which satisfies a predicate.
 // OPTIMIZE : Make this an alias for List.tryFind.

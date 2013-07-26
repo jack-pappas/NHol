@@ -213,8 +213,8 @@ let derive_nonschematic_inductive_relations =
         let collectclauses tm = 
             mapfilter (fun t -> 
                     if fst t = tm
-                    then snd t
-                    else fail()) (zip (map fst uncs) pclauses)
+                    then Some (snd t)
+                    else None) (zip (map fst uncs) pclauses)
         let clausell = map collectclauses rels
         let cclausel = map list_mk_conj clausell
         let cclauses = list_mk_conj cclausel
@@ -411,7 +411,7 @@ let prove_monotonicity_hyps =
         |> THEN <| MONO_TAC
     let prove_mth t = prove(t, tac)
     fun th -> 
-        let mths = mapfilter prove_mth (filter (not << is_eq) (hyp th))
+        let mths = mapfilter (Some << prove_mth) (filter (not << is_eq) (hyp th))
         itlist PROVE_HYP mths th
 
 (* ========================================================================= *)

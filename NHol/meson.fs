@@ -979,11 +979,11 @@ let GEN_MESON_TAC =
             else 
                 let pconsts = grab_constants (concl th) []
                 let tyins = 
-                    mapfilter match_consts 
+                    mapfilter (Some << match_consts)
                         (allpairs (fun x y -> x, y) pconsts mconsts)
                 let ths' = 
                     setify' (fun th th' -> dest_thm th <= dest_thm th') 
-                        equals_thm (mapfilter (C INST_TYPE th) tyins)
+                        equals_thm (mapfilter (Some << C INST_TYPE th) tyins)
                 if ths' = []
                 then 
                     (warn true "No useful-looking instantiations of lemma"

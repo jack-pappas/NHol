@@ -605,8 +605,8 @@ let (LET_TAC : tactic) =
             let abbrevs = 
                 mapfilter (fun (x, y) -> 
                         if x = y
-                        then fail()
-                        else Choice.get <| mk_eq(x, y)) assigs
+                        then None
+                        else Choice.toOption <| mk_eq(x, y)) assigs
             let lvars = itlist (union << frees << lhs) abbrevs []
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
             let rename = Choice.get << vsubst(zip (Choice.get <| variants avoids lvars) lvars)

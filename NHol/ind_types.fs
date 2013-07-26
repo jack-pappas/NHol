@@ -962,7 +962,7 @@ let define_type_raw_001 =
                 map (fun t -> hd(tl(snd(Choice.get <| dest_type(Choice.get <| type_of t)))), t) mks
             fun cth -> 
                 let artms = snd(strip_comb(Choice.get <| rand(Choice.get <| rand(concl cth))))
-                let artys = mapfilter (Choice.get << type_of << Choice.get << rand) artms
+                let artys = mapfilter (Choice.toOption << (type_of <<. rand)) artms
                 let args, bod = strip_abs(Choice.get <| rand(hd(hyp cth)))
                 let ccitm, rtm = Choice.get <| dest_comb bod
                 let cctm, itm = Choice.get <| dest_comb ccitm
@@ -1279,7 +1279,7 @@ let prove_constructors_injective =
     fun ax -> 
         let cls = conjuncts(snd(strip_exists(snd(strip_forall(concl ax)))))
         let pats = map (Choice.get << rand << lhand << snd << strip_forall) cls
-        end_itlist CONJ (mapfilter (prove_distinctness ax) pats);;
+        end_itlist CONJ (mapfilter (Some << prove_distinctness ax) pats);;
 
 /// Proves that the constructors of an automatically-dened concrete type yield distinct values.
 let prove_constructors_distinct = 
@@ -1318,7 +1318,7 @@ let prove_constructors_distinct =
         let lefts = map (Choice.get << dest_comb << lhand << snd << strip_forall) cls
         let fns = itlist (insert << fst) lefts []
         let pats = map (fun f -> map snd (filter ((=) f << fst) lefts)) fns
-        end_itlist CONJ (end_itlist (@) (mapfilter (prove_distinct ax) pats));;
+        end_itlist CONJ (end_itlist (@) (mapfilter (Some << prove_distinct ax) pats));;
 
 (* ------------------------------------------------------------------------- *)
 (* Automatically prove the case analysis theorems.                           *)

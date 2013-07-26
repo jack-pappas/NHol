@@ -930,12 +930,12 @@ let ASM_FOL_TAC =
                     let ns = 
                         mapfilter (fun (k, n) -> 
                                 if k = h
-                                then n
-                                else fail()) cheads
+                                then Some n
+                                else None) cheads
                     if length ns < 2
                     then fail()
                     else h, end_itlist min ns
-                mapfilter getmin hops
+                mapfilter (Some << getmin) hops
             else 
                 map (fun t -> 
                         if is_const t && fst(Choice.get <| dest_const t) = "="

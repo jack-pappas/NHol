@@ -498,7 +498,7 @@ let ABS_TAC : tactic =
             let lv, lb = Choice.get <| dest_abs l
             let rv, rb = Choice.get <| dest_abs r
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
-            let v = mk_primed_var avoids lv
+            let v = Choice.get <| mk_primed_var avoids lv
             (null_meta, [asl, Choice.get <| mk_eq(Choice.get <| vsubst [v, lv] lb, Choice.get <| vsubst [v, rv] rb)], 
              fun i tl -> 
                 let fun1 l =
@@ -738,7 +738,7 @@ let GEN_TAC : tactic =
         try 
             let x = fst(Choice.get <| dest_forall w)
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
-            let x' = mk_primed_var avoids x
+            let x' = Choice.get <| mk_primed_var avoids x
             X_GEN_TAC x' (asl, w)
         with
         | Failure _ -> Choice.failwith "GEN_TAC"
@@ -752,7 +752,7 @@ let CHOOSE_TAC : thm_tactic =
                 let avoids = 
                     itlist (union << thm_frees << snd) asl 
                         (union (frees w) (thm_frees xth))
-                let x' = mk_primed_var avoids x
+                let x' = Choice.get <| mk_primed_var avoids x
                 X_CHOOSE_TAC x' xth (asl, w)
         f g |> Choice.mapError (fun _ -> Exception "CHOOSE_TAC")
 
@@ -922,7 +922,7 @@ let STRIP_THM_THEN = FIRST_TCL [CONJUNCTS_THEN; DISJ_CASES_THEN; CHOOSE_THEN]
 let (ANTE_RES_THEN : thm_tactical) = 
     fun ttac ante -> 
         ASSUM_LIST(fun asl -> 
-                let tacs = mapfilter (fun imp -> ttac(MATCH_MP imp ante)) asl
+                let tacs = mapfilter (fun imp -> Some <| ttac(MATCH_MP imp ante)) asl
                 match tacs with
                 | [] -> failwith "IMP_RES_THEN"
                 | _ -> EVERY tacs)
@@ -931,7 +931,7 @@ let (ANTE_RES_THEN : thm_tactical) =
 let (IMP_RES_THEN : thm_tactical) = 
     fun ttac imp -> 
         ASSUM_LIST(fun asl -> 
-                let tacs = mapfilter (fun ante -> ttac(MATCH_MP imp ante)) asl
+                let tacs = mapfilter (fun ante -> Some <| ttac(MATCH_MP imp ante)) asl
                 match tacs with
                 | [] -> failwith "IMP_RES_THEN"
                 | _ -> EVERY tacs)
@@ -1035,7 +1035,7 @@ let (X_META_EXISTS_TAC : term -> tactic) =
 let META_EXISTS_TAC((asl, w) as gl) = 
     let v = fst(Choice.get <| dest_exists w)
     let avoids = itlist (union << frees << concl << snd) asl (frees w)
-    let v' = mk_primed_var avoids v
+    let v' = Choice.get <| mk_primed_var avoids v
     X_META_EXISTS_TAC v' gl
 
 /// Replaces universally quantified variable in theorem with metavariable.

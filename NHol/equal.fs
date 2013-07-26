@@ -47,6 +47,17 @@ type conv = term -> thm
 (* A bit more syntax.                                                        *)
 (* ------------------------------------------------------------------------- *)
 
+let (<<.) f g = fun x -> Choice.bind f (g x)
+
+///// Take left-hand argument of a binary operator.
+//let lhand = rand <<. rator
+//
+///// Returns the left-hand side of an equation.
+//let lhs = Choice.map fst << dest_eq
+//
+///// Returns the right-hand side of an equation.
+//let rhs = Choice.map snd << dest_eq
+
 /// Take left-hand argument of a binary operator.
 let lhand = Choice.get << rand << Choice.get << rator
 /// Returns the left-hand side of an equation.
@@ -55,18 +66,20 @@ let lhs = fst << Choice.get << dest_eq
 let rhs = snd << Choice.get << dest_eq
 
 (* ------------------------------------------------------------------------- *)
-(* Similar to Choice.get <| variant, but even avoids constants, and ignores types.         *)
+(* Similar to variant, but even avoids constants, and ignores types.         *)
 (* ------------------------------------------------------------------------- *)
 
-/// Rename variable to avoid specied names and constant names.
+/// Rename variable to avoid specifed names and constant names.
 let mk_primed_var =
     let rec svariant avoid s = 
-        if mem s avoid || (Choice.isResult <| get_const_type s && not(is_hidden s)) then svariant avoid (s + "'")
+        if mem s avoid || (Choice.isResult <| get_const_type s && not(is_hidden s)) then 
+            svariant avoid (s + "'")
         else s
     fun avoid v -> 
-        let s, ty = Choice.get <| dest_var v
-        let s' = svariant (mapfilter (fst << Choice.get << dest_var) avoid) s
-        mk_var(s', ty)
+        dest_var v
+        |> Choice.map (fun (s, ty) ->
+            let s' = svariant (mapfilter (Choice.toOption << Choice.map fst << dest_var) avoid) s
+            mk_var(s', ty))
 
 (* ------------------------------------------------------------------------- *)
 (* General case of beta-conversion.                                          *)

@@ -349,8 +349,8 @@ let term_match : term list -> term -> term -> instantiation =
                                 let xn, xty = Choice.get <| dest_var x
                                 mk_var(xn, type_subst tyins xty)
                             if compare t x' = 0
-                            then fail()
-                            else (t, x')) realinsts, tyins
+                            then None
+                            else Some(t, x')) realinsts, tyins
     let rec term_homatch lconsts tyins (insts, homs) = 
         if homs = []
         then insts
@@ -660,8 +660,8 @@ let HIGHER_REWRITE_CONV =
                 with Failure _ -> false
             mapfilter (fun p -> 
                     if can (term_match [] p) t
-                    then p
-                    else fail()) (Choice.get <| lookup t mnet)
+                    then Some p
+                    else None) (Choice.get <| lookup t mnet)
         fun top tm -> 
             let pred t = not(look_fn t = []) && free_in t tm
             let stm = 
