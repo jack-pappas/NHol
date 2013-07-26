@@ -639,7 +639,7 @@ let define_type_raw_001 =
                 let rule = 
                     if conds = []
                     then conc
-                    else mk_imp(list_mk_conj conds, conc)
+                    else Choice.get <| mk_imp(list_mk_conj conds, conc)
                 list_mk_forall(args, rule)
             let rules = list_mk_conj(map mk_rule idefs)
             let th0 = derive_nonschematic_inductive_relations rules
@@ -692,10 +692,10 @@ let define_type_raw_001 =
         let extm = concl <| Choice.get exth
         let epred = fst(strip_comb extm)
         let ename = fst(Choice.get <| dest_var epred)
-        let th1 = ASSUME(Option.get <| find (fun eq -> Choice.get <| lhand eq = epred) (hyp exth))
+        let th1 = ASSUME(Option.get <| find (fun eq -> Choice.get <| lhand eq = epred) (hyp <| Choice.get exth))
         let th2 = TRANS th1 (SUBS_CONV cdefs (Choice.get <| rand(concl <| Choice.get th1)))
         let th3 = EQ_MP (AP_THM th2 (Choice.get <| rand extm)) exth
-        let th4, _ = itlist SCRUB_EQUATION (hyp th3) (th3, [])
+        let th4, _ = itlist SCRUB_EQUATION (hyp <| Choice.get th3) (th3, [])
         let mkname = "_mk_" + ename
         let destname = "_dest_" + ename
         let bij1, bij2 = new_basic_type_definition ename (mkname, destname) th4
@@ -805,7 +805,7 @@ let define_type_raw_001 =
                              (SUBS_CONV (tl mths) (Choice.get <| rand contm1)))
                 let conth3 = PRERULE conth2
                 let lctms = map (concl << Choice.get) pths
-                let asmin = mk_imp(list_mk_conj lctms, Choice.get <| rand(Choice.get <| rand(concl <| Choice.get conth3)))
+                let asmin = Choice.get <| mk_imp(list_mk_conj lctms, Choice.get <| rand(Choice.get <| rand(concl <| Choice.get conth3)))
                 let argsin = map (Choice.get << rand) (conjuncts(Choice.get <| lhand asmin))
                 let argsgen = 
                     map (fun tm -> mk_var(fst(Choice.get <| dest_var(Choice.get <| rand tm)), Choice.get <| type_of tm)) 
@@ -870,11 +870,11 @@ let define_type_raw_001 =
         let th3 = DISCH asm th2
         let preds = map (Choice.get << rator << Choice.get << body << Choice.get << rand) (conjuncts(Choice.get <| rand(concl <| Choice.get th3)))
         let th4 = GENL preds th3
-        let pasms = filter (C mem (map fst consindex) << Choice.get << lhand) (hyp th4)
+        let pasms = filter (C mem (map fst consindex) << Choice.get << lhand) (hyp <| Choice.get th4)
         let th5 = itlist DISCH pasms th4
-        let th6, _ = itlist SCRUB_EQUATION (hyp th5) (th5, [])
+        let th6, _ = itlist SCRUB_EQUATION (hyp <| Choice.get th5) (th5, [])
         let th7 = UNDISCH_ALL th6
-        fst(itlist SCRUB_EQUATION (hyp th7) (th7, []))
+        fst(itlist SCRUB_EQUATION (hyp <| Choice.get th7) (th7, []))
 
     (* ----------------------------------------------------------------------- *)
     (* Create the recursive functions and eliminate pseudo-constructors.       *)
@@ -919,15 +919,15 @@ let define_type_raw_001 =
         let fxths4 = map2 (fun th1 -> TRANS th1 << AP_TERM fn) fxths2 fxths3
         let cleanup_fxthm cth fxth = 
             let tms = snd(strip_comb(Choice.get <| rand(Choice.get <| rand(concl <| Choice.get fxth))))
-            let kth = RIGHT_BETAS tms (ASSUME(hd(hyp cth)))
+            let kth = RIGHT_BETAS tms (ASSUME(hd(hyp <| Choice.get cth)))
             TRANS fxth (AP_TERM fn kth)
         let fxth5 = end_itlist CONJ (map2 cleanup_fxthm conthms fxths4)
-        let pasms = filter (C mem (map fst consindex) << Choice.get << lhand) (hyp fxth5)
+        let pasms = filter (C mem (map fst consindex) << Choice.get << lhand) (hyp <| Choice.get fxth5)
         let fxth6 = itlist DISCH pasms fxth5
         let fxth7, _ = 
-            itlist SCRUB_EQUATION (itlist (union << hyp) conthms []) (fxth6, [])
+            itlist SCRUB_EQUATION (itlist (union << hyp << Choice.get) conthms []) (fxth6, [])
         let fxth8 = UNDISCH_ALL fxth7
-        fst(itlist SCRUB_EQUATION (subtract (hyp fxth8) eqs) (fxth8, []))
+        fst(itlist SCRUB_EQUATION (subtract (hyp <| Choice.get fxth8) eqs) (fxth8, []))
 
     (* ----------------------------------------------------------------------- *)
     (* Create a function for recursion clause.                                 *)
@@ -963,7 +963,7 @@ let define_type_raw_001 =
             fun cth -> 
                 let artms = snd(strip_comb(Choice.get <| rand(Choice.get <| rand(concl <| Choice.get cth))))
                 let artys = mapfilter (Choice.toOption << Choice.bind type_of << rand) artms
-                let args, bod = strip_abs(Choice.get <| rand(hd(hyp cth)))
+                let args, bod = strip_abs(Choice.get <| rand(hd(hyp <| Choice.get cth)))
                 let ccitm, rtm = Choice.get <| dest_comb bod
                 let cctm, itm = Choice.get <| dest_comb ccitm
                 let rargs, iargs = partition (C free_in rtm) args
@@ -1003,7 +1003,7 @@ let define_type_raw_001 =
             let LCONV = REWR_CONV(ASSUME betm)
             let fnths = 
                 map (fun t -> RIGHT_BETAS [Choice.get <| bndvar(Choice.get <| rand t)] (ASSUME t)) 
-                    (hyp rath)
+                    (hyp <| Choice.get rath)
             let SIMPER = 
                 PURE_REWRITE_RULE
                     (map SYM fnths 
@@ -1020,7 +1020,7 @@ let define_type_raw_001 =
                 GENL wargs (SIMPER th5)
             let rthm = end_itlist CONJ (map hackdown_rath (CONJUNCTS rath))
             let seqs = 
-                let unseqs = filter is_eq (hyp rthm)
+                let unseqs = filter is_eq (hyp <| Choice.get rthm)
                 let tys = 
                     map (hd << snd << Choice.get << dest_type << Choice.get << type_of << snd << snd) 
                         consindex
@@ -1223,7 +1223,7 @@ let define_type_raw_002 =
                 let dth = ELIM_OUTCOMBS cth
                 let eth = GEN_REWRITE_RULE ONCE_DEPTH_CONV (map SYM fns') dth
                 let fth = itlist SIMPLE_EXISTS (map snd fnalist) eth
-                let dtms = map (hd << hyp) fns'
+                let dtms = map (hd << hyp << Choice.get) fns'
                 let gth = 
                     itlist (fun e th -> 
                             let l, r = Choice.get <| dest_eq e
@@ -1704,7 +1704,7 @@ let define_type_raw =
     (* ----------------------------------------------------------------------- *)
 
     let SCRUB_ASSUMPTION th = 
-        let hyps = hyp th
+        let hyps = hyp <| Choice.get th
         let eqn = 
             Option.get <| find (fun t -> 
                     let x = Choice.get <| lhs t

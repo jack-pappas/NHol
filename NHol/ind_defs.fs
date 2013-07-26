@@ -106,7 +106,7 @@ let derive_nonschematic_inductive_relations =
         | Failure _ -> bod
     let CONJ_ACI_RULE = AC CONJ_ACI
     let SIMPLE_DISJ_PAIR th = 
-        let l, r = Choice.get <| dest_disj(hd(hyp th))
+        let l, r = Choice.get <| dest_disj(hd(hyp <| Choice.get th))
         PROVE_HYP (DISJ1 (ASSUME l) r) th, PROVE_HYP (DISJ2 l (ASSUME r)) th
     let HALF_BETA_EXPAND args th = GENL args (RIGHT_BETAS args th)
     let AND_IMPS_CONV tm = 
@@ -114,13 +114,13 @@ let derive_nonschematic_inductive_relations =
         let avs = fst(strip_forall(concl <| Choice.get(hd ths)))
         let thl = map (DISCH tm << UNDISCH << SPEC_ALL) ths
         let th1 = end_itlist SIMPLE_DISJ_CASES thl
-        let tm1 = hd(hyp th1)
+        let tm1 = hd(hyp <| Choice.get th1)
         let th2 = GENL avs (DISCH tm1 (UNDISCH th1))
         let tm2 = concl <| Choice.get th2
         let th3 = DISCH tm2 (UNDISCH(SPEC_ALL(ASSUME tm2)))
         let thts, tht = nsplit SIMPLE_DISJ_PAIR (tl ths) th3
         let proc_fn th = 
-            let t = hd(hyp th)
+            let t = hd(hyp <| Choice.get th)
             GENL avs (DISCH t (UNDISCH th))
         let th4 = itlist (CONJ << proc_fn) thts (proc_fn tht)
         IMP_ANTISYM_RULE (DISCH_ALL th2) (DISCH_ALL th4)
@@ -144,7 +144,7 @@ let derive_nonschematic_inductive_relations =
         let avs, bod = strip_forall tm
         let th1 = DISCH tm (UNDISCH(SPEC_ALL(ASSUME tm)))
         let th2 = itlist SIMPLE_CHOOSE avs th1
-        let tm2 = hd(hyp th2)
+        let tm2 = hd(hyp <| Choice.get th2)
         let th3 = DISCH tm2 (UNDISCH th2)
         let th4 = ASSUME(concl <| Choice.get th3)
         let ant = Choice.get <| lhand bod
@@ -237,7 +237,7 @@ let derive_nonschematic_inductive_relations =
             Choice.get <| mk_eq
                 (repeat (Choice.get << rator) con, 
                  list_mk_abs
-                     (arg, list_mk_forall(rels', mk_imp(closed', prime_fn con))))
+                     (arg, list_mk_forall(rels', Choice.get <| mk_imp(closed', prime_fn con))))
         let deftms = map2 mk_def vargs concs
         let defthms = map2 HALF_BETA_EXPAND vargs (map ASSUME deftms)
         let mk_ind args th = 
@@ -249,9 +249,9 @@ let derive_nonschematic_inductive_relations =
         let indthmr = end_itlist CONJ indthms
         let indthm = GENL rels' (DISCH closed' indthmr)
         let mconcs = 
-            map2 (fun a t -> list_mk_forall(a, mk_imp(t, prime_fn t))) vargs 
+            map2 (fun a t -> list_mk_forall(a, Choice.get <| mk_imp(t, prime_fn t))) vargs 
                 ants
-        let monotm = mk_imp(concl <| Choice.get indthmr, list_mk_conj mconcs)
+        let monotm = Choice.get <| mk_imp(concl <| Choice.get indthmr, list_mk_conj mconcs)
         let monothm = 
             ASSUME(list_mk_forall(rels, list_mk_forall(rels', monotm)))
         let closthm = ASSUME closed'
@@ -411,7 +411,7 @@ let prove_monotonicity_hyps =
         |> THEN <| MONO_TAC
     let prove_mth t = prove(t, tac)
     fun th -> 
-        let mths = mapfilter (Some << prove_mth) (filter (not << is_eq) (hyp th))
+        let mths = mapfilter (Some << prove_mth) (filter (not << is_eq) (hyp <| Choice.get th))
         itlist PROVE_HYP mths th
 
 (* ========================================================================= *)
@@ -438,7 +438,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
             let th1 = INST [Choice.get <| lhs(concl <| Choice.get th0), l] (DISCH tm th)
             MP th1 th0
         fun th -> 
-            let defs, others = partition is_eq (hyp th)
+            let defs, others = partition is_eq (hyp <| Choice.get th)
             let th1 = itlist generalize_def defs th
             if gflag
             then 
@@ -449,10 +449,10 @@ let prove_inductive_relations_exist, new_inductive_definition =
                 GENL vs (itlist PROVE_HYP others' th1)
             else th1
     let derive_existence th = 
-        let defs = filter is_eq (hyp th)
+        let defs = filter is_eq (hyp <| Choice.get th)
         itlist EXISTS_EQUATION defs th
     let make_definitions th = 
-        let defs = filter is_eq (hyp th)
+        let defs = filter is_eq (hyp <| Choice.get th)
         let dths = map new_definition defs
         let insts = zip (map (Choice.get << lhs << concl << Choice.get) dths) (map (Choice.get << lhs) defs)
         rev_itlist (C MP) dths (INST insts (itlist DISCH defs th))
@@ -561,13 +561,13 @@ let derive_strong_induction =
             if is_imp bod
             then 
                 let a, c = Choice.get <| dest_imp bod
-                let mgoal = mk_imp(gimps, mk_imp(Choice.get <| vsubst (zip gs ps) a, a))
+                let mgoal = Choice.get <| mk_imp(gimps, Choice.get <| mk_imp(Choice.get <| vsubst (zip gs ps) a, a))
                 let mth = ASSUME(list_mk_forall(gs @ ps @ avs, mgoal))
                 let ith_r = BETA_RULE(SPECL (prs @ rs @ avs) mth)
                 let jth_r = MP ith_r (prove_triv(Choice.get <| lhand(concl <| Choice.get ith_r)))
                 let t = Choice.get <| lhand(concl <| Choice.get jth_r)
                 let kth_r = UNDISCH jth_r
-                let ntm = list_mk_forall(avs, mk_imp(t, c))
+                let ntm = list_mk_forall(avs, Choice.get <| mk_imp(t, c))
                 let lth_r = MP (SPECL avs rcl) kth_r
                 let lth_p = UNDISCH(SPECL avs (ASSUME ntm))
                 DISCH ntm (GENL avs (DISCH t (CONJ lth_r lth_p)))

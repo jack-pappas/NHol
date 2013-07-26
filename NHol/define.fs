@@ -826,7 +826,7 @@ let instantiate_casewise_recursion,
       let def' = Choice.get <| subst [f'',f] def
       let th1 = EXISTS (tm,f'') (ASSUME def')
       in let bth = BETAS_CONV (list_mk_comb(f'',gvs))
-      let th2 = GEN_REWRITE_CONV TOP_DEPTH_CONV [bth] (hd(hyp th1))
+      let th2 = GEN_REWRITE_CONV TOP_DEPTH_CONV [bth] (hd(hyp <| Choice.get th1))
       SIMPLE_CHOOSE f' (PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th2))) th1)
     let pinstantiate_casewise_recursion def =
       try PART_MATCH I EXISTS_REFL def with Failure _ ->
@@ -864,16 +864,16 @@ let instantiate_casewise_recursion,
        (RAND_CONV (COMB2_CONV
             (RAND_CONV (LAND_CONV (GABS_CONV (BINDER_CONV (BINDER_CONV (rewr_forall_th) |>THENC<| rewr_forall_th)))))
             (LAND_CONV (funpow 2 GABS_CONV (BINDER_CONV (BINDER_CONV (rewr_forall_th) |>THENC<|  rewr_forall_th)) ))) |>THENC<|
-        ELIM_LISTOPS_CONV) (hd(hyp th6))
+        ELIM_LISTOPS_CONV) (hd(hyp <| Choice.get th6))
       let th8 = PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th7))) th6
-      let wfasm,cdasm = Choice.get <| dest_conj(hd(hyp th8))
+      let wfasm,cdasm = Choice.get <| dest_conj(hd(hyp <| Choice.get th8))
       let th9 = PROVE_HYP (CONJ (ASSUME wfasm) (ASSUME cdasm)) th8
       let th10 = SIMPLIFY_WELLDEFINEDNESS_CONV cdasm
       let th11 = PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th10))) th9
       PROVE_HYP TRUTH th11
     fun etm ->
       let eth = tuple_function_existence etm
-      let dtm = hd(hyp eth)
+      let dtm = hd(hyp <| Choice.get eth)
       let dth = pinstantiate_casewise_recursion dtm
       PROVE_HYP dth eth in
 
@@ -883,7 +883,7 @@ let instantiate_casewise_recursion,
 
   let pure_prove_recursive_function_exists =
     let break_down_admissibility th1 =
-      if hyp th1 = [] then th1 else
+      if hyp <| Choice.get th1 = [] then th1 else
       let def = concl <| Choice.get th1
       let f,bod = Choice.get <| dest_exists def
       let cjs = conjuncts bod
@@ -892,7 +892,7 @@ let instantiate_casewise_recursion,
       let arglists = map (snd << strip_comb) lefts
       let parms0 = freesl(unions arglists)
       let parms = if parms0 <> [] then parms0 else [genvar aty]
-      let wfasm = Option.get <| find is_exists (hyp th1)
+      let wfasm = Option.get <| find is_exists (hyp <| Choice.get th1)
       let ord,bod = Choice.get <| dest_exists wfasm
       let SIMP_ADMISS_TAC =
         REWRITE_TAC[LET_DEF; LET_END_DEF] |>THEN<|
@@ -912,7 +912,7 @@ let instantiate_casewise_recursion,
         W(fun (asl,w) -> ACCEPT_TAC(ASSUME w))
       let th2 = prove(bod,SIMP_ADMISS_TAC)
       let th3 = SIMPLE_EXISTS ord th2
-      let allasms = hyp th3 in let wfasm = Choice.get <| lhand(concl <| Choice.get th2)
+      let allasms = hyp <| Choice.get th3 in let wfasm = Choice.get <| lhand(concl <| Choice.get th2)
       let th4 = ASSUME(list_mk_conj(wfasm::subtract allasms [wfasm]))
       let th5 = SIMPLE_CHOOSE ord (itlist PROVE_HYP (CONJUNCTS th4) th3)
       PROVE_HYP th5 th1
@@ -922,7 +922,7 @@ let instantiate_casewise_recursion,
       else failwith "prove_general_recursive_function_exists: sanity" in
 
 (* ------------------------------------------------------------------------- *)
-(* Same, but attempt to prove the wellfoundedness hyp by good guesses.       *)
+(* Same, but attempt to prove the wellfoundedness hyp <| Choice.get by good guesses.       *)
 (* ------------------------------------------------------------------------- *)
 
   let prove_general_recursive_function_exists =
@@ -1010,7 +1010,7 @@ let instantiate_casewise_recursion,
        (REWRITE_TAC[FORALL_PAIR_THM] |>THEN<| ARITH_TAC)
     fun etm ->
       let th = pure_prove_recursive_function_exists etm
-      try let wtm = Option.get <| find is_exists (hyp th)
+      try let wtm = Option.get <| find is_exists (hyp <| Choice.get th)
           let wth = prove(wtm,PRE_GUESS_TAC |>THEN<| GUESS_ORDERING_TAC)
           PROVE_HYP wth th
       with Failure _ -> th in
@@ -1039,7 +1039,7 @@ let define =
       let fvs = subtract (frees(Choice.get <| lhs bod)) (f::lvs)
       SPECL fvs (ASSUME(list_mk_forall(fvs,t)))
     let ths = map do_clause cjs
-    let ajs = map (hd << hyp) ths
+    let ajs = map (hd << hyp << Choice.get) ths
     let th = ASSUME(list_mk_conj ajs)
     f,itlist GEN avs (itlist PROVE_HYP (CONJUNCTS th) (end_itlist CONJ ths))
   fun tm ->
@@ -1055,7 +1055,7 @@ let define =
         else failwith ""
     with Failure _ ->
       let f,th = close_definition_clauses tm
-      let etm = Choice.get <| mk_exists(f,hd(hyp th))
+      let etm = Choice.get <| mk_exists(f,hd(hyp <| Choice.get th))
       let th1 = prove_general_recursive_function_exists etm
       let th2 = new_specification[fst(Choice.get <| dest_var f)] th1
       let g = Choice.get <| mk_mconst(Choice.get <| dest_var f)

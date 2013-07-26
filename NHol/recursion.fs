@@ -101,7 +101,7 @@ let prove_recursive_functions_exist =
         GENL avs (RIGHT_BETAS vargs (SPECL fvs def))
     let prove_canon_recursive_functions_exist ax tm = 
         let ths = map canonize (conjuncts tm)
-        let atm = list_mk_conj(map (hd << hyp) ths)
+        let atm = list_mk_conj(map (hd << hyp << Choice.get) ths)
         let aths = CONJUNCTS(ASSUME atm)
         let rth = end_itlist CONJ (map2 PROVE_HYP aths ths)
         let eth = prove_raw_recursive_functions_exist ax atm

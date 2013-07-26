@@ -132,7 +132,7 @@ let term_order =
 /// Insert a theorem into a net as a (conditional) rewrite.
 let net_of_thm rep th = 
     let tm = concl <| Choice.get th
-    let lconsts = freesl(hyp th)
+    let lconsts = freesl(hyp <| Choice.get th)
     let matchable =
         /// Tests for failure.
         let can f x = 
@@ -203,7 +203,7 @@ let mk_rewrites =
             REWR_CONV(ITAUT(parse_term @"(!x. P x ==> Q) <=> (?x. P x) ==> Q"))
         fun v th -> CONV_RULE cnv (GEN v th)
     let collect_condition oldhyps th = 
-        let conds = subtract (hyp th) oldhyps
+        let conds = subtract (hyp <| Choice.get th) oldhyps
         if conds = []
         then th
         else 
@@ -235,7 +235,7 @@ let mk_rewrites =
             then split_rewrites oldhyps cf (EQF_INTRO(GSYM th)) ths
             else ths
         else split_rewrites oldhyps cf (EQT_INTRO th) sofar
-    fun cf th sofar -> split_rewrites (hyp th) cf th sofar
+    fun cf th sofar -> split_rewrites (hyp <| Choice.get th) cf th sofar
 
 (* ------------------------------------------------------------------------- *)
 (* Rewriting (and application of other conversions) based on a convnet.      *)
@@ -594,14 +594,14 @@ let PURE_ONCE_REWRITE_RULE thl = CONV_RULE(PURE_ONCE_REWRITE_CONV thl)
 let ONCE_REWRITE_RULE thl = CONV_RULE(ONCE_REWRITE_CONV thl)
 /// Rewrites a theorem including the theorem's assumptions as rewrites.
 let PURE_ASM_REWRITE_RULE thl th = 
-    PURE_REWRITE_RULE ((map ASSUME (hyp th)) @ thl) th
+    PURE_REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
 /// Rewrites a theorem including built-in rewrites and the theorem's assumptions.
-let ASM_REWRITE_RULE thl th = REWRITE_RULE ((map ASSUME (hyp th)) @ thl) th
+let ASM_REWRITE_RULE thl th = REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
 /// Rewrites a theorem once, including the theorem's assumptions as rewrites.
 let PURE_ONCE_ASM_REWRITE_RULE thl th = 
-    PURE_ONCE_REWRITE_RULE ((map ASSUME (hyp th)) @ thl) th
+    PURE_ONCE_REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
 let ONCE_ASM_REWRITE_RULE thl th = 
-    ONCE_REWRITE_RULE ((map ASSUME (hyp th)) @ thl) th
+    ONCE_REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
 /// Rewrites a goal, selecting terms according to a user-specified strategy.
 let GEN_REWRITE_TAC cnvl thl = CONV_TAC(GEN_REWRITE_CONV cnvl thl)
 /// Rewrites a goal with only the given list of rewrites.

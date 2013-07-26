@@ -680,7 +680,7 @@ let SELECT_ELIM_TAC =
         let SELECT_ELIM_ICONV tm = 
             let t = Choice.get <| find_term is_select tm
             let th1 = SELECT_AX_THM t
-            let itm = mk_imp(concl <| Choice.get th1, tm)
+            let itm = Choice.get <| mk_imp(concl <| Choice.get th1, tm)
             let th2 = DISCH_ALL(MP (ASSUME itm) th1)
             let fvs = frees t
             let fty = itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) fvs (Choice.get <| type_of t)
@@ -888,7 +888,7 @@ let ASM_FOL_TAC =
                         then (cheads, insert (hop, len) vheads)
                         else sofar
                     itlist (get_heads lconsts) args newheads
-    let get_thm_heads th sofar = get_heads (freesl(hyp th)) (concl <| Choice.get th) sofar
+    let get_thm_heads th sofar = get_heads (freesl(hyp <| Choice.get th)) (concl <| Choice.get th) sofar
     let APP_CONV = 
         let th = 
             prove((parse_term @"!(f:A->B) x. f x = I f x"), REWRITE_TAC [I_THM])

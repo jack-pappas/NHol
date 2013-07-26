@@ -161,7 +161,7 @@ let mk_fthm =
 /// Tries to ensure that a tactic is valid.
 let VALID : tactic -> tactic = 
     let fake_thm(asl, w) = 
-        let asms = itlist (union << hyp << snd) asl []
+        let asms = itlist (union << hyp << Choice.get << snd) asl []
         mk_fthm(asms, w)
     let false_tm = parse_term @"_FALSITY_"
     fun tac (asl, w) -> 
@@ -171,7 +171,7 @@ let VALID : tactic -> tactic =
             let asl', w' = dest_thm(just null_inst ths)
             let asl'', w'' = inst_goal i (asl, w)
             let maxasms = 
-                itlist (fun (_, th) -> union(insert (concl <| Choice.get th) (hyp th))) asl'' []
+                itlist (fun (_, th) -> union(insert (concl <| Choice.get th) (hyp <| Choice.get th))) asl'' []
             if aconv w' w'' 
                && forall (fun t -> exists (aconv t) maxasms) 
                       (subtract asl' [false_tm])
@@ -612,7 +612,7 @@ let MP_TAC : thm_tactic =
         | [a] -> a
         | _ -> Choice.failwith "MP_TAC.fun1: Unhandled case."
     fun thm (asl, w) -> 
-        (null_meta, [asl, mk_imp(concl <| Choice.get thm, w)], fun i thl -> MP (fun1 thl) (INSTANTIATE_ALL i thm))
+        (null_meta, [asl, Choice.get <| mk_imp(concl <| Choice.get thm, w)], fun i thl -> MP (fun1 thl) (INSTANTIATE_ALL i thm))
         |> Choice.succeed
 
 /// Reduces goal of equality of boolean terms to forward and backward implication.
@@ -624,7 +624,7 @@ let EQ_TAC : tactic =
                 | [th1; th2] -> IMP_ANTISYM_RULE th1 th2
                 | _ -> Choice.failwith "EQ_TAC.fun1: Unhandled case."
             let l, r = Choice.get <| dest_eq w
-            (null_meta, [asl, mk_imp(l, r); asl, mk_imp(r, l)], fun _ tml -> fun1 tml)
+            (null_meta, [asl, Choice.get <| mk_imp(l, r); asl, Choice.get <| mk_imp(r, l)], fun _ tml -> fun1 tml)
             |> Choice.succeed
         v |> Choice.mapError (fun _ -> Exception "EQ_TAC: Failure.")
 
@@ -638,7 +638,7 @@ let UNDISCH_TAC : term -> tactic =
                 | _ -> Choice.failwith "UNDISCH_TAC.fun1: Unhandled case."
             let sthm, asl' = Option.get <| remove (fun (_, asm) -> aconv (concl <| Choice.get asm) tm) asl
             let thm = snd sthm
-            (null_meta, [asl', mk_imp(tm, w)], fun i tl -> MP (fun1 tl) (INSTANTIATE_ALL i thm))
+            (null_meta, [asl', Choice.get <| mk_imp(tm, w)], fun i tl -> MP (fun1 tl) (INSTANTIATE_ALL i thm))
             |> Choice.succeed
         v |> Choice.mapError (fun _ -> Exception "UNDISCH_TAC: Failure.")
 
@@ -852,7 +852,7 @@ let MATCH_MP_TAC : thm_tactic =
                 let evs = 
                     filter (fun v -> vfree_in v ant && not(vfree_in v con)) avs
                 let th3 = itlist SIMPLE_CHOOSE evs (DISCH tm th2)
-                let tm3 = hd(hyp th3)
+                let tm3 = hd(hyp <| Choice.get th3)
                 MP (DISCH tm (GEN_ALL(DISCH tm3 (UNDISCH th3)))) th
             with
             | Failure _ -> Choice.failwith "MATCH_MP_TAC: Bad theorem"

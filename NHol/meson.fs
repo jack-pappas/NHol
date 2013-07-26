@@ -631,7 +631,7 @@ let GEN_MESON_TAC =
                 let nw = (map mk_negated (used @ t), h), (n, th)
                 mk_contraposes (n + 1) th (used @ [h]) t (nw :: sofar)
         let fol_of_hol_clause th = 
-            let lconsts = freesl(hyp th)
+            let lconsts = freesl(hyp <| Choice.get th)
             let tm = concl <| Choice.get th
             let hlits = disjuncts tm
             let flits = map (fol_of_literal [] lconsts) hlits
@@ -810,7 +810,7 @@ let GEN_MESON_TAC =
                 if pflag
                 then eq_elim_RULE th1
                 else th1
-            itlist (fun e th -> CONV_RULE imp_elim_CONV (DISCH e th)) (hyp th2) 
+            itlist (fun e th -> CONV_RULE imp_elim_CONV (DISCH e th)) (hyp <| Choice.get th2) 
                 th2
         fun tms -> 
             let preds, funs = itlist fm_consts tms ([], [])
@@ -866,7 +866,7 @@ let GEN_MESON_TAC =
                 let tms' = map (Choice.get << subst [gv, tm]) (tl tms)
                 BRAND tms' th'
         let BRAND_CONGS th = 
-            let lconsts = freesl(hyp th)
+            let lconsts = freesl(hyp <| Choice.get th)
             let lits = disjuncts(concl <| Choice.get th)
             let atoms = 
                 map (fun t -> 
@@ -973,7 +973,7 @@ let GEN_MESON_TAC =
         let polymorph mconsts th = 
             let tvs = 
                 subtract (Choice.get <| type_vars_in_term(concl <| Choice.get th)) 
-                    (unions(map (Choice.get << type_vars_in_term) (hyp th)))
+                    (unions(map (Choice.get << type_vars_in_term) (hyp <| Choice.get th)))
             if tvs = []
             then [th]
             else 

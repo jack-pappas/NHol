@@ -53,7 +53,7 @@ type instantiation = (int * term) list * (term * term) list * (hol_type * hol_ty
 
 /// Creates an arbitrary theorem as an axiom (dangerous!)
 let mk_thm(asl, c) = 
-    let ax = new_axiom(itlist (curry mk_imp) (rev asl) c)
+    let ax = new_axiom(itlist (curry (Choice.get << mk_imp)) (rev asl) c)
     rev_itlist (fun t th -> MP th (ASSUME t)) (rev asl) ax
 
 (* ------------------------------------------------------------------------- *)
@@ -205,7 +205,7 @@ let INSTANTIATE : instantiation -> thm -> thm =
         then ith
         else 
             let tth = INST tmin ith
-            if hyp tth = hyp th
+            if hyp (Choice.get tth) = hyp (Choice.get th)
             then 
                 if bcs = []
                 then tth
@@ -221,7 +221,7 @@ let INSTANTIATE_ALL : instantiation -> thm -> thm =
     fun ((_, tmin, tyin) as i) th -> 
         if tmin = [] && tyin = [] then th
         else 
-            let hyps = hyp th
+            let hyps = hyp <| Choice.get th
             if hyps = [] then INSTANTIATE i th
             else 
                 let tyrel, tyiirel = 
@@ -541,14 +541,14 @@ let PART_MATCH, GEN_PART_MATCH =
         let sth = SPEC_ALL th
         let bod = concl <| Choice.get sth
         let pbod = partfn bod
-        let lconsts = intersect (frees(concl <| Choice.get th)) (freesl(hyp th))
+        let lconsts = intersect (frees(concl <| Choice.get th)) (freesl(hyp <| Choice.get th))
         fun tm -> 
             let bvms = match_bvs tm pbod []
             let abod = deep_alpha bvms bod
             let ath = EQ_MP (ALPHA bod abod) sth
             let insts = term_match lconsts (partfn abod) tm
             let fth = INSTANTIATE insts ath
-            if hyp fth <> hyp ath
+            if hyp (Choice.get fth) <> hyp (Choice.get ath)
             then Choice.failwith "PART_MATCH: instantiated hyps"
             else 
                 let tm' = partfn(concl <| Choice.get fth)
@@ -561,7 +561,7 @@ let PART_MATCH, GEN_PART_MATCH =
         let sth = SPEC_ALL th
         let bod = concl <| Choice.get sth
         let pbod = partfn bod
-        let lconsts = intersect (frees(concl <| Choice.get th)) (freesl(hyp th))
+        let lconsts = intersect (frees(concl <| Choice.get th)) (freesl(hyp <| Choice.get th))
         let fvs = subtract (subtract (frees bod) (frees pbod)) lconsts
         fun tm -> 
             let bvms = match_bvs tm pbod []
@@ -570,7 +570,7 @@ let PART_MATCH, GEN_PART_MATCH =
             let insts = term_match lconsts (partfn abod) tm
             let eth = INSTANTIATE insts (GENL fvs ath)
             let fth = itlist (fun v th -> snd(SPEC_VAR th)) fvs eth
-            if hyp fth <> hyp ath
+            if hyp (Choice.get fth) <> hyp (Choice.get ath)
             then Choice.failwith "PART_MATCH: instantiated hyps"
             else 
                 let tm' = partfn(concl <| Choice.get fth)
@@ -642,7 +642,7 @@ let HIGHER_REWRITE_CONV =
                     | Failure _ -> RAND_CONV(free_beta v r)
         free_beta
     let GINST th = 
-        let fvs = subtract (frees(concl <| Choice.get th)) (freesl(hyp th))
+        let fvs = subtract (frees(concl <| Choice.get th)) (freesl(hyp <| Choice.get th))
         let gvs = map (genvar << Choice.get << type_of) fvs
         INST (zip gvs fvs) th
     fun ths -> 

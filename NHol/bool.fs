@@ -26,6 +26,8 @@ module NHol.bool
 open System
 open FSharp.Compatibility.OCaml
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -97,20 +99,22 @@ let PINST tyin tmin =
             iterm_fn(itype_fn th)
         with
         | Failure _ as e ->
-            nestedFailwith e "PINST"
+            Choice.nestedFailwith e "PINST"
 
 (* ------------------------------------------------------------------------- *)
 (* Useful derived deductive rule.                                            *)
 (* ------------------------------------------------------------------------- *)
 
-/// Yet another unsafe function
-let hyp thm =
-    hyp (Choice.get thm)
-
 /// Eliminates a provable assumption from a theorem.
 let PROVE_HYP ath bth = 
-    if exists (aconv(concl <| Choice.get ath)) (hyp bth) then EQ_MP (DEDUCT_ANTISYM_RULE ath bth) ath
-    else bth
+    choice {
+        let! t = Choice.map concl ath
+        let! ts = Choice.map hyp bth
+        if exists (aconv t) ts then 
+            return! EQ_MP (DEDUCT_ANTISYM_RULE ath bth) ath
+        else 
+            return! bth
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for T                                                               *)
@@ -123,16 +127,19 @@ let TRUTH = EQ_MP (SYM T_DEF) (REFL(parse_term @"\p:bool. p"))
 /// Eliminates equality with T.
 let EQT_ELIM th = 
     EQ_MP (SYM th) TRUTH
-    |> Choice.mapError (fun _ -> Exception "EQT_ELIM")
+    |> Choice.bindError (fun _ -> Choice.failwith "EQT_ELIM")
 
 /// Introduces equality with T.
 let EQT_INTRO = 
     let t = parse_term @"t:bool"
     let pth = 
         let th1 = DEDUCT_ANTISYM_RULE (ASSUME t) TRUTH
-        let th2 = EQT_ELIM(ASSUME(concl <| Choice.get th1))
+        let th2 = th1 |> Choice.map concl |> Choice.bind (fun tm -> EQT_ELIM(ASSUME tm))
         DEDUCT_ANTISYM_RULE th2 th1
-    fun th -> EQ_MP (INST [concl <| Choice.get th, t] pth) th
+    fun th -> 
+        th
+        |> Choice.bind (fun th' ->
+            EQ_MP (INST [concl th', t] pth) th)
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for /\                                                              *)
@@ -159,9 +166,10 @@ let CONJ =
         let th3 = BETA_RULE(AP_THM (AP_THM AND_DEF p) q)
         EQ_MP (SYM th3) th2
     fun th1 th2 -> 
-        let th = 
-            INST [concl <| Choice.get th1, p;
-                  concl <| Choice.get th2, q] <| pth()
+        let th =
+            (th1, th2)
+            ||> Choice.bind2 (fun th1 th2 ->
+                    INST [concl th1, p; concl th2, q] <| pth())
         PROVE_HYP th2 (PROVE_HYP th1 th)
 
 /// Extracts left conjunct of theorem.
@@ -173,10 +181,13 @@ let CONJUNCT1 =
         let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
         let th3 = EQ_MP th2 (ASSUME <| parse_term @"P /\ Q")
         EQT_ELIM(BETA_RULE(AP_THM th3 <| parse_term @"\(p:bool) (q:bool). p"))
-    fun th -> 
-        let l, r = Choice.get <| dest_conj (concl <| Choice.get th)
-        PROVE_HYP th (INST [l, P; r, Q] pth)
-        |> Choice.mapError (fun _ -> Exception "CONJUNCT1")
+    fun th ->
+        choice {
+            let! tm = Choice.map concl th
+            let! l, r = dest_conj tm
+            return! PROVE_HYP th (INST [l, P; r, Q] pth)
+        }
+        |> Choice.bindError (fun _ -> Choice.failwith "CONJUNCT1")
 
 /// Extracts right conjunct of theorem.
 let CONJUNCT2 = 
@@ -188,13 +199,16 @@ let CONJUNCT2 =
         let th3 = EQ_MP th2 (ASSUME <| parse_term @"P /\ Q")
         EQT_ELIM(BETA_RULE(AP_THM th3 <| parse_term @"\(p:bool) (q:bool). q"))
     fun th -> 
-        let l, r = Choice.get <| dest_conj (concl <| Choice.get th)
-        PROVE_HYP th (INST [l, P; r, Q] pth)
-        |> Choice.mapError (fun _ -> Exception "CONJUNCT2")
+        choice {
+            let! tm = Choice.map concl th
+            let! l, r = dest_conj tm
+            return! PROVE_HYP th (INST [l, P; r, Q] pth)
+        }
+        |> Choice.bindError (fun _ -> Choice.failwith "CONJUNCT2")
 
 /// Extracts both conjuncts of a conjunction.
 let CONJ_PAIR th = 
-    // TODO: revise this
+    // TODO: this doesn't seem correct
     CONJUNCT1 th, CONJUNCT2 th
 
 /// Recursively splits conjunctions into a list of conjuncts.
@@ -207,7 +221,7 @@ let CONJUNCTS = striplist (Some << CONJ_PAIR)
 let IMP_DEF = new_basic_definition <| parse_term @"(==>) = \p q. p /\ q <=> p"
 
 /// Constructs an implication.
-let mk_imp = Choice.get << mk_binary "==>"
+let mk_imp = mk_binary "==>"
 
 /// Implements the Modus Ponens inference rule.
 let MP = 
@@ -218,10 +232,15 @@ let MP =
         let th2 = EQ_MP th1 (ASSUME <| parse_term @"p ==> q")
         CONJUNCT2(EQ_MP (SYM th2) (ASSUME <| parse_term @"p:bool"))
     fun ith th -> 
-        let ant, con = Choice.get <| dest_imp(concl <| Choice.get ith)
-        if aconv ant (concl <| Choice.get th) then 
-            PROVE_HYP th (PROVE_HYP ith (INST [ant, p; con, q] <| pth()))
-        else Choice.failwith "MP: theorems do not agree"
+        choice {
+            let! tm = Choice.map concl ith
+            let! ant, con = dest_imp tm
+            let! tm' = Choice.map concl th
+            if aconv ant tm' then 
+                return! PROVE_HYP th (PROVE_HYP ith (INST [ant, p; con, q] <| pth()))
+            else 
+                return! Choice.failwith "MP: theorems do not agree"
+        }
 
 /// Discharges an assumption.
 let DISCH = 
@@ -229,20 +248,26 @@ let DISCH =
     let q = parse_term @"q:bool"
     let pth() = SYM(BETA_RULE(AP_THM (AP_THM IMP_DEF p) q))
     fun a th -> 
-        let th1 = CONJ (ASSUME a) th
-        let th2 = CONJUNCT1(ASSUME(concl <| Choice.get th1))
-        let th3 = DEDUCT_ANTISYM_RULE th1 th2
-        let th4 = 
-            INST [a, p; concl <| Choice.get th, q] <| pth()
-        EQ_MP th4 th3
+        choice {
+            let th1 = CONJ (ASSUME a) th
+            let! tm1 = Choice.map concl th1
+            let th2 = CONJUNCT1(ASSUME tm1)
+            let th3 = DEDUCT_ANTISYM_RULE th1 th2
+            let! tm = Choice.map concl th
+            let th4 = INST [a, p; tm, q] <| pth()
+            return! EQ_MP th4 th3
+        }
 
 /// Discharges all hypotheses of a theorem.
 let rec DISCH_ALL th = 
-    match hyp th with
-    | t :: _ ->
-        DISCH_ALL(DISCH t th)
-        |> Choice.bindError (fun _ -> th)
-    | _ -> th
+    choice {
+        let! th' = th
+        match hyp th' with
+        | t :: _ ->
+            return! DISCH_ALL(DISCH t th) |> Choice.bindError (fun _ -> th)
+        | _ -> 
+            return! th
+    }
 
 /// Undischarges the antecedent of an implicative theorem.
 let UNDISCH th = 
@@ -251,8 +276,10 @@ let UNDISCH th =
 
 /// Iteratively undischarges antecedents in a chain of implications.
 let rec UNDISCH_ALL th = 
-    if is_imp(concl <| Choice.get th) then UNDISCH_ALL(UNDISCH th)
-    else th
+    Choice.map concl th
+    |> Choice.bind (fun tm ->
+        if is_imp tm then UNDISCH_ALL(UNDISCH th)
+        else th)
 
 /// Deduces equality of boolean terms from forward and backward implications.
 let IMP_ANTISYM_RULE th1 th2 = DEDUCT_ANTISYM_RULE (UNDISCH th2) (UNDISCH th1)
@@ -433,7 +460,7 @@ let CHOOSE =
         |> Choice.mapError (fun _ -> Exception "CHOOSE")
 
 /// Existentially quantifies a hypothesis of a theorem.
-let SIMPLE_CHOOSE v th = CHOOSE (v, ASSUME(Choice.get <| mk_exists(v, hd(hyp th)))) th
+let SIMPLE_CHOOSE v th = CHOOSE (v, ASSUME(Choice.get <| mk_exists(v, hd(hyp <| Choice.get th)))) th
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for \/                                                              *)
@@ -498,7 +525,7 @@ let DISJ_CASES =
 
 /// Disjoins hypotheses of two theorems with same conclusion.
 let SIMPLE_DISJ_CASES th1 th2 = 
-    DISJ_CASES (ASSUME(mk_disj(hd(hyp th1), hd(hyp th2)))) th1 th2
+    DISJ_CASES (ASSUME(mk_disj(hd(hyp <| Choice.get th1), hd(hyp <| Choice.get th2)))) th1 th2
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for negation and falsity.                                           *)

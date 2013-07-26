@@ -486,7 +486,7 @@ let INT_OF_REAL_THM =
         then mk_var(s, int_ty)
         else v
     let INT_OF_REAL_THM1 th = 
-        let newavs = subtract (frees(concl <| Choice.get th)) (freesl(hyp th))
+        let newavs = subtract (frees(concl <| Choice.get th)) (freesl(hyp <| Choice.get th))
         let avs, bod = strip_forall(concl <| Choice.get th)
         let allavs = newavs @ avs
         let avs' = map int_tm_of_real_var allavs
@@ -1865,7 +1865,7 @@ let ARITH_RULE =
     let nim = setify(Choice.get <| find_terms is_numimage bod) in
     let gvs = map (genvar << Choice.get << type_of) nim in
     let pths = map (fun v -> SPEC (Choice.get <| rand v) INT_POS) nim in
-    let ibod = itlist (curry mk_imp << concl <<Choice.get) pths bod in
+    let ibod = itlist (curry (Choice.get << mk_imp) << concl <<Choice.get) pths bod in
     let gbod = Choice.get <| subst (zip gvs nim) ibod in
     let th2 = INST (zip nim gvs) (INT_ARITH gbod) in
     let th3 = GENL avs (rev_itlist (C MP) pths th2) in
