@@ -273,35 +273,38 @@ let BINOP_CONV conv tm =
 (* ------------------------------------------------------------------------- *)
 
 let rec private THENQC conv1 conv2 tm = 
-    try 
+    let v = 
         let th1 = conv1 tm
-        try 
-            let th2 = conv2(Choice.get <| rand(concl <| Choice.get th1))
-            TRANS th1 th2
-        with
-        | Failure _ -> th1
-    with
-    | Failure _ -> conv2 tm
+        choice { 
+            let! tm = Choice.bind (rand << concl) th1
+            let th2 = conv2 tm
+            return! TRANS th1 th2
+        }
+        |> Choice.bindError (fun _ -> th1)
+    v
+    |> Choice.bindError (fun _ -> conv2 tm)
 
 and private THENCQC conv1 conv2 tm = 
     let th1 = conv1 tm
-    try 
-        let th2 = conv2(Choice.get <| rand(concl <| Choice.get th1))
-        TRANS th1 th2
-    with
-    | Failure _ -> th1
+    choice { 
+        let! tm = Choice.bind (rand << concl) th1
+        let th2 = conv2 tm
+        return! TRANS th1 th2
+    }
+    |> Choice.bindError (fun _ -> th1)
 
 and private COMB_QCONV conv tm = 
-    let l, r = Choice.get <| dest_comb tm
-    try 
-        let th1 = conv l
-        try 
-            let th2 = conv r
-            MK_COMB(th1, th2)
-        with
-        | Failure _ -> AP_THM th1 r
-    with
-    | Failure _ -> AP_TERM l (conv r)
+    dest_comb tm
+    |> Choice.bind (fun (l, r) ->
+        let v = 
+            let th1 = conv l
+            let v' = 
+                let th2 = conv r
+                MK_COMB(th1, th2)
+            v'
+            |> Choice.bindError (fun _ -> AP_THM th1 r)
+        v
+        |> Choice.bindError (fun _ -> AP_TERM l (conv r)))
 
 let rec private REPEATQC conv tm = THENCQC conv (REPEATQC conv) tm
 
@@ -348,10 +351,11 @@ let TOP_SWEEP_CONV (c : conv) : conv = TRY_CONV (TOP_SWEEP_QCONV c)
 let rec DEPTH_BINOP_CONV op conv tm = 
     match tm with
     | Comb(Comb(op', l), r) when op' = op -> 
-        let l, r = Choice.get <| dest_binop op tm
-        let lth = DEPTH_BINOP_CONV op conv l
-        let rth = DEPTH_BINOP_CONV op conv r
-        MK_COMB(AP_TERM op' lth, rth)
+        dest_binop op tm
+        |> Choice.bind (fun (l, r) ->
+            let lth = DEPTH_BINOP_CONV op conv l
+            let rth = DEPTH_BINOP_CONV op conv r
+            MK_COMB(AP_TERM op' lth, rth))
     | _ -> conv tm
 
 (* ------------------------------------------------------------------------- *)
@@ -377,8 +381,15 @@ let PAT_CONV =
     let rec PCONV xs pat conv = 
         if mem pat xs then conv
         elif not(exists (fun x -> free_in x pat) xs) then ALL_CONV
-        elif is_comb pat then COMB2_CONV (PCONV xs (Choice.get <| rator pat) conv) (PCONV xs (Choice.get <| rand pat) conv)
-        else ABS_CONV(PCONV xs (Choice.get <| body pat) conv)
+        elif is_comb pat then
+            let rat = rator pat
+            let ran = rand pat
+            fun tm -> 
+                (rat, ran) 
+                ||> Choice.bind2 (fun rat ran -> COMB2_CONV (PCONV xs rat conv) (PCONV xs ran conv) tm)
+        else
+            let tm' = body pat 
+            fun tm -> tm' |> Choice.bind (fun tm' -> ABS_CONV(PCONV xs tm' conv) tm)
     fun pat -> 
         let xs, pbod = strip_abs pat
         PCONV xs pbod
@@ -389,18 +400,23 @@ let PAT_CONV =
 
 /// Symmetry conversion.
 let SYM_CONV tm = 
-    let th1 = SYM(ASSUME tm)
-    let tm' = concl <| Choice.get th1
-    let th2 = SYM(ASSUME tm')
-    DEDUCT_ANTISYM_RULE th2 th1
-    |> Choice.mapError (fun _ -> Exception "SYM_CONV")
+    choice {
+        let th1 = SYM(ASSUME tm)
+        let! tm' = Choice.map concl th1
+        let th2 = SYM(ASSUME tm')
+        return! DEDUCT_ANTISYM_RULE th2 th1
+    }
+    |> Choice.bindError (fun _ -> Choice.failwith "SYM_CONV")
 
 (* ------------------------------------------------------------------------- *)
 (* Conversion to a rule.                                                     *)
 (* ------------------------------------------------------------------------- *)
 
 /// Conversion to a rule.
-let CONV_RULE (conv : conv) th = EQ_MP (conv(concl <| Choice.get th)) th
+let CONV_RULE (conv : conv) th =
+    th
+    |> Choice.map concl
+    |> Choice.bind (fun tm -> EQ_MP (conv tm) th)
 
 (* ------------------------------------------------------------------------- *)
 (* Substitution conversion.                                                  *)
@@ -410,17 +426,21 @@ let CONV_RULE (conv : conv) th = EQ_MP (conv(concl <| Choice.get th)) th
 let SUBS_CONV ths tm = 
     let tm = 
         if ths = [] then REFL tm
-        else 
-            let lefts = map (Choice.get << lhand << concl << Choice.get) ths
-            let gvs = map (genvar << Choice.get << type_of) lefts
-            let pat = Choice.get <| subst (zip gvs lefts) tm
-            let abs = list_mk_abs(gvs, pat)
-            let th = 
-                rev_itlist (fun y x -> CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(x, y))) 
-                    ths (REFL abs)
-            if Choice.get <| rand(concl <| Choice.get th) = tm then REFL tm
-            else th
-    tm |> Choice.mapError (fun _ -> Exception "SUBS_CONV")
+        else
+            choice { 
+                let! lefts = Choice.List.map (Choice.bind lhand << Choice.map concl) ths
+                let! gvs = Choice.List.map (Choice.map genvar << type_of) lefts
+                let! pat = subst (zip gvs lefts) tm
+                let abs = list_mk_abs(gvs, pat)
+                let th = 
+                    rev_itlist (fun y x -> CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(x, y))) 
+                        ths (REFL abs)
+                let! tm' = Choice.bind (rand << concl) th
+                if tm' = tm then return! REFL tm
+                else return! th
+            }
+    tm 
+    |> Choice.bindError (fun _ -> Choice.failwith "SUBS_CONV")
 
 (* ------------------------------------------------------------------------- *)
 (* Get a few rules.                                                          *)
@@ -428,8 +448,10 @@ let SUBS_CONV ths tm =
 
 /// Beta-reduces all the beta-redexes in the conclusion of a theorem.
 let BETA_RULE = CONV_RULE(REDEPTH_CONV BETA_CONV)
+
 /// Reverses the first equation(s) encountered in a top-down search.
 let GSYM = CONV_RULE(ONCE_DEPTH_CONV SYM_CONV)
+
 /// Makes simple term substitutions in a theorem using a given list of theorems.
 let SUBS ths = CONV_RULE(SUBS_CONV ths)
 
@@ -438,10 +460,13 @@ let SUBS ths = CONV_RULE(SUBS_CONV ths)
 (* ------------------------------------------------------------------------- *)
 
 let private ALPHA_HACK th = 
-    let tm' = Choice.get <| lhand(concl <| Choice.get th)
+    let tm0 = Choice.bind (lhand << concl) th
     fun tm -> 
-        if tm' = tm then th
-        else TRANS (ALPHA tm tm') th
+        choice {
+            let! tm' = tm0
+            if tm' = tm then return! th
+            else return! TRANS (ALPHA tm tm') th
+        }
 
 /// A cacher for conversions.
 let CACHE_CONV (conv : conv) : conv = 
@@ -454,5 +479,9 @@ let CACHE_CONV (conv : conv) : conv =
         with
         | Failure _ -> 
             let th = conv tm
-            net := Choice.get <| enter [] (tm, ALPHA_HACK th) (!net)
+            match enter [] (tm, ALPHA_HACK th) (!net) with
+            | Success n -> net := n
+            | Error _ -> 
+                // NOTE: currently do nothing in case of error
+                ()
             th
