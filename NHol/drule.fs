@@ -28,6 +28,8 @@ open System
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -72,13 +74,25 @@ let MK_DISJ =
 
 /// Universally quantifies both sides of equational theorem.
 let MK_FORALL = 
-    let atm = Choice.get <| mk_const("!", [])
-    fun v th -> AP_TERM (Choice.get <| inst [Choice.get <| type_of v, aty] atm) (ABS v th)
+    let atm = mk_const("!", [])
+    fun v th -> 
+        choice {
+            let! tm = atm
+            let! ty = type_of v
+            let! tm' = inst [ty, aty] tm
+            return! AP_TERM tm' (ABS v th)
+        }
 
 /// Existentially quantifies both sides of equational theorem.
 let MK_EXISTS = 
-    let atm = Choice.get <| mk_const("?", [])
-    fun v th -> AP_TERM (Choice.get <| inst [Choice.get <| type_of v, aty] atm) (ABS v th)
+    let atm = mk_const("?", [])
+    fun v th -> 
+        choice {
+            let! tm = atm
+            let! ty = type_of v
+            let! tm' = inst [ty, aty] tm
+            return! AP_TERM tm' (ABS v th)
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Eliminate the antecedent of a theorem using a conversion/proof rule.      *)
@@ -86,11 +100,12 @@ let MK_EXISTS =
 
 /// Removes antecedent of implication theorem by solving it with a conversion.
 let MP_CONV (cnv : conv) th = 
-    let l, r = Choice.get <| dest_imp(concl <| Choice.get th)
-    let ath = cnv l
-
-    MP th (EQT_ELIM ath)
-    |> Choice.bindError (fun _ -> MP th ath)
+    choice {
+        let! l, r = Choice.bind (dest_imp << concl) th
+        let ath = cnv l
+        return! MP th (EQT_ELIM ath)
+                |> Choice.bindError (fun _ -> MP th ath)
+    }    
 
 (* ------------------------------------------------------------------------- *)
 (* Multiple beta-reduction (we use a slight Choice.get <| variant below).                  *)
@@ -107,7 +122,7 @@ let rec BETAS_CONV tm =
 (* ------------------------------------------------------------------------- *)
 
 /// Apply a higher-order instantiation to a term.
-let instantiate : instantiation -> term -> term = 
+let instantiate : instantiation -> term -> _ = 
     let betas n tm = 
         let args, lam = funpow n (fun (l, t) -> (Choice.get <| rand t) :: l, Choice.get <| rator t) ([], tm)
         rev_itlist (fun a l -> 
@@ -146,21 +161,22 @@ let instantiate : instantiation -> term -> term =
                         let rth = ho_betas bcs rpat rtm
                         Choice.get <| mk_comb(ltm, rth)
     fun (bcs, tmin, tyin) tm -> 
-        let itm = 
-            if tyin = []
-            then tm
-            else Choice.get <| inst tyin tm
-        if tmin = []
-        then itm
-        else 
-            let ttm = Choice.get <| vsubst tmin itm
-            if bcs = []
-            then ttm
+        Choice.attempt (fun () ->
+            let itm = 
+                if tyin = []
+                then tm
+                else Choice.get <| inst tyin tm
+            if tmin = []
+            then itm
             else 
-                try 
-                    ho_betas bcs itm ttm
-                with
-                | Failure _ -> ttm
+                let ttm = Choice.get <| vsubst tmin itm
+                if bcs = []
+                then ttm
+                else 
+                    try 
+                        ho_betas bcs itm ttm
+                    with
+                    | Failure _ -> ttm)
 
 /// Apply a higher-order instantiation to conclusion of a theorem.
 let INSTANTIATE : instantiation -> thm -> thm = 
@@ -168,33 +184,39 @@ let INSTANTIATE : instantiation -> thm -> thm =
         if n = 1
         then TRY_CONV BETA_CONV tm
         else THENC (RATOR_CONV(BETAS_CONV(n - 1))) (TRY_CONV BETA_CONV) tm
+
     let rec HO_BETAS bcs pat tm = 
         if is_var pat || is_const pat
         then Choice.failwith ""
         else 
-            let bv, bod = Choice.get <| dest_abs tm
-            ABS bv (HO_BETAS bcs (Choice.get <| body pat) bod)
+            choice {
+                let! bv, bod = dest_abs tm
+                let! tm' = body pat
+                return! ABS bv (HO_BETAS bcs tm' bod)
+            }
             |> Choice.bindError (fun _ ->
                 let hop, args = strip_comb pat
                 let v = 
-                    let n =
-                        rev_assoc hop bcs
-                        |> Option.getOrFailWith "find"
-                    if length args = n
-                    then BETAS_CONV n tm
-                    else Choice.failwith ""
+                    rev_assoc hop bcs
+                    |> Option.toChoiceWithError "find"
+                    |> Choice.bind (fun n ->
+                        if length args = n
+                        then BETAS_CONV n tm
+                        else Choice.failwith "")
                 v |> Choice.bindError (fun _ -> 
-                    let lpat, rpat = Choice.get <| dest_comb pat
-                    let ltm, rtm = Choice.get <| dest_comb tm
-                    let v = 
+                    choice {
+                        let! lpat, rpat = dest_comb pat
+                        let! ltm, rtm = dest_comb tm
+                        
                         let lth = HO_BETAS bcs lpat ltm
                         let v' = 
                             let rth = HO_BETAS bcs rpat rtm
                             MK_COMB(lth, rth)
-                        v' |> Choice.bindError (fun _ -> AP_THM lth rtm)
-                    v |> Choice.bindError (fun _ -> 
-                        let rth = HO_BETAS bcs rpat rtm
-                        AP_TERM ltm rth)))
+                        return! v' |> Choice.bindError (fun _ -> AP_THM lth rtm)
+                                   |> Choice.bindError (fun _ -> 
+                                        let rth = HO_BETAS bcs rpat rtm
+                                        AP_TERM ltm rth)
+                    }))
 
     fun (bcs, tmin, tyin) th -> 
         let ith = 
@@ -203,22 +225,28 @@ let INSTANTIATE : instantiation -> thm -> thm =
             else INST_TYPE tyin th
         if tmin = []
         then ith
-        else 
-            let tth = INST tmin ith
-            if hyp (Choice.get tth) = hyp (Choice.get th)
-            then 
-                if bcs = []
-                then tth
+        else
+            choice { 
+                let tth = INST tmin ith
+                let! tl1 = Choice.map hyp tth
+                let! tl2 = Choice.map hyp th
+                if tl1 = tl2 then 
+                    if bcs = [] then 
+                        return! tth
+                    else 
+                        let! itm = Choice.map concl ith
+                        let! ttm = Choice.map concl tth
+                        let v = 
+                            let eth = HO_BETAS bcs itm ttm
+                            EQ_MP eth tth
+                        return! v |> Choice.bindError (fun _ -> tth)
                 else 
-                    let v = 
-                        let eth = HO_BETAS bcs (concl <| Choice.get ith) (concl <| Choice.get tth)
-                        EQ_MP eth tth
-                    v |> Choice.bindError ( fun _ -> tth)
-            else Choice.failwith "INSTANTIATE: term or type var free in assumptions"
+                    return! Choice.failwith "INSTANTIATE: term or type var free in assumptions"
+            }
 
 /// Apply a higher-order instantiation to assumptions and conclusion of a theorem.
 let INSTANTIATE_ALL : instantiation -> thm -> thm = 
-    fun ((_, tmin, tyin) as i) th -> 
+    let inst ((_, tmin, tyin) as i) th =
         if tmin = [] && tyin = [] then th
         else 
             let hyps = hyp <| Choice.get th
@@ -242,13 +270,18 @@ let INSTANTIATE_ALL : instantiation -> thm -> thm =
                 let th1 = rev_itlist DISCH rhyps th
                 let th2 = INSTANTIATE i th1
                 funpow (length rhyps) UNDISCH th2
+    fun i th ->
+        try
+            inst i th
+        with Failure s ->
+            Choice.failwith s
 
 (* ------------------------------------------------------------------------- *)
 (* Higher order matching of terms.                                           *)
 (*                                                                           *)
 (* Note: in the event of spillover patterns, this may return false results;  *)
 (* but there's usually an implicit check outside that the match worked       *)
-(* anyway. A test could be put in (see if any "env" Choice.get <| variables are left in    *)
+(* anyway. A test could be put in (see if any "env" variables are left in    *)
 (* the term after abstracting out the pattern instances) but it'd be slower. *)
 (* ------------------------------------------------------------------------- *)
 

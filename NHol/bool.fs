@@ -391,7 +391,7 @@ let ISPEC t th =
         | Success tyins ->
             SPEC t (INST_TYPE tyins th)
         | Error e ->
-            Choice.nestedFailwith e "ISPEC can't type-instantiate input theorem")
+            Choice.nestedFailwith e "ISPEC can't type-Choice.get <| instantiate input theorem")
     |> Choice.bindError (fun _ -> Choice.failwith "ISPEC: type variable(s) free in assumptions")
 
 /// Specializes a theorem zero or more times, with type instantiation if necessary.
@@ -566,9 +566,9 @@ let DISJ_CASES =
             else 
                 let! l, r = Choice.bind (dest_disj << concl) th0
                 let th = INST [l, P; r, Q; c1, R] <| pth()
-                return! PROVE_HYP (DISCH r th2) (PROVE_HYP (DISCH l th1) (PROVE_HYP th0 th))
-                        |> Choice.bindError (fun _ -> Choice.failwith "DISJ_CASES")
+                return! PROVE_HYP (DISCH r th2) (PROVE_HYP (DISCH l th1) (PROVE_HYP th0 th))                        
         }
+        |> Choice.bindError (fun _ -> Choice.failwith "DISJ_CASES")
 
 /// Disjoins hypotheses of two theorems with same conclusion.
 let SIMPLE_DISJ_CASES th1 th2 = 

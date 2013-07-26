@@ -126,7 +126,7 @@ type thm_tactical = thm_tactic -> thm_tactic
 
 /// Apply higher-order instantiation to a goal.
 let inst_goal : instantiation -> goal -> goal = 
-    fun p (thms, w) -> map (I ||>> INSTANTIATE_ALL p) thms, instantiate p w
+    fun p (thms, w) -> map (I ||>> INSTANTIATE_ALL p) thms, Choice.get <| instantiate p w
 
 (* ------------------------------------------------------------------------- *)
 (* Perform a sequential composition (left first) of instantiations.          *)
@@ -135,7 +135,7 @@ let inst_goal : instantiation -> goal -> goal =
 /// Compose two instantiations.
 let compose_insts : instantiation -> instantiation -> instantiation = 
     fun (pats1, tmin1, tyin1) ((pats2, tmin2, tyin2) as i2) -> 
-        let tmin = map (instantiate i2 ||>> (Choice.get << inst tyin2)) tmin1
+        let tmin = map ((Choice.get << instantiate i2) ||>> (Choice.get << inst tyin2)) tmin1
         let tyin = map (type_subst tyin2 ||>> I) tyin1
         let tmin' = filter (fun (_, x) -> Option.isNone <| rev_assoc x tmin) tmin2
         let tyin' = filter (fun (_, a) -> Option.isNone <| rev_assoc a tyin) tyin2
@@ -506,7 +506,7 @@ let ABS_TAC : tactic =
                     | [a] -> a
                     | _ -> Choice.failwith "ABS_TAC.fun1: Unhandled case."
                 let ath = ABS v (fun1 tl)
-                EQ_MP (ALPHA (concl <| Choice.get ath) (instantiate i w)) ath)
+                EQ_MP (ALPHA (concl <| Choice.get ath) (Choice.get <| instantiate i w)) ath)
             |> Choice.succeed
         v |> Choice.mapError (fun _ -> Exception "ABS_TAC: Failure.")
 
@@ -591,7 +591,7 @@ let DISCH_TAC : tactic =
                 match l with
                 | [a] -> a
                 | _ -> Choice.failwith "DISCH_TAC.fun1: Unhandled case."
-            (null_meta, [("", th1) :: asl, c], fun i thl -> DISCH (instantiate i ant) (fun1 thl))
+            (null_meta, [("", th1) :: asl, c], fun i thl -> DISCH (Choice.get <| instantiate i ant) (fun1 thl))
             |> Choice.succeed
         v |> Choice.bindError (fun _ -> 
             let v' = 
@@ -601,7 +601,7 @@ let DISCH_TAC : tactic =
                     | _ -> Choice.failwith "DISCH_TAC.fun2: Unhandled case."
                 let ant = Choice.get <| dest_neg w
                 let th1 = ASSUME ant
-                (null_meta, [("", th1) :: asl, f_tm], fun i thl -> NOT_INTRO(DISCH (instantiate i ant) (fun2 thl)))
+                (null_meta, [("", th1) :: asl, f_tm], fun i thl -> NOT_INTRO(DISCH (Choice.get <| instantiate i ant) (fun2 thl)))
                 |> Choice.succeed
             v' |> Choice.mapError (fun _ -> Exception "DISCH_TAC"))
 
@@ -650,7 +650,7 @@ let SPEC_TAC : term * term -> tactic =
                 match l with
                 | [a] -> a
                 | _ -> Choice.failwith "LABEL_TAC.fun1: Unhandled case."
-            (null_meta, [asl, Choice.get <| mk_forall(x, Choice.get <| subst [x, t] w)], fun i tl -> SPEC (instantiate i t) (fun1 tl))
+            (null_meta, [asl, Choice.get <| mk_forall(x, Choice.get <| subst [x, t] w)], fun i tl -> SPEC (Choice.get <| instantiate i t) (fun1 tl))
             |> Choice.succeed
         v |> Choice.mapError (fun _ -> Exception "SPEC_TAC: Failure.")
 
@@ -729,7 +729,7 @@ let EXISTS_TAC t (asl, w) =
         match l with
         | [a] -> a
         | _ -> Choice.failwith "EXISTS_TAC.fun1: Unhandled case."
-    (null_meta, [asl, Choice.get <| vsubst [t, v] bod], fun i tl -> EXISTS (instantiate i w, instantiate i t) (fun1 tl))
+    (null_meta, [asl, Choice.get <| vsubst [t, v] bod], fun i tl -> EXISTS (Choice.get <| instantiate i w, Choice.get <| instantiate i t) (fun1 tl))
     |> Choice.succeed
 
 /// Strips the outermost universal quantifier from the conclusion of a goal.
@@ -778,7 +778,7 @@ let DISJ1_TAC : tactic =
                 | [a] -> a
                 | _ -> Choice.failwith "DISJ1_TAC.fun1: Unhandled case."
             let l, r = Choice.get <| dest_disj w
-            (null_meta, [asl, l], fun i tl -> DISJ1 (fun1 tl) (instantiate i r))
+            (null_meta, [asl, l], fun i tl -> DISJ1 (fun1 tl) (Choice.get <| instantiate i r))
             |> Choice.succeed
         v |> Choice.mapError (fun _ -> Exception "DISJ1_TAC: Failure.")
 
@@ -791,7 +791,7 @@ let DISJ2_TAC : tactic =
                 | [a] -> a
                 | _ -> Choice.failwith "DISJ2_TAC.fun1: Unhandled case."
             let l, r = Choice.get <| dest_disj w
-            (null_meta, [asl, r], fun i tl -> DISJ2 (instantiate i l) (fun1 tl))
+            (null_meta, [asl, r], fun i tl -> DISJ2 (Choice.get <| instantiate i l) (fun1 tl))
             |> Choice.succeed
         v |> Choice.mapError (fun _ -> Exception "DISJ2_TAC: Failure.")
 
@@ -1026,7 +1026,7 @@ let (X_META_EXISTS_TAC : term -> tactic) =
                     | [a] -> a
                     | _ -> Choice.failwith "X_META_EXISTS_TAC.fun1: Unhandled case."
                 let v, bod = Choice.get <| dest_exists w
-                (([t], null_inst), [asl, Choice.get <| vsubst [t, v] bod], fun i tl -> EXISTS (instantiate i w, instantiate i t) (fun1 tl))
+                (([t], null_inst), [asl, Choice.get <| vsubst [t, v] bod], fun i tl -> EXISTS (Choice.get <| instantiate i w, Choice.get <| instantiate i t) (fun1 tl))
                 |> Choice.succeed
         with
         | Failure _ -> Choice.failwith "X_META_EXISTS_TAC: Failure."
@@ -1046,7 +1046,7 @@ let META_SPEC_TAC : term -> thm -> tactic =
             | [a] -> a
             | _ -> Choice.failwith "MATCH_MP_TAC.fun1: Unhandled case."
         let sth = SPEC t thm
-        (([t], null_inst), [(("", sth) :: asl), w], fun i tl -> PROVE_HYP (SPEC (instantiate i t) thm) (fun1 tl))
+        (([t], null_inst), [(("", sth) :: asl), w], fun i tl -> PROVE_HYP (SPEC (Choice.get <| instantiate i t) thm) (fun1 tl))
         |> Choice.succeed
 
 (* ------------------------------------------------------------------------- *)
