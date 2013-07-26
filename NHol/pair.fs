@@ -397,7 +397,7 @@ let GEN_BETA_CONV =
             let th3 = GENL (fst(strip_forall(Choice.get <| body(Choice.get <| rand l)))) th2
             let efn = genvar(Choice.get <| type_of pat)
             let th4 = 
-                EXISTS (mk_exists(efn, Choice.get <| subst [efn, pat] (concl <| Choice.get th3)), pat) th3
+                EXISTS (Choice.get <| mk_exists(efn, Choice.get <| subst [efn, pat] (concl <| Choice.get th3)), pat) th3
             let th5 = 
                 CONV_RULE (funpow (length avs + 1) BINDER_CONV GEQ_CONV) th4
             let th6 = CONV_RULE BETA_CONV (GABS_RULE th5)

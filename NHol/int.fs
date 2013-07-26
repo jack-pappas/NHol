@@ -866,7 +866,7 @@ let INT_ARITH =
                     |> THENC <| bub_CONV
     let NNF_NORM_CONV = 
         GEN_NNF_CONV false 
-            (base_CONV, fun t -> base_CONV t, base_CONV(mk_neg t))
+            (base_CONV, fun t -> base_CONV t, base_CONV(Choice.get <| mk_neg t))
     let init_CONV = 
         TOP_DEPTH_CONV BETA_CONV
         |> THENC <| PRESIMP_CONV
@@ -876,11 +876,11 @@ let INT_ARITH =
         |> THENC <| NNF_NORM_CONV
     let p_tm = (parse_term @"p:bool")
     let not_tm = (parse_term @"(~)")
-    let pth = TAUT(Choice.get <| mk_eq(mk_neg(mk_neg p_tm), p_tm))
+    let pth = TAUT(Choice.get <| mk_eq(Choice.get <| mk_neg(Choice.get <| mk_neg p_tm), p_tm))
     fun tm -> 
         let th0 = INST [tm, p_tm] pth
-        let th1 = init_CONV(mk_neg tm)
-        let th2 = REAL_ARITH(mk_neg(Choice.get <| rand(concl <| Choice.get th1)))
+        let th1 = init_CONV(Choice.get <| mk_neg tm)
+        let th2 = REAL_ARITH(Choice.get <| mk_neg(Choice.get <| rand(concl <| Choice.get th1)))
         EQ_MP th0 (EQ_MP (AP_TERM not_tm (SYM th1)) th2)
 
 /// Attempt to prove goal using basic algebra and linear arithmetic over the integers.

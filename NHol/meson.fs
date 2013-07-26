@@ -248,7 +248,7 @@ let GEN_MESON_TAC =
         list_mk_comb(hol_of_const p, map hol_of_term args)
     let hol_of_literal(p, args) = 
         if p < 0
-        then mk_neg(hol_of_atom(-p, args))
+        then Choice.get <| mk_neg(hol_of_atom(-p, args))
         else hol_of_atom(p, args)
     (* ----------------------------------------------------------------------- *)
     (* Versions of shadow syntax operations with variable bumping.             *)
@@ -704,7 +704,7 @@ let GEN_MESON_TAC =
             try 
                 Choice.get <| dest_neg tm
             with
-            | Failure _ -> mk_neg tm
+            | Failure _ -> Choice.get <| mk_neg tm
         let merge_inst (t, x) current = (fol_subst current t, x) :: current
         let finish_RULE = 
             GEN_REWRITE_RULE I [TAUT(parse_term @"(~p ==> p) <=> p")

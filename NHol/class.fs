@@ -292,7 +292,7 @@ let CCONTR =
     let pth = TAUT_001(parse_term @"(~P ==> F) ==> P")
     fun tm th -> 
         try 
-            let tm' = mk_neg tm
+            let tm' = Choice.get <| mk_neg tm
             MP (INST [tm, P] pth) (DISCH tm' th)
         with
         | Failure _ as e ->

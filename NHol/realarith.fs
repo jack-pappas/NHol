@@ -546,7 +546,7 @@ let GEN_REAL_ARITH_001 =
                                                      |> THENC 
                                                      <| BINOP_CONV absremover)) 
                                                 t
-                                        let th0 = init_conv(mk_neg tm)
+                                        let th0 = init_conv(Choice.get <| mk_neg tm)
                                         let tm0 = Choice.get <| rand(concl <| Choice.get th0)
                                         let th = 
                                             if tm0 = false_tm
@@ -574,7 +574,7 @@ let GEN_REAL_ARITH_001 =
                                                 DISCH_ALL
                                                     (PROVE_HYP 
                                                          (EQ_MP th0 
-                                                              (ASSUME(mk_neg tm))) 
+                                                              (ASSUME(Choice.get <| mk_neg tm))) 
                                                          th3)
                                         MP (INST [tm, p_tm] pth_final) th
 

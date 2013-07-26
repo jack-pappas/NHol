@@ -1055,7 +1055,7 @@ let define =
         else failwith ""
     with Failure _ ->
       let f,th = close_definition_clauses tm
-      let etm = mk_exists(f,hd(hyp th))
+      let etm = Choice.get <| mk_exists(f,hd(hyp th))
       let th1 = prove_general_recursive_function_exists etm
       let th2 = new_specification[fst(Choice.get <| dest_var f)] th1
       let g = Choice.get <| mk_mconst(Choice.get <| dest_var f)

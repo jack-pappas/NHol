@@ -650,7 +650,7 @@ let SPEC_TAC : term * term -> tactic =
                 match l with
                 | [a] -> a
                 | _ -> Choice.failwith "LABEL_TAC.fun1: Unhandled case."
-            (null_meta, [asl, mk_forall(x, Choice.get <| subst [x, t] w)], fun i tl -> SPEC (instantiate i t) (fun1 tl))
+            (null_meta, [asl, Choice.get <| mk_forall(x, Choice.get <| subst [x, t] w)], fun i tl -> SPEC (instantiate i t) (fun1 tl))
             |> Choice.succeed
         v |> Choice.mapError (fun _ -> Exception "SPEC_TAC: Failure.")
 

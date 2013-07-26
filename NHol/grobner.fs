@@ -623,7 +623,7 @@ let RING_AND_IDEAL_CONV =
     let RING tm =
       let avs = frees tm in
       let tm' = list_mk_forall(avs,tm) in
-      let th1 = INITIAL_CONV(mk_neg tm') in
+      let th1 = INITIAL_CONV(Choice.get <| mk_neg tm') in
       let evs,bod = strip_exists(Choice.get <| rand(concl <| Choice.get th1)) in
       if is_forall bod then failwith "RING: non-universal formula" else
       let th1a = WEAK_DNF_CONV bod in

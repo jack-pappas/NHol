@@ -72,13 +72,17 @@ let is_iff tm =
 /// Term destructor for logical equivalence.
 let dest_iff tm = 
     match tm with
-    | Comb(Comb(Const("=", Tyapp("fun", [Tyapp("bool", []); _])), l), r) -> Choice.succeed (l, r)
-    | _ -> Choice.failwith "dest_iff"
+    | Comb(Comb(Const("=", Tyapp("fun", [Tyapp("bool", []); _])), l), r) -> 
+        Choice.succeed (l, r)
+    | _ -> 
+        Choice.failwith "dest_iff"
 
 /// Constructs a logical equivalence (Boolean equation).
 let mk_iff = 
     let eq_tm = parse_term @"(<=>)"
-    fun (l, r) -> Choice.get <| mk_comb(Choice.get <| mk_comb(eq_tm, l), r)
+    fun (l, r) -> 
+        mk_comb(eq_tm, l)
+        |> Choice.bind (fun l' -> mk_comb(l', r))
 
 (* ------------------------------------------------------------------------- *)
 (* Rule allowing easy instantiation of polymorphic proformas.                *)
@@ -137,10 +141,10 @@ let EQT_INTRO =
 let AND_DEF = new_basic_definition <| parse_term @"(/\) = \p q. (\f:bool->bool->bool. f p q) = (\f. f T T)"
 
 /// Constructs a conjunction.
-let mk_conj = Choice.get << mk_binary "/\\"
+let mk_conj = mk_binary "/\\"
 
 /// Constructs the conjunction of a list of terms.
-let list_mk_conj = end_itlist(curry mk_conj)
+let list_mk_conj = end_itlist(curry (Choice.get << mk_conj))
 
 /// Introduces a conjunction.
 let CONJ = 
@@ -287,10 +291,10 @@ let IMP_TRANS =
 let FORALL_DEF = new_basic_definition <| parse_term @"(!) = \P:A->bool. P = \x. T"
 
 /// Term constructor for universal quantification.
-let mk_forall = Choice.get << mk_binder "!"
+let mk_forall = mk_binder "!"
 
 /// Iteratively constructs a universal quantification.
-let list_mk_forall(vs, bod) = itlist (curry mk_forall) vs bod
+let list_mk_forall(vs, bod) = itlist (curry (Choice.get << mk_forall)) vs bod
 
 /// Specializes the conclusion of a theorem.
 let SPEC = 
@@ -383,10 +387,10 @@ let GEN_ALL th =
 let EXISTS_DEF = new_basic_definition <| parse_term @"(?) = \P:A->bool. !q. (!x. P x ==> q) ==> q"
 
 /// Term constructor for existential quantification.
-let mk_exists = Choice.get << mk_binder "?"
+let mk_exists = mk_binder "?"
 
 /// Multiply existentially quantifies both sides of an equation using the given Choice.get <| variables.
-let list_mk_exists(vs, bod) = itlist (curry mk_exists) vs bod
+let list_mk_exists(vs, bod) = itlist (curry (Choice.get << mk_exists)) vs bod
 
 /// Introduces existential quantification given a particular witness.
 let EXISTS = 
@@ -406,7 +410,7 @@ let EXISTS =
         |> Choice.mapError (fun _ -> Exception "EXISTS")
 
 /// Introduces an existential quantifier over a variable in a theorem.
-let SIMPLE_EXISTS v th = EXISTS (mk_exists(v, concl <| Choice.get th), v) th
+let SIMPLE_EXISTS v th = EXISTS (Choice.get <| mk_exists(v, concl <| Choice.get th), v) th
 
 /// Eliminates existential quantification using deduction from a particular witness.
 let CHOOSE = 
@@ -429,7 +433,7 @@ let CHOOSE =
         |> Choice.mapError (fun _ -> Exception "CHOOSE")
 
 /// Existentially quantifies a hypothesis of a theorem.
-let SIMPLE_CHOOSE v th = CHOOSE (v, ASSUME(mk_exists(v, hd(hyp th)))) th
+let SIMPLE_CHOOSE v th = CHOOSE (v, ASSUME(Choice.get <| mk_exists(v, hd(hyp th)))) th
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for \/                                                              *)
@@ -507,11 +511,8 @@ let NOT_DEF = new_basic_definition <| parse_term @"(~) = \p. p ==> F"
 let mk_neg = 
     let neg_tm = parse_term @"(~)"
     fun tm -> 
-        try 
-            Choice.get <| mk_comb(neg_tm, tm)
-        with
-        | Failure _ as e ->
-            nestedFailwith e "mk_neg"
+        mk_comb(neg_tm, tm)
+        |> Choice.bindError (fun e -> Choice.nestedFailwith e "mk_neg")
 
 /// <summary>
 /// Transforms <c>|- ~t</c> into <c>|- t ==> F</c>.
@@ -571,7 +572,7 @@ let CONTR =
 let EXISTS_UNIQUE_DEF = new_basic_definition <| parse_term @"(?!) = \P:A->bool. ((?) P) /\ (!x y. P x /\ P y ==> x = y)"
 
 /// Term constructor for unique existence.
-let mk_uexists = Choice.get << mk_binder "?!"
+let mk_uexists = mk_binder "?!"
 
 /// Deduces existence from unique existence.
 let EXISTENCE = 

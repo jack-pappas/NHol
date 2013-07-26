@@ -688,7 +688,7 @@ let ABBREV_TAC tm =
         itlist (fun v th -> CONV_RULE (LAND_CONV BETA_CONV) (AP_THM th v)) 
             (rev vs) (ASSUME eq)
     let th2 = SIMPLE_CHOOSE v (SIMPLE_EXISTS v (GENL vs th1))
-    let th3 = PROVE_HYP (EXISTS (mk_exists(v, eq), rs) (REFL rs)) th2
+    let th3 = PROVE_HYP (EXISTS (Choice.get <| mk_exists(v, eq), rs) (REFL rs)) th2
     fun (asl, w as gl) -> 
             let avoids = itlist (union << frees << concl << Choice.get << snd) asl (frees w)
             if mem v avoids

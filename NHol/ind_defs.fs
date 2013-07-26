@@ -165,7 +165,7 @@ let derive_nonschematic_inductive_relations =
         let eth = 
             if is_imp bimp
             then 
-                let atm = itlist (curry mk_conj << Choice.get << mk_eq) (yes @ no) ant
+                let atm = itlist (curry (Choice.get << mk_conj) << Choice.get << mk_eq) (yes @ no) ant
                 let ths, tth = nsplit CONJ_PAIR plis (ASSUME atm)
                 let thl = 
                     map (fun t -> Option.get <| find (fun th -> Choice.get <| lhs(concl <| Choice.get th) = t) ths) args
@@ -554,7 +554,7 @@ let derive_strong_induction =
                     let gvs = map genvar tys
                     list_mk_abs
                         (gvs, 
-                         mk_conj(list_mk_comb(r, gvs), list_mk_comb(p, gvs)))) 
+                         Choice.get <| mk_conj(list_mk_comb(r, gvs), list_mk_comb(p, gvs)))) 
                 ns prrs
         let modify_rule rcl itm = 
             let avs, bod = strip_forall itm

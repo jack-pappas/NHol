@@ -123,8 +123,8 @@ let DISJ_ACI_RULE =
         if p = p'
         then REFL p
         else 
-            let th = use_fun (mk_fun (ASSUME(mk_neg p)) undefined) p'
-            let th' = use_fun (mk_fun (ASSUME(mk_neg p')) undefined) p
+            let th = use_fun (mk_fun (ASSUME(Choice.get <| mk_neg p)) undefined) p'
+            let th' = use_fun (mk_fun (ASSUME(Choice.get <| mk_neg p')) undefined) p
             let th1 = IMP_ANTISYM_RULE (DISCH_ALL th) (DISCH_ALL th')
             PROVE_HYP th1 (INST [p, a_tm
                                  p', b_tm] pth_neg)
@@ -309,7 +309,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             try 
                 baseconvs tm
             with
-            | Failure _ -> REFL tm, REFL(mk_neg tm)
+            | Failure _ -> REFL tm, REFL(Choice.get <| mk_neg tm)
     let rec NNF_CONV cf (base1, base2 as baseconvs) tm = 
         match tm with
         | Comb(Comb(Const("/\\", _), l), r) -> 
@@ -460,7 +460,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
             let th1 = NNF_CONV cf baseconvs t
             TRANS (INST [t, p_tm] pth_not_not) th1
         | _ -> 
-            let tm' = mk_neg tm
+            let tm' = Choice.get <| mk_neg tm
             try 
                 base1 tm'
             with
@@ -472,11 +472,11 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
 (* ------------------------------------------------------------------------- *)
 /// Convert a term to negation normal form.
 let NNF_CONV = 
-    (GEN_NNF_CONV false (ALL_CONV, fun t -> REFL t, REFL(mk_neg t)) : conv)
+    (GEN_NNF_CONV false (ALL_CONV, fun t -> REFL t, REFL(Choice.get <| mk_neg t)) : conv)
 
 /// Convert a term to negation normal form.
 let NNFC_CONV = 
-    (GEN_NNF_CONV true (ALL_CONV, fun t -> REFL t, REFL(mk_neg t)) : conv)
+    (GEN_NNF_CONV true (ALL_CONV, fun t -> REFL t, REFL(Choice.get <| mk_neg t)) : conv)
 
 (* ------------------------------------------------------------------------- *)
 (* Skolemize a term already in NNF (doesn't matter if it's not prenex).      *)
@@ -689,7 +689,7 @@ let SELECT_ELIM_TAC =
             let rawdef = Choice.get <| mk_eq(fn, atm)
             let def = GENL fvs (SYM(RIGHT_BETAS fvs (ASSUME rawdef)))
             let th3 = PURE_REWRITE_CONV [def] (Choice.get <| lhand(concl <| Choice.get th2))
-            let gtm = mk_forall(fn, Choice.get <| rand(concl <| Choice.get th3))
+            let gtm = Choice.get <| mk_forall(fn, Choice.get <| rand(concl <| Choice.get th3))
             let th4 = EQ_MP (SYM th3) (SPEC fn (ASSUME gtm))
             let th5 = IMP_TRANS (DISCH gtm th4) th2
             MP (INST [atm, fn] (DISCH rawdef th5)) (REFL atm)

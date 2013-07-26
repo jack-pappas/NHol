@@ -776,7 +776,7 @@ let define_type_raw_001 =
                 (fun (r, (m, d)) (p, a) ->
                         Choice.get <| mk_abs
                             (a, 
-                             mk_conj(Choice.get <| mk_comb(r, a), Choice.get <| mk_comb(p, Choice.get <| mk_comb(m, a))))) 
+                             Choice.get <| mk_conj(Choice.get <| mk_comb(r, a), Choice.get <| mk_comb(p, Choice.get <| mk_comb(m, a))))) 
                 consindex' (zip preds args)
         SPECL lambs ith
 
@@ -1662,7 +1662,7 @@ let define_type_raw =
         let eee = map (fun n -> n mod 2 = 0) (0 -- (length cjs - 1))
         let cjs1, cjs2 = partition fst (zip eee cjs)
         let ctm2 = 
-            mk_conj(list_mk_conj(map snd cjs1), list_mk_conj(map snd cjs2))
+            Choice.get <| mk_conj(list_mk_conj(map snd cjs1), list_mk_conj(map snd cjs2))
         let DETRIV_RULE = TRIV_ANTE_RULE << REWRITE_RULE [sth0; sth1]
         let jth0 = 
             let itha = SPEC_ALL ith0
