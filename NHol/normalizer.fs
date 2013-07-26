@@ -154,7 +154,7 @@ let SEMIRING_NORMALIZERS_CONV =
              |> THEN <| GEN_TAC
              |> THEN <| INDUCT_TAC
              |> THEN <| ASM_REWRITE_TAC [MULT_CLAUSES])
-    let true_tm = concl TRUTH
+    let true_tm = concl <| Choice.get TRUTH
     fun sth rth (is_semiring_constant, SEMIRING_ADD_CONV, SEMIRING_MUL_CONV, SEMIRING_POW_CONV) -> 
         match SEMIRING_ADD_CONV with
         | SEMIRING_ADD_CONV -> 
@@ -168,12 +168,12 @@ let SEMIRING_NORMALIZERS_CONV =
                       | [pthm_01; pthm_02; pthm_03; pthm_04; pthm_05; pthm_06; pthm_07; pthm_08; pthm_09; pthm_10; pthm_11; pthm_12; pthm_13; pthm_14; pthm_15; pthm_16; pthm_17; pthm_18; pthm_19; pthm_20; pthm_21; pthm_22; pthm_23; pthm_24; pthm_25; pthm_26; pthm_27; pthm_28; pthm_29; pthm_30; pthm_31; pthm_32; pthm_33; pthm_34; pthm_35; pthm_36; pthm_37; pthm_38] ->
                          pthm_01, pthm_02, pthm_03, pthm_04, pthm_05, pthm_06, pthm_07, pthm_08, pthm_09, pthm_10, pthm_11, pthm_12, pthm_13, pthm_14, pthm_15, pthm_16, pthm_17, pthm_18, pthm_19, pthm_20, pthm_21, pthm_22, pthm_23, pthm_24, pthm_25, pthm_26, pthm_27, pthm_28, pthm_29, pthm_30, pthm_31, pthm_32, pthm_33, pthm_34, pthm_35, pthm_36, pthm_37, pthm_38
                       | _ -> failwith "pthFuncs: Unhandled case."
-                    let add_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl pthm_07)))
-                    let mul_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl pthm_13)))
-                    let pow_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| rand(concl pthm_32)))
-                    let zero_tm = Choice.get <| rand(concl pthm_06)
-                    let one_tm = Choice.get <| rand(Choice.get <| lhand(concl pthm_14))
-                    let ty = Choice.get <| type_of(Choice.get <| rand(concl pthm_01))
+                    let add_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl <| Choice.get pthm_07)))
+                    let mul_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl <| Choice.get pthm_13)))
+                    let pow_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| rand(concl <| Choice.get pthm_32)))
+                    let zero_tm = Choice.get <| rand(concl <| Choice.get pthm_06)
+                    let one_tm = Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get pthm_14))
+                    let ty = Choice.get <| type_of(Choice.get <| rand(concl <| Choice.get pthm_01))
                     let p_tm = (parse_term @"p:num")
                     let q_tm = (parse_term @"q:num")
                     let zeron_tm = (parse_term @"0")
@@ -200,14 +200,14 @@ let SEMIRING_NORMALIZERS_CONV =
                     let is_add = is_binop add_tm
                     let is_mul = is_binop mul_tm
                     let nthm_1, nthm_2, sub_tm, neg_tm, dest_sub, is_sub = 
-                        if concl rth = true_tm
+                        if concl <| Choice.get rth = true_tm
                         then 
                             rth, rth, true_tm, true_tm, (fun t -> t, t), K false
                         else 
                             let nthm_1 = SPEC x_tm (CONJUNCT1 rth)
                             let nthm_2 = SPECL [x_tm; y_tm] (CONJUNCT2 rth)
-                            let sub_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl nthm_2)))
-                            let neg_tm = Choice.get <| rator(Choice.get <| lhand(concl nthm_1))
+                            let sub_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl <| Choice.get nthm_2)))
+                            let neg_tm = Choice.get <| rator(Choice.get <| lhand(concl <| Choice.get nthm_1))
                             let dest_sub = Choice.get << dest_binop sub_tm
                             let is_sub = is_binop sub_tm
                             (nthm_1, nthm_2, sub_tm, neg_tm, dest_sub, is_sub)
@@ -231,7 +231,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                   ln, p_tm
                                                   rn, q_tm] pthm_29
                                         let tm1, tm2 = 
-                                            Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                            Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                         TRANS th1 
                                             (AP_TERM tm1 (NUM_ADD_CONV tm2))
                                     with
@@ -240,7 +240,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                             INST [lx, x_tm
                                                   ln, q_tm] pthm_31
                                         let tm1, tm2 = 
-                                            Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                            Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                         TRANS th1 
                                             (AP_TERM tm1 (NUM_SUC_CONV tm2))
                                 with
@@ -251,7 +251,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                             INST [rx, x_tm
                                                   rn, q_tm] pthm_30
                                         let tm1, tm2 = 
-                                            Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                            Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                         TRANS th1 
                                             (AP_TERM tm1 (NUM_SUC_CONV tm2))
                                     with
@@ -261,7 +261,7 @@ let SEMIRING_NORMALIZERS_CONV =
                         (* ------------------------------------------------------------------------- *)
                         let MONOMIAL_DEONE th = 
                             try 
-                                let l, r = dest_mul(Choice.get <| rand(concl th))
+                                let l, r = dest_mul(Choice.get <| rand(concl <| Choice.get th))
                                 if l = one_tm
                                 then TRANS th (INST [r, x_tm] pthm_01)
                                 else th
@@ -289,7 +289,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       r, p_tm
                                                       ntm, q_tm] pthm_34
                                             let l, r = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             TRANS th1 
                                                 (AP_TERM l (NUM_MULT_CONV r))
                                         elif op = mul_tm
@@ -299,7 +299,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       r, y_tm
                                                       ntm, q_tm] pthm_33
                                             let xy, z = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             let x, y = Choice.get <| dest_comb xy
                                             let thl = MONOMIAL_POW y l ntm
                                             let thr = MONOMIAL_POW z r ntm
@@ -358,7 +358,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       rx, rx_tm
                                                       ry, ry_tm] pthm_15
                                             let tm1, tm2 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             let tm3, tm4 = Choice.get <| dest_comb tm1
                                             let th2 = 
                                                 AP_THM 
@@ -367,7 +367,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                     tm2
                                             let th3 = TRANS th1 th2
                                             let tm5, tm6 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th3))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th3))
                                             let tm7, tm8 = Choice.get <| dest_comb tm6
                                             let th4 = 
                                                 MONOMIAL_MUL tm6 (Choice.get <| rand tm7) tm8
@@ -383,7 +383,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       rx, rx_tm
                                                       ry, ry_tm] th0
                                             let tm1, tm2 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             let tm3, tm4 = Choice.get <| dest_comb tm2
                                             TRANS th1 
                                                 (AP_TERM tm1 
@@ -400,7 +400,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       ly, ly_tm
                                                       r, rx_tm] pthm_18
                                             let tm1, tm2 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             let tm3, tm4 = Choice.get <| dest_comb tm1
                                             let th2 = 
                                                 AP_THM 
@@ -415,7 +415,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       ly, ly_tm
                                                       r, rx_tm] pthm_19
                                             let tm1, tm2 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             let tm3, tm4 = Choice.get <| dest_comb tm2
                                             TRANS th1 
                                                 (AP_TERM tm1 
@@ -438,7 +438,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       rx, rx_tm
                                                       ry, ry_tm] pthm_21
                                             let tm1, tm2 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             let tm3, tm4 = Choice.get <| dest_comb tm1
                                             TRANS th1 
                                                 (AP_THM 
@@ -452,7 +452,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       rx, rx_tm
                                                       ry, ry_tm] pthm_22
                                             let tm1, tm2 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             let tm3, tm4 = Choice.get <| dest_comb tm2
                                             TRANS th1 
                                                 (AP_TERM tm1 
@@ -485,7 +485,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                         INST [l, x_tm
                                               y, y_tm
                                               z, z_tm] pthm_37
-                                    let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                    let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                     let tm3, tm4 = Choice.get <| dest_comb tm1
                                     let th2 = 
                                         MK_COMB
@@ -521,11 +521,11 @@ let SEMIRING_NORMALIZERS_CONV =
                                         INST [Choice.get <| lhand r, a_tm
                                               l, m_tm] pthm_04
                                     else INST [r, m_tm] pthm_05
-                                let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                 let tm3, tm4 = Choice.get <| dest_comb tm1
                                 let th2 = AP_TERM tm3 (SEMIRING_ADD_CONV tm4)
                                 let th3 = TRANS th1 (AP_THM th2 tm2)
-                                let tm5 = Choice.get <| rand(concl th3)
+                                let tm5 = Choice.get <| rand(concl <| Choice.get th3)
                                 if Choice.get <| lhand tm5 = zero_tm
                                 then TRANS th3 (INST [Choice.get <| rand tm5, m_tm] pthm_06)
                                 else MONOMIAL_DEONE th3
@@ -577,7 +577,7 @@ let SEMIRING_NORMALIZERS_CONV =
                         (* ------------------------------------------------------------------------- *)
                         let POLYNOMIAL_ADD_CONV = 
                             let DEZERO_RULE th = 
-                                let tm = Choice.get <| rand(concl th)
+                                let tm = Choice.get <| rand(concl <| Choice.get th)
                                 if not(is_add tm)
                                 then th
                                 else 
@@ -609,7 +609,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       c, c_tm
                                                       d, d_tm] pthm_23
                                             let tm1, tm2 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             let tm3, tm4 = Choice.get <| dest_comb tm1
                                             let th2 = 
                                                 AP_TERM tm3 
@@ -629,7 +629,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                           c, c_tm
                                                           d, d_tm] pthm_25
                                             let tm1, tm2 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             DEZERO_RULE
                                                 (TRANS th1 
                                                      (AP_TERM tm1 (PADD tm2)))
@@ -642,7 +642,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       b, b_tm
                                                       r, c_tm] pthm_26
                                             let tm1, tm2 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             let tm3, tm4 = Choice.get <| dest_comb tm1
                                             let th2 = 
                                                 AP_THM 
@@ -657,7 +657,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                       b, b_tm
                                                       r, c_tm] pthm_24
                                             let tm1, tm2 = 
-                                                Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                             DEZERO_RULE
                                                 (TRANS th1 
                                                      (AP_TERM tm1 (PADD tm2)))
@@ -675,7 +675,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                   c, c_tm
                                                   d, d_tm] pthm_28
                                         let tm1, tm2 = 
-                                            Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                            Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                         let tm3, tm4 = Choice.get <| dest_comb tm1
                                         let th2 = 
                                             AP_THM 
@@ -691,7 +691,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                   c, c_tm
                                                   d, d_tm] pthm_25
                                         let tm1, tm2 = 
-                                            Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                            Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                         DEZERO_RULE
                                             (TRANS th1 (AP_TERM tm1 (PADD tm2)))
                                 else 
@@ -719,21 +719,21 @@ let SEMIRING_NORMALIZERS_CONV =
                                               r, b_tm] pthm_09
                                     TRANS th1 
                                         (POLYNOMIAL_MONOMIAL_MUL_CONV
-                                             (Choice.get <| rand(concl th1)))
+                                             (Choice.get <| rand(concl <| Choice.get th1)))
                                 else 
                                     let a, b = dest_add l
                                     let th1 = 
                                         INST [a, a_tm
                                               b, b_tm
                                               r, c_tm] pthm_10
-                                    let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                    let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                     let tm3, tm4 = Choice.get <| dest_comb tm1
                                     let th2 = 
                                         AP_TERM tm3 
                                             (POLYNOMIAL_MONOMIAL_MUL_CONV tm4)
                                     let th3 = TRANS th1 (MK_COMB(th2, PMUL tm2))
                                     TRANS th3 
-                                        (POLYNOMIAL_ADD_CONV(Choice.get <| rand(concl th3)))
+                                        (POLYNOMIAL_ADD_CONV(Choice.get <| rand(concl <| Choice.get th3)))
                             fun tm -> 
                                 let l, r = dest_mul tm
                                 if l = zero_tm
@@ -759,13 +759,13 @@ let SEMIRING_NORMALIZERS_CONV =
                                     let th1 = num_CONV n
                                     let th2 = 
                                         INST [l, x_tm
-                                              Choice.get <| rand(Choice.get <| rand(concl th1)), q_tm] 
+                                              Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th1)), q_tm] 
                                             pthm_38
-                                    let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl th2))
+                                    let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th2))
                                     let th3 = TRANS th2 (AP_TERM tm1 (PPOW tm2))
                                     let th4 = TRANS (AP_TERM (Choice.get <| rator tm) th1) th3
                                     TRANS th4 
-                                        (POLYNOMIAL_MUL_CONV(Choice.get <| rand(concl th4)))
+                                        (POLYNOMIAL_MUL_CONV(Choice.get <| rand(concl <| Choice.get th4)))
                             fun tm -> 
                                 if is_add(Choice.get <| lhand tm)
                                 then PPOW tm
@@ -782,7 +782,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                     let th1 = INST [r, x_tm] nthm_1
                                     TRANS th1 
                                         (POLYNOMIAL_MONOMIAL_MUL_CONV
-                                             (Choice.get <| rand(concl th1)))
+                                             (Choice.get <| rand(concl <| Choice.get th1)))
                         (* ------------------------------------------------------------------------- *)
                         (* Subtraction.                                                              *)
                         (* ------------------------------------------------------------------------- *)
@@ -792,13 +792,13 @@ let SEMIRING_NORMALIZERS_CONV =
                                 let th1 = 
                                     INST [l, x_tm
                                           r, y_tm] nthm_2
-                                let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl th1))
+                                let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
                                 let th2 = 
                                     AP_TERM tm1 
                                         (POLYNOMIAL_MONOMIAL_MUL_CONV tm2)
                                 TRANS th1 
                                     (TRANS th2 
-                                         (POLYNOMIAL_ADD_CONV(Choice.get <| rand(concl th2))))
+                                         (POLYNOMIAL_ADD_CONV(Choice.get <| rand(concl <| Choice.get th2))))
                         (* ------------------------------------------------------------------------- *)
                         (* Conversion from HOL term.                                                 *)
                         (* ------------------------------------------------------------------------- *)
@@ -811,7 +811,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                 then 
                                     let th1 = AP_TERM lop (POLYNOMIAL_CONV r)
                                     TRANS th1 
-                                        (POLYNOMIAL_NEG_CONV(Choice.get <| rand(concl th1)))
+                                        (POLYNOMIAL_NEG_CONV(Choice.get <| rand(concl <| Choice.get th1)))
                                 elif not(is_comb lop)
                                 then REFL tm
                                 else 
@@ -824,7 +824,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                                 r
                                         TRANS th1 
                                             (POLYNOMIAL_POW_CONV
-                                                 (Choice.get <| rand(concl th1)))
+                                                 (Choice.get <| rand(concl <| Choice.get th1)))
                                     elif op = add_tm || op = mul_tm 
                                          || op = sub_tm
                                     then 
@@ -838,7 +838,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                             elif op = mul_tm
                                             then POLYNOMIAL_MUL_CONV
                                             else POLYNOMIAL_SUB_CONV
-                                        TRANS th1 (fn(Choice.get <| rand(concl th1)))
+                                        TRANS th1 (fn(Choice.get <| rand(concl <| Choice.get th1)))
                                     else REFL tm
                         POLYNOMIAL_NEG_CONV, POLYNOMIAL_ADD_CONV, 
                         POLYNOMIAL_SUB_CONV, POLYNOMIAL_MUL_CONV, 

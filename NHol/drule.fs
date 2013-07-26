@@ -86,7 +86,7 @@ let MK_EXISTS =
 
 /// Removes antecedent of implication theorem by solving it with a conversion.
 let MP_CONV (cnv : conv) th = 
-    let l, r = Choice.get <| dest_imp(concl th)
+    let l, r = Choice.get <| dest_imp(concl <| Choice.get th)
     let ath = cnv l
 
     MP th (EQT_ELIM ath)
@@ -211,7 +211,7 @@ let INSTANTIATE : instantiation -> thm -> thm =
                 then tth
                 else 
                     let v = 
-                        let eth = HO_BETAS bcs (concl ith) (concl tth)
+                        let eth = HO_BETAS bcs (concl <| Choice.get ith) (concl <| Choice.get tth)
                         EQ_MP eth tth
                     v |> Choice.bindError ( fun _ -> tth)
             else Choice.failwith "INSTANTIATE: term or type var free in assumptions"
@@ -539,9 +539,9 @@ let PART_MATCH, GEN_PART_MATCH =
             | Failure _ -> acc
     let PART_MATCH partfn th = 
         let sth = SPEC_ALL th
-        let bod = concl sth
+        let bod = concl <| Choice.get sth
         let pbod = partfn bod
-        let lconsts = intersect (frees(concl th)) (freesl(hyp th))
+        let lconsts = intersect (frees(concl <| Choice.get th)) (freesl(hyp th))
         fun tm -> 
             let bvms = match_bvs tm pbod []
             let abod = deep_alpha bvms bod
@@ -551,7 +551,7 @@ let PART_MATCH, GEN_PART_MATCH =
             if hyp fth <> hyp ath
             then Choice.failwith "PART_MATCH: instantiated hyps"
             else 
-                let tm' = partfn(concl fth)
+                let tm' = partfn(concl <| Choice.get fth)
                 if compare tm' tm = 0
                 then fth
                 else 
@@ -559,9 +559,9 @@ let PART_MATCH, GEN_PART_MATCH =
                     |> Choice.mapError (fun _ -> Exception "PART_MATCH: Sanity check failure")
     let GEN_PART_MATCH partfn th = 
         let sth = SPEC_ALL th
-        let bod = concl sth
+        let bod = concl <| Choice.get sth
         let pbod = partfn bod
-        let lconsts = intersect (frees(concl th)) (freesl(hyp th))
+        let lconsts = intersect (frees(concl <| Choice.get th)) (freesl(hyp th))
         let fvs = subtract (subtract (frees bod) (frees pbod)) lconsts
         fun tm -> 
             let bvms = match_bvs tm pbod []
@@ -573,7 +573,7 @@ let PART_MATCH, GEN_PART_MATCH =
             if hyp fth <> hyp ath
             then Choice.failwith "PART_MATCH: instantiated hyps"
             else 
-                let tm' = partfn(concl fth)
+                let tm' = partfn(concl <| Choice.get fth)
                 if compare tm' tm = 0
                 then fth
                 else 
@@ -589,7 +589,7 @@ let PART_MATCH, GEN_PART_MATCH =
 let MATCH_MP ith = 
     let sth = 
         let v = 
-            let tm = concl ith
+            let tm = concl <| Choice.get ith
             let avs, bod = strip_forall tm
             let ant, con = Choice.get <| dest_imp bod
             let svs, pvs = partition (C vfree_in ant) avs
@@ -602,7 +602,7 @@ let MATCH_MP ith =
         v |> Choice.mapError (fun _ -> Exception "MATCH_MP: Not an implication")
     let match_fun = PART_MATCH (fst << Choice.get << dest_imp) sth
     fun th -> 
-        MP (match_fun(concl th)) th
+        MP (match_fun(concl <| Choice.get th)) th
         |> Choice.mapError (fun _ -> Exception "MATCH_MP: No match")
 
 (* ------------------------------------------------------------------------- *)
@@ -642,12 +642,12 @@ let HIGHER_REWRITE_CONV =
                     | Failure _ -> RAND_CONV(free_beta v r)
         free_beta
     let GINST th = 
-        let fvs = subtract (frees(concl th)) (freesl(hyp th))
+        let fvs = subtract (frees(concl <| Choice.get th)) (freesl(hyp th))
         let gvs = map (genvar << Choice.get << type_of) fvs
         INST (zip gvs fvs) th
     fun ths -> 
         let thl = map (GINST << SPEC_ALL) ths
-        let concs = map concl thl
+        let concs = map (concl << Choice.get) thl
         let lefts = map (Choice.get << lhs) concs
         let preds, pats = unzip(map (Choice.get << dest_comb) lefts)
         let beta_fns = map2 BETA_VAR preds concs
@@ -703,6 +703,6 @@ let new_definition tm =
     let th2 = 
         rev_itlist (fun tm th -> 
                 let ith = AP_THM th tm
-                TRANS ith (BETA_CONV(Choice.get <| rand(concl ith)))) largs th1
+                TRANS ith (BETA_CONV(Choice.get <| rand(concl <| Choice.get ith)))) largs th1
     let rvs = filter (not << C mem avs) largs
     itlist GEN rvs (itlist GEN avs th2)

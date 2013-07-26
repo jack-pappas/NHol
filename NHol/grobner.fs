@@ -366,7 +366,7 @@ let RING_AND_IDEAL_CONV =
   
   let grobner_strong vars pols pol =
     if pol = [] then 1,num_1,[] else
-    let vars' = (concl TRUTH)::vars
+    let vars' = (concl <| Choice.get TRUTH)::vars
     let grob_z = [num_1,1::(map (fun x -> 0) vars)]
     let grob_1 = [num_1,(map (fun x -> 0) vars')]
     let augment = map (fun (c,m) -> (c,0::m))
@@ -419,7 +419,7 @@ let RING_AND_IDEAL_CONV =
       PRESIMP_CONV |>THENC<|
       CONDS_ELIM_CONV |>THENC<|
       NNF_CONV |>THENC<|
-      (if is_iff(snd(strip_forall(concl RABINOWITSCH_THM)))
+      (if is_iff(snd(strip_forall(concl <| Choice.get RABINOWITSCH_THM)))
        then GEN_REWRITE_CONV ONCE_DEPTH_CONV [RABINOWITSCH_THM]
        else ALL_CONV) |>THENC<|
       GEN_REWRITE_CONV REDEPTH_CONV
@@ -576,26 +576,26 @@ let RING_AND_IDEAL_CONV =
     let REFUTE tm =
       if tm = false_tm then ASSUME tm 
       else
-      let nths0,eths0 = partition (is_neg << concl) (CONJUNCTS(ASSUME tm)) in
-      let nths = filter (is_eq << Choice.get << rand << concl) nths0
-      let eths = filter (is_eq << concl) eths0 in
+      let nths0,eths0 = partition (is_neg << concl <<Choice.get) (CONJUNCTS(ASSUME tm)) in
+      let nths = filter (is_eq << Choice.get << rand << concl << Choice.get) nths0
+      let eths = filter (is_eq << concl <<Choice.get) eths0 in
       if eths = [] then
         let th1 = end_itlist (fun th1 th2 -> IDOM_RULE(CONJ th1 th2)) nths in
         let th2 = CONV_RULE(RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) th1 in
-        let l,r = Choice.get <| dest_eq(Choice.get <| rand(concl th2)) in
+        let l,r = Choice.get <| dest_eq(Choice.get <| rand(concl <| Choice.get th2)) in
         EQ_MP (EQF_INTRO th2) (REFL l)
       else if nths = [] && not(is_var ring_neg_tm) then
-        let vars,pols = grobify_equations(list_mk_conj(map concl eths)) in
+        let vars,pols = grobify_equations(list_mk_conj(map (concl << Choice.get) eths)) in
         execute_proof vars eths (grobner_refute pols)
       else
       let vars,l,cert,noteqth =
         if nths = [] then
-          let vars,pols = grobify_equations(list_mk_conj(map concl eths)) in
+          let vars,pols = grobify_equations(list_mk_conj(map (concl << Choice.get) eths)) in
           let l,cert = grobner_weak vars pols in
           vars,l,cert,NOT_EQ_01
         else
           let nth = end_itlist (fun th1 th2 -> IDOM_RULE(CONJ th1 th2)) nths in
-          match grobify_equations(list_mk_conj((Choice.get <| rand(concl nth))::map concl eths)) with
+          match grobify_equations(list_mk_conj((Choice.get <| rand(concl <| Choice.get nth))::map (concl << Choice.get) eths)) with
           | vars,pol::pols -> 
               let deg,l,cert = grobner_strong vars pols pol in
               let th1 = CONV_RULE(RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) nth in
@@ -617,17 +617,17 @@ let RING_AND_IDEAL_CONV =
       let th2 = thm_fn herts_neg in
       let th3 = CONJ(MK_ADD (SYM th1) th2) noteqth in
       let th4 = CONV_RULE (RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) (INE_RULE l th3) in
-      let l,r = Choice.get <| dest_eq(Choice.get <| rand(concl th4)) in
+      let l,r = Choice.get <| dest_eq(Choice.get <| rand(concl <| Choice.get th4)) in
       EQ_MP (EQF_INTRO th4) (REFL l) in
   
     let RING tm =
       let avs = frees tm in
       let tm' = list_mk_forall(avs,tm) in
       let th1 = INITIAL_CONV(mk_neg tm') in
-      let evs,bod = strip_exists(Choice.get <| rand(concl th1)) in
+      let evs,bod = strip_exists(Choice.get <| rand(concl <| Choice.get th1)) in
       if is_forall bod then failwith "RING: non-universal formula" else
       let th1a = WEAK_DNF_CONV bod in
-      let boda = Choice.get <| rand(concl th1a) in
+      let boda = Choice.get <| rand(concl <| Choice.get th1a) in
       let th2a = refute_disj REFUTE boda in
       let th2b = TRANS th1a (EQF_INTRO(NOT_INTRO(DISCH boda th2a))) in
       let th2 = UNDISCH(NOT_ELIM(EQF_ELIM th2b)) in
@@ -781,5 +781,5 @@ let NUM_RING =
   let initconv = NUM_SIMPLIFY_CONV |>THENC<| GEN_REWRITE_CONV DEPTH_CONV [ADD1]
   let t_tm = (parse_term @"T") in
   fun tm -> let th = initconv tm in
-            if Choice.get <| rand(concl th) = t_tm then th
-            else EQ_MP (SYM th) (rawring(Choice.get <| rand(concl th)));;
+            if Choice.get <| rand(concl <| Choice.get th) = t_tm then th
+            else EQ_MP (SYM th) (rawring(Choice.get <| rand(concl <| Choice.get th)));;

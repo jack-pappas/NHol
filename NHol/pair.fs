@@ -260,7 +260,7 @@ let new_definition =
             let th, th' = 
                 tryfind (fun th -> Some (th, PART_MATCH I th def)) (!the_definitions)
                 |> Option.getOrFailWith "tryfind"
-            ignore(PART_MATCH I th' (snd(strip_forall(concl th))))
+            ignore(PART_MATCH I th' (snd(strip_forall(concl <| Choice.get th))))
             warn true "Benign redefinition"
             GEN_ALL(GENL avs th')
         with
@@ -321,7 +321,7 @@ let GEN_BETA_CONV =
                 assoc conty (!inductive_type_store)
                 |> Option.getOrFailWith "find"
             let sth = SPEC_ALL rth
-            let evs, bod = strip_exists(concl sth)
+            let evs, bod = strip_exists(concl <| Choice.get sth)
             let cjs = conjuncts bod
             let ourcj = 
                 Option.get <| find 
@@ -337,15 +337,15 @@ let GEN_BETA_CONV =
             let bth = 
                 INST [list_mk_abs(aargs @ gargs, list_mk_comb(gcon, avs)), con'] 
                     sth
-            let cth = el n (CONJUNCTS(ASSUME(snd(strip_exists(concl bth)))))
+            let cth = el n (CONJUNCTS(ASSUME(snd(strip_exists(concl <| Choice.get bth)))))
             let dth = 
                 CONV_RULE 
                     (funpow (length avs) BINDER_CONV (RAND_CONV(BETAS_CONV))) 
                     cth
             let eth = 
-                SIMPLE_EXISTS (Choice.get <| rator(Choice.get <| lhand(snd(strip_forall(concl dth))))) dth
+                SIMPLE_EXISTS (Choice.get <| rator(Choice.get <| lhand(snd(strip_forall(concl <| Choice.get dth))))) dth
             let fth = PROVE_HYP bth (itlist SIMPLE_CHOOSE evs eth)
-            let zty = Choice.get <| type_of(Choice.get <| rand(snd(strip_forall(concl dth))))
+            let zty = Choice.get <| type_of(Choice.get <| rand(snd(strip_forall(concl <| Choice.get dth))))
             let mk_projector a = 
                 let ity = Choice.get <| type_of a
                 let th = 
@@ -370,13 +370,13 @@ let GEN_BETA_CONV =
         else 
             let con, args = strip_comb tm
             let prjths = create_projections(fst(Choice.get <| dest_const con))
-            let atm = Choice.get <| rand(Choice.get <| rand(concl(hd prjths)))
+            let atm = Choice.get <| rand(Choice.get <| rand(concl <| Choice.get(hd prjths)))
             let instn = term_match [] atm tm
             let arths = map (INSTANTIATE instn) prjths
             let ths = 
                 map (fun arth -> 
                         let sths = 
-                            create_iterated_projections(Choice.get <| lhand(concl arth))
+                            create_iterated_projections(Choice.get <| lhand(concl <| Choice.get arth))
                         map (CONV_RULE(RAND_CONV(SUBS_CONV [arth]))) sths) arths
             unions' equals_thm ths
     let GEN_BETA_CONV1 tm = //I don't know if using the same name of the function to be defined can cause problems
@@ -389,7 +389,7 @@ let GEN_BETA_CONV =
             let instn = term_match [] vstr r
             let prjs = create_iterated_projections vstr
             let th1 = SUBS_CONV prjs bod
-            let bod' = Choice.get <| rand(concl th1)
+            let bod' = Choice.get <| rand(concl <| Choice.get th1)
             let gv = genvar(Choice.get <| type_of vstr)
             let pat = Choice.get <| mk_abs(gv, Choice.get <| subst [gv, vstr] bod')
             let th2 = TRANS (BETA_CONV(Choice.get <| mk_comb(pat, vstr))) (SYM th1)
@@ -397,7 +397,7 @@ let GEN_BETA_CONV =
             let th3 = GENL (fst(strip_forall(Choice.get <| body(Choice.get <| rand l)))) th2
             let efn = genvar(Choice.get <| type_of pat)
             let th4 = 
-                EXISTS (mk_exists(efn, Choice.get <| subst [efn, pat] (concl th3)), pat) th3
+                EXISTS (mk_exists(efn, Choice.get <| subst [efn, pat] (concl <| Choice.get th3)), pat) th3
             let th5 = 
                 CONV_RULE (funpow (length avs + 1) BINDER_CONV GEQ_CONV) th4
             let th6 = CONV_RULE BETA_CONV (GABS_RULE th5)
@@ -551,7 +551,7 @@ let let_CONV =
         with
         | Failure _ -> 
             let th1 = AP_THM (EXPAND_BETAS_CONV tm') (Choice.get <| rand tm)
-            let th2 = GEN_BETA_CONV(Choice.get <| rand(concl th1))
+            let th2 = GEN_BETA_CONV(Choice.get <| rand(concl <| Choice.get th1))
             TRANS th1 th2
     fun tm -> 
         let ltm, pargs = strip_comb tm
@@ -587,7 +587,7 @@ let (LET_TAC : tactic) =
                  TAUT(parse_term @"a /\ T <=> a")]
         fun tm -> 
             let th1 = rewr1_CONV tm
-            let tm1 = Choice.get <| rand(concl th1)
+            let tm1 = Choice.get <| rand(concl <| Choice.get th1)
             let cjs = conjuncts tm1
             let vars = map (Choice.get << lhand) cjs
             let th2 = EQ_MP (SYM th1) (ASSUME tm1)

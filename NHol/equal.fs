@@ -26,6 +26,8 @@ module NHol.equal
 open System
 open FSharp.Compatibility.OCaml
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -79,19 +81,18 @@ let mk_primed_var =
 /// General case of beta-conversion.
 let BETA_CONV tm = 
     BETA tm
-    |> Choice.bindError (fun _ -> 
-        let f, arg = Choice.get <| dest_comb tm
-        let v = Choice.get <| bndvar f
-        INST [arg, v] (BETA(Choice.get <| mk_comb(f, v))))
-    |> Choice.mapError (fun _ -> Exception "BETA_CONV: Not a beta-redex")
+    |> Choice.bindError (fun _ ->
+        choice { 
+            let! f, arg = dest_comb tm
+            let! v = bndvar f
+            let! tm' = mk_comb(f, v)
+            return! INST [arg, v] (BETA tm')
+        })
+    |> Choice.bindError (fun _ -> Choice.failwith "BETA_CONV: Not a beta-redex")
 
 (* ------------------------------------------------------------------------- *)
 (* A few very basic derived equality rules.                                  *)
 (* ------------------------------------------------------------------------- *)
-
-/// This function is currently unsafe
-let concl thm =
-    concl (Choice.get thm)
 
 /// Applies a function to both sides of an equational theorem.
 let AP_TERM tm th = 
@@ -105,7 +106,7 @@ let AP_THM th tm =
 
 /// Swaps left-hand and right-hand sides of an equation.
 let SYM th = 
-    let tm = concl th
+    let tm = concl <| Choice.get th
     let l, r = Choice.get <| dest_eq tm
     let lth = REFL l
     EQ_MP (MK_COMB(AP_TERM (Choice.get <| rator(Choice.get <| rator tm)) th, lth)) lth
@@ -148,7 +149,7 @@ let ALL_CONV : conv = REFL
 let THENC : conv -> conv -> conv = 
     fun conv1 conv2 t -> 
         let th1 = conv1 t
-        let th2 = conv2 (Choice.get <| rand(concl th1))
+        let th2 = conv2 (Choice.get <| rand(concl <| Choice.get th1))
         TRANS th1 th2
 
 /// Applies the first of two conversions that succeeds.
@@ -173,7 +174,7 @@ let REPEATC : conv -> conv =
 let CHANGED_CONV : conv -> conv = 
     fun conv tm -> 
         let th = conv tm
-        let l, r = Choice.get <| dest_eq(concl th)
+        let l, r = Choice.get <| dest_eq(concl <| Choice.get th)
         if aconv l r then Choice.failwith "CHANGED_CONV"
         else th
 
@@ -218,7 +219,7 @@ let ABS_CONV : conv -> conv =
             let gv = genvar(Choice.get <| type_of v)
             let gbod = Choice.get <| vsubst [gv, v] bod
             let gth = ABS gv (conv gbod)
-            let gtm = concl gth
+            let gtm = concl <| Choice.get gth
             let l, r = Choice.get <| dest_eq gtm
             let v' = Choice.get <| variant (frees gtm) v
             let l' = Choice.get <| alpha v' l
@@ -252,7 +253,7 @@ let rec private THENQC conv1 conv2 tm =
     try 
         let th1 = conv1 tm
         try 
-            let th2 = conv2(Choice.get <| rand(concl th1))
+            let th2 = conv2(Choice.get <| rand(concl <| Choice.get th1))
             TRANS th1 th2
         with
         | Failure _ -> th1
@@ -262,7 +263,7 @@ let rec private THENQC conv1 conv2 tm =
 and private THENCQC conv1 conv2 tm = 
     let th1 = conv1 tm
     try 
-        let th2 = conv2(Choice.get <| rand(concl th1))
+        let th2 = conv2(Choice.get <| rand(concl <| Choice.get th1))
         TRANS th1 th2
     with
     | Failure _ -> th1
@@ -366,7 +367,7 @@ let PAT_CONV =
 /// Symmetry conversion.
 let SYM_CONV tm = 
     let th1 = SYM(ASSUME tm)
-    let tm' = concl th1
+    let tm' = concl <| Choice.get th1
     let th2 = SYM(ASSUME tm')
     DEDUCT_ANTISYM_RULE th2 th1
     |> Choice.mapError (fun _ -> Exception "SYM_CONV")
@@ -376,7 +377,7 @@ let SYM_CONV tm =
 (* ------------------------------------------------------------------------- *)
 
 /// Conversion to a rule.
-let CONV_RULE (conv : conv) th = EQ_MP (conv(concl th)) th
+let CONV_RULE (conv : conv) th = EQ_MP (conv(concl <| Choice.get th)) th
 
 (* ------------------------------------------------------------------------- *)
 (* Substitution conversion.                                                  *)
@@ -387,14 +388,14 @@ let SUBS_CONV ths tm =
     let tm = 
         if ths = [] then REFL tm
         else 
-            let lefts = map (Choice.get << lhand << concl) ths
+            let lefts = map (Choice.get << lhand << concl << Choice.get) ths
             let gvs = map (genvar << Choice.get << type_of) lefts
             let pat = Choice.get <| subst (zip gvs lefts) tm
             let abs = list_mk_abs(gvs, pat)
             let th = 
                 rev_itlist (fun y x -> CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(x, y))) 
                     ths (REFL abs)
-            if Choice.get <| rand(concl th) = tm then REFL tm
+            if Choice.get <| rand(concl <| Choice.get th) = tm then REFL tm
             else th
     tm |> Choice.mapError (fun _ -> Exception "SUBS_CONV")
 
@@ -414,7 +415,7 @@ let SUBS ths = CONV_RULE(SUBS_CONV ths)
 (* ------------------------------------------------------------------------- *)
 
 let private ALPHA_HACK th = 
-    let tm' = Choice.get <| lhand(concl th)
+    let tm' = Choice.get <| lhand(concl <| Choice.get th)
     fun tm -> 
         if tm' = tm then th
         else TRANS (ALPHA tm tm') th

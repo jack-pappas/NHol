@@ -194,7 +194,7 @@ let DIST_LE_CASES, DIST_ADDBOUND, DIST_TRIANGLE, DIST_ADD2, DIST_ADD2_REV =
         |> THEN <| CONJ_TAC
         |> THEN <| DISCH_THEN(fun th -> 
                            SUBST_ALL_TAC th
-                           |> THEN <| (let l, r = Choice.get <| dest_eq(concl th)
+                           |> THEN <| (let l, r = Choice.get <| dest_eq(concl <| Choice.get th)
                                        if is_var l && not(vfree_in l r)
                                        then ALL_TAC
                                        else ASSUME_TAC th))
@@ -1597,7 +1597,7 @@ let NADD_NONZERO =
          |> THEN <| EXISTS_TAC(parse_term @"A2 + 1")
          |> THEN <| X_GEN_TAC(parse_term @"n:num")
          |> THEN <| REPEAT DISCH_TAC
-         |> THEN <| FIRST_ASSUM(UNDISCH_TAC << check is_forall << concl)
+         |> THEN <| FIRST_ASSUM(UNDISCH_TAC << check is_forall << concl <<Choice.get)
          |> THEN <| REWRITE_TAC [NOT_FORALL_THM
                                  NOT_LE
                                  GSYM LE_SUC_LT
@@ -2539,7 +2539,7 @@ let TREAL_MUL_LINV =
        |> THEN <| AP_TERM_TAC
        |> THEN <| MATCH_MP_TAC HREAL_MUL_LINV
        |> THEN <| DISCH_THEN SUBST_ALL_TAC
-       |> THEN <| FIRST_ASSUM(UNDISCH_TAC << check is_eq << concl)
+       |> THEN <| FIRST_ASSUM(UNDISCH_TAC << check is_eq << concl <<Choice.get)
        |> THEN <| ASM_REWRITE_TAC [HREAL_ADD_RID]
        |> THEN <| PURE_ONCE_REWRITE_TAC [EQ_SYM_EQ]
        |> THEN <| ASM_REWRITE_TAC [])

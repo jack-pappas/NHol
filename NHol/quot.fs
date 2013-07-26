@@ -69,7 +69,7 @@ let define_quotient_type =
         let eqvx = Choice.get <| mk_comb(eqv, x)
         let pred = Choice.get <| mk_abs(s, mk_exists(x, Choice.get <| mk_eq(s, eqvx)))
         let th0 = BETA_CONV(Choice.get <| mk_comb(pred, eqvx))
-        let th1 = EXISTS (Choice.get <| rand(concl th0), x) (REFL eqvx)
+        let th1 = EXISTS (Choice.get <| rand(concl <| Choice.get th0), x) (REFL eqvx)
         let th2 = EQ_MP (SYM th0) th1
         let abs, rep = new_basic_type_definition tyname (absname, repname) th2
         abs, CONV_RULE (LAND_CONV BETA_CONV) rep
@@ -98,7 +98,7 @@ let lift_function =
              |> THEN <| GEN_REWRITE_TAC (LAND_CONV << BINDER_CONV) [EQ_SYM_EQ]
              |> THEN <| MATCH_ACCEPT_TAC SELECT_REFL)
     fun tybij2 -> 
-        let tybl, tybr = Choice.get <| dest_comb(concl tybij2)
+        let tybl, tybr = Choice.get <| dest_comb(concl <| Choice.get tybij2)
         let eqvx = Choice.get <| rand(Choice.get <| body(Choice.get <| rand(Choice.get <| rand tybl)))
         let eqv, xtm = Choice.get <| dest_comb eqvx
         let dmr, rtm = Choice.get <| dest_eq tybr
@@ -106,7 +106,7 @@ let lift_function =
         let mk = Choice.get <| rator mrt
         let ety = Choice.get <| type_of mrt
         fun (refl_th, trans_th) fname wth -> 
-            let wtm = repeat (snd << Choice.get << dest_forall) (concl wth)
+            let wtm = repeat (snd << Choice.get << dest_forall) (concl <| Choice.get wth)
             let wfvs = frees wtm
             let hyps, con = 
                 try 
@@ -150,10 +150,10 @@ let lift_function =
             let targs = map (fun v -> Choice.get <| mk_comb(mk, Choice.get <| mk_comb(eqv, v))) rvs
             let dme_th = 
                 let th = INST [eqvx, rtm] tybij2
-                EQ_MP th (EXISTS (Choice.get <| lhs(concl th), xtm) (REFL eqvx))
+                EQ_MP th (EXISTS (Choice.get <| lhs(concl <| Choice.get th), xtm) (REFL eqvx))
             let ith = INST (zip targs evs) eth
             let jth = SUBS (map (fun v -> INST [v, xtm] dme_th) rvs) ith
-            let apop, uxtm = Choice.get <| dest_comb(Choice.get <| rand(concl jth))
+            let apop, uxtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get jth))
             let extm = Choice.get <| body uxtm
             let evs, bod = strip_exists extm
             let th1 = ASSUME bod
@@ -167,7 +167,7 @@ let lift_function =
                         end_itlist CONJ 
                             (map 
                                  (fun v -> 
-                                     Option.get <| find ((=)(Choice.get <| lhand v) << Choice.get << lhand << concl) 
+                                     Option.get <| find ((=)(Choice.get <| lhand v) << Choice.get << lhand << concl << Choice.get) 
                                          ethlist) hyps)
                     let th2d = MATCH_MP wth th2c
                     let th2e = 
@@ -176,7 +176,7 @@ let lift_function =
                         with
                         | Failure _ -> MATCH_MP trans_th (CONJ th2d th2a)
                     itlist SIMPLE_CHOOSE evs th2e
-            let th3 = ASSUME(concl th2)
+            let th3 = ASSUME(concl <| Choice.get th2)
             let th4 = end_itlist CONJ (th3 :: (map (C SPEC refl_th) rvs))
             let th5 = itlist SIMPLE_EXISTS evs (ASSUME bod)
             let th6 = MATCH_MP (DISCH_ALL th5) th4

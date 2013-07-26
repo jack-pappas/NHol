@@ -130,7 +130,7 @@ let SELECT_RULE =
              SIMP_TAC [SELECT_AX; ETA_AX])
     fun th -> 
         try 
-            let abs = Choice.get <| rand(concl th)
+            let abs = Choice.get <| rand(concl <| Choice.get th)
             let ty = Choice.get <| type_of(Choice.get <| bndvar abs)
             CONV_RULE BETA_CONV (MP (PINST [ty, aty] [abs, P] pth) th)
         with
@@ -189,7 +189,7 @@ let new_type_definition tyname (absname, repname) th =
         let th', tth' =
             assoc (tyname, absname, repname) (!the_type_definitions)
             |> Option.getOrFailWith "find"
-        if concl th' <> concl th
+        if concl (Choice.get th') <> concl (Choice.get th)
         then failwith ""
         else 
             (warn true "Benign redefinition of type"

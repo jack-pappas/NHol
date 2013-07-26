@@ -431,7 +431,7 @@ let REAL_INT_ADD_CONV =
                     let th1 = 
                         INST [Choice.get <| rand(Choice.get <| rand l), m_tm
                               Choice.get <| rand(Choice.get <| rand r), n_tm] pth1
-                    let tm1 = Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(concl th1)))
+                    let tm1 = Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th1)))
                     let th2 = AP_TERM neg_tm (AP_TERM amp_tm (NUM_ADD_CONV tm1))
                     TRANS th1 th2
                 else 
@@ -445,7 +445,7 @@ let REAL_INT_ADD_CONV =
                         let th1 = 
                             INST [m, m_tm
                                   p, n_tm] pth2
-                        let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(concl th1))))
+                        let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get th1))))
                         let th3 = AP_TERM (Choice.get <| rator tm) (AP_TERM amp_tm (SYM th2))
                         TRANS th3 th1
                     else 
@@ -454,7 +454,7 @@ let REAL_INT_ADD_CONV =
                             INST [n, m_tm
                                   p, n_tm] pth3
                         let th2 = 
-                            NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(Choice.get <| lhand(concl th1)))))
+                            NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th1)))))
                         let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
                         let th4 = AP_THM (AP_TERM add_tm th3) (Choice.get <| rand tm)
                         TRANS th4 th1
@@ -470,7 +470,7 @@ let REAL_INT_ADD_CONV =
                     let th1 = 
                         INST [n, m_tm
                               p, n_tm] pth4
-                    let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| lhand(Choice.get <| lhand(concl th1))))
+                    let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th1))))
                     let th3 = AP_TERM add_tm (AP_TERM amp_tm (SYM th2))
                     let th4 = AP_THM th3 (Choice.get <| rand tm)
                     TRANS th4 th1
@@ -479,7 +479,7 @@ let REAL_INT_ADD_CONV =
                     let th1 = 
                         INST [m, m_tm
                               p, n_tm] pth5
-                    let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(concl th1)))))
+                    let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get th1)))))
                     let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
                     let th4 = AP_TERM (Choice.get <| rator tm) th3
                     TRANS th4 th1
@@ -487,7 +487,7 @@ let REAL_INT_ADD_CONV =
                 let th1 = 
                     INST [Choice.get <| rand l, m_tm
                           Choice.get <| rand r, n_tm] pth6
-                let tm1 = Choice.get <| rand(Choice.get <| rand(concl th1))
+                let tm1 = Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th1))
                 let th2 = AP_TERM amp_tm (NUM_ADD_CONV tm1)
                 TRANS th1 th2
         with

@@ -48,7 +48,7 @@ open tactics
 (* ------------------------------------------------------------------------- *)
 /// Unify free Choice.get <| variables in theorem and metavariables in goal to accept theorem.
 let UNIFY_ACCEPT_TAC mvs th (asl, w) = 
-    let insts = term_unify mvs (concl th) w
+    let insts = term_unify mvs (concl <| Choice.get th) w
     (([], insts), [], let th' = INSTANTIATE insts th in fun i [] -> INSTANTIATE i th')
     |> Choice.succeed
 
@@ -73,7 +73,7 @@ let ITAUT_TAC =
             [CONJUNCTS_THEN' ASSUME_TAC                                 (* and    *)
              DISJ_CASES_TAC                                             (* or     *)
              CHOOSE_TAC                                                 (* exists *)
-             (fun th -> ASSUME_TAC(EQ_MP (IMPLICATE(concl th)) th))     (* not    *)
+             (fun th -> ASSUME_TAC(EQ_MP (IMPLICATE(concl <| Choice.get th)) th))     (* not    *)
              (CONJUNCTS_THEN' MP_TAC << uncurry CONJ << EQ_IMP_RULE)]   (* iff    *)
         |> Option.toChoiceWithError "tryfind"
 
@@ -95,7 +95,7 @@ let ITAUT_TAC =
                                                        (Choice.get <| type_of
                                                             (fst
                                                                  (Choice.get <| dest_forall
-                                                                      (concl th))))
+                                                                      (concl <| Choice.get th))))
                                                META_SPEC_TAC gv th
                                                |> THEN <| ITAUT_TAC (gv :: mvs) (n - 2)
                                                |> THEN <| NO_TAC)))
@@ -111,7 +111,7 @@ let ITAUT_TAC =
                   |> THEN <| ITAUT_TAC (gv :: mvs) (n - 2)
                   |> THEN <| NO_TAC) gl)
              |> ORELSE <| (FIRST_ASSUM(fun th -> 
-                                   SUBGOAL_THEN (fst(Choice.get <| dest_imp(concl th))) 
+                                   SUBGOAL_THEN (fst(Choice.get <| dest_imp(concl <| Choice.get th))) 
                                        (fun ath -> ASSUME_TAC(MP th ath))
                                    |> THEN <| ITAUT_TAC mvs (n - 1)
                                    |> THEN <| NO_TAC))) gl

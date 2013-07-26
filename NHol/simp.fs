@@ -66,7 +66,7 @@ let ORDERED_REWR_CONV ord th =
     let basic_conv = REWR_CONV th
     fun tm -> 
         let thm = basic_conv tm
-        let l, r = Choice.get <| dest_eq(concl thm)
+        let l, r = Choice.get <| dest_eq(concl <| Choice.get thm)
         if ord l r
         then thm
         else failwith "ORDERED_REWR_CONV: wrong orientation"
@@ -76,7 +76,7 @@ let ORDERED_IMP_REWR_CONV ord th =
     let basic_conv = IMP_REWR_CONV th
     fun tm -> 
         let thm = basic_conv tm
-        let l, r = Choice.get <| dest_eq(Choice.get <| rand(concl thm))
+        let l, r = Choice.get <| dest_eq(Choice.get <| rand(concl <| Choice.get thm))
         if ord l r
         then thm
         else failwith "ORDERED_IMP_REWR_CONV: wrong orientation"
@@ -131,7 +131,7 @@ let term_order =
 (* ------------------------------------------------------------------------- *)
 /// Insert a theorem into a net as a (conditional) rewrite.
 let net_of_thm rep th = 
-    let tm = concl th
+    let tm = concl <| Choice.get th
     let lconsts = freesl(hyp th)
     let matchable =
         /// Tests for failure.
@@ -178,7 +178,7 @@ let net_of_conv tm conv sofar = Choice.get <| enter [] (tm, (2, conv)) sofar
 (* ------------------------------------------------------------------------- *)
 /// Add a congruence rule to a net.
 let net_of_cong th sofar = 
-    let conc, n = repeat (fun (tm, m) -> snd(Choice.get <| dest_imp tm), m + 1) (concl th, 0)
+    let conc, n = repeat (fun (tm, m) -> snd(Choice.get <| dest_imp tm), m + 1) (concl <| Choice.get th, 0)
     if n = 0
     then failwith "net_of_cong: Non-implicational congruence"
     else 
@@ -209,12 +209,12 @@ let mk_rewrites =
         else 
             let jth = itlist DISCH conds th
             let kth = CONV_RULE (REPEATC IMP_CONJ_CONV) jth
-            let cond, eqn = Choice.get <| dest_imp(concl kth)
+            let cond, eqn = Choice.get <| dest_imp(concl <| Choice.get kth)
             let fvs = 
                 subtract (subtract (frees cond) (frees eqn)) (freesl oldhyps)
             itlist IMP_EXISTS_RULE fvs kth
     let rec split_rewrites oldhyps cf th sofar = 
-        let tm = concl th
+        let tm = concl <| Choice.get th
         if is_forall tm
         then split_rewrites oldhyps cf (SPEC_ALL th) sofar
         elif is_conj tm
@@ -300,7 +300,7 @@ let basic_prover strat (Simpset(net, prover, provers, rewmaker) as ss) lev tm =
     EQT_ELIM sth
     |> Choice.bindError (fun _ ->
         let tth = 
-            tryfind (fun pr -> Choice.toOption <| apply_prover pr (Choice.get <| rand(concl sth))) provers
+            tryfind (fun pr -> Choice.toOption <| apply_prover pr (Choice.get <| rand(concl <| Choice.get sth))) provers
             |> Option.toChoiceWithError "tryfind"
         EQ_MP (SYM sth) tth)
 
@@ -359,7 +359,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                 then None
                 else 
                     let th = cnv tm
-                    let etm = concl th
+                    let etm = concl <| Choice.get th
                     if is_eq etm
                     then Choice.toOption th
                     elif lev <= 0
@@ -370,7 +370,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         |> Option.toChoiceWithError "IMP_REWRITES_CONV: Too deep"
 
     let rec RUN_SUB_CONV strat ss lev triv th = 
-        let tm = concl th
+        let tm = concl <| Choice.get th
         if is_imp tm
         then 
             let subtm = Choice.get <| lhand tm
@@ -390,8 +390,8 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             let eth' = GENL avs (mk_fun eth)
             let th' = 
                 if is_var t'
-                then INST [Choice.get <| rand(concl eth), t'] th
-                else GEN_PART_MATCH (Choice.get << lhand) th (concl eth')
+                then INST [Choice.get <| rand(concl <| Choice.get eth), t'] th
+                else GEN_PART_MATCH (Choice.get << lhand) th (concl <| Choice.get eth')
             let th'' = MP th' eth'
             RUN_SUB_CONV strat ss lev triv' th''
         elif triv
@@ -427,7 +427,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                             let gv = genvar(Choice.get <| type_of v)
                             let gbod = Choice.get <| vsubst [gv, v] bod
                             let gth = ABS gv (strat ss lev gbod)
-                            let gtm = concl gth
+                            let gtm = concl <| Choice.get gth
                             let l, r = Choice.get <| dest_eq gtm
                             let v' = Choice.get <| variant (frees gtm) v
                             let l' = Choice.get <| alpha v' l
@@ -446,7 +446,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         let pconvs = Choice.get <| lookup tm net
         try 
             let th1 = GEN_SUB_CONV DEPTH_SQCONV ss lev pconvs tm
-            let tm1 = Choice.get <| rand(concl th1)
+            let tm1 = Choice.get <| rand(concl <| Choice.get th1)
             let pconvs1 = Choice.get <| lookup tm1 net
             try 
                 TRANS th1 (IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs1 tm1)
@@ -460,7 +460,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         let th = 
             try 
                 let th1 = GEN_SUB_CONV REDEPTH_SQCONV ss lev pconvs tm
-                let tm1 = Choice.get <| rand(concl th1)
+                let tm1 = Choice.get <| rand(concl <| Choice.get th1)
                 let pconvs1 = Choice.get <| lookup tm1 net
                 try 
                     TRANS th1 
@@ -470,7 +470,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             with
             | Failure _ -> IMP_REWRITES_CONV REDEPTH_SQCONV ss lev pconvs tm
         try 
-            let th' = REDEPTH_SQCONV ss lev (Choice.get <| rand(concl th))
+            let th' = REDEPTH_SQCONV ss lev (Choice.get <| rand(concl <| Choice.get th))
             TRANS th th'
         with
         | Failure _ -> th
@@ -483,7 +483,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             with
             | Failure _ -> GEN_SUB_CONV TOP_DEPTH_SQCONV ss lev pconvs tm
         try 
-            let th2 = TOP_DEPTH_SQCONV ss lev (Choice.get <| rand(concl th1))
+            let th2 = TOP_DEPTH_SQCONV ss lev (Choice.get <| rand(concl <| Choice.get th1))
             TRANS th1 th2
         with
         | Failure _ -> th1
@@ -493,7 +493,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         try 
             let th1 = IMP_REWRITES_CONV TOP_SWEEP_SQCONV ss lev pconvs tm
             try 
-                let th2 = TOP_SWEEP_SQCONV ss lev (Choice.get <| rand(concl th1))
+                let th2 = TOP_SWEEP_SQCONV ss lev (Choice.get <| rand(concl <| Choice.get th1))
                 TRANS th1 th2
             with
             | Failure _ -> th1
@@ -690,7 +690,7 @@ let ABBREV_TAC tm =
     let th2 = SIMPLE_CHOOSE v (SIMPLE_EXISTS v (GENL vs th1))
     let th3 = PROVE_HYP (EXISTS (mk_exists(v, eq), rs) (REFL rs)) th2
     fun (asl, w as gl) -> 
-            let avoids = itlist (union << frees << concl << snd) asl (frees w)
+            let avoids = itlist (union << frees << concl << Choice.get << snd) asl (frees w)
             if mem v avoids
             then failwith "ABBREV_TAC: variable already used"
             else 
@@ -702,5 +702,5 @@ let ABBREV_TAC tm =
 /// Expand an abbreviation in the hypotheses.
 let EXPAND_TAC s = FIRST_ASSUM
                        (SUBST1_TAC << SYM 
-                        << check((=) s << fst << Choice.get << dest_var << Choice.get << rhs << concl))
+                        << check((=) s << fst << Choice.get << dest_var << Choice.get << rhs << concl << Choice.get))
                    |> THEN <| BETA_TAC

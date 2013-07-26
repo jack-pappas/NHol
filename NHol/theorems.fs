@@ -405,7 +405,7 @@ let DESTRUCT_TAC, FIX_TAC, INTRO_TAC =
         let ty = (snd << Choice.get << dest_var << fst << Choice.get << dest_forall << snd) gl
         X_GEN_TAC (mk_var(s, ty)) gl
     let OBTAIN_THEN v ttac th = 
-        let ty = (snd << Choice.get << dest_var << fst << Choice.get << dest_exists << concl) th
+        let ty = (snd << Choice.get << dest_var << fst << Choice.get << dest_exists << concl << Choice.get) th
         X_CHOOSE_THEN (mk_var(v, ty)) ttac th
     let CONJ_LIST_TAC = end_itlist(fun t1 t2 -> CONJ_TAC
                                                 |> THENL <| [t1; t2])

@@ -486,14 +486,14 @@ let INT_OF_REAL_THM =
         then mk_var(s, int_ty)
         else v
     let INT_OF_REAL_THM1 th = 
-        let newavs = subtract (frees(concl th)) (freesl(hyp th))
-        let avs, bod = strip_forall(concl th)
+        let newavs = subtract (frees(concl <| Choice.get th)) (freesl(hyp th))
+        let avs, bod = strip_forall(concl <| Choice.get th)
         let allavs = newavs @ avs
         let avs' = map int_tm_of_real_var allavs
         let avs'' = map int_of_real_var avs
         GENL avs'' (REW_RULE(SPECL avs' (GENL newavs th)))
     let rec INT_OF_REAL_THM th = 
-        if is_conj(concl th)
+        if is_conj(concl <| Choice.get th)
         then 
             CONJ (INT_OF_REAL_THM1(CONJUNCT1 th)) 
                 (INT_OF_REAL_THM1(CONJUNCT2 th))
@@ -880,7 +880,7 @@ let INT_ARITH =
     fun tm -> 
         let th0 = INST [tm, p_tm] pth
         let th1 = init_CONV(mk_neg tm)
-        let th2 = REAL_ARITH(mk_neg(Choice.get <| rand(concl th1)))
+        let th2 = REAL_ARITH(mk_neg(Choice.get <| rand(concl <| Choice.get th1)))
         EQ_MP th0 (EQ_MP (AP_TERM not_tm (SYM th1)) th2)
 
 /// Attempt to prove goal using basic algebra and linear arithmetic over the integers.
@@ -888,7 +888,7 @@ let INT_ARITH_TAC = CONV_TAC(EQT_INTRO << INT_ARITH)
 /// Attempt to prove goal using basic algebra and linear arithmetic over the integers.
 let ASM_INT_ARITH_TAC = REPEAT
                             (FIRST_X_ASSUM
-                                 (MP_TAC << check(not << is_forall << concl)))
+                                 (MP_TAC << check(not << is_forall << concl <<Choice.get)))
                         |> THEN <| INT_ARITH_TAC
 
 (* ------------------------------------------------------------------------- *)
@@ -1209,7 +1209,7 @@ let INT_ADD_CONV =
                     let th1 = 
                         INST [Choice.get <| rand(Choice.get <| rand l), m_tm
                               Choice.get <| rand(Choice.get <| rand r), n_tm] pth1
-                    let tm1 = Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(concl th1)))
+                    let tm1 = Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th1)))
                     let th2 = AP_TERM neg_tm (AP_TERM amp_tm (NUM_ADD_CONV tm1))
                     TRANS th1 th2
                 else 
@@ -1223,7 +1223,7 @@ let INT_ADD_CONV =
                         let th1 = 
                             INST [m, m_tm
                                   p, n_tm] pth2
-                        let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(concl th1))))
+                        let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get th1))))
                         let th3 = AP_TERM (Choice.get <| rator tm) (AP_TERM amp_tm (SYM th2))
                         TRANS th3 th1
                     else 
@@ -1232,7 +1232,7 @@ let INT_ADD_CONV =
                             INST [n, m_tm
                                   p, n_tm] pth3
                         let th2 = 
-                            NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(Choice.get <| lhand(concl th1)))))
+                            NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th1)))))
                         let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
                         let th4 = AP_THM (AP_TERM add_tm th3) (Choice.get <| rand tm)
                         TRANS th4 th1
@@ -1248,7 +1248,7 @@ let INT_ADD_CONV =
                     let th1 = 
                         INST [n, m_tm
                               p, n_tm] pth4
-                    let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| lhand(Choice.get <| lhand(concl th1))))
+                    let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th1))))
                     let th3 = AP_TERM add_tm (AP_TERM amp_tm (SYM th2))
                     let th4 = AP_THM th3 (Choice.get <| rand tm)
                     TRANS th4 th1
@@ -1257,7 +1257,7 @@ let INT_ADD_CONV =
                     let th1 = 
                         INST [m, m_tm
                               p, n_tm] pth5
-                    let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(concl th1)))))
+                    let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get th1)))))
                     let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
                     let th4 = AP_TERM (Choice.get <| rator tm) th3
                     TRANS th4 th1
@@ -1265,7 +1265,7 @@ let INT_ADD_CONV =
                 let th1 = 
                     INST [Choice.get <| rand l, m_tm
                           Choice.get <| rand r, n_tm] pth6
-                let tm1 = Choice.get <| rand(Choice.get <| rand(concl th1))
+                let tm1 = Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th1))
                 let th2 = AP_TERM amp_tm (NUM_ADD_CONV tm1)
                 TRANS th1 th2
         with
@@ -1446,13 +1446,13 @@ let INT_DIV_CONV, INT_REM_CONV =
                   mk_intconst y, n
                   mk_intconst k, q
                   mk_intconst l, r] pth
-        let tm0 = Choice.get <| lhand(Choice.get <| lhand(concl th0))
+        let tm0 = Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th0))
         let th1 = (LAND_CONV INT_MUL_CONV
                    |> THENC <| INT_ADD_CONV) tm0
         let th2 = MP th0 th1
-        let tm2 = Choice.get <| lhand(concl th2)
+        let tm2 = Choice.get <| lhand(concl <| Choice.get th2)
         let th3 = MP th2 (EQT_ELIM(INT_LE_CONV tm2))
-        let tm3 = Choice.get <| lhand(concl th3)
+        let tm3 = Choice.get <| lhand(concl <| Choice.get th3)
         MP th3 (EQT_ELIM((RAND_CONV INT_ABS_CONV
                           |> THENC <| INT_LT_CONV) tm3))
     (fun tm -> 
@@ -1567,25 +1567,25 @@ let INTEGER_TAC_001 =
                        |> THENC <| INT_POLYEQ_CONV) tm
             let v, th1 = 
                 try 
-                    Option.get <| find (fun v -> is_defined v (Choice.get <| lhand(Choice.get <| rand(concl th)))) vars, 
+                    Option.get <| find (fun v -> is_defined v (Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get th)))) vars, 
                     th'
                 with
                 | Failure _ -> 
-                    Option.get <| find (fun v -> is_defined v (Choice.get <| lhand(Choice.get <| rand(concl th')))) vars, 
+                    Option.get <| find (fun v -> is_defined v (Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get th')))) vars, 
                     th
             let th2 = 
-                TRANS th1 (SPECL [Choice.get <| lhs(Choice.get <| rand(concl th1))
+                TRANS th1 (SPECL [Choice.get <| lhs(Choice.get <| rand(concl <| Choice.get th1))
                                   v] <| pth())
             CONV_RULE (RAND_CONV(RAND_CONV INT_POLY_CONV)) th2
     let UNWIND_POLYS_CONV tm = 
         let vars, bod = strip_exists tm
         let cjs = conjuncts bod
         let th1 = tryfind (Choice.toOption << ISOLATE_VARIABLE vars) cjs |> Option.toChoiceWithError "tryfind"
-        let eq = Choice.get <| lhand(concl th1)
+        let eq = Choice.get <| lhand(concl <| Choice.get th1)
         let bod' = list_mk_conj(eq :: (subtract cjs [eq]))
         let th2 = CONJ_ACI_RULE(Choice.get <| mk_eq(bod, bod'))
-        let th3 = TRANS th2 (MK_CONJ th1 (REFL(Choice.get <| rand(Choice.get <| rand(concl th2)))))
-        let v = Choice.get <| lhs(Choice.get <| lhand(Choice.get <| rand(concl th3)))
+        let th3 = TRANS th2 (MK_CONJ th1 (REFL(Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th2)))))
+        let v = Choice.get <| lhs(Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get th3)))
         let vars' = (subtract vars [v]) @ [v]
         let th4 = CONV_RULE (RAND_CONV(REWR_CONV UNWIND_THM2)) (MK_EXISTS v th3)
         let IMP_RULE v v' = 
@@ -1631,7 +1631,7 @@ let INTEGER_TAC_001 =
         let rs = filter (fun t -> Choice.get <| type_of t = int_ty) (qs @ ps)
         let rs = int_ideal_cofactors rs p
         eq, zip (fst(chop_list (length qs) rs)) vars
-    let subst_in_poly i p = Choice.get <| rhs(concl(INT_POLY_CONV(Choice.get <| vsubst i p)))
+    let subst_in_poly i p = Choice.get <| rhs(concl <| Choice.get(INT_POLY_CONV(Choice.get <| vsubst i p)))
     let rec solve_idealism evs ps eqs = 
         if evs = []
         then []
@@ -1655,7 +1655,7 @@ let INTEGER_TAC_001 =
         let evs, bod = strip_exists w
         let ps = 
             mapfilter 
-                (Some << check(fun t -> Choice.get <| type_of t = int_ty) << Choice.get << lhs << concl << snd) asl
+                (Some << check(fun t -> Choice.get <| type_of t = int_ty) << Choice.get << lhs << concl <<Choice.get << snd) asl
         let cfs = solve_idealism evs ps (map (Choice.get << lhs) (conjuncts bod))
         (MAP_EVERY EXISTS_TAC (map (fun v -> rev_assocd v cfs zero_tm) evs)
          |> THEN <| REPEAT(POP_ASSUM MP_TAC)
@@ -1860,12 +1860,12 @@ let ARITH_RULE =
     | _ -> false in
   fun tm ->
     let th1 = init_conv tm in
-    let tm1 = Choice.get <| rand(concl th1) in
+    let tm1 = Choice.get <| rand(concl <| Choice.get th1) in
     let avs,bod = strip_forall tm1 in
     let nim = setify(Choice.get <| find_terms is_numimage bod) in
     let gvs = map (genvar << Choice.get << type_of) nim in
     let pths = map (fun v -> SPEC (Choice.get <| rand v) INT_POS) nim in
-    let ibod = itlist (curry mk_imp << concl) pths bod in
+    let ibod = itlist (curry mk_imp << concl <<Choice.get) pths bod in
     let gbod = Choice.get <| subst (zip gvs nim) ibod in
     let th2 = INST (zip nim gvs) (INT_ARITH gbod) in
     let th3 = GENL avs (rev_itlist (C MP) pths th2) in
@@ -1878,7 +1878,7 @@ let ARITH_TAC = CONV_TAC(EQT_INTRO << ARITH_RULE);;
 /// Tactic for proving arithmetic goals needing basic rearrangement and linear inequality
 /// reasoning only, using assumptions.
 let ASM_ARITH_TAC =
-  REPEAT(FIRST_X_ASSUM(MP_TAC << check (not << is_forall << concl))) |> THEN <|
+  REPEAT(FIRST_X_ASSUM(MP_TAC << check (not << is_forall << concl <<Choice.get))) |> THEN <|
   ARITH_TAC;;
 
 (* ------------------------------------------------------------------------- *)

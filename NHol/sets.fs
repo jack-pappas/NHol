@@ -2081,7 +2081,7 @@ let HAS_SIZE_CONV =
                        |> THENC <| BINDER_CONV EXISTS_HAS_SIZE_AND_CONV)
     fun tm -> 
         let th = HAS_SIZE_CONV tm
-        let tm' = Choice.get <| rand(concl th)
+        let tm' = Choice.get <| rand(concl <| Choice.get th)
         let evs, bod = strip_exists tm'
         if evs = []
         then th
@@ -3803,7 +3803,7 @@ let new_inductive_set =
             let tys = fst(splitlist (Choice.toOption << dest_fun_ty) (Choice.get <| type_of tm))
             f 0 tm tys
     let mk_eqin = REWR_CONV(GSYM IN) << comb_all
-    let transf conv = Choice.get << rhs << concl << conv
+    let transf conv = Choice.get << rhs << concl <<Choice.get << conv
     let remove_in_conv ptm : conv = 
         let rconv = REWR_CONV(SYM(mk_eqin ptm))
         fun tm -> 

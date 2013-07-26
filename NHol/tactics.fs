@@ -171,7 +171,7 @@ let VALID : tactic -> tactic =
             let asl', w' = dest_thm(just null_inst ths)
             let asl'', w'' = inst_goal i (asl, w)
             let maxasms = 
-                itlist (fun (_, th) -> union(insert (concl th) (hyp th))) asl'' []
+                itlist (fun (_, th) -> union(insert (concl <| Choice.get th) (hyp th))) asl'' []
             if aconv w' w'' 
                && forall (fun t -> exists (aconv t) maxasms) 
                       (subtract asl' [false_tm])
@@ -359,7 +359,7 @@ let ASSUME_TAC = LABEL_TAC ""
 
 /// Apply a theorem-tactic to the the first assumption equal to given term.
 let FIND_ASSUM : thm_tactic -> term -> tactic = 
-    fun ttac t ((asl, w) as g) -> ttac (snd(Option.get <| find (fun (_, th) -> concl th = t) asl)) g
+    fun ttac t ((asl, w) as g) -> ttac (snd(Option.get <| find (fun (_, th) -> concl <| Choice.get th = t) asl)) g
 
 /// Applies tactic generated from the first element of a goal's assumption list.
 let POP_ASSUM : thm_tactic -> tactic = 
@@ -451,7 +451,7 @@ let ACCEPT_TAC : thm_tactic =
         | [] -> INSTANTIATE_ALL i th
         | _ -> Choice.failwith  "propagate_thm: Unhandled case."
     fun th (asl, w) -> 
-        if aconv (concl th) w
+        if aconv (concl <| Choice.get th) w
         then Choice.succeed <| (null_meta, [], propagate_thm th)
         else Choice.failwith "ACCEPT_TAC"
 
@@ -466,7 +466,7 @@ let CONV_TAC : conv -> tactic =
     let t_tm = parse_term @"T"
     fun conv ((asl, w) as g) -> 
         let th = conv w
-        let tm = concl th
+        let tm = concl <| Choice.get th
         if aconv tm w then ACCEPT_TAC th g
         else 
             let l, r = Choice.get <| dest_eq tm
@@ -506,7 +506,7 @@ let ABS_TAC : tactic =
                     | [a] -> a
                     | _ -> Choice.failwith "ABS_TAC.fun1: Unhandled case."
                 let ath = ABS v (fun1 tl)
-                EQ_MP (ALPHA (concl ath) (instantiate i w)) ath)
+                EQ_MP (ALPHA (concl <| Choice.get ath) (instantiate i w)) ath)
             |> Choice.succeed
         v |> Choice.mapError (fun _ -> Exception "ABS_TAC: Failure.")
 
@@ -612,7 +612,7 @@ let MP_TAC : thm_tactic =
         | [a] -> a
         | _ -> Choice.failwith "MP_TAC.fun1: Unhandled case."
     fun thm (asl, w) -> 
-        (null_meta, [asl, mk_imp(concl thm, w)], fun i thl -> MP (fun1 thl) (INSTANTIATE_ALL i thm))
+        (null_meta, [asl, mk_imp(concl <| Choice.get thm, w)], fun i thl -> MP (fun1 thl) (INSTANTIATE_ALL i thm))
         |> Choice.succeed
 
 /// Reduces goal of equality of boolean terms to forward and backward implication.
@@ -636,7 +636,7 @@ let UNDISCH_TAC : term -> tactic =
                 match l with
                 | [a] -> a
                 | _ -> Choice.failwith "UNDISCH_TAC.fun1: Unhandled case."
-            let sthm, asl' = Option.get <| remove (fun (_, asm) -> aconv (concl asm) tm) asl
+            let sthm, asl' = Option.get <| remove (fun (_, asm) -> aconv (concl <| Choice.get asm) tm) asl
             let thm = snd sthm
             (null_meta, [asl', mk_imp(tm, w)], fun i tl -> MP (fun1 tl) (INSTANTIATE_ALL i thm))
             |> Choice.succeed
@@ -692,7 +692,7 @@ let X_GEN_TAC x' =
 
 /// Assumes a theorem, with existentially quantified variable replaced by a given witness.
 let X_CHOOSE_TAC x' xth = 
-    let xtm = concl xth
+    let xtm = concl <| Choice.get xth
     let x, bod = 
         try 
             Choice.get <| dest_exists xtm
@@ -704,7 +704,7 @@ let X_CHOOSE_TAC x' xth =
     let xth' = ASSUME pat
     fun (asl, w) -> 
         let avoids = 
-            itlist (union << frees << concl << snd) asl 
+            itlist (union << frees << concl << Choice.get << snd) asl 
                 (union (frees w) (thm_frees xth))
         if mem x' avoids
         then Choice.failwith "X_CHOOSE_TAC: invalid variable"
@@ -747,7 +747,7 @@ let GEN_TAC : tactic =
 let CHOOSE_TAC : thm_tactic = 
     fun xth g -> 
         let f = 
-            let x = fst(Choice.get <| dest_exists(concl xth))
+            let x = fst(Choice.get <| dest_exists(concl <| Choice.get xth))
             fun (asl, w) -> 
                 let avoids = 
                     itlist (union << thm_frees << snd) asl 
@@ -803,7 +803,7 @@ let DISJ_CASES_TAC : thm_tactic =
                 match l with
                 | [th1; th2] -> DISJ_CASES (INSTANTIATE_ALL i dth) th1 th2
                 | _ -> Choice.failwith "DISJ_CASES_TAC.fun1: Unhandled case."
-            let dtm = concl dth
+            let dtm = concl <| Choice.get dth
             let l, r = Choice.get <| dest_disj dtm
             let thl = ASSUME l
             let thr = ASSUME r
@@ -844,7 +844,7 @@ let MATCH_MP_TAC : thm_tactic =
     fun th -> 
         let sth = 
             try 
-                let tm = concl th
+                let tm = concl <| Choice.get th
                 let avs, bod = strip_forall tm
                 let ant, con = Choice.get <| dest_imp bod
                 let th1 = SPECL avs (ASSUME tm)
@@ -864,7 +864,7 @@ let MATCH_MP_TAC : thm_tactic =
                     | [a] -> a
                     | _ -> Choice.failwith "MATCH_MP_TAC.fun1: Unhandled case."
                 let xth = match_fun w
-                let lant = fst(Choice.get <| dest_imp(concl xth))
+                let lant = fst(Choice.get <| dest_imp(concl <| Choice.get xth))
                 (null_meta, [asl, lant], fun i tl -> MP (INSTANTIATE_ALL i xth) (fun1 tl))
                 |> Choice.succeed
             with
@@ -877,7 +877,7 @@ let MATCH_MP_TAC : thm_tactic =
 /// Applies two theorem-tactics to the corresponding conjuncts of a theorem.
 let CONJUNCTS_THEN2 : thm_tactic -> thm_tactic -> thm_tactic =
     fun ttac1 ttac2 cth ->
-        let c1,c2 = Choice.get <| dest_conj(concl cth)
+        let c1,c2 = Choice.get <| dest_conj(concl <| Choice.get cth)
         fun gl -> 
             (ttac1(ASSUME c1) |> THEN <| ttac2(ASSUME c2)) gl
             |> Choice.bind (fun (ti,gls,jfn) ->
@@ -939,9 +939,9 @@ let (IMP_RES_THEN : thm_tactical) =
 /// Splits a theorem into a list of theorems and then adds them to the assumptions.
 let STRIP_ASSUME_TAC = 
     let DISCARD_TAC th = 
-        let tm = concl th
+        let tm = concl <| Choice.get th
         fun (asl, w as g) -> 
-                if exists (fun a -> aconv tm (concl(snd a))) asl
+                if exists (fun a -> aconv tm (concl <| Choice.get(snd a))) asl
                 then ALL_TAC g
                 else Choice.failwith "DISCARD_TAC: not already present"
     
@@ -976,11 +976,11 @@ let (STRIP_TAC : tactic) =
 /// Undischarges an assumption and applies theorem-tactic to it.
 let (UNDISCH_THEN : term -> thm_tactic -> tactic) = 
     fun tm ttac (asl, w) -> 
-        let thp, asl' = Option.get <| remove (fun (_, th) -> aconv (concl th) tm) asl
+        let thp, asl' = Option.get <| remove (fun (_, th) -> aconv (concl <| Choice.get th) tm) asl
         ttac (snd thp) (asl', w)
 
 /// Applies theorem-tactic to first assumption possible, extracting assumption.
-let FIRST_X_ASSUM ttac = FIRST_ASSUM(fun th -> UNDISCH_THEN (concl th) ttac)
+let FIRST_X_ASSUM ttac = FIRST_ASSUM(fun th -> UNDISCH_THEN (concl <| Choice.get th) ttac)
 
 (* ------------------------------------------------------------------------- *)
 (* Subgoaling and freezing Choice.get <| variables (latter is especially useful now).      *)
@@ -1005,7 +1005,7 @@ let SUBGOAL_TAC s tm prfs =
 /// 'Freezes' a theorem to prevent instantiation of its free Choice.get <| variables.
 let (FREEZE_THEN : thm_tactical) = 
     fun ttac th (asl, w) -> 
-        ttac (ASSUME(concl th)) (asl, w)
+        ttac (ASSUME(concl <| Choice.get th)) (asl, w)
         |> Choice.bind (fun (meta, gl, just) ->
             (meta, gl, fun i l -> PROVE_HYP th (just i l))
             |> Choice.succeed)
@@ -1034,7 +1034,7 @@ let (X_META_EXISTS_TAC : term -> tactic) =
 /// Changes existentially quantified variable to metavariable.
 let META_EXISTS_TAC((asl, w) as gl) = 
     let v = fst(Choice.get <| dest_exists w)
-    let avoids = itlist (union << frees << concl << snd) asl (frees w)
+    let avoids = itlist (union << frees << concl << Choice.get << snd) asl (frees w)
     let v' = Choice.get <| mk_primed_var avoids v
     X_META_EXISTS_TAC v' gl
 
@@ -1092,7 +1092,7 @@ let (print_goal : goal -> unit) =
         Format.print_string(string3 n)
         Format.print_string " ["
         Format.open_hvbox 0
-        print_qterm(concl th)
+        print_qterm(concl <| Choice.get th)
         Format.close_box()
         Format.print_string "]"
         (if not(s = "")
@@ -1245,7 +1245,7 @@ let TAC_PROOF : goal * tactic -> thm =
 /// Attempts to prove a boolean term using the supplied tactic.
 let prove(t, tac) = 
     let th = TAC_PROOF(([], t), tac)
-    let t' = concl th
+    let t' = concl <| Choice.get th
     if t' = t
     then th
     else 
@@ -1318,7 +1318,7 @@ let top_realgoal() =
 /// Returns the current goal of the subgoal package.
 let top_goal() = 
     let asl, w = top_realgoal()
-    map (concl << snd) asl, w
+    map (concl << Choice.get << snd) asl, w
 
 /// Returns the theorem just proved using the subgoal package.
 let top_thm() = 

@@ -65,7 +65,7 @@ let prove_recursive_functions_exist =
         let lpats = map (strip_comb << Choice.get << lhand) spcls
         let ufns = itlist (insert << fst) lpats []
         let axth = SPEC_ALL ax
-        let exvs, axbody = strip_exists(concl axth)
+        let exvs, axbody = strip_exists(concl <| Choice.get axth)
         let axcls = conjuncts axbody
         let f = 
             fst << Choice.get << dest_const << repeat (Choice.get << rator) << Choice.get << rand << Choice.get << lhand << snd 
@@ -82,10 +82,10 @@ let prove_recursive_functions_exist =
         let urtm = list_mk_exists(urfns, tm)
         let insts = term_match [] axtm urtm
         let ixth = INSTANTIATE insts axth
-        let ixvs, ixbody = strip_exists(concl ixth)
+        let ixvs, ixbody = strip_exists(concl <| Choice.get ixth)
         let ixtm = Choice.get <| subst (zip urfns ixvs) ixbody
         let ixths = CONJUNCTS(ASSUME ixtm)
-        let rixths = map (fun t -> Option.get <| find (aconv t << concl) ixths) rawcls
+        let rixths = map (fun t -> Option.get <| find (aconv t << concl << Choice.get) ixths) rawcls
         let rixth = itlist SIMPLE_EXISTS ufns (end_itlist CONJ rixths)
         PROVE_HYP ixth (itlist SIMPLE_CHOOSE urfns rixth)
     let canonize t = 
@@ -105,7 +105,7 @@ let prove_recursive_functions_exist =
         let aths = CONJUNCTS(ASSUME atm)
         let rth = end_itlist CONJ (map2 PROVE_HYP aths ths)
         let eth = prove_raw_recursive_functions_exist ax atm
-        let evs = fst(strip_exists(concl eth))
+        let evs = fst(strip_exists(concl <| Choice.get eth))
         PROVE_HYP eth (itlist SIMPLE_CHOOSE evs (itlist SIMPLE_EXISTS evs rth))
     let reshuffle fn args acc = 
         let args' = uncurry (C (@)) (partition is_var args)
@@ -134,10 +134,10 @@ let prove_recursive_functions_exist =
         let uxargs = map (fun x -> assoc x lpats |> Option.getOrFailWith "find") ufns
         let trths = itlist2 reshuffle ufns uxargs []
         let tth = GEN_REWRITE_CONV REDEPTH_CONV (BETA_THM :: trths) tm
-        let eth = prove_canon_recursive_functions_exist ax (Choice.get <| rand(concl tth))
-        let evs, ebod = strip_exists(concl eth)
+        let eth = prove_canon_recursive_functions_exist ax (Choice.get <| rand(concl <| Choice.get tth))
+        let evs, ebod = strip_exists(concl <| Choice.get eth)
         let fth = itlist SIMPLE_EXISTS ufns (EQ_MP (SYM tth) (ASSUME ebod))
-        let gth = itlist scrub_def (map concl trths) fth
+        let gth = itlist scrub_def (map (concl << Choice.get) trths) fth
         PROVE_HYP eth (itlist SIMPLE_CHOOSE evs gth)
 
 (* ------------------------------------------------------------------------- *)
@@ -148,7 +148,7 @@ let new_recursive_definition =
     let the_recursive_definitions = ref []
     let find_redefinition tm th = 
         let th' = PART_MATCH I th tm
-        ignore(PART_MATCH I th' (concl th))
+        ignore(PART_MATCH I th' (concl <| Choice.get th))
         th'
     fun ax tm -> 
         try 
@@ -165,7 +165,7 @@ let new_recursive_definition =
             let fvs = map (fun t -> subtract (frees t) ufns) rawcls
             let gcls = map2 (curry list_mk_forall) fvs rawcls
             let eth = prove_recursive_functions_exist ax (list_mk_conj gcls)
-            let evs, bod = strip_exists(concl eth)
+            let evs, bod = strip_exists(concl <| Choice.get eth)
             let dth = new_specification (map (fst << Choice.get << dest_var) evs) eth
             let dths = map2 SPECL fvs (CONJUNCTS dth)
             let th = end_itlist CONJ dths

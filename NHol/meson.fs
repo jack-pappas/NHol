@@ -632,7 +632,7 @@ let GEN_MESON_TAC =
                 mk_contraposes (n + 1) th (used @ [h]) t (nw :: sofar)
         let fol_of_hol_clause th = 
             let lconsts = freesl(hyp th)
-            let tm = concl th
+            let tm = concl <| Choice.get th
             let hlits = disjuncts tm
             let flits = map (fol_of_literal [] lconsts) hlits
             let basics = mk_contraposes 0 th [] flits []
@@ -671,7 +671,7 @@ let GEN_MESON_TAC =
         let memory = ref []
         let clear_contrapos_cache() = memory := []
         let make_hol_contrapos(n, th) = 
-            let tm = concl th
+            let tm = concl <| Choice.get th
             let key = (n, tm)
             match assoc key !memory with
             | Some x -> x
@@ -723,7 +723,7 @@ let GEN_MESON_TAC =
                     then cth
                     else MATCH_MP cth (end_itlist CONJ ths)
             let ith = PART_MATCH I hth hol_g
-            finish_RULE(DISCH (hol_negate(concl ith)) ith)
+            finish_RULE(DISCH (hol_negate(concl <| Choice.get ith)) ith)
         meson_to_hol
     (* ----------------------------------------------------------------------- *)
     (* Create equality axioms for all the function and predicate symbols in    *)
@@ -741,7 +741,7 @@ let GEN_MESON_TAC =
                                                |> THEN <| CONV_TAC TAUT)
         let imp_elim_CONV = REWR_CONV(TAUT(parse_term @"(a ==> b) <=> ~a \/ b"))
         let eq_elim_RULE = MATCH_MP(TAUT(parse_term @"(a <=> b) ==> b \/ ~a"))
-        let veq_tm = Choice.get <| rator(Choice.get <| rator(concl(hd eq_thms)))
+        let veq_tm = Choice.get <| rator(Choice.get <| rator(concl <| Choice.get(hd eq_thms)))
         let create_equivalence_axioms(eq, _) = 
             let tyins = Choice.get <| type_match (Choice.get <| type_of veq_tm) (Choice.get <| type_of eq) []
             map (INST_TYPE tyins) eq_thms
@@ -823,7 +823,7 @@ let GEN_MESON_TAC =
                 let pcongs = map (create_congruence_axiom true) noneqs
                 let fcongs = map (create_congruence_axiom false) funs
                 let preds1, _ = 
-                    itlist fm_consts (map concl (pcongs @ fcongs)) ([], [])
+                    itlist fm_consts (map (concl << Choice.get) (pcongs @ fcongs)) ([], [])
                 let eqs1 = 
                     filter (fun (t, _) -> is_const t && fst(Choice.get <| dest_const t) = "=") 
                         preds1
@@ -867,7 +867,7 @@ let GEN_MESON_TAC =
                 BRAND tms' th'
         let BRAND_CONGS th = 
             let lconsts = freesl(hyp th)
-            let lits = disjuncts(concl th)
+            let lits = disjuncts(concl <| Choice.get th)
             let atoms = 
                 map (fun t -> 
                         try 
@@ -887,16 +887,16 @@ let GEN_MESON_TAC =
             let sts = sort (fun s t -> not(free_in s t)) uts
             BRAND sts th
         let BRANDE th = 
-            let tm = concl th
+            let tm = concl <| Choice.get th
             let l, r = Choice.get <| dest_eq tm
             let gv = genvar(Choice.get <| type_of l)
             let eq = Choice.get <| mk_eq(r, gv)
             CLAUSIFY(DISCH eq (EQ_MP (AP_TERM (Choice.get <| rator tm) (ASSUME eq)) th))
         let LDISJ_CASES th lth rth = 
-            DISJ_CASES th (DISJ1 lth (concl rth)) (DISJ2 (concl lth) rth)
+            DISJ_CASES th (DISJ1 lth (concl <| Choice.get rth)) (DISJ2 (concl <| Choice.get lth) rth)
         let ASSOCIATE = CONV_RULE(REWR_CONV(GSYM DISJ_ASSOC))
         let rec BRAND_TRANS th = 
-            let tm = concl th
+            let tm = concl <| Choice.get th
             try 
                 let l, r = Choice.get <| dest_disj tm
                 if is_eq l
@@ -925,7 +925,7 @@ let GEN_MESON_TAC =
                     with
                     | Failure _ -> false)
         let REFLEXATE ths = 
-            let eqs = itlist (union << find_eqs << concl) ths []
+            let eqs = itlist (union << find_eqs << concl << Choice.get) ths []
             let tys = map (hd << snd << Choice.get << dest_type << snd << Choice.get << dest_const) eqs
             let gvs = map genvar tys
             itlist (fun v acc -> (REFL v) :: acc) gvs ths
@@ -934,7 +934,7 @@ let GEN_MESON_TAC =
             let can f x = 
                 try f x |> ignore; true
                 with Failure _ -> false
-            if exists (can(Choice.get << find_term is_eq << concl)) ths
+            if exists (can(Choice.get << find_term is_eq << concl << Choice.get)) ths
             then 
                 let ths' = map BRAND_CONGS ths
                 let ths'' = itlist (union' equals_thm << BRAND_TRANS) ths' []
@@ -972,12 +972,12 @@ let GEN_MESON_TAC =
             else failwith "match_consts"
         let polymorph mconsts th = 
             let tvs = 
-                subtract (Choice.get <| type_vars_in_term(concl th)) 
+                subtract (Choice.get <| type_vars_in_term(concl <| Choice.get th)) 
                     (unions(map (Choice.get << type_vars_in_term) (hyp th)))
             if tvs = []
             then [th]
             else 
-                let pconsts = grab_constants (concl th) []
+                let pconsts = grab_constants (concl <| Choice.get th) []
                 let tyins = 
                     mapfilter (Some << match_consts)
                         (allpairs (fun x y -> x, y) pconsts mconsts)
@@ -994,10 +994,10 @@ let GEN_MESON_TAC =
             then acc
             else 
                 let ths' = polymorph mconsts (hd ths)
-                let mconsts' = itlist grab_constants (map concl ths') mconsts
+                let mconsts' = itlist grab_constants (map (concl << Choice.get) ths') mconsts
                 polymorph_all mconsts' (tl ths) (union' equals_thm ths' acc)
         fun ths (asl, w as gl) ->
-                let mconsts = itlist (grab_constants << concl << snd) asl []
+                let mconsts = itlist (grab_constants << concl << Choice.get << snd) asl []
                 let ths' = polymorph_all mconsts ths []
                 MAP_EVERY ASSUME_TAC ths' gl
     (* ----------------------------------------------------------------------- *)
@@ -1013,7 +1013,7 @@ let GEN_MESON_TAC =
         let ths' = 
             if !meson_brand
             then perform_brand_modification ths
-            else ths @ create_equality_axioms(map concl ths)
+            else ths @ create_equality_axioms(map (concl << Choice.get) ths)
         let rules = optimize_rules(fol_of_hol_clauses ths')
         let proof, (insts, _, _) = 
             solve_goal rules (!meson_depth) min max inc (1, [])
@@ -1044,7 +1044,7 @@ let GEN_MESON_TAC =
     fun min max step ths -> 
         REFUTE_THEN ASSUME_TAC
         |> THEN <| POLY_ASSUME_TAC(map GEN_ALL ths)
-        |> THEN <| W(MAP_EVERY(UNDISCH_TAC << concl << snd) << fst)
+        |> THEN <| W(MAP_EVERY(UNDISCH_TAC << concl << Choice.get << snd) << fst)
         |> THEN <| SELECT_ELIM_TAC
         |> THEN <| W(fun (asl, w) -> MAP_EVERY (fun v -> SPEC_TAC(v, v)) (frees w))
         |> THEN <| CONV_TAC(PRESIMP_CONV
@@ -1066,7 +1066,7 @@ let GEN_MESON_TAC =
         <| RULE_ASSUM_TAC
                (repeat
                     (fun th -> 
-                        SPEC (genvar(Choice.get <| type_of(fst(Choice.get <| dest_forall(concl th))))) th))
+                        SPEC (genvar(Choice.get <| type_of(fst(Choice.get <| dest_forall(concl <| Choice.get th))))) th))
         |> THEN <| REPEAT(FIRST_X_ASSUM(CONJUNCTS_THEN' ASSUME_TAC))
         |> THEN <| RULE_ASSUM_TAC(CONV_RULE(ASSOC_CONV DISJ_ASSOC))
         |> THEN <| REPEAT(FIRST_X_ASSUM SUBST_VAR_TAC)

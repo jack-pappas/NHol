@@ -240,7 +240,7 @@ let (INDUCT_TAC : tactic) =
                  |> THEN <| DISCH_TAC]
 
 let num_RECURSION = 
-    let avs = fst(strip_forall(concl num_Axiom))
+    let avs = fst(strip_forall(concl <| Choice.get num_Axiom))
     GENL avs (EXISTENCE(SPECL avs num_Axiom))
 
 let num_CASES = 
@@ -321,7 +321,7 @@ let new_specification =
         let th0 = CONV_RULE (REWR_CONV SKOLEM_THM) (GEN gv th)
         let th1 = CONV_RULE (RATOR_CONV(REWR_CONV EXISTS_THM)
                              |> THENC <| BETA_CONV) th0
-        let l, r = Choice.get <| dest_comb(concl th1)
+        let l, r = Choice.get <| dest_comb(concl <| Choice.get th1)
         let rn = Choice.get <| mk_comb(r, ntm)
         let ty = Choice.get <| type_of rn
         let th2 = new_definition(Choice.get <| mk_eq(mk_var(name, ty), rn))
@@ -355,7 +355,7 @@ let new_specification =
                             (Option.get <| find 
                                  (fun ((names', th'), sth') ->
                                          names' = names 
-                                         && aconv (concl th') (concl th)) 
+                                         && aconv (concl <| Choice.get th') (concl <| Choice.get th)) 
                                  (!the_specifications))
                     warn true ("Benign respecification")
                     sth

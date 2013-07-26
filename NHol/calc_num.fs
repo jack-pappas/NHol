@@ -349,7 +349,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
                     let btm,ntm = Choice.get <| dest_comb otm in
                     if btm = bit0_tm then INST [ntm,n_tm] sth_0 else
                     let th = INST [ntm,n_tm] sth_1 in
-                    let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl th)) in
+                    let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
                     TRANS th (AP_TERM ltm (raw_suc_conv rtm)) in
                   let rec raw_add_conv tm =
                     let atm,rtm = Choice.get <| dest_comb tm in
@@ -361,54 +361,54 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
                     if lbit = bit0_tm then
                        if rbit = bit0_tm then
                           let th = INST [larg,m_tm; rarg,n_tm] ath_00 in
-                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl th)) in
+                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
                           TRANS th (AP_TERM ltm (raw_add_conv rtm))
                        else
                           let th = INST [larg,m_tm; rarg,n_tm] ath_01 in
-                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl th)) in
+                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
                           TRANS th (AP_TERM ltm (raw_add_conv rtm))
                     else
                        if rbit = bit0_tm then
                           let th = INST [larg,m_tm; rarg,n_tm] ath_10 in
-                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl th)) in
+                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
                           TRANS th (AP_TERM ltm (raw_add_conv rtm))
                        else
                           let th = INST [larg,m_tm; rarg,n_tm] ath_11 in
-                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl th)) in
+                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
                           TRANS th (AP_TERM ltm (raw_adc_conv rtm))
                   and raw_adc_conv tm =
                     let atm,rtm = Choice.get <| dest_comb(Choice.get <| rand tm) in
                     let ltm = Choice.get <| rand atm in
                     if ltm = zero_tm then
                        let th = INST [rtm,n_tm] cth_0x in
-                       TRANS th (raw_suc_conv (Choice.get <| rand(concl th)))
+                       TRANS th (raw_suc_conv (Choice.get <| rand(concl <| Choice.get th)))
                     else if rtm = zero_tm then
                        let th = INST [ltm,n_tm] cth_x0 in
-                       TRANS th (raw_suc_conv (Choice.get <| rand(concl th)))
+                       TRANS th (raw_suc_conv (Choice.get <| rand(concl <| Choice.get th)))
                     else
                        let lbit,larg = Choice.get <| dest_comb ltm
                        let rbit,rarg = Choice.get <| dest_comb rtm in
                        if lbit = bit0_tm then
                           if rbit = bit0_tm then
                              let th = INST [larg,m_tm; rarg,n_tm] cth_00 in
-                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl th)) in
+                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
                              TRANS th (AP_TERM ltm (raw_add_conv rtm))
                           else
                              let th = INST [larg,m_tm; rarg,n_tm] cth_01 in
-                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl th)) in
+                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
                              TRANS th (AP_TERM ltm (raw_adc_conv rtm))
                        else
                           if rbit = bit0_tm then
                              let th = INST [larg,m_tm; rarg,n_tm] cth_10 in
-                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl th)) in
+                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
                              TRANS th (AP_TERM ltm (raw_adc_conv rtm))
                           else
                              let th = INST [larg,m_tm; rarg,n_tm] cth_11 in
-                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl th)) in
+                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
                              TRANS th (AP_TERM ltm (raw_adc_conv rtm)) in
                   let NUM_SUC_CONV tm =
                     let th = INST [Choice.get <| rand(Choice.get <| rand tm),n_tm] pth_suc in
-                    let ctm = concl th in
+                    let ctm = concl <| Choice.get th in
                     if Choice.get <| lhand ctm <> tm then failwith "NUM_SUC_CONV" else
                     let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand ctm) in
                     TRANS th (AP_TERM ltm (raw_suc_conv rtm))
@@ -416,9 +416,9 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
                     let atm,rtm = Choice.get <| dest_comb tm in
                     let ltm = Choice.get <| rand atm in
                     let th = INST [Choice.get <| rand ltm,m_tm; Choice.get <| rand rtm,n_tm] pth_add in
-                    let ctm = concl th in
+                    let ctm = concl <| Choice.get th in
                     if Choice.get <| lhand ctm <> tm then failwith "NUM_ADD_CONV" else
-                    let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl th)) in
+                    let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
                     TRANS th (AP_TERM ltm (raw_add_conv rtm)) in
                   NUM_SUC_CONV,raw_add_conv,NUM_ADD_CONV
               | _ -> failwith "cths: Unhandled case."
@@ -543,7 +543,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
         | Failure _ -> 
           try
             let th1 = NUM_MULT_EVEN_CONV' tm in
-            let l,r = Choice.get <| dest_comb(Choice.get <| rand(concl th1)) in
+            let l,r = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1)) in
             TRANS th1 (AP_TERM l (NUM_MULT_CONV' r))
           with 
           | Failure _ ->
@@ -605,22 +605,22 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
               ztm,z_tm; utm',u_tm'; wtm',w_tm'; atm,a_tm; btm,b_tm; ctm,c_tm;
               dtm,d_tm; etm,e_tm; ctm',c_tm'; dtm',d_tm'; etm',e_tm'; stm,s_tm;
               ttm,t_tm; qtm,q_tm; rtm,r_tm] pth in
-           let th1 = MP th0 (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl th0)))) in
-           let th2 = MP th1 (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl th1)))) in
-           let th3 = MP th2 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl th2)))) in
-           let th4 = MP th3 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl th3)))) in
-           let th5 = MP th4 (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl th4)))) in
-           let th6 = MP th5 (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl th5)))) in
-           let th7 = MP th6 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl th6)))) in
-           let th8 = MP th7 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl th7)))) in
-           let th9 = MP th8 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl th8)))) in
-           let tha = MP th9 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl th9)))) in
-           let thb = MP tha (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl tha)))) in
-           let thc = MP thb (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl thb)))) in
-           let thd = MP thc (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl thc)))) in
-           let the = MP thd (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl thd)))) in
-           let thf = MP the (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl the)))) in
-           MP thf (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl thf))))
+           let th1 = MP th0 (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th0)))) in
+           let th2 = MP th1 (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th1)))) in
+           let th3 = MP th2 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th2)))) in
+           let th4 = MP th3 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th3)))) in
+           let th5 = MP th4 (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th4)))) in
+           let th6 = MP th5 (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th5)))) in
+           let th7 = MP th6 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th6)))) in
+           let th8 = MP th7 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th7)))) in
+           let th9 = MP th8 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th8)))) in
+           let tha = MP th9 (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th9)))) in
+           let thb = MP tha (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get tha)))) in
+           let thc = MP thb (NUM_MULT_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get thb)))) in
+           let thd = MP thc (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get thc)))) in
+           let the = MP thd (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get thd)))) in
+           let thf = MP the (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get the)))) in
+           MP thf (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get thf))))
       and NUM_MULT_RIGHT_CONV' tm =
          (RIGHT_REWR_CONV |>THENC<|
           (RAND_CONV(RAND_CONV NUM_MULT_CONV')) |>THENC<|
@@ -673,23 +673,23 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
         let b,r' = Choice.get <| dest_comb r in
         if b = BIT0 then
           let th1 = NUM_EXP_CONV l r' in
-          let tm1 = Choice.get <| rand(concl th1) in
+          let tm1 = Choice.get <| rand(concl <| Choice.get th1) in
           let th2 = NUM_MULT_CONV' (Choice.get <| mk_binop mul tm1 tm1) in
-          let tm2 = Choice.get <| rand(concl th2) in
+          let tm2 = Choice.get <| rand(concl <| Choice.get th2) in
           MP (MP (INST [l,x; r',n; tm1,y; tm2,z] pth0) th1) th2
         else
           let th1 = NUM_EXP_CONV l r' in
-          let tm1 = Choice.get <| rand(concl th1) in
+          let tm1 = Choice.get <| rand(concl <| Choice.get th1) in
           let th2 = NUM_MULT_CONV' (Choice.get <| mk_binop mul tm1 tm1) in
-          let tm2 = Choice.get <| rand(concl th2) in
+          let tm2 = Choice.get <| rand(concl <| Choice.get th2) in
           let th3 = NUM_MULT_CONV' (Choice.get <| mk_binop mul l tm2) in
-          let tm3 = Choice.get <| rand(concl th3) in
+          let tm3 = Choice.get <| rand(concl <| Choice.get th3) in
           MP (MP (MP (INST [l,x; r',n; tm1,y; tm2,w; tm3,z] pth1) th1) th2) th3 in
       fun tm -> try let th = tconv tm in
-                    let lop,r = Choice.get <| dest_comb (Choice.get <| rand(concl th)) in
+                    let lop,r = Choice.get <| dest_comb (Choice.get <| rand(concl <| Choice.get th)) in
                     let _,l = Choice.get <| dest_comb lop in
                     let th' = NUM_EXP_CONV l r in
-                    let tm' = Choice.get <| rand(concl th') in
+                    let tm' = Choice.get <| rand(concl <| Choice.get th') in
                     TRANS (TRANS th th') (INST [tm',x] fth)
                 with Failure _ as e ->
                     nestedFailwith e "NUM_EXP_CONV" in
@@ -768,10 +768,10 @@ let NUM_DIV_CONV,NUM_MOD_CONV =
       let l = mod_num x y in
       let th0 = INST [mk_numeral x,m; mk_numeral y,n;
                       mk_numeral k,q; mk_numeral l,r] pth in
-      let tm0 = Choice.get <| lhand(Choice.get <| lhand(concl th0)) in
+      let tm0 = Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th0)) in
       let th1 = (LAND_CONV NUM_MULT_CONV |>THENC<| NUM_ADD_CONV) tm0 in
       let th2 = MP th0 th1 in
-      let tm2 = Choice.get <| lhand(concl th2) in
+      let tm2 = Choice.get <| lhand(concl <| Choice.get th2) in
       MP th2 (EQT_ELIM(NUM_LT_CONV tm2)) in
     (fun tm -> try let xt,yt = Choice.get <| dest_binop dtm tm in
                    CONJUNCT1(NUM_DIVMOD_CONV (Choice.get <| dest_numeral xt) (Choice.get <| dest_numeral yt))
@@ -803,12 +803,12 @@ let NUM_FACT_CONV =
     let rec NUM_FACT_CONV n =
       if n = Int 0 then pth_0 else
       let th0 = mksuc n in
-      let tmx = Choice.get <| rand(Choice.get <| lhand(concl th0)) in
-      let tm0 = Choice.get <| rand(concl th0) in
+      let tmx = Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get th0)) in
+      let tm0 = Choice.get <| rand(concl <| Choice.get th0) in
       let th1 = NUM_FACT_CONV (n - Int 1) in
-      let tm1 = Choice.get <| rand(concl th1) in
+      let tm1 = Choice.get <| rand(concl <| Choice.get th1) in
       let th2 = NUM_MULT_CONV (Choice.get <| mk_binop mul tm0 tm1) in
-      let tm2 = Choice.get <| rand(concl th2) in
+      let tm2 = Choice.get <| rand(concl <| Choice.get th2) in
       let pth = INST [tmx,x; tm0, y; tm1,w; tm2,z] pth_suc in
       MP (MP (MP pth th0) th1) th2 in
     fun tm ->

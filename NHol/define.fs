@@ -443,7 +443,7 @@ let WF_REC_CASES =
             clauses
         ==> ?f:A->B. !x. f x = CASEWISE clauses f x"),
   REPEAT STRIP_TAC |>THEN<| MATCH_MP_TAC WF_REC_TAIL_GENERAL' |>THEN<|
-  FIRST_X_ASSUM(MP_TAC << check(is_binary "ALL" << concl)) |>THEN<|
+  FIRST_X_ASSUM(MP_TAC << check(is_binary "ALL" << concl <<Choice.get)) |>THEN<|
   SPEC_TAC((parse_term @"clauses:((P->A)#((A->B)->P->B))list"),
            (parse_term @"clauses:((P->A)#((A->B)->P->B))list")) |>THEN<|
   ASM_REWRITE_TAC[] |>THEN<| POP_ASSUM(K ALL_TAC) |>THEN<|
@@ -509,7 +509,7 @@ let RECURSION_CASEWISE_PAIRWISE =
    prove ((parse_term @"(\x. P x) = (\(a,b). P (a,b))"), REWRITE_TAC[FUN_EQ_THM; FORALL_PAIR_THM])
   let pth = 
    REWRITE_RULE[FORALL_PAIR_THM; paired_lambda] (ISPEC (parse_term @"\(s,t) (s',t'). !c x:A y:A. (s x = s' y) ==> (t c x = t' c y)") lemma)
-  let cth = prove(Choice.get <| lhand(concl pth),MESON_TAC[])
+  let cth = prove(Choice.get <| lhand(concl <| Choice.get pth),MESON_TAC[])
   REWRITE_TAC[GSYM(MATCH_MP pth cth); RIGHT_IMP_FORALL_THM] |>THEN<|
   REWRITE_TAC[RECURSION_CASEWISE])
 
@@ -583,7 +583,7 @@ let instantiate_casewise_recursion,
         let avs,bod = strip_forall tm
         let ant,cons = Choice.get <| dest_imp bod
         let ath = RECTYPE_ARITH_EQ_CONV ant
-        let atm = Choice.get <| rand(concl ath)
+        let atm = Choice.get <| rand(concl <| Choice.get ath)
         let bth = 
          CONJ ath (if atm = false_tm then REFL cons
                     else DISCH atm
@@ -846,12 +846,12 @@ let instantiate_casewise_recursion,
         (LAND_CONV << LAND_CONV << BINDER_CONV << RAND_CONV << LAND_CONV <<
          GABS_CONV << RATOR_CONV << LAND_CONV << ABS_CONV)
       let th0 = UNDISCH(CONV_RULE(FIDDLE_CONV(LAMBDA_PAIR_CONV parms)) pth)
-      let th1 = EQ_MP (GEN_ALPHA_CONV f (concl th0)) th0
+      let th1 = EQ_MP (GEN_ALPHA_CONV f (concl <| Choice.get th0)) th0
       let rewr_forall_th = REWR_CONV(FORALL_PAIR_CONV parm parms)
       let th2 = CONV_RULE (BINDER_CONV
                     (LAND_CONV(GABS_CONV rewr_forall_th) |>THENC<|
                      EXPAND_PAIRED_ALL_CONV)) th1
-      let f2,bod2 = Choice.get <| dest_exists(concl th2)
+      let f2,bod2 = Choice.get <| dest_exists(concl <| Choice.get th2)
       let ths3 = 
         map (CONV_RULE (COMB2_CONV (funpow 2 RAND_CONV GEN_BETA_CONV) (RATOR_CONV BETA_CONV |>THENC<| GEN_BETA_CONV)) << SPEC_ALL) (CONJUNCTS(ASSUME bod2))
       let ths4 = 
@@ -884,7 +884,7 @@ let instantiate_casewise_recursion,
   let pure_prove_recursive_function_exists =
     let break_down_admissibility th1 =
       if hyp th1 = [] then th1 else
-      let def = concl th1
+      let def = concl <| Choice.get th1
       let f,bod = Choice.get <| dest_exists def
       let cjs = conjuncts bod
       let eqs = map (snd << strip_forall) cjs
@@ -912,13 +912,13 @@ let instantiate_casewise_recursion,
         W(fun (asl,w) -> ACCEPT_TAC(ASSUME w))
       let th2 = prove(bod,SIMP_ADMISS_TAC)
       let th3 = SIMPLE_EXISTS ord th2
-      let allasms = hyp th3 in let wfasm = Choice.get <| lhand(concl th2)
+      let allasms = hyp th3 in let wfasm = Choice.get <| lhand(concl <| Choice.get th2)
       let th4 = ASSUME(list_mk_conj(wfasm::subtract allasms [wfasm]))
       let th5 = SIMPLE_CHOOSE ord (itlist PROVE_HYP (CONJUNCTS th4) th3)
       PROVE_HYP th5 th1
     fun dtm ->
       let th =  break_down_admissibility(instantiate_casewise_recursion dtm)
-      if concl th = dtm then th
+      if concl <| Choice.get th = dtm then th
       else failwith "prove_general_recursive_function_exists: sanity" in
 
 (* ------------------------------------------------------------------------- *)
@@ -932,9 +932,9 @@ let instantiate_casewise_recursion,
         let _,_,sth =
             assoc tyname (!inductive_type_store)
             |> Option.getOrFailWith "find"
-        let ty,zty = Choice.get <| dest_fun_ty (Choice.get <| type_of(fst(Choice.get <| dest_exists(snd(strip_forall(concl sth))))))
+        let ty,zty = Choice.get <| dest_fun_ty (Choice.get <| type_of(fst(Choice.get <| dest_exists(snd(strip_forall(concl <| Choice.get sth))))))
         let rth = INST_TYPE [num_ty,zty] sth
-        let avs,bod = strip_forall(concl rth)
+        let avs,bod = strip_forall(concl <| Choice.get rth)
         let ev,cbod = Choice.get <| dest_exists bod
         let process_clause k t =
           let avs,eq = strip_forall t
@@ -952,7 +952,7 @@ let instantiate_casewise_recursion,
       let ev,bod = Choice.get <| dest_exists w
       let ty = fst(Choice.get <| dest_type(fst(Choice.get <| dest_fun_ty(Choice.get <| type_of ev))))
       let th = prove_depth_measure_exists ty
-      let ev',bod' = Choice.get <| dest_exists(concl th)
+      let ev',bod' = Choice.get <| dest_exists(concl <| Choice.get th)
       let th' = INST_TYPE(Choice.get <| type_match (Choice.get <| type_of ev') (Choice.get <| type_of ev) []) th
       (MP_TAC th' |>THEN<| MATCH_MP_TAC MONO_EXISTS |>THEN<|
        GEN_TAC |>THEN<| DISCH_THEN(fun th -> REWRITE_TAC[th]) |>THEN<| tac) (asl,w)
@@ -1050,7 +1050,7 @@ let define =
     let tm' = snd(strip_forall tm)
     try let th,th' = tryfind (fun th -> Some (th,PART_MATCH I th tm')) (!the_definitions)
                      |> Option.getOrFailWith "tryfind"
-        if can (PART_MATCH I th') (concl th) then
+        if can (PART_MATCH I th') (concl <| Choice.get th) then
          (warn true "Benign redefinition"; th')
         else failwith ""
     with Failure _ ->

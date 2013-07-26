@@ -297,9 +297,9 @@ let GEN_REAL_ARITH_001 =
     let MATCH_MP_RULE th = 
         let net = 
             itlist 
-                (fun th -> net_of_conv (Choice.get <| lhand(concl th)) (PART_MATCH (Choice.get << lhand) th)) 
+                (fun th -> net_of_conv (Choice.get <| lhand(concl <| Choice.get th)) (PART_MATCH (Choice.get << lhand) th)) 
                 (CONJUNCTS th) empty_net
-        fun th -> MP (REWRITES_CONV net (concl th)) th
+        fun th -> MP (REWRITES_CONV net (concl <| Choice.get th)) th
     let x_tm = (parse_term @"x:real")
     let y_tm = (parse_term @"y:real")
     let neg_tm = (parse_term @"(--):real->real")
@@ -345,7 +345,7 @@ let GEN_REAL_ARITH_001 =
                                                   r, y_tm] pth
                                         TRANS th 
                                             (LAND_CONV POLY_CONV 
-                                                 (Choice.get <| rand(concl th))) 
+                                                 (Choice.get <| rand(concl <| Choice.get th))) 
 
                                     let REAL_LT_CONV, REAL_LE_CONV, REAL_GT_CONV, REAL_GE_CONV, REAL_EQ_CONV, REAL_NOT_LT_CONV, REAL_NOT_LE_CONV, REAL_NOT_GT_CONV, REAL_NOT_GE_CONV =
                                         let realEqFuncs = map REAL_INEQ_CONV (CONJUNCTS pth)
@@ -364,7 +364,7 @@ let GEN_REAL_ARITH_001 =
                                             let th_p = 
                                                 POLY_CONV
                                                     (Choice.get <| lhand
-                                                         (Choice.get <| lhand(Choice.get <| rand(concl th))))
+                                                         (Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get th))))
                                             let th_x = AP_TERM neg_tm th_p
                                             let th_n = 
                                                 CONV_RULE 
@@ -505,14 +505,14 @@ let GEN_REAL_ARITH_001 =
                                         match ths with
                                         | [] -> 
                                             let eq, ne = 
-                                                partition (is_req << concl) dun
+                                                partition (is_req << concl <<Choice.get) dun
                                             let le, nl = 
-                                                partition (is_ge << concl) ne
-                                            let lt = filter (is_gt << concl) nl
+                                                partition (is_ge << concl <<Choice.get) ne
+                                            let lt = filter (is_gt << concl <<Choice.get) nl
                                             prover hol_of_positivstellensatz 
                                                 (eq, le, lt)
                                         | th :: oths -> 
-                                            let tm = concl th
+                                            let tm = concl <| Choice.get th
                                             if is_conj tm
                                             then 
                                                 let th1, th2 = CONJ_PAIR th
@@ -547,7 +547,7 @@ let GEN_REAL_ARITH_001 =
                                                      <| BINOP_CONV absremover)) 
                                                 t
                                         let th0 = init_conv(mk_neg tm)
-                                        let tm0 = Choice.get <| rand(concl th0)
+                                        let tm0 = Choice.get <| rand(concl <| Choice.get th0)
                                         let th = 
                                             if tm0 = false_tm
                                             then fst(EQ_IMP_RULE th0)
@@ -563,7 +563,7 @@ let GEN_REAL_ARITH_001 =
                                                         [SPECL avs 
                                                              (ASSUME
                                                                   (Choice.get <| rand
-                                                                       (concl 
+                                                                       (concl <| Choice.get 
                                                                             th1)))]
                                                 let th3 = 
                                                     itlist SIMPLE_CHOOSE evs 
@@ -713,9 +713,9 @@ let REAL_LINEAR_PROVER =
     let n_tm = (parse_term @"n:num")
     let pth = REWRITE_RULE [GSYM real_ge] (SPEC n_tm REAL_POS)
     fun translator (eq, le, lt) -> 
-        let eq_pols = map (lin_of_hol << Choice.get << lhand << concl) eq
-        let le_pols = map (lin_of_hol << Choice.get << lhand << concl) le
-        let lt_pols = map (lin_of_hol << Choice.get << lhand << concl) lt
+        let eq_pols = map (lin_of_hol << Choice.get << lhand << concl <<Choice.get) eq
+        let le_pols = map (lin_of_hol << Choice.get << lhand << concl <<Choice.get) le
+        let lt_pols = map (lin_of_hol << Choice.get << lhand << concl <<Choice.get) lt
         let aliens = 
             filter is_alien 
                 (itlist (union << dom) (eq_pols @ le_pols @ lt_pols) [])
@@ -741,7 +741,7 @@ let REAL_ARITH_001 =
     let deabs_conv = REWRITE_CONV [real_abs; real_max; real_min]
     fun tm -> 
         let th1 = deabs_conv tm
-        EQ_MP (SYM th1) (rule(Choice.get <| rand(concl th1)))
+        EQ_MP (SYM th1) (rule(Choice.get <| rand(concl <| Choice.get th1)))
 
 (* ------------------------------------------------------------------------- *)
 (* Slightly less parametrized GEN_REAL_ARITH with more intelligent           *)
@@ -864,7 +864,7 @@ let GEN_REAL_ARITH =
             let t = Choice.get <| find_term (fun t -> p t && free_in t tm) tm
             let v = genvar(Choice.get <| type_of t)
             let th0 = SYM(BETA_CONV(Choice.get <| mk_comb(Choice.get <| mk_abs(v, Choice.get <| subst [v, t] tm), t)))
-            let p, ax = Choice.get <| dest_comb(Choice.get <| rand(concl th0))
+            let p, ax = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th0))
             CONV_RULE (RAND_CONV(BINOP_CONV(RAND_CONV BETA_CONV))) 
                 (TRANS th0 (c p ax))
         let elim_abs = 
