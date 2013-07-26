@@ -833,7 +833,7 @@ let MATCH_ACCEPT_TAC : thm_tactic =
         | [] -> INSTANTIATE_ALL i th
         | _ -> Choice.failwith "MATCH_ACCEPT_TAC.propagate_thm: Unhandled case."
     let rawtac th (asl,w) =
-        try let ith = PART_MATCH I th w
+        try let ith = PART_MATCH Choice.succeed th w
             (null_meta, [], propagate_thm ith)
             |> Choice.succeed
         with Failure _ -> Choice.failwith "ACCEPT_TAC"
@@ -856,7 +856,7 @@ let MATCH_MP_TAC : thm_tactic =
                 MP (DISCH tm (GEN_ALL(DISCH tm3 (UNDISCH th3)))) th
             with
             | Failure _ -> Choice.failwith "MATCH_MP_TAC: Bad theorem"
-        let match_fun = PART_MATCH (snd << Choice.get << dest_imp) sth
+        let match_fun = PART_MATCH (Choice.map snd << dest_imp) sth
         fun (asl, w) -> 
             try 
                 let fun1 l =

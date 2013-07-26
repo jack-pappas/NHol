@@ -346,7 +346,7 @@ let MONO_TAC =
     let imp = (parse_term @"(==>)")
     let IMP_REFL = ITAUT(parse_term @"!p. p ==> p")
     let BACKCHAIN_TAC th = 
-        let match_fn = PART_MATCH (snd << Choice.get << dest_imp) th
+        let match_fn = PART_MATCH (Choice.map snd << dest_imp) th
         fun (asl, w) -> 
             let th1 = match_fn w
             let ant, con = Choice.get <| dest_imp(concl <| Choice.get th1)

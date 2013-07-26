@@ -297,7 +297,7 @@ let GEN_REAL_ARITH_001 =
     let MATCH_MP_RULE th = 
         let net = 
             itlist 
-                (fun th -> net_of_conv (Choice.get <| lhand(concl <| Choice.get th)) (PART_MATCH (Choice.get << lhand) th)) 
+                (fun th -> net_of_conv (Choice.get <| lhand(concl <| Choice.get th)) (PART_MATCH lhand th)) 
                 (CONJUNCTS th) empty_net
         fun th -> MP (REWRITES_CONV net (concl <| Choice.get th)) th
     let x_tm = (parse_term @"x:real")

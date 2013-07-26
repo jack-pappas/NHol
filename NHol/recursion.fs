@@ -80,7 +80,7 @@ let prove_recursive_functions_exist =
             map (fun v -> assocd v (setify(zip axfns (map fst lpats))) v) exvs
         let axtm = list_mk_exists(exvs, list_mk_conj raxs)
         let urtm = list_mk_exists(urfns, tm)
-        let insts = term_match [] axtm urtm
+        let insts = Choice.get <| term_match [] axtm urtm
         let ixth = INSTANTIATE insts axth
         let ixvs, ixbody = strip_exists(concl <| Choice.get ixth)
         let ixtm = Choice.get <| subst (zip urfns ixvs) ixbody
@@ -147,8 +147,8 @@ let prove_recursive_functions_exist =
 let new_recursive_definition = 
     let the_recursive_definitions = ref []
     let find_redefinition tm th = 
-        let th' = PART_MATCH I th tm
-        ignore(PART_MATCH I th' (concl <| Choice.get th))
+        let th' = PART_MATCH Choice.succeed th tm
+        ignore(PART_MATCH Choice.succeed th' (concl <| Choice.get th))
         th'
     fun ax tm -> 
         try 

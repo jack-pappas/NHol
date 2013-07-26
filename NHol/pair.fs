@@ -258,9 +258,9 @@ let new_definition =
         let avs, def = strip_forall tm
         try 
             let th, th' = 
-                tryfind (fun th -> Some (th, PART_MATCH I th def)) (!the_definitions)
+                tryfind (fun th -> Some (th, PART_MATCH Choice.succeed th def)) (!the_definitions)
                 |> Option.getOrFailWith "tryfind"
-            ignore(PART_MATCH I th' (snd(strip_forall(concl <| Choice.get th))))
+            ignore(PART_MATCH Choice.succeed th' (snd(strip_forall(concl <| Choice.get th))))
             warn true "Benign redefinition"
             GEN_ALL(GENL avs th')
         with
@@ -371,7 +371,7 @@ let GEN_BETA_CONV =
             let con, args = strip_comb tm
             let prjths = create_projections(fst(Choice.get <| dest_const con))
             let atm = Choice.get <| rand(Choice.get <| rand(concl <| Choice.get(hd prjths)))
-            let instn = term_match [] atm tm
+            let instn = Choice.get <| term_match [] atm tm
             let arths = map (INSTANTIATE instn) prjths
             let ths = 
                 map (fun arth -> 
@@ -386,7 +386,7 @@ let GEN_BETA_CONV =
         | Failure _ -> 
             let l, r = Choice.get <| dest_comb tm
             let vstr, bod = Choice.get <| dest_gabs l
-            let instn = term_match [] vstr r
+            let instn = Choice.get <| term_match [] vstr r
             let prjs = create_iterated_projections vstr
             let th1 = SUBS_CONV prjs bod
             let bod' = Choice.get <| rand(concl <| Choice.get th1)

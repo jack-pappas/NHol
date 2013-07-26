@@ -722,7 +722,7 @@ let GEN_MESON_TAC =
                     if ths = []
                     then cth
                     else MATCH_MP cth (end_itlist CONJ ths)
-            let ith = PART_MATCH I hth hol_g
+            let ith = PART_MATCH Choice.succeed hth hol_g
             finish_RULE(DISCH (hol_negate(concl <| Choice.get ith)) ith)
         meson_to_hol
     (* ----------------------------------------------------------------------- *)

@@ -286,7 +286,7 @@ let INSTANTIATE_ALL : instantiation -> thm -> thm =
 (* ------------------------------------------------------------------------- *)
 
 /// Match one term against another.
-let term_match : term list -> term -> term -> instantiation = 
+let term_match : term list -> term -> term -> _ = 
     let safe_inserta ((y, x) as n) l = 
         try 
             let z =
@@ -447,17 +447,18 @@ let term_match : term list -> term -> term -> instantiation =
                     let tyins' = get_type_insts (fst pinsts_homs') []
                     term_homatch lconsts tyins' pinsts_homs'
     fun lconsts vtm ctm -> 
-        let pinsts_homs = term_pmatch lconsts [] vtm ctm ([], [])
-        let tyins = get_type_insts (fst pinsts_homs) []
-        let insts = term_homatch lconsts tyins pinsts_homs
-        separate_insts insts
+        Choice.attempt (fun () ->
+            let pinsts_homs = term_pmatch lconsts [] vtm ctm ([], [])
+            let tyins = get_type_insts (fst pinsts_homs) []
+            let insts = term_homatch lconsts tyins pinsts_homs
+            separate_insts insts)
 
 (* ------------------------------------------------------------------------- *)
 (* First order unification (no type instantiation -- yet).                   *)
 (* ------------------------------------------------------------------------- *)
 
 /// Unify two terms.
-let term_unify : term list -> term -> term -> instantiation = 
+let term_unify : term list -> term -> term -> _ = 
     let augment1 sofar (s, x) = 
         let s' = Choice.get <| subst sofar s
         if vfree_in x s && not(s = x)
@@ -501,7 +502,8 @@ let term_unify : term list -> term -> term -> instantiation =
             let l1, r1 = Choice.get <| dest_comb tm1
             let l2, r2 = Choice.get <| dest_comb tm2
             unify vars l1 l2 (unify vars r1 r2 sofar)
-    fun vars tm1 tm2 -> [], unify vars tm1 tm2 [], []
+    fun vars tm1 tm2 -> 
+        Choice.attempt (fun () -> [], unify vars tm1 tm2 [], [])
 
 (* ------------------------------------------------------------------------- *)
 (* Modify bound variable names at depth. (Not very efficient...)             *)
@@ -570,48 +572,64 @@ let PART_MATCH, GEN_PART_MATCH =
                 match_bvs l1 l2 (match_bvs r1 r2 acc)
             with
             | Failure _ -> acc
-    let PART_MATCH partfn th = 
-        let sth = SPEC_ALL th
-        let bod = concl <| Choice.get sth
-        let pbod = partfn bod
-        let lconsts = intersect (frees(concl <| Choice.get th)) (freesl(hyp <| Choice.get th))
-        fun tm -> 
+    let PART_MATCH partfn th tm = 
+        // NOTE: change from value to function for easy conversion
+        choice {
+            let sth = SPEC_ALL th
+            let! bod = Choice.map concl sth
+            let! pbod = partfn bod
+            let! tm0 = Choice.map concl th
+            let! tl = Choice.map hyp th
+            let lconsts = intersect (frees tm0) (freesl tl)
+        
             let bvms = match_bvs tm pbod []
             let abod = deep_alpha bvms bod
             let ath = EQ_MP (ALPHA bod abod) sth
-            let insts = term_match lconsts (partfn abod) tm
+            let! tm1 = partfn abod
+            let! insts = term_match lconsts tm1 tm
             let fth = INSTANTIATE insts ath
-            if hyp (Choice.get fth) <> hyp (Choice.get ath)
-            then Choice.failwith "PART_MATCH: instantiated hyps"
+            let! fth' = fth
+            let! ath' = ath
+            if hyp fth' <> hyp ath' then 
+                return! Choice.failwith "PART_MATCH: instantiated hyps"
             else 
-                let tm' = partfn(concl <| Choice.get fth)
-                if compare tm' tm = 0
-                then fth
+                let! tm' = Choice.bind (partfn << concl) fth
+                if compare tm' tm = 0 then 
+                    return! fth
                 else 
-                    SUBS [ALPHA tm' tm] fth
-                    |> Choice.mapError (fun _ -> Exception "PART_MATCH: Sanity check failure")
-    let GEN_PART_MATCH partfn th = 
-        let sth = SPEC_ALL th
-        let bod = concl <| Choice.get sth
-        let pbod = partfn bod
-        let lconsts = intersect (frees(concl <| Choice.get th)) (freesl(hyp <| Choice.get th))
-        let fvs = subtract (subtract (frees bod) (frees pbod)) lconsts
-        fun tm -> 
+                    return! SUBS [ALPHA tm' tm] fth
+                            |> Choice.bindError (fun _ -> Choice.failwith "PART_MATCH: Sanity check failure")
+        }
+    let GEN_PART_MATCH partfn th tm = 
+        // NOTE: change from value to function for easy conversion
+        choice {
+            let sth = SPEC_ALL th
+            let! bod = Choice.map concl sth
+            let! pbod = partfn bod
+            let! tm0 = Choice.map concl th
+            let! tl = Choice.map hyp th
+            let lconsts = intersect (frees tm0) (freesl tl)
+            let fvs = subtract (subtract (frees bod) (frees pbod)) lconsts
+        
             let bvms = match_bvs tm pbod []
             let abod = deep_alpha bvms bod
             let ath = EQ_MP (ALPHA bod abod) sth
-            let insts = term_match lconsts (partfn abod) tm
+            let! tm1 = partfn abod
+            let! insts = term_match lconsts tm1 tm
             let eth = INSTANTIATE insts (GENL fvs ath)
             let fth = itlist (fun v th -> snd(SPEC_VAR th)) fvs eth
-            if hyp (Choice.get fth) <> hyp (Choice.get ath)
-            then Choice.failwith "PART_MATCH: instantiated hyps"
+            let! fth' = fth
+            let! ath' = ath
+            if hyp fth' <> hyp ath' then 
+                return! Choice.failwith "PART_MATCH: instantiated hyps"
             else 
-                let tm' = partfn(concl <| Choice.get fth)
-                if compare tm' tm = 0
-                then fth
+                let! tm' = Choice.bind (partfn << concl) fth
+                if compare tm' tm = 0 then 
+                    return! fth
                 else 
-                    SUBS [ALPHA tm' tm] fth
-                    |> Choice.mapError (fun _ -> Exception "PART_MATCH: Sanity check failure")
+                    return! SUBS [ALPHA tm' tm] fth
+                            |> Choice.bindError (fun _ -> Choice.failwith "PART_MATCH: Sanity check failure")
+        }
     PART_MATCH, GEN_PART_MATCH
 
 (* ------------------------------------------------------------------------- *)
@@ -621,22 +639,28 @@ let PART_MATCH, GEN_PART_MATCH =
 /// Modus Ponens inference rule with automatic matching.
 let MATCH_MP ith = 
     let sth = 
-        let v = 
-            let tm = concl <| Choice.get ith
+        choice {
+            let! tm = Choice.map concl ith
             let avs, bod = strip_forall tm
-            let ant, con = Choice.get <| dest_imp bod
+            let! ant, con = dest_imp bod
             let svs, pvs = partition (C vfree_in ant) avs
-            if pvs = []
-            then ith
+            if pvs = [] then 
+                return! ith
             else 
                 let th1 = SPECL avs (ASSUME tm)
                 let th2 = GENL svs (DISCH ant (GENL pvs (UNDISCH th1)))
-                MP (DISCH tm th2) ith
-        v |> Choice.mapError (fun _ -> Exception "MATCH_MP: Not an implication")
-    let match_fun = PART_MATCH (fst << Choice.get << dest_imp) sth
+                return! MP (DISCH tm th2) ith
+        }
+        |> Choice.bindError (fun _ -> Choice.failwith "MATCH_MP: Not an implication")
+
+    let match_fun = PART_MATCH (Choice.map fst << dest_imp) sth
     fun th -> 
-        MP (match_fun(concl <| Choice.get th)) th
-        |> Choice.mapError (fun _ -> Exception "MATCH_MP: No match")
+        // TODO: remove this try/with block when match_fun is safe to use
+        try
+            MP (match_fun(concl <| Choice.get th)) th
+            |> Choice.bindError (fun _ -> Choice.failwith "MATCH_MP: No match")
+        with Failure s ->
+            Choice.failwith s
 
 (* ------------------------------------------------------------------------- *)
 (* Useful instance of more general higher order matching.                    *)
@@ -678,7 +702,7 @@ let HIGHER_REWRITE_CONV =
         let fvs = subtract (frees(concl <| Choice.get th)) (freesl(hyp <| Choice.get th))
         let gvs = map (genvar << Choice.get << type_of) fvs
         INST (zip gvs fvs) th
-    fun ths -> 
+    let higher_rewrite_conv ths =
         let thl = map (GINST << SPEC_ALL) ths
         let concs = map (concl << Choice.get) thl
         let lefts = map (Choice.get << lhs) concs
@@ -687,12 +711,8 @@ let HIGHER_REWRITE_CONV =
         let ass_list = zip pats (zip preds (zip thl beta_fns))
         let mnet = itlist (fun p n -> Choice.get <| enter [] (p, p) n) pats empty_net
         let look_fn t =
-            /// Tests for failure.
-            let can f x = 
-                try f x |> ignore; true
-                with Failure _ -> false
             mapfilter (fun p -> 
-                    if can (term_match [] p) t
+                    if (Choice.isResult << term_match [] p) t
                     then Some p
                     else None) (Choice.get <| lookup t mnet)
         fun top tm -> 
@@ -702,14 +722,19 @@ let HIGHER_REWRITE_CONV =
                 then Choice.get <| find_term pred tm
                 else hd(sort free_in (Choice.get <| find_terms pred tm))
             let pat = hd(look_fn stm)
-            let _, tmin, tyin = term_match [] pat stm
+            let _, tmin, tyin = Choice.get <| term_match [] pat stm
             let pred, (th, beta_fn) =
                 assoc pat ass_list
                 |> Option.getOrFailWith "find"
             let gv = genvar(Choice.get <| type_of stm)
             let abs = Choice.get <| mk_abs(gv, Choice.get <| subst [gv, stm] tm)
-            let _, tmin0, tyin0 = term_match [] pred abs
+            let _, tmin0, tyin0 = Choice.get <| term_match [] pred abs
             CONV_RULE beta_fn (INST tmin (INST tmin0 (INST_TYPE tyin0 th)))
+    fun ths top tm -> 
+        try
+            higher_rewrite_conv ths top tm
+        with Failure s ->
+            Choice.failwith s
 
 (* ------------------------------------------------------------------------- *)
 (* Derived principle of definition justifying |- c x1 .. xn = t[x1,..,xn]    *)
@@ -717,25 +742,30 @@ let HIGHER_REWRITE_CONV =
 
 /// Declare a new constant and a definitional axiom.
 let new_definition tm = 
-    let avs, bod = strip_forall tm
-    let l, r = 
-        try 
-            Choice.get <| dest_eq bod
-        with
-        | Failure _ as e ->
-            nestedFailwith e "new_definition: Not an equation"
-    let lv, largs = strip_comb l
-    let rtm = 
-        try 
-            list_mk_abs(largs, r)
-        with
-        | Failure _ as e ->
-            nestedFailwith e "new_definition: Non-variable in LHS pattern"
-    let def = Choice.get <| mk_eq(lv, rtm)
-    let th1 = new_basic_definition def
-    let th2 = 
-        rev_itlist (fun tm th -> 
-                let ith = AP_THM th tm
-                TRANS ith (BETA_CONV(Choice.get <| rand(concl <| Choice.get ith)))) largs th1
-    let rvs = filter (not << C mem avs) largs
-    itlist GEN rvs (itlist GEN avs th2)
+    let new_definition tm = 
+        let avs, bod = strip_forall tm
+        let l, r = 
+            try 
+                Choice.get <| dest_eq bod
+            with
+            | Failure _ as e ->
+                nestedFailwith e "new_definition: Not an equation"
+        let lv, largs = strip_comb l
+        let rtm = 
+            try 
+                list_mk_abs(largs, r)
+            with
+            | Failure _ as e ->
+                nestedFailwith e "new_definition: Non-variable in LHS pattern"
+        let def = Choice.get <| mk_eq(lv, rtm)
+        let th1 = new_basic_definition def
+        let th2 = 
+            rev_itlist (fun tm th -> 
+                    let ith = AP_THM th tm
+                    TRANS ith (BETA_CONV(Choice.get <| rand(concl <| Choice.get ith)))) largs th1
+        let rvs = filter (not << C mem avs) largs
+        itlist GEN rvs (itlist GEN avs th2)
+    try
+        new_definition tm
+    with Failure s ->
+        Choice.failwith s

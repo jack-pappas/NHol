@@ -53,9 +53,9 @@ type gconv = int * conv
 (* Primitive rewriting conversions: unconditional and conditional equations. *)
 (* ------------------------------------------------------------------------- *)
 /// Uses an instance of a given equation to rewrite a term.
-let REWR_CONV = PART_MATCH (Choice.get << lhs)
+let REWR_CONV = PART_MATCH lhs
 /// Basic conditional rewriting conversion.
-let IMP_REWR_CONV = PART_MATCH(Choice.get << lhs << snd << Choice.get << dest_imp)
+let IMP_REWR_CONV = PART_MATCH(Choice.bind lhs << Choice.map snd << dest_imp)
 
 (* ------------------------------------------------------------------------- *)
 (* Versions with ordered rewriting. We must have l' > r' for the rewrite     *)
@@ -133,20 +133,14 @@ let term_order =
 let net_of_thm rep th = 
     let tm = concl <| Choice.get th
     let lconsts = freesl(hyp <| Choice.get th)
-    let matchable =
-        /// Tests for failure.
-        let can f x = 
-            try f x |> ignore; true
-            with Failure _ -> false
-        
-        can << term_match lconsts
+    let matchable = fun x -> Choice.isResult << term_match lconsts x
     match tm with
     | Comb(Comb(Const("=", _), (Abs(x, Comb(Var(s, ty) as v, x')) as l)), v') 
         when x' = x && v' = v && not (x = v) -> 
         let conv tm = 
             match tm with
             | Abs(y, Comb(t, y')) when y = y' && not(free_in y t) -> 
-                INSTANTIATE (term_match [] v t) th
+                INSTANTIATE (Choice.get <| term_match [] v t) th
             | _ -> failwith "REWR_CONV (ETA_AX special case)"
         Choice.get << enter lconsts (l, (1, conv))
     | Comb(Comb(Const("=", _), l), r) -> 
@@ -183,7 +177,7 @@ let net_of_cong th sofar =
     then failwith "net_of_cong: Non-implicational congruence"
     else 
         let pat = Choice.get <| lhs conc
-        let conv = GEN_PART_MATCH (Choice.get << lhand << funpow n (Choice.get << rand)) th
+        let conv = GEN_PART_MATCH (lhand << funpow n (Choice.get << rand)) th
         Choice.get <| enter [] (pat, (4, conv)) sofar
 
 (* ------------------------------------------------------------------------- *)
@@ -391,7 +385,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             let th' = 
                 if is_var t'
                 then INST [Choice.get <| rand(concl <| Choice.get eth), t'] th
-                else GEN_PART_MATCH (Choice.get << lhand) th (concl <| Choice.get eth')
+                else GEN_PART_MATCH lhand th (concl <| Choice.get eth')
             let th'' = MP th' eth'
             RUN_SUB_CONV strat ss lev triv' th''
         elif triv

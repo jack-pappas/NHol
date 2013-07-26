@@ -854,7 +854,7 @@ let ITERATE_ITERATE_PRODUCT =
                            (fun th -> 
                                W
                                    (MP_TAC 
-                                    << PART_MATCH (Choice.get << lhand << Choice.get << rand) 
+                                    << PART_MATCH (lhand << Choice.get << rand) 
                                            (MATCH_MP ITERATE_UNION th) << Choice.get << rand 
                                     << snd))
                     |> THEN <| ANTS_TAC
@@ -877,7 +877,7 @@ let ITERATE_ITERATE_PRODUCT =
                            (fun th -> 
                                W
                                    (MP_TAC 
-                                    << PART_MATCH (Choice.get << lhand << Choice.get << rand) 
+                                    << PART_MATCH (Choice.bind lhand << rand) 
                                            (MATCH_MP ITERATE_IMAGE th) << Choice.get << rand 
                                     << snd))
                     |> THEN <| ANTS_TAC
@@ -1821,11 +1821,11 @@ let MOD_NSUM_MOD =
         |> THEN <| SIMP_TAC [NSUM_CLAUSES]
         |> THEN <| REPEAT STRIP_TAC
         |> THEN 
-        <| W(MP_TAC << PART_MATCH (Choice.get << rand << Choice.get << rand) MOD_ADD_MOD << Choice.get << lhand << snd)
+        <| W(MP_TAC << PART_MATCH (Choice.bind rand << rand) MOD_ADD_MOD << Choice.get << lhand << snd)
         |> THEN <| ASM_REWRITE_TAC []
         |> THEN <| DISCH_THEN(SUBST1_TAC << SYM)
         |> THEN 
-        <| W(MP_TAC << PART_MATCH (Choice.get << rand << Choice.get << rand) MOD_ADD_MOD << Choice.get << rand << snd)
+        <| W(MP_TAC << PART_MATCH (Choice.bind rand << rand) MOD_ADD_MOD << Choice.get << rand << snd)
         |> THEN <| ASM_SIMP_TAC [MOD_MOD_REFL])
 
 let MOD_NSUM_MOD_NUMSEG = prove((parse_term @"!f a b n.

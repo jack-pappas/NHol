@@ -46,9 +46,9 @@ open tactics
 (* ------------------------------------------------------------------------- *)
 (* Accept a theorem modulo unification.                                      *)
 (* ------------------------------------------------------------------------- *)
-/// Unify free Choice.get <| variables in theorem and metavariables in goal to accept theorem.
+/// Unify free variables in theorem and metavariables in goal to accept theorem.
 let UNIFY_ACCEPT_TAC mvs th (asl, w) = 
-    let insts = term_unify mvs (concl <| Choice.get th) w
+    let insts = Choice.get <| term_unify mvs (concl <| Choice.get th) w
     (([], insts), [], let th' = INSTANTIATE insts th in fun i [] -> INSTANTIATE i th')
     |> Choice.succeed
 

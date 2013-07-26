@@ -304,7 +304,7 @@ let SNDCART_PASTECART =
          |> THEN 
          <| W
                 (fun (_, w) -> 
-                    MP_TAC(PART_MATCH (Choice.get << lhs << Choice.get << rand) LAMBDA_BETA (Choice.get <| lhand w)))
+                    MP_TAC(PART_MATCH (Choice.bind lhs << rand) LAMBDA_BETA (Choice.get <| lhand w)))
          |> THEN <| ANTS_TAC
          |> THENL 
          <| [REWRITE_TAC [DIMINDEX_FINITE_SUM]

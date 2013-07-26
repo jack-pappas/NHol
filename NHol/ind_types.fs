@@ -432,7 +432,7 @@ let CONSTR_REC =
     |> THEN <| DISCH_THEN(CHOOSE_THEN(CONJUNCTS_THEN2 STRIP_ASSUME_TAC MP_TAC))
     |> THEN <| DISCH_THEN(CONJUNCTS_THEN2 ASSUME_TAC (ASSUME_TAC << GSYM))
     |> THEN <| SUBGOAL_THEN (parse_term @"!x. ?!y. (Z:(A)recspace->B->bool) x y") MP_TAC
-    |> THENL <| [W(MP_TAC << PART_MATCH Choice.get <| rand CONSTR_IND << snd)
+    |> THENL <| [W(MP_TAC << PART_MATCH rand CONSTR_IND << snd)
                  |> THEN <| DISCH_THEN MATCH_MP_TAC
                  |> THEN <| CONJ_TAC
                  |> THEN <| REPEAT GEN_TAC
@@ -820,7 +820,7 @@ let define_type_raw_001 =
             else 
                 let con = bimp
                 let conth2 = BETA_CONV con
-                let tth = PART_MATCH I rthm (Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get conth2)))
+                let tth = PART_MATCH Choice.succeed rthm (Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get conth2)))
                 let conth3 = PRERULE conth2
                 let asmgen = Choice.get <| rand(Choice.get <| rand(concl <| Choice.get conth3))
                 let asmquant = 
@@ -910,11 +910,11 @@ let define_type_raw_001 =
             let pat = funpow 4 (Choice.get << rand) (concl <| Choice.get fxth)
             if is_imp(repeat (snd << Choice.get << dest_forall) (concl <| Choice.get rthm))
             then 
-                let th1 = PART_MATCH (Choice.get << rand << Choice.get << rand) rthm pat
+                let th1 = PART_MATCH (Choice.bind rand << rand) rthm pat
                 let tms1 = conjuncts(Choice.get <| lhand(concl <| Choice.get th1))
                 let ths2 = map (fun t -> EQ_MP (SYM(SCONV t)) TRUTH) tms1
                 ERULE(MP th1 (end_itlist CONJ ths2))
-            else ERULE(PART_MATCH (Choice.get << rand) rthm pat)
+            else ERULE(PART_MATCH rand rthm pat)
         let fxths3 = map2 simplify_fxthm (CONJUNCTS rth) fxths2
         let fxths4 = map2 (fun th1 -> TRANS th1 << AP_TERM fn) fxths2 fxths3
         let cleanup_fxthm cth fxth = 
@@ -1668,7 +1668,7 @@ let define_type_raw =
             let itha = SPEC_ALL ith0
             let icjs = conjuncts(Choice.get <| rand(concl <| Choice.get itha))
             let cinsts = 
-                map (fun tm -> tryfind (fun vtm -> Some <| term_match [] vtm tm) icjs
+                map (fun tm -> tryfind (fun vtm -> Choice.toOption <| term_match [] vtm tm) icjs
                                |> Option.getOrFailWith "tryfind") 
                     (conjuncts(Choice.get <| rand ctm2))
             let tvs = 
@@ -1683,7 +1683,7 @@ let define_type_raw =
             let itha = SPEC_ALL ith1
             let icjs = conjuncts(Choice.get <| rand(concl <| Choice.get itha))
             let cinsts = 
-                map (fun tm -> tryfind (fun vtm -> Some <| term_match [] vtm tm) icjs
+                map (fun tm -> tryfind (fun vtm -> Choice.toOption <| term_match [] vtm tm) icjs
                                |> Option.getOrFailWith "tryfind") 
                     (conjuncts(Choice.get <| lhand ctm2))
             let tvs = 
