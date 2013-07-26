@@ -47,23 +47,14 @@ type conv = term -> thm
 (* A bit more syntax.                                                        *)
 (* ------------------------------------------------------------------------- *)
 
-let (<<.) f g = fun x -> Choice.bind f (g x)
-
-///// Take left-hand argument of a binary operator.
-//let lhand = rand <<. rator
-//
-///// Returns the left-hand side of an equation.
-//let lhs = Choice.map fst << dest_eq
-//
-///// Returns the right-hand side of an equation.
-//let rhs = Choice.map snd << dest_eq
-
 /// Take left-hand argument of a binary operator.
-let lhand = Choice.get << rand << Choice.get << rator
+let lhand = Choice.bind rand << rator
+
 /// Returns the left-hand side of an equation.
-let lhs = fst << Choice.get << dest_eq
+let lhs = Choice.map fst << dest_eq
+
 /// Returns the right-hand side of an equation.
-let rhs = snd << Choice.get << dest_eq
+let rhs = Choice.map snd << dest_eq
 
 (* ------------------------------------------------------------------------- *)
 (* Similar to variant, but even avoids constants, and ignores types.         *)
@@ -396,7 +387,7 @@ let SUBS_CONV ths tm =
     let tm = 
         if ths = [] then REFL tm
         else 
-            let lefts = map (lhand << concl) ths
+            let lefts = map (Choice.get << lhand << concl) ths
             let gvs = map (genvar << Choice.get << type_of) lefts
             let pat = Choice.get <| subst (zip gvs lefts) tm
             let abs = list_mk_abs(gvs, pat)
@@ -423,7 +414,7 @@ let SUBS ths = CONV_RULE(SUBS_CONV ths)
 (* ------------------------------------------------------------------------- *)
 
 let private ALPHA_HACK th = 
-    let tm' = lhand(concl th)
+    let tm' = Choice.get <| lhand(concl th)
     fun tm -> 
         if tm' = tm then th
         else TRANS (ALPHA tm tm') th

@@ -3803,7 +3803,7 @@ let new_inductive_set =
             let tys = fst(splitlist (Choice.toOption << dest_fun_ty) (Choice.get <| type_of tm))
             f 0 tm tys
     let mk_eqin = REWR_CONV(GSYM IN) << comb_all
-    let transf conv = rhs << concl << conv
+    let transf conv = Choice.get << rhs << concl << conv
     let remove_in_conv ptm : conv = 
         let rconv = REWR_CONV(SYM(mk_eqin ptm))
         fun tm -> 

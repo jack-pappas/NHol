@@ -455,15 +455,15 @@ let RING_AND_IDEAL_CONV =
       if can ring_dest_const tm then acc                            
       else if can ring_dest_neg tm then grobvars (Choice.get <| rand tm) acc      
       else if can ring_dest_pow tm && is_numeral (Choice.get <| rand tm)          
-           then grobvars (lhand tm) acc
+           then grobvars (Choice.get <| lhand tm) acc
       else if can ring_dest_add tm || can ring_dest_sub tm
            || can ring_dest_mul tm
-           then grobvars (lhand tm) (grobvars (Choice.get <| rand tm) acc)
+           then grobvars (Choice.get <| lhand tm) (grobvars (Choice.get <| rand tm) acc)
       else if can ring_dest_inv tm then
            let gvs = grobvars (Choice.get <| rand tm) [] in
            if gvs = [] then acc else tm::acc
       else if can ring_dest_div tm then
-           let lvs = grobvars (lhand tm) acc
+           let lvs = grobvars (Choice.get <| lhand tm) acc
            let gvs = grobvars (Choice.get <| rand tm) [] in
            if gvs = [] then lvs else tm::acc
       else tm::acc in
@@ -523,7 +523,7 @@ let RING_AND_IDEAL_CONV =
     let grobify_equations tm =
       let cjs = conjuncts tm in
       let rawvars =
-        itlist (fun eq a -> grobvars (lhand eq) (grobvars (Choice.get <| rand eq) a))
+        itlist (fun eq a -> grobvars (Choice.get <| lhand eq) (grobvars (Choice.get <| rand eq) a))
                cjs [] in
       let vars = sort (fun x y -> x < y) (setify rawvars) in
       vars,map (grobify_equation vars) cjs in
@@ -724,14 +724,14 @@ let NUM_SIMPLIFY_CONV =
            let v = genvar ty in
            let p = Choice.get <| mk_abs(v,Choice.get <| subst [v,t] tm) in
            let th0 = if pos then SUB_ELIM_THM'' else SUB_ELIM_THM' in
-           let th1 = INST [p,p_tm; lhand t,a_tm; Choice.get <| rand t,b_tm] th0 in
+           let th1 = INST [p,p_tm; Choice.get <| lhand t,a_tm; Choice.get <| rand t,b_tm] th0 in
            let th2 = CONV_RULE(COMB2_CONV (RAND_CONV BETA_CONV) (BINDER_CONV(RAND_CONV BETA_CONV))) th1 in
            CONV_RULE(RAND_CONV (NUM_MULTIPLY_CONV pos)) th2
        with 
        | Failure _ -> 
        try
            let t = Choice.get <| find_term (fun t -> is_divmod t && free_in t tm) tm in
-           let x = lhand t 
+           let x = Choice.get <| lhand t 
            let y = Choice.get <| rand t in
            let dtm = Choice.get <| mk_comb(Choice.get <| mk_comb(div_tm,x),y)
            let mtm = Choice.get <| mk_comb(Choice.get <| mk_comb(mod_tm,x),y) in

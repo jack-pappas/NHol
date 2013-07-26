@@ -128,7 +128,7 @@ let num_INDUCTION_001 =
                                      NUM_REP_RULES]
          |> THEN 
          <| W
-                (C SUBGOAL_THEN (fun t -> REWRITE_TAC [t]) << funpow 2 lhand 
+                (C SUBGOAL_THEN (fun t -> REWRITE_TAC [t]) << funpow 2 (Choice.get << lhand)
                  << snd)
          |> THENL <| [REPEAT STRIP_TAC
                       |> THENL 

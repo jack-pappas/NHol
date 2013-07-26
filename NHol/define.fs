@@ -509,7 +509,7 @@ let RECURSION_CASEWISE_PAIRWISE =
    prove ((parse_term @"(\x. P x) = (\(a,b). P (a,b))"), REWRITE_TAC[FUN_EQ_THM; FORALL_PAIR_THM])
   let pth = 
    REWRITE_RULE[FORALL_PAIR_THM; paired_lambda] (ISPEC (parse_term @"\(s,t) (s',t'). !c x:A y:A. (s x = s' y) ==> (t c x = t' c y)") lemma)
-  let cth = prove(lhand(concl pth),MESON_TAC[])
+  let cth = prove(Choice.get <| lhand(concl pth),MESON_TAC[])
   REWRITE_TAC[GSYM(MATCH_MP pth cth); RIGHT_IMP_FORALL_THM] |>THEN<|
   REWRITE_TAC[RECURSION_CASEWISE])
 
@@ -813,7 +813,7 @@ let instantiate_casewise_recursion,
       let domtys0,ranty0 = splitlist (Choice.toOption << dest_fun_ty) (Choice.get <| type_of f)
       let nargs =
         itlist
-         (max << length << snd << strip_comb << lhs << snd << strip_forall)
+         (max << length << snd << strip_comb << Choice.get << lhs << snd << strip_forall)
          (conjuncts(snd(strip_forall def))) 0
       let domtys,midtys = chop_list nargs domtys0
       let ranty = itlist (fun ty -> Choice.get << mk_fun_ty ty) midtys ranty0
@@ -912,7 +912,7 @@ let instantiate_casewise_recursion,
         W(fun (asl,w) -> ACCEPT_TAC(ASSUME w))
       let th2 = prove(bod,SIMP_ADMISS_TAC)
       let th3 = SIMPLE_EXISTS ord th2
-      let allasms = hyp th3 in let wfasm = lhand(concl th2)
+      let allasms = hyp th3 in let wfasm = Choice.get <| lhand(concl th2)
       let th4 = ASSUME(list_mk_conj(wfasm::subtract allasms [wfasm]))
       let th5 = SIMPLE_CHOOSE ord (itlist PROVE_HYP (CONJUNCTS th4) th3)
       PROVE_HYP th5 th1
@@ -1028,7 +1028,7 @@ let define =
     let avs,bod = strip_forall tm
     let cjs = conjuncts bod
     let fs =
-      try map (repeat (Choice.get << rator) << lhs << snd << strip_forall) cjs
+      try map (repeat (Choice.get << rator) << Choice.get << lhs << snd << strip_forall) cjs
       with Failure _ -> failwith "close_definition_clauses: non-equation"
     if length (setify fs) <> 1
     then failwith "close_definition_clauses: defining multiple functions" else
@@ -1036,7 +1036,7 @@ let define =
     if mem f avs then failwith "close_definition_clauses: fn quantified" else
     let do_clause t =
       let lvs,bod = strip_forall t
-      let fvs = subtract (frees(lhs bod)) (f::lvs)
+      let fvs = subtract (frees(Choice.get <| lhs bod)) (f::lvs)
       SPECL fvs (ASSUME(list_mk_forall(fvs,t)))
     let ths = map do_clause cjs
     let ajs = map (hd << hyp) ths

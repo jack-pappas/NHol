@@ -648,7 +648,7 @@ let HIGHER_REWRITE_CONV =
     fun ths -> 
         let thl = map (GINST << SPEC_ALL) ths
         let concs = map concl thl
-        let lefts = map lhs concs
+        let lefts = map (Choice.get << lhs) concs
         let preds, pats = unzip(map (Choice.get << dest_comb) lefts)
         let beta_fns = map2 BETA_VAR preds concs
         let ass_list = zip pats (zip preds (zip thl beta_fns))

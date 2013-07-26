@@ -168,11 +168,11 @@ let SEMIRING_NORMALIZERS_CONV =
                       | [pthm_01; pthm_02; pthm_03; pthm_04; pthm_05; pthm_06; pthm_07; pthm_08; pthm_09; pthm_10; pthm_11; pthm_12; pthm_13; pthm_14; pthm_15; pthm_16; pthm_17; pthm_18; pthm_19; pthm_20; pthm_21; pthm_22; pthm_23; pthm_24; pthm_25; pthm_26; pthm_27; pthm_28; pthm_29; pthm_30; pthm_31; pthm_32; pthm_33; pthm_34; pthm_35; pthm_36; pthm_37; pthm_38] ->
                          pthm_01, pthm_02, pthm_03, pthm_04, pthm_05, pthm_06, pthm_07, pthm_08, pthm_09, pthm_10, pthm_11, pthm_12, pthm_13, pthm_14, pthm_15, pthm_16, pthm_17, pthm_18, pthm_19, pthm_20, pthm_21, pthm_22, pthm_23, pthm_24, pthm_25, pthm_26, pthm_27, pthm_28, pthm_29, pthm_30, pthm_31, pthm_32, pthm_33, pthm_34, pthm_35, pthm_36, pthm_37, pthm_38
                       | _ -> failwith "pthFuncs: Unhandled case."
-                    let add_tm = Choice.get <| rator(Choice.get <| rator(lhand(concl pthm_07)))
-                    let mul_tm = Choice.get <| rator(Choice.get <| rator(lhand(concl pthm_13)))
+                    let add_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl pthm_07)))
+                    let mul_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl pthm_13)))
                     let pow_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| rand(concl pthm_32)))
                     let zero_tm = Choice.get <| rand(concl pthm_06)
-                    let one_tm = Choice.get <| rand(lhand(concl pthm_14))
+                    let one_tm = Choice.get <| rand(Choice.get <| lhand(concl pthm_14))
                     let ty = Choice.get <| type_of(Choice.get <| rand(concl pthm_01))
                     let p_tm = (parse_term @"p:num")
                     let q_tm = (parse_term @"q:num")
@@ -206,8 +206,8 @@ let SEMIRING_NORMALIZERS_CONV =
                         else 
                             let nthm_1 = SPEC x_tm (CONJUNCT1 rth)
                             let nthm_2 = SPECL [x_tm; y_tm] (CONJUNCT2 rth)
-                            let sub_tm = Choice.get <| rator(Choice.get <| rator(lhand(concl nthm_2)))
-                            let neg_tm = Choice.get <| rator(lhand(concl nthm_1))
+                            let sub_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl nthm_2)))
+                            let neg_tm = Choice.get <| rator(Choice.get <| lhand(concl nthm_1))
                             let dest_sub = Choice.get << dest_binop sub_tm
                             let is_sub = is_binop sub_tm
                             (nthm_1, nthm_2, sub_tm, neg_tm, dest_sub, is_sub)
@@ -504,21 +504,21 @@ let SEMIRING_NORMALIZERS_CONV =
                             then SEMIRING_ADD_CONV tm
                             else 
                                 let th1 = 
-                                    if is_mul l && is_semiring_constant(lhand l)
+                                    if is_mul l && is_semiring_constant(Choice.get <| lhand l)
                                     then 
                                         if is_mul r 
-                                           && is_semiring_constant(lhand r)
+                                           && is_semiring_constant(Choice.get <| lhand r)
                                         then 
-                                            INST [lhand l, a_tm
-                                                  lhand r, b_tm
+                                            INST [Choice.get <| lhand l, a_tm
+                                                  Choice.get <| lhand r, b_tm
                                                   Choice.get <| rand r, m_tm] pthm_02
                                         else 
-                                            INST [lhand l, a_tm
+                                            INST [Choice.get <| lhand l, a_tm
                                                   r, m_tm] pthm_03
                                     elif is_mul r 
-                                         && is_semiring_constant(lhand r)
+                                         && is_semiring_constant(Choice.get <| lhand r)
                                     then 
-                                        INST [lhand r, a_tm
+                                        INST [Choice.get <| lhand r, a_tm
                                               l, m_tm] pthm_04
                                     else INST [r, m_tm] pthm_05
                                 let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl th1))
@@ -526,7 +526,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                 let th2 = AP_TERM tm3 (SEMIRING_ADD_CONV tm4)
                                 let th3 = TRANS th1 (AP_THM th2 tm2)
                                 let tm5 = Choice.get <| rand(concl th3)
-                                if lhand tm5 = zero_tm
+                                if Choice.get <| lhand tm5 = zero_tm
                                 then TRANS th3 (INST [Choice.get <| rand tm5, m_tm] pthm_06)
                                 else MONOMIAL_DEONE th3
                         (* ------------------------------------------------------------------------- *)
@@ -767,7 +767,7 @@ let SEMIRING_NORMALIZERS_CONV =
                                     TRANS th4 
                                         (POLYNOMIAL_MUL_CONV(Choice.get <| rand(concl th4)))
                             fun tm -> 
-                                if is_add(lhand tm)
+                                if is_add(Choice.get <| lhand tm)
                                 then PPOW tm
                                 else MONOMIAL_POW_CONV tm
                         (* ------------------------------------------------------------------------- *)

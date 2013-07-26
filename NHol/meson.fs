@@ -960,7 +960,7 @@ let GEN_MESON_TAC =
             if is_forall tm || is_exists tm
             then grab_constants (Choice.get <| body(Choice.get <| rand tm)) acc
             elif is_iff tm || is_imp tm || is_conj tm || is_disj tm
-            then grab_constants (Choice.get <| rand tm) (grab_constants (lhand tm) acc)
+            then grab_constants (Choice.get <| rand tm) (grab_constants (Choice.get <| lhand tm) acc)
             elif is_neg tm
             then grab_constants (Choice.get <| rand tm) acc
             else union (Choice.get <| find_terms is_const tm) acc

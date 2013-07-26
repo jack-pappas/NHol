@@ -297,7 +297,7 @@ let GEN_REAL_ARITH_001 =
     let MATCH_MP_RULE th = 
         let net = 
             itlist 
-                (fun th -> net_of_conv (lhand(concl th)) (PART_MATCH lhand th)) 
+                (fun th -> net_of_conv (Choice.get <| lhand(concl th)) (PART_MATCH (Choice.get << lhand) th)) 
                 (CONJUNCTS th) empty_net
         fun th -> MP (REWRITES_CONV net (concl th)) th
     let x_tm = (parse_term @"x:real")
@@ -363,8 +363,8 @@ let GEN_REAL_ARITH_001 =
                                                       r, y_tm] pth
                                             let th_p = 
                                                 POLY_CONV
-                                                    (lhand
-                                                         (lhand(Choice.get <| rand(concl th))))
+                                                    (Choice.get <| lhand
+                                                         (Choice.get <| lhand(Choice.get <| rand(concl th))))
                                             let th_x = AP_TERM neg_tm th_p
                                             let th_n = 
                                                 CONV_RULE 
@@ -521,7 +521,7 @@ let GEN_REAL_ARITH_001 =
                                             then 
                                                 let th1 = 
                                                     overall dun 
-                                                        (ASSUME(lhand tm) 
+                                                        (ASSUME(Choice.get <| lhand tm) 
                                                          :: oths)
                                                 let th2 = 
                                                     overall dun 
@@ -713,9 +713,9 @@ let REAL_LINEAR_PROVER =
     let n_tm = (parse_term @"n:num")
     let pth = REWRITE_RULE [GSYM real_ge] (SPEC n_tm REAL_POS)
     fun translator (eq, le, lt) -> 
-        let eq_pols = map (lin_of_hol << lhand << concl) eq
-        let le_pols = map (lin_of_hol << lhand << concl) le
-        let lt_pols = map (lin_of_hol << lhand << concl) lt
+        let eq_pols = map (lin_of_hol << Choice.get << lhand << concl) eq
+        let le_pols = map (lin_of_hol << Choice.get << lhand << concl) le
+        let lt_pols = map (lin_of_hol << Choice.get << lhand << concl) lt
         let aliens = 
             filter is_alien 
                 (itlist (union << dom) (eq_pols @ le_pols @ lt_pols) [])

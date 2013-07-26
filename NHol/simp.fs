@@ -53,9 +53,9 @@ type gconv = int * conv
 (* Primitive rewriting conversions: unconditional and conditional equations. *)
 (* ------------------------------------------------------------------------- *)
 /// Uses an instance of a given equation to rewrite a term.
-let REWR_CONV = PART_MATCH lhs
+let REWR_CONV = PART_MATCH (Choice.get << lhs)
 /// Basic conditional rewriting conversion.
-let IMP_REWR_CONV = PART_MATCH(lhs << snd << Choice.get << dest_imp)
+let IMP_REWR_CONV = PART_MATCH(Choice.get << lhs << snd << Choice.get << dest_imp)
 
 (* ------------------------------------------------------------------------- *)
 (* Versions with ordered rewriting. We must have l' > r' for the rewrite     *)
@@ -182,8 +182,8 @@ let net_of_cong th sofar =
     if n = 0
     then failwith "net_of_cong: Non-implicational congruence"
     else 
-        let pat = lhs conc
-        let conv = GEN_PART_MATCH (lhand << funpow n (Choice.get << rand)) th
+        let pat = Choice.get <| lhs conc
+        let conv = GEN_PART_MATCH (Choice.get << lhand << funpow n (Choice.get << rand)) th
         Choice.get <| enter [] (pat, (4, conv)) sofar
 
 (* ------------------------------------------------------------------------- *)
@@ -365,7 +365,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                     elif lev <= 0
                     then None
                     else 
-                        let cth = prover strat ss (lev - 1) (lhand etm)
+                        let cth = prover strat ss (lev - 1) (Choice.get <| lhand etm)
                         Choice.toOption <| MP th cth) pconvs
         |> Option.toChoiceWithError "IMP_REWRITES_CONV: Too deep"
 
@@ -373,7 +373,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
         let tm = concl th
         if is_imp tm
         then 
-            let subtm = lhand tm
+            let subtm = Choice.get <| lhand tm
             let avs, bod = strip_forall subtm
             let (t, t'), ss', mk_fun = 
                 try 
@@ -391,7 +391,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             let th' = 
                 if is_var t'
                 then INST [Choice.get <| rand(concl eth), t'] th
-                else GEN_PART_MATCH lhand th (concl eth')
+                else GEN_PART_MATCH (Choice.get << lhand) th (concl eth')
             let th'' = MP th' eth'
             RUN_SUB_CONV strat ss lev triv' th''
         elif triv
@@ -702,5 +702,5 @@ let ABBREV_TAC tm =
 /// Expand an abbreviation in the hypotheses.
 let EXPAND_TAC s = FIRST_ASSUM
                        (SUBST1_TAC << SYM 
-                        << check((=) s << fst << Choice.get << dest_var << rhs << concl))
+                        << check((=) s << fst << Choice.get << dest_var << Choice.get << rhs << concl))
                    |> THEN <| BETA_TAC

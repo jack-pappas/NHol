@@ -360,7 +360,7 @@ let GEN =
         let ptm = Choice.get <| rand(Choice.get <| rand(concl qth))
         fun th -> 
             let th' = ABS x (EQT_INTRO th)
-            let phi = lhand(concl th')
+            let phi = Choice.get <| lhand(concl th')
             let rth = INST [phi, ptm] qth
             EQ_MP rth th'
 

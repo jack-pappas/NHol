@@ -617,9 +617,9 @@ let WEAK_CNF_CONV, CNF_CONV =
 /// Right-associates a term with respect to an associative binary operator.
 let ASSOC_CONV th = 
     let th' = SYM(SPEC_ALL th)
-    let opx, yopz = Choice.get <| dest_comb(rhs(concl th'))
+    let opx, yopz = Choice.get <| dest_comb(Choice.get <| rhs(concl th'))
     let op, x = Choice.get <| dest_comb opx
-    let y = lhand yopz
+    let y = Choice.get <| lhand yopz
     let z = Choice.get <| rand yopz
     let rec distrib tm = 
         match tm with
@@ -688,7 +688,7 @@ let SELECT_ELIM_TAC =
             let atm = list_mk_abs(fvs, t)
             let rawdef = Choice.get <| mk_eq(fn, atm)
             let def = GENL fvs (SYM(RIGHT_BETAS fvs (ASSUME rawdef)))
-            let th3 = PURE_REWRITE_CONV [def] (lhand(concl th2))
+            let th3 = PURE_REWRITE_CONV [def] (Choice.get <| lhand(concl th2))
             let gtm = mk_forall(fn, Choice.get <| rand(concl th3))
             let th4 = EQ_MP (SYM th3) (SPEC fn (ASSUME gtm))
             let th5 = IMP_TRANS (DISCH gtm th4) th2
@@ -696,7 +696,7 @@ let SELECT_ELIM_TAC =
         let rec SELECT_ELIMS_ICONV tm = 
             try 
                 let th = SELECT_ELIM_ICONV tm
-                let tm' = lhand(concl th)
+                let tm' = Choice.get <| lhand(concl th)
                 IMP_TRANS (SELECT_ELIMS_ICONV tm') th
             with
             | Failure _ -> DISCH tm (ASSUME tm)
@@ -804,7 +804,7 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
     let rec find_conditional fvs tm = 
         match tm with
         | Comb(s, t) -> 
-            if is_cond tm && intersect (frees(lhand s)) fvs = []
+            if is_cond tm && intersect (frees(Choice.get <| lhand s)) fvs = []
             then tm
             else 
                 (try 
@@ -816,7 +816,7 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
     let rec CONDS_ELIM_CONV dfl tm = 
         try 
             let t = find_conditional [] tm
-            let p = lhand(Choice.get <| rator t)
+            let p = Choice.get <| lhand(Choice.get <| rator t)
             let th_new = 
                 if p = false_tm || p = true_tm
                 then propsimp_conv tm

@@ -159,7 +159,7 @@ let WF_UREC_WF =
           (MP_TAC << SPEC(parse_term @"\f x. P(x:A) \/ !z:A. z << x ==> f(z)"))
    |> THEN <| REWRITE_TAC []
    |> THEN 
-   <| W(C SUBGOAL_THEN (fun t -> REWRITE_TAC [t]) << funpow 2 lhand << snd)
+   <| W(C SUBGOAL_THEN (fun t -> REWRITE_TAC [t]) << funpow 2 (Choice.get << lhand) << snd)
    |> THENL <| [MESON_TAC []
                 DISCH_THEN(MP_TAC << SPECL [(parse_term @"P:A->bool")
                                             (parse_term @"\x:A. T")])

@@ -62,20 +62,20 @@ let prove_recursive_functions_exist =
     let prove_raw_recursive_functions_exist ax tm = 
         let rawcls = conjuncts tm
         let spcls = map (snd << strip_forall) rawcls
-        let lpats = map (strip_comb << lhand) spcls
+        let lpats = map (strip_comb << Choice.get << lhand) spcls
         let ufns = itlist (insert << fst) lpats []
         let axth = SPEC_ALL ax
         let exvs, axbody = strip_exists(concl axth)
         let axcls = conjuncts axbody
         let f = 
-            fst << Choice.get << dest_const << repeat (Choice.get << rator) << Choice.get << rand << lhand << snd 
+            fst << Choice.get << dest_const << repeat (Choice.get << rator) << Choice.get << rand << Choice.get << lhand << snd 
             << strip_forall
         let findax s =
             assoc s (map (fun t -> f t, t) axcls)
             |> Option.getOrFailWith "find"
         let raxs = 
             map (findax << fst << Choice.get << dest_const << repeat (Choice.get << rator) << hd << snd) lpats
-        let axfns = map (repeat (Choice.get << rator) << lhand << snd << strip_forall) raxs
+        let axfns = map (repeat (Choice.get << rator) << Choice.get << lhand << snd << strip_forall) raxs
         let urfns = 
             map (fun v -> assocd v (setify(zip axfns (map fst lpats))) v) exvs
         let axtm = list_mk_exists(exvs, list_mk_conj raxs)
@@ -129,7 +129,7 @@ let prove_recursive_functions_exist =
     fun ax tm -> 
         let rawcls = conjuncts tm
         let spcls = map (snd << strip_forall) rawcls
-        let lpats = map (strip_comb << lhand) spcls
+        let lpats = map (strip_comb << Choice.get << lhand) spcls
         let ufns = itlist (insert << fst) lpats []
         let uxargs = map (fun x -> assoc x lpats |> Option.getOrFailWith "find") ufns
         let trths = itlist2 reshuffle ufns uxargs []
@@ -160,7 +160,7 @@ let new_recursive_definition =
         | Failure _ -> 
             let rawcls = conjuncts tm
             let spcls = map (snd << strip_forall) rawcls
-            let lpats = map (strip_comb << lhand) spcls
+            let lpats = map (strip_comb << Choice.get << lhand) spcls
             let ufns = itlist (insert << fst) lpats []
             let fvs = map (fun t -> subtract (frees t) ufns) rawcls
             let gcls = map2 (curry list_mk_forall) fvs rawcls

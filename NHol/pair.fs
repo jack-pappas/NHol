@@ -326,7 +326,7 @@ let GEN_BETA_CONV =
             let ourcj = 
                 Option.get <| find 
                     ((=) conname << fst << Choice.get << dest_const << fst << strip_comb //check (=) conname, check all better
-                     << Choice.get << rand << lhand << snd << strip_forall) cjs
+                     << Choice.get << rand << Choice.get << lhand << snd << strip_forall) cjs
             let n = index ourcj cjs
             let avs, eqn = strip_forall ourcj
             let con', args = strip_comb(Choice.get <| rand eqn)
@@ -343,7 +343,7 @@ let GEN_BETA_CONV =
                     (funpow (length avs) BINDER_CONV (RAND_CONV(BETAS_CONV))) 
                     cth
             let eth = 
-                SIMPLE_EXISTS (Choice.get <| rator(lhand(snd(strip_forall(concl dth))))) dth
+                SIMPLE_EXISTS (Choice.get <| rator(Choice.get <| lhand(snd(strip_forall(concl dth))))) dth
             let fth = PROVE_HYP bth (itlist SIMPLE_CHOOSE evs eth)
             let zty = Choice.get <| type_of(Choice.get <| rand(snd(strip_forall(concl dth))))
             let mk_projector a = 
@@ -376,7 +376,7 @@ let GEN_BETA_CONV =
             let ths = 
                 map (fun arth -> 
                         let sths = 
-                            create_iterated_projections(lhand(concl arth))
+                            create_iterated_projections(Choice.get <| lhand(concl arth))
                         map (CONV_RULE(RAND_CONV(SUBS_CONV [arth]))) sths) arths
             unions' equals_thm ths
     let GEN_BETA_CONV1 tm = //I don't know if using the same name of the function to be defined can cause problems
@@ -589,10 +589,10 @@ let (LET_TAC : tactic) =
             let th1 = rewr1_CONV tm
             let tm1 = Choice.get <| rand(concl th1)
             let cjs = conjuncts tm1
-            let vars = map lhand cjs
+            let vars = map (Choice.get << lhand) cjs
             let th2 = EQ_MP (SYM th1) (ASSUME tm1)
             let th3 = DISCH_ALL(itlist SIMPLE_EXISTS vars th2)
-            let th4 = INST (map (fun t -> Choice.get <| rand t, lhand t) cjs) th3
+            let th4 = INST (map (fun t -> Choice.get <| rand t, Choice.get <| lhand t) cjs) th3
             MP (rewr2_RULE th4) TRUTH
     fun (asl, w as gl) ->  
             let path = 
@@ -607,7 +607,7 @@ let (LET_TAC : tactic) =
                         if x = y
                         then None
                         else Choice.toOption <| mk_eq(x, y)) assigs
-            let lvars = itlist (union << frees << lhs) abbrevs []
+            let lvars = itlist (union << frees << Choice.get << lhs) abbrevs []
             let avoids = itlist (union << thm_frees << snd) asl (frees w)
             let rename = Choice.get << vsubst(zip (Choice.get <| variants avoids lvars) lvars)
             let abbrevs' = 

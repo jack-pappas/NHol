@@ -114,8 +114,8 @@ let lift_function =
                 with
                 | Failure _ -> [], wtm
             let eqs, rels = partition is_eq hyps
-            let rvs = map lhand rels
-            let qvs = map lhs eqs
+            let rvs = map (Choice.get << lhand) rels
+            let qvs = map (Choice.get << lhs) eqs
             let evs = 
                 Choice.get <| variants wfvs (map (fun v -> mk_var(fst(Choice.get <| dest_var v), ety)) rvs)
             let mems = 
@@ -133,10 +133,10 @@ let lift_function =
             let newargs = 
                 map (fun e -> 
                         try 
-                            lhs e
+                            Choice.get <| lhs e
                         with
                         | Failure _ as ex ->
-                            match assoc (lhand e) (zip rvs evs) with
+                            match assoc (Choice.get <| lhand e) (zip rvs evs) with
                             | Some x -> x
                             | None ->
                                 nestedFailwith ex "find") hyps
@@ -150,7 +150,7 @@ let lift_function =
             let targs = map (fun v -> Choice.get <| mk_comb(mk, Choice.get <| mk_comb(eqv, v))) rvs
             let dme_th = 
                 let th = INST [eqvx, rtm] tybij2
-                EQ_MP th (EXISTS (lhs(concl th), xtm) (REFL eqvx))
+                EQ_MP th (EXISTS (Choice.get <| lhs(concl th), xtm) (REFL eqvx))
             let ith = INST (zip targs evs) eth
             let jth = SUBS (map (fun v -> INST [v, xtm] dme_th) rvs) ith
             let apop, uxtm = Choice.get <| dest_comb(Choice.get <| rand(concl jth))
@@ -167,7 +167,7 @@ let lift_function =
                         end_itlist CONJ 
                             (map 
                                  (fun v -> 
-                                     Option.get <| find ((=)(lhand v) << lhand << concl) 
+                                     Option.get <| find ((=)(Choice.get <| lhand v) << Choice.get << lhand << concl) 
                                          ethlist) hyps)
                     let th2d = MATCH_MP wth th2c
                     let th2e = 

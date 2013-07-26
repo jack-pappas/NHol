@@ -513,7 +513,7 @@ let REAL_RAT_MUL_CONV =
                       v2', v2
                       d1', d1
                       d2', d2] pth_cancel
-            let th1 = EQT_ELIM(REAL_INT_REDUCE_CONV(lhand(concl th0)))
+            let th1 = EQT_ELIM(REAL_INT_REDUCE_CONV(Choice.get <| lhand(concl th0)))
             let th2 = MP th0 th1
             let th3 = BINOP_CONV REAL_INT_MUL_CONV (Choice.get <| rand(concl th2))
             TRANS th2 th3
