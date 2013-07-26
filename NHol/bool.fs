@@ -290,26 +290,39 @@ let ADD_ASSUM tm th = MP (DISCH tm th) (ASSUME tm)
 /// Derives forward and backward implication from equality of boolean terms.
 let EQ_IMP_RULE = 
     let peq = parse_term @"p <=> q"
-    let p, q = Choice.get <| dest_iff peq
-    let pth1() = DISCH peq (DISCH p (EQ_MP (ASSUME peq) (ASSUME p)))
-    let pth2() = DISCH peq (DISCH q (EQ_MP (SYM(ASSUME peq)) (ASSUME q)))
+    let pq = dest_iff peq
+    let pth1 p = DISCH peq (DISCH p (EQ_MP (ASSUME peq) (ASSUME p)))
+    let pth2 q = DISCH peq (DISCH q (EQ_MP (SYM(ASSUME peq)) (ASSUME q)))
     fun th -> 
-        let l, r = Choice.get <| dest_iff(concl <| Choice.get th)
-        MP (INST [l, p; r, q] <| pth1()) th, MP (INST [l, p; r, q] <| pth2()) th
+        // TODO: revise this
+        match pq with
+        | Success(p, q) ->
+            match Choice.bind (dest_iff << concl) th with
+            | Success (l, r) ->
+                MP (INST [l, p; r, q] <| pth1 p) th, MP (INST [l, p; r, q] <| pth2 q) th
+            | _ -> Choice.failwithPair "EQ_IMP_RULE"
+        | _ -> Choice.failwithPair "EQ_IMP_RULE"
 
 /// Implements the transitivity of implication.
 let IMP_TRANS = 
     let pq = parse_term @"p ==> q"
     let qr = parse_term @"q ==> r"
-    let p, q = Choice.get <| dest_imp pq
-    let r = Choice.get <| rand qr
-    let pth() = itlist DISCH [pq; qr; p] (MP (ASSUME qr) (MP (ASSUME pq) (ASSUME p)))
+    let p_imp_q = dest_imp pq
+    let r = rand qr
+    let pth p = itlist DISCH [pq; qr; p] (MP (ASSUME qr) (MP (ASSUME pq) (ASSUME p)))
     fun th1 th2 -> 
-        let x, y = Choice.get <| dest_imp(concl <| Choice.get th1)
-        let y', z = Choice.get <| dest_imp(concl <| Choice.get th2)
-        if y <> y' then failwith "IMP_TRANS"
-        else 
-            MP (MP (INST [x, p; y, q; z, r] <| pth()) th1) th2
+        choice {
+            let! (p, q) = p_imp_q
+            let! r = r
+            let! tm1 = Choice.map concl th1
+            let! tm2 = Choice.map concl th2
+            let! x, y = dest_imp tm1
+            let! y', z = dest_imp tm2
+            if y <> y' then 
+                return! Choice.failwith "IMP_TRANS"
+            else 
+                return! MP (MP (INST [x, p; y, q; z, r] <| pth p) th1) th2
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for !                                                               *)
@@ -333,25 +346,26 @@ let SPEC =
         let th3 = CONV_RULE (RAND_CONV BETA_CONV) th2
         DISCH_ALL(EQT_ELIM th3)
     fun tm th ->
-        let abs = Choice.get <| rand(concl <| Choice.get th)
-        CONV_RULE BETA_CONV (MP (PINST [snd(Choice.get <| dest_var(Choice.get <| bndvar abs)), aty] [abs, P; tm, x] <| pth()) th)
-        |> Choice.mapError (fun _ -> Exception "SPEC")
+        choice {
+            let! tm = Choice.map concl th
+            let! abs = rand tm
+            let! ba = bndvar abs
+            let! db = dest_var ba
+            return! CONV_RULE BETA_CONV (MP (PINST [snd db, aty] [abs, P; tm, x] <| pth()) th)
+        }
+        |> Choice.bindError (fun _ -> Choice.failwith "SPEC")
 
-/// Specializes zero or more Choice.get <| variables in the conclusion of a theorem.
+/// Specializes zero or more variables in the conclusion of a theorem.
 let SPECL tms th = 
     rev_itlist SPEC tms th
-    |> Choice.mapError (fun _ -> Exception "SPEC")
+    |> Choice.bindError (fun _ -> Choice.failwith "SPEC")
 
-// TODO: make this safe
-let thm_frees thm = 
-    thm_frees (Choice.get thm)
-
-/// Specializes the conclusion of a theorem, returning the chosen Choice.get <| variant.
+/// Specializes the conclusion of a theorem, returning the chosen variant.
 let SPEC_VAR th = 
-    let bv = Choice.get <| variant (thm_frees th) (Choice.get <| bndvar(Choice.get <| rand(concl <| Choice.get th)))
+    let bv = Choice.get <| variant (thm_frees <| Choice.get th) (Choice.get <| bndvar(Choice.get <| rand(concl <| Choice.get th)))
     bv, SPEC bv th
 
-/// Specializes the conclusion of a theorem with its own quantified Choice.get <| variables.
+/// Specializes the conclusion of a theorem with its own quantified variables.
 let rec SPEC_ALL th = 
     if is_forall(concl <| Choice.get th) then SPEC_ALL(snd(SPEC_VAR th))
     else th

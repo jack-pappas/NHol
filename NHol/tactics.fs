@@ -497,7 +497,7 @@ let ABS_TAC : tactic =
             let l, r = Choice.get <| dest_eq w
             let lv, lb = Choice.get <| dest_abs l
             let rv, rb = Choice.get <| dest_abs r
-            let avoids = itlist (union << thm_frees << snd) asl (frees w)
+            let avoids = itlist (union << thm_frees << Choice.get << snd) asl (frees w)
             let v = Choice.get <| mk_primed_var avoids lv
             (null_meta, [asl, Choice.get <| mk_eq(Choice.get <| vsubst [v, lv] lb, Choice.get <| vsubst [v, rv] rb)], 
              fun i tl -> 
@@ -678,7 +678,7 @@ let X_GEN_TAC x' =
                 | Failure _ as e ->
                     nestedFailwith e "X_GEN_TAC: Not universally quantified"
             let _ = tactic_type_compatibility_check "X_GEN_TAC" x x'
-            let avoids = itlist (union << thm_frees << snd) asl (frees w)
+            let avoids = itlist (union << thm_frees << Choice.get << snd) asl (frees w)
             if mem x' avoids
             then Choice.failwith "X_GEN_TAC: invalid variable"
             else 
@@ -705,7 +705,7 @@ let X_CHOOSE_TAC x' xth =
     fun (asl, w) -> 
         let avoids = 
             itlist (union << frees << concl << Choice.get << snd) asl 
-                (union (frees w) (thm_frees xth))
+                (union (frees w) (thm_frees <| Choice.get xth))
         if mem x' avoids
         then Choice.failwith "X_CHOOSE_TAC: invalid variable"
         else 
@@ -737,7 +737,7 @@ let GEN_TAC : tactic =
     fun (asl, w) -> 
         try 
             let x = fst(Choice.get <| dest_forall w)
-            let avoids = itlist (union << thm_frees << snd) asl (frees w)
+            let avoids = itlist (union << thm_frees << Choice.get << snd) asl (frees w)
             let x' = Choice.get <| mk_primed_var avoids x
             X_GEN_TAC x' (asl, w)
         with
@@ -750,8 +750,8 @@ let CHOOSE_TAC : thm_tactic =
             let x = fst(Choice.get <| dest_exists(concl <| Choice.get xth))
             fun (asl, w) -> 
                 let avoids = 
-                    itlist (union << thm_frees << snd) asl 
-                        (union (frees w) (thm_frees xth))
+                    itlist (union << thm_frees << Choice.get << snd) asl 
+                        (union (frees w) (thm_frees <| Choice.get xth))
                 let x' = Choice.get <| mk_primed_var avoids x
                 X_CHOOSE_TAC x' xth (asl, w)
         f g |> Choice.mapError (fun _ -> Exception "CHOOSE_TAC")
