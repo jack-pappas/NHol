@@ -89,7 +89,7 @@ let BETA_CONV tm =
             let! tm' = mk_comb(f, v)
             return! INST [arg, v] (BETA tm')
         })
-    |> Choice.bindError (fun _ -> Choice.failwith "BETA_CONV: Not a beta-redex")
+    |> Choice.mapError (fun e -> nestedFailure e "BETA_CONV: Not a beta-redex")
 
 (* ------------------------------------------------------------------------- *)
 (* A few very basic derived equality rules.                                  *)
@@ -98,12 +98,12 @@ let BETA_CONV tm =
 /// Applies a function to both sides of an equational theorem.
 let AP_TERM tm th = 
     MK_COMB (REFL tm, th)
-    |> Choice.bindError (fun _ -> Choice.failwith "AP_TERM")
+    |> Choice.mapError (fun e -> nestedFailure e "AP_TERM")
 
 /// Proves equality of equal functions applied to a term.
 let AP_THM th tm = 
     MK_COMB (th, REFL tm)
-    |> Choice.bindError (fun _ -> Choice.failwith "AP_THM")
+    |> Choice.mapError (fun e -> nestedFailure e "AP_THM")
 
 /// Swaps left-hand and right-hand sides of an equation.
 let SYM th = 
@@ -119,7 +119,7 @@ let SYM th =
 /// Proves equality of lpha-equivalent terms.
 let ALPHA tm1 tm2 = 
     TRANS (REFL tm1) (REFL tm2)
-    |> Choice.bindError (fun _ -> Choice.failwith "ALPHA")
+    |> Choice.mapError (fun e -> nestedFailure e "ALPHA")
 
 /// Renames the bound variable of a lambda-abstraction.
 let ALPHA_CONV v tm = 
@@ -407,7 +407,7 @@ let SYM_CONV tm =
         let th2 = SYM(ASSUME tm')
         return! DEDUCT_ANTISYM_RULE th2 th1
     }
-    |> Choice.bindError (fun _ -> Choice.failwith "SYM_CONV")
+    |> Choice.mapError (fun e -> nestedFailure e "SYM_CONV")
 
 (* ------------------------------------------------------------------------- *)
 (* Conversion to a rule.                                                     *)
@@ -441,7 +441,7 @@ let SUBS_CONV ths tm =
                 else return! th
             }
     tm 
-    |> Choice.bindError (fun _ -> Choice.failwith "SUBS_CONV")
+    |> Choice.mapError (fun e -> nestedFailure e "SUBS_CONV")
 
 (* ------------------------------------------------------------------------- *)
 (* Get a few rules.                                                          *)

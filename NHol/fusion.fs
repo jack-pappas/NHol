@@ -112,15 +112,17 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Constructs a type (other than a variable type).
-    let mk_type(tyop, args) =  
-        let arity = get_type_arity tyop
-        arity 
-        |> Choice.bindEither 
-            (fun arity ->      
-                if arity = length args then Choice.result <| Tyapp(tyop, args)
-                else Choice.failwith ("mk_type: wrong number of arguments to " + tyop))
-            (fun e -> Choice.nestedFailwith e ("mk_type: type " + tyop + " has not been defined"))
-    
+    let mk_type(tyop, args) : Choice<hol_type, exn> =
+        choice {
+        let! arity = get_type_arity tyop
+        if arity = length args then
+            return Tyapp(tyop, args)
+        else
+            return! Choice.failwith ("mk_type: wrong number of arguments to " + tyop)
+        }
+        |> Choice.mapError (fun ex ->
+            nestedFailure ex ("mk_type: type " + tyop + " has not been defined"))
+
     /// Constructs a type variable of the given name.
     let mk_vartype v = Tyvar(v)
     
@@ -283,8 +285,8 @@ module Hol_kernel =
         let uty = get_const_type name
         uty
         |> Choice.map (fun uty -> Const(name, type_subst theta uty))
-        |> Choice.bindError (fun e -> 
-            Choice.nestedFailwith e "mk_const: not a constant name")
+        |> Choice.mapError (fun e -> 
+            nestedFailure e "mk_const: not a constant name")
     
     /// Constructs an abstraction.
     let mk_abs(bvar, bod) =
@@ -730,7 +732,7 @@ module Hol_kernel =
         Choice.bind2 EQ_MP thm1 thm2
     
     /// Deduces logical equivalence from deduction in both directions.
-    let DEDUCT_ANTISYM_RULE thm1 thm2 =
+    let DEDUCT_ANTISYM_RULE (thm1 : thm) (thm2 : thm) =
         let DEDUCT_ANTISYM_RULE (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
             choice {
             let asl1' = term_remove c2 asl1
@@ -745,18 +747,18 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Instantiates types in a theorem.
-    let INST_TYPE theta thm =
+    let INST_TYPE theta (thm : thm) =
         // TODO: revise this
-        let INST_TYPE theta (Sequent(asl, c)) =
+        let INST_TYPE theta (Sequent(asl, c)) : thm =
             Choice.attempt <| fun () ->
                 let inst_fn = Choice.get << inst theta
                 Sequent(term_image inst_fn asl, inst_fn c)
         Choice.bind (INST_TYPE theta) thm
     
     /// Instantiates free variables in a theorem.
-    let INST theta thm =
+    let INST theta (thm : thm) =
         // TODO: revise this
-        let INST theta (Sequent(asl, c)) =
+        let INST theta (Sequent(asl, c)) : thm =
             Choice.attempt <| fun () ->
                 let inst_fun = Choice.get << vsubst theta
                 Sequent(term_image inst_fun asl, inst_fun c)
@@ -905,7 +907,8 @@ let mk_eq =
         let! eq_tm = inst [ty, aty] eq
         let! l = mk_comb(eq_tm, l)
         return! mk_comb(l, r)
-        } |> Choice.bindError (fun e -> Choice.nestedFailwith e "mk_eq")
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "mk_eq")
 
 (* ------------------------------------------------------------------------- *)
 (* Tests for alpha-convertibility (equality ignoring names in abstractions). *)

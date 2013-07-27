@@ -295,7 +295,7 @@ let pp_print_term =
                 return (l, r)
             else return! Choice.fail()
         }        
-        |> Choice.bindError (fun e -> Choice.nestedFailwith e "DEST_BINARY")
+        |> Choice.mapError (fun e -> nestedFailure e "DEST_BINARY")
 
     and ARIGHT s = 
         match get_infix_status s with

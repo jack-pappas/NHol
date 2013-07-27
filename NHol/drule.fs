@@ -596,7 +596,7 @@ let PART_MATCH, GEN_PART_MATCH =
                     return! fth
                 else 
                     return! SUBS [ALPHA tm' tm] fth
-                            |> Choice.bindError (fun _ -> Choice.failwith "PART_MATCH: Sanity check failure")
+                            |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
         }
     let GEN_PART_MATCH partfn (th : thm) tm : thm = 
         // NOTE: change from value to function for easy conversion
@@ -626,7 +626,7 @@ let PART_MATCH, GEN_PART_MATCH =
                     return! fth
                 else 
                     return! SUBS [ALPHA tm' tm] fth
-                            |> Choice.bindError (fun _ -> Choice.failwith "PART_MATCH: Sanity check failure")
+                            |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
         }
     PART_MATCH, GEN_PART_MATCH
 
@@ -649,14 +649,14 @@ let MATCH_MP (ith : thm) : thm -> thm =
                 let th2 = GENL svs (DISCH ant (GENL pvs (UNDISCH th1)))
                 return! MP (DISCH tm th2) ith
         }
-        |> Choice.bindError (fun _ -> Choice.failwith "MATCH_MP: Not an implication")
+        |> Choice.mapError (fun e -> nestedFailure e "MATCH_MP: Not an implication")
 
     let match_fun = PART_MATCH (Choice.map fst << dest_imp) sth
     fun (th : thm) ->
         // TODO : The Choice.attemptNested "wrapper" can be removed once match_fun is safe to use.
         Choice.attemptNested <| fun () ->
             MP (match_fun(concl <| Choice.get th)) th
-            |> Choice.bindError (fun _ -> Choice.failwith "MATCH_MP: No match")
+            |> Choice.mapError (fun e -> nestedFailure e "MATCH_MP: No match")
 
 (* ------------------------------------------------------------------------- *)
 (* Useful instance of more general higher order matching.                    *)

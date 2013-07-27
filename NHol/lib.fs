@@ -50,16 +50,21 @@ let (|Failure|_|)(exn : exn) =
     | Microsoft.FSharp.Core.Operators.Failure s -> Some s
     | _ -> None
 
+/// Creates a Failure exception with the specified message and the given exception
+/// as the Failure's InnerException.
+let inline nestedFailure innerException message =
+    exn (message, innerException)
+
+/// Like failwith, but nests the specified exception within the failure exception.
+let inline nestedFailwith innerException message =
+    raise <| nestedFailure innerException message
+
 (* ------------------------------------------------------------------------- *)
 (* Some ExtCore-related functions used within NHol.                          *)
 (* ------------------------------------------------------------------------- *)
 
 /// Fail with empty string.
 let inline fail () : 'T = failwith ""
-
-/// Like failwith, but nests the specified exception within the failure exception.
-let inline nestedFailwith innerException message =
-    raise <| exn (message, innerException)
 
 /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
 /// This is an alias for ExtCore.Choice.bindOrRaise.
@@ -69,7 +74,6 @@ let inline get (value : Choice<'T, #exn>) =
 // Follow the naming convention of ExtCore
 [<RequireQualifiedAccess>]
 module Choice =
-
     (* These functions are fairly specific to this project,
        and so probably won't be included in ExtCore. *)
 
@@ -79,7 +83,7 @@ module Choice =
         Choice2Of2 <| exn msg
 
     let inline nestedFailwith innerException message : Choice<'T, exn> =
-        Choice2Of2 <| exn (message, innerException)
+        Choice2Of2 <| nestedFailure innerException message
 
     let inline fail () : Choice<'T, exn> =
         failwith ""

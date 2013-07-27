@@ -222,7 +222,7 @@ let alpha v tm =
     choice {
         let! (v0, bod) = 
             dest_abs tm 
-            |> Choice.bindError (fun e -> Choice.nestedFailwith e "alpha: Not an abstraction")
+            |> Choice.mapError (fun e -> nestedFailure e "alpha: Not an abstraction")
         if v = v0 then return tm
         else
             let! ty = type_of v
@@ -243,17 +243,21 @@ let type_match vty cty sofar =
         if is_vartype vty then
             match rev_assoc vty sofar with
             | Some x ->
-                if x = cty then sofar
-                else failwith "type_match"
+                if x = cty then
+                    Choice.result sofar
+                else Choice.failwith "type_match"
             | None ->
-                (cty, vty) :: sofar
+                Choice.result <| (cty, vty) :: sofar
         else 
             let vop, vargs = Choice.get <| dest_type vty
             let cop, cargs = Choice.get <| dest_type cty
-            if vop = cop then itlist2 type_match vargs cargs sofar
-            else failwith "type_match"
+            if vop = cop then
+                // TODO : Change to use Choice.List.foldBack2 from ExtCore.
+                itlist2 (fun x y z -> Choice.get <| type_match x y z) vargs cargs sofar
+                |> Choice.result
+            else Choice.failwith "type_match"
 
-    Choice.attempt <| fun () ->
+    Choice.attemptNested <| fun () ->
         type_match vty cty sofar
 
 (* ------------------------------------------------------------------------- *)
@@ -270,8 +274,8 @@ let mk_mconst(c, ty) =
         if tc = ty then return con
         else return! Choice.fail()
     }
-    |> Choice.bindError (fun e ->
-        nestedFailwith e "mk_const: generic type cannot be instantiated")
+    |> Choice.mapError (fun e ->
+        nestedFailure e "mk_const: generic type cannot be instantiated")
 
 (* ------------------------------------------------------------------------- *)
 (* Like mk_comb, but instantiates type variables in rator if necessary.      *)
@@ -499,7 +503,7 @@ let dest_neg tm =
     if s = "~" then return p
     else return! Choice.fail ()
     }
-    |> Choice.bindError (fun e -> Choice.nestedFailwith e "dest_neg")
+    |> Choice.mapError (fun e -> nestedFailure e "dest_neg")
 
 /// Tests if a term is of the form `there exists a unique ...'
 let is_uexists = is_binder "?!"
@@ -520,7 +524,7 @@ let dest_list tm =
         match dest_const nil with
         | Success("NIL", _) -> Choice.result tms
         | _ -> Choice.fail()
-    v |> Choice.bindError (fun e -> nestedFailwith e "dest_list")
+    v |> Choice.mapError (fun e -> nestedFailure e "dest_list")
 
 /// Tests a term to see if it is a list.
 let is_list x =
@@ -581,7 +585,7 @@ let dest_gabs =
                     let! ltm' = rand ltm
                     return (ltm', rtm)
         }
-        |> Choice.bindError (fun e -> Choice.nestedFailwith e "dest_gabs: Not a generalized abstraction")
+        |> Choice.mapError (fun e -> nestedFailure e "dest_gabs: Not a generalized abstraction")
 
 /// Tests if a term is a basic or generalized abstraction.
 let is_gabs x =
@@ -633,7 +637,7 @@ let dest_let tm =
             if le' = "LET_END" then return (eqs, bod)
             else return! Choice.fail()
     }
-    |> Choice.bindError (fun e -> Choice.nestedFailwith e "dest_let: not a let-term")
+    |> Choice.mapError (fun e -> nestedFailure e "dest_let: not a let-term")
 
 /// Tests a term to see if it is a let-expression.
 let is_let x =
