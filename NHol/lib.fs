@@ -64,21 +64,11 @@ let inline nestedFailwith innerException message =
 /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
 /// This is an alias for ExtCore.Choice.bindOrRaise.
 let inline get (value : Choice<'T, #exn>) =
-    ExtCore.Control.Choice.bindOrRaise value
+    ExtCore.Choice.bindOrRaise value
 
 // Follow the naming convention of ExtCore
 [<RequireQualifiedAccess>]
 module Choice =
-    (* Functions which will be included in a future version of ExtCore. *)
-
-    /// Convert choice to option where Choice2Of2 is interpreted as None.
-    // NOTE : This function is included in ExtCore 0.8.32 and can be removed
-    // once we update to that version (or newer).
-    let toOption (value : Choice<'T, 'Error>) =
-        match value with
-        | Choice1Of2 result -> Some result
-        | Choice2Of2 _ -> None
-
 
     (* These functions are fairly specific to this project,
        and so probably won't be included in ExtCore. *)
@@ -103,6 +93,8 @@ module Choice =
     let inline pair (x, y) =
         (Choice1Of2 x, Choice1Of2 y)
 
+    // NOTE : This is slightly different than the Choice.attempt from ExtCore --
+    // this one only catches exceptions which match the Failure pattern.
     let attempt f : Choice<'T, exn> = 
         try
             Choice1Of2 <| f()
