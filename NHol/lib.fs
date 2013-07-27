@@ -67,25 +67,26 @@ module Choice =
     (* Functions which will be included in a future version of ExtCore. *)
 
     //[<Obsolete("This function is deprecated. Uses of it should be replaced with ExtCore.Choice.result.")>]
-    let inline succeed x =
+    let inline succeed x : Choice<'T, 'Error> =
         Choice1Of2 x
 
     /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
     //[<Obsolete("This function is deprecated. Uses of it should be replaced with ExtCore.Control.Choice.bindOrRaise.")>]
-    let get = function
+    let get (value : Choice<'T, exn>) =
+        match value with
         | Choice1Of2 a -> a
         | Choice2Of2 e ->
             // NOTE: This is a more specialized version of get to deal with Exception
             raise e
 
     // [<Obsolete("This function is deprecated. Uses of it should be replaced with ExtCore.Choice.failwith.")>]
-    let inline failwith msg =
+    let inline failwith msg : Choice<'T, exn> =
         Choice2Of2 <| exn msg
 
     /// Convert choice to option where Choice2Of2 is interpreted as None.
     // NOTE : This function is included in ExtCore 0.8.32 and can be removed
     // once we update to that version (or newer).
-    let toOption value =
+    let toOption (value : Choice<'T, 'Error>) =
         match value with
         | Choice1Of2 result -> Some result
         | Choice2Of2 _ -> None
@@ -94,10 +95,10 @@ module Choice =
     (* These functions are fairly specific to this project,
        and so probably won't be included in ExtCore. *)
 
-    let inline nestedFailwith innerException message =
+    let inline nestedFailwith innerException message : Choice<'T, exn> =
         Choice2Of2 <| exn (message, innerException)
 
-    let inline fail () =
+    let inline fail () : Choice<'T, exn> =
         failwith ""
 
     let inline failwithPair s =
@@ -109,13 +110,13 @@ module Choice =
     let inline pair (x, y) =
         (Choice1Of2 x, Choice1Of2 y)
 
-    let attempt f = 
+    let attempt f : Choice<'T, exn> = 
         try
             Choice1Of2 <| f()
         with Failure _ as e ->
             Choice2Of2 e      
 
-    let fill defaultResult value =
+    let fill defaultResult (value : Choice<'T, 'Error>) =
         match value with
         | Choice1Of2 result -> result
         | Choice2Of2 _ -> defaultResult
@@ -175,12 +176,12 @@ module Ratio =
 module Option =
     /// Gets the value associated with an option; if the option is None,
     /// fails with the specified error message.
-    let getOrFailWith msg value =
+    let getOrFailWith msg (value : 'T option) =
         match value with
         | Some x -> x
         | None -> failwith msg
 
-    let toChoiceWithError msg value =
+    let toChoiceWithError msg (value : 'T option) =
         match value with
         | Some v -> Choice.succeed v
         | None -> Choice.failwith msg
