@@ -652,7 +652,7 @@ module Hol_kernel =
         }
 
     /// Uses transitivity of equality on two equational theorems.
-    let TRANS thm1 thm2 = 
+    let TRANS (thm1 : thm) (thm2 : thm) = 
         let TRANS (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
             choice {
             match (c1, c2) with
@@ -668,7 +668,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Proves equality of combinations constructed from equal functions and operands.
-    let MK_COMB(thm1, thm2) =
+    let MK_COMB(thm1 : thm, thm2 : thm) : thm =
         let MK_COMB(Sequent(asl1, c1), Sequent(asl2, c2)) = 
             match (c1, c2) with
             | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) ->
@@ -684,7 +684,7 @@ module Hol_kernel =
         Choice.bind2 (curry MK_COMB) thm1 thm2
     
     /// Abstracts both sides of an equation.
-    let ABS v thm =
+    let ABS v (thm : thm) : thm =
         let ABS v (Sequent(asl, c)) = 
             match (v, c) with
             | Var(_, _), Comb(Comb(Const("=", _), l), r) when not(exists (vfree_in v) asl) ->
@@ -698,7 +698,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Special primitive case of beta-reduction.
-    let BETA tm =
+    let BETA tm : thm =
         choice {
         match tm with
         | Comb(Abs(v, bod), arg) when compare arg v = 0 -> 
@@ -713,7 +713,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Introduces an assumption.
-    let ASSUME tm =
+    let ASSUME tm : thm =
         choice {
         let! ty = type_of tm
         if compare ty bool_ty = 0 then
@@ -723,7 +723,7 @@ module Hol_kernel =
         }
     
     /// Equality version of the Modus Ponens rule.
-    let EQ_MP thm1 thm2 =
+    let EQ_MP (thm1 : thm) (thm2 : thm) : thm =
         let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) = 
             match eq with
             | Comb(Comb(Const("=", _), l), r) when alphaorder l c = 0 -> 
@@ -732,7 +732,7 @@ module Hol_kernel =
         Choice.bind2 EQ_MP thm1 thm2
     
     /// Deduces logical equivalence from deduction in both directions.
-    let DEDUCT_ANTISYM_RULE (thm1 : thm) (thm2 : thm) =
+    let DEDUCT_ANTISYM_RULE (thm1 : thm) (thm2 : thm) : thm =
         let DEDUCT_ANTISYM_RULE (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
             choice {
             let asl1' = term_remove c2 asl1
@@ -747,7 +747,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Instantiates types in a theorem.
-    let INST_TYPE theta (thm : thm) =
+    let INST_TYPE theta (thm : thm) : thm =
         // TODO: revise this
         let INST_TYPE theta (Sequent(asl, c)) : thm =
             Choice.attempt <| fun () ->
@@ -756,7 +756,7 @@ module Hol_kernel =
         Choice.bind (INST_TYPE theta) thm
     
     /// Instantiates free variables in a theorem.
-    let INST theta (thm : thm) =
+    let INST theta (thm : thm) : thm =
         // TODO: revise this
         let INST theta (Sequent(asl, c)) : thm =
             Choice.attempt <| fun () ->
@@ -774,7 +774,7 @@ module Hol_kernel =
     let axioms() = !the_axioms
     
     /// Sets up a new axiom.
-    let new_axiom tm =
+    let new_axiom tm : thm =
         choice {
         let! ty = type_of tm
         if compare ty bool_ty = 0 then 
@@ -796,7 +796,7 @@ module Hol_kernel =
     let definitions() = !the_definitions
     
     /// Makes a simple new definition of the form 'c = t'.
-    let new_basic_definition tm =
+    let new_basic_definition tm : thm =
         choice {
         match tm with
         | Comb(Comb(Const("=", _), Var(cname, ty)), r) ->
@@ -834,7 +834,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Introduces a new type in bijection with a nonempty subset of an existing type.
-    let new_basic_type_definition tyname (absname, repname) thm =
+    let new_basic_type_definition tyname (absname, repname) (thm : thm) : thm * thm =
         match thm with
         | Success (Sequent(asl, c)) ->
             if exists (Choice.isResult << get_const_type) [absname; repname] then 

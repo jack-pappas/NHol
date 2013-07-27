@@ -96,12 +96,12 @@ let BETA_CONV tm =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies a function to both sides of an equational theorem.
-let AP_TERM tm th = 
+let AP_TERM tm th : thm = 
     MK_COMB (REFL tm, th)
     |> Choice.mapError (fun e -> nestedFailure e "AP_TERM")
 
 /// Proves equality of equal functions applied to a term.
-let AP_THM th tm = 
+let AP_THM th tm : thm = 
     MK_COMB (th, REFL tm)
     |> Choice.mapError (fun e -> nestedFailure e "AP_THM")
 
@@ -117,12 +117,12 @@ let SYM th =
     }
 
 /// Proves equality of lpha-equivalent terms.
-let ALPHA tm1 tm2 = 
+let ALPHA tm1 tm2 : thm = 
     TRANS (REFL tm1) (REFL tm2)
     |> Choice.mapError (fun e -> nestedFailure e "ALPHA")
 
 /// Renames the bound variable of a lambda-abstraction.
-let ALPHA_CONV v tm = 
+let ALPHA_CONV v tm : thm = 
     alpha v tm
     |> Choice.bind (ALPHA tm)
 
@@ -273,7 +273,7 @@ let BINOP_CONV conv tm =
 (* version to avoid a great deal of reuilding of terms.                      *)
 (* ------------------------------------------------------------------------- *)
 
-let rec private THENQC conv1 conv2 tm = 
+let rec private THENQC (conv1 : conv) (conv2 : conv) tm : thm = 
     let v = 
         let th1 = conv1 tm
         choice { 
@@ -285,7 +285,7 @@ let rec private THENQC conv1 conv2 tm =
     v
     |> Choice.bindError (fun _ -> conv2 tm)
 
-and private THENCQC conv1 conv2 tm = 
+and private THENCQC (conv1 : conv) (conv2 : conv) tm : thm = 
     let th1 = conv1 tm
     choice { 
         let! tm = Choice.bind (rand << concl) th1
@@ -349,7 +349,7 @@ let TOP_SWEEP_CONV (c : conv) : conv = TRY_CONV (TOP_SWEEP_QCONV c)
 (* ------------------------------------------------------------------------- *)
 
 /// Applied a conversion to the leaves of a tree of binary operator expressions.
-let rec DEPTH_BINOP_CONV op conv tm = 
+let rec DEPTH_BINOP_CONV op (conv : conv) tm : thm = 
     match tm with
     | Comb(Comb(op', l), r) when op' = op -> 
         dest_binop op tm
@@ -400,7 +400,7 @@ let PAT_CONV =
 (* ------------------------------------------------------------------------- *)
 
 /// Symmetry conversion.
-let SYM_CONV tm = 
+let SYM_CONV tm : thm = 
     choice {
         let th1 = SYM(ASSUME tm)
         let! tm' = Choice.map concl th1
@@ -414,7 +414,7 @@ let SYM_CONV tm =
 (* ------------------------------------------------------------------------- *)
 
 /// Conversion to a rule.
-let CONV_RULE (conv : conv) th =
+let CONV_RULE (conv : conv) (th : thm) : thm =
     th
     |> Choice.map concl
     |> Choice.bind (fun tm -> EQ_MP (conv tm) th)
@@ -424,7 +424,7 @@ let CONV_RULE (conv : conv) th =
 (* ------------------------------------------------------------------------- *)
 
 /// Substitution conversion.
-let SUBS_CONV ths tm = 
+let SUBS_CONV (ths : thm list) tm : thm = 
     let tm = 
         if ths = [] then REFL tm
         else
@@ -460,7 +460,7 @@ let SUBS ths = CONV_RULE(SUBS_CONV ths)
 (* A cacher for conversions.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
-let private ALPHA_HACK th = 
+let private ALPHA_HACK (th : thm) : term -> thm = 
     let tm0 = Choice.bind (lhand << concl) th
     fun tm -> 
         choice {

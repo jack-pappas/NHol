@@ -1751,7 +1751,9 @@ let INT_GCD_EXISTS_POS =
 (* ------------------------------------------------------------------------- *)
 (* Hence define (positive) gcd function; add elimination to INTEGER_TAC.     *)
 (* ------------------------------------------------------------------------- *)
-overload_interface("gcd", (parse_term @"int_gcd:int#int->int"))
+do
+    overload_interface("gcd", (parse_term @"int_gcd:int#int->int"))
+    |> Choice.get
 
 let int_gcd = new_specification ["int_gcd"] (REWRITE_RULE[EXISTS_UNCURRY; SKOLEM_THM] INT_GCD_EXISTS_POS);;
 

@@ -27,6 +27,7 @@ open System
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+open ExtCore.Control
 
 open NHol
 open lib
@@ -47,10 +48,13 @@ open tactics
 (* Accept a theorem modulo unification.                                      *)
 (* ------------------------------------------------------------------------- *)
 /// Unify free variables in theorem and metavariables in goal to accept theorem.
-let UNIFY_ACCEPT_TAC mvs th (asl, w) = 
-    let insts = Choice.get <| term_unify mvs (concl <| Choice.get th) w
-    (([], insts), [], let th' = INSTANTIATE insts th in fun i [] -> INSTANTIATE i th')
-    |> Choice.result
+let UNIFY_ACCEPT_TAC mvs th (asl, w) =
+    choice {
+    let! th' = th
+    let! insts = term_unify mvs (concl th') w
+    let th'' = INSTANTIATE insts th
+    return (([], insts), [], (fun i [] -> INSTANTIATE i th''))
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* The actual prover, as a tactic.                                           *)
@@ -59,9 +63,13 @@ let UNIFY_ACCEPT_TAC mvs th (asl, w) =
 let ITAUT_TAC = 
     let CONJUNCTS_THEN' ttac cth = ttac(CONJUNCT1 cth)
                                    |> THEN <| ttac(CONJUNCT2 cth)
-    let IMPLICATE t = 
-        let th1 = AP_THM NOT_DEF (Choice.get <| dest_neg t)
-        CONV_RULE (RAND_CONV BETA_CONV) th1
+    let IMPLICATE t =
+        choice {
+        let! t' = dest_neg t
+        let th1 = AP_THM NOT_DEF t'
+        return! CONV_RULE (RAND_CONV BETA_CONV) th1
+        }
+
     let RIGHT_REVERSIBLE_TAC = 
         FIRST [CONJ_TAC                                                 (* and     *)
                GEN_TAC                                                  (* forall  *)
@@ -70,14 +78,14 @@ let ITAUT_TAC =
                EQ_TAC]                                                  (* iff     *)
     let LEFT_REVERSIBLE_TAC th gl = 
         tryfind (fun ttac -> Choice.toOption <| ttac th gl)        
-            [CONJUNCTS_THEN' ASSUME_TAC                                 (* and    *)
-             DISJ_CASES_TAC                                             (* or     *)
-             CHOOSE_TAC                                                 (* exists *)
-             (fun th -> ASSUME_TAC(EQ_MP (IMPLICATE(concl <| Choice.get th)) th))     (* not    *)
-             (CONJUNCTS_THEN' MP_TAC << uncurry CONJ << EQ_IMP_RULE)]   (* iff    *)
+            [CONJUNCTS_THEN' ASSUME_TAC;                                 (* and    *)
+             DISJ_CASES_TAC;                                             (* or     *)
+             CHOOSE_TAC;                                                 (* exists *)
+             (fun th -> ASSUME_TAC(EQ_MP (IMPLICATE(concl <| Choice.get th)) th));     (* not    *)
+             (CONJUNCTS_THEN' MP_TAC << uncurry CONJ << EQ_IMP_RULE);]   (* iff    *)
         |> Option.toChoiceWithError "tryfind"
 
-    let rec ITAUT_TAC mvs n gl = 
+    let rec ITAUT_TAC mvs n gl =
         if n <= 0
         then Choice.failwith "ITAUT_TAC: Too deep"
         else 
