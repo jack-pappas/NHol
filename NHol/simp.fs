@@ -27,6 +27,7 @@ open System
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+open ExtCore.Control
 
 open NHol
 open lib
@@ -243,6 +244,22 @@ let REWRITES_CONV net tm =
     with
     | Failure _ as e ->
         nestedFailwith e "REWRITES_CONV"
+
+(* This should be the same as above, but isn't -- because the original (above)
+   raises exceptions, some of the type parameters are more generic than they
+   should be; this means the code compiles but fails at run-time. *)
+//let REWRITES_CONV net tm =
+//    choice {
+//    let! pconvs = lookup tm net
+//    match tryfind (fun (_, cnv) -> Some <| cnv tm) pconvs with
+//    | None ->
+//        return!
+//            Choice.failwith "tryfind"
+//            |> Choice.mapError (fun e ->
+//                nestedFailure e "REWRITES_CONV")
+//    | Some result ->
+//        result
+//    }
 
 (* ------------------------------------------------------------------------- *)
 (* Decision procedures may accumulate their state in different ways (e.g.    *)
