@@ -76,10 +76,9 @@ let tysubst alist ty =
             else 
                 let tycon, tyvars = Choice.get <| dest_type ty
                 Choice.get <| mk_type(tycon, map (tysubst alist) tyvars)
-    try
-        Choice.succeed <| tysubst alist ty
-    with Failure s ->
-        Choice.failwith s
+
+    Choice.attempt <| fun () ->
+        tysubst alist ty
 
 (* ------------------------------------------------------------------------- *)
 (* A bit more syntax.                                                        *)
@@ -254,10 +253,9 @@ let type_match vty cty sofar =
             let cop, cargs = Choice.get <| dest_type cty
             if vop = cop then itlist2 type_match vargs cargs sofar
             else failwith "type_match"
-    try
-        Choice.succeed <| type_match vty cty sofar
-    with Failure s ->
-        Choice.failwith s 
+
+    Choice.attempt <| fun () ->
+        type_match vty cty sofar
 
 (* ------------------------------------------------------------------------- *)
 (* Conventional matching version of mk_const (but with a sanity test).       *)
@@ -304,10 +302,9 @@ let list_mk_icomb cname args =
         let atys, _ = nsplit (Choice.get << dest_fun_ty) args (Choice.get <| get_const_type cname)
         let tyin = itlist2 (fun g a -> Choice.get << type_match g (Choice.get <| type_of a)) atys args []
         list_mk_comb(Choice.get <| mk_const(cname, tyin), args)
-    try
-        Choice.succeed <| list_mk_icomb cname args
-    with Failure s ->
-        Choice.failwith s 
+
+    Choice.attempt <| fun () ->
+        list_mk_icomb cname args
 
 (* ------------------------------------------------------------------------- *)
 (* Free variables in assumption list and conclusion of a theorem.            *)
@@ -342,15 +339,20 @@ let rec free_in tm1 tm2 =
 (* ------------------------------------------------------------------------- *)
 
 /// Searches a term for a subterm that satises a given predicate.
-let rec find_term p tm = 
-    if p tm then Choice.succeed tm
-    elif is_abs tm then Choice.bind (find_term p) (body tm)
+let rec find_term p tm =
+    choice {
+    if p tm then return tm
+    elif is_abs tm then
+        // TODO : Change this to use the workflow instead of Choice.bind.
+        return! Choice.bind (find_term p) (body tm)
     elif is_comb tm then
-        dest_comb tm
-        |> Choice.bind (fun (l, r) -> 
+        let! l, r = dest_comb tm
+        return!
             find_term p l
-            |> Choice.bindError (fun _ -> find_term p r))
-    else Choice.failwith "find_term"
+            |> Choice.bindError (fun _ -> find_term p r)
+    else
+        return! Choice.failwith "find_term"
+    }
 
 /// Searches a term for all subterms that satisfy a predicate.
 let find_terms = 
@@ -384,12 +386,14 @@ let is_binder s tm =
     | _ -> false
 
 /// Breaks apart a "binder".
-let dest_binder s tm = 
+let dest_binder s tm =
+    choice {
     match tm with
     | Comb(Const(s', _), Abs(x, t)) when s' = s -> 
-        Choice.succeed(x, t)
-    | _ -> 
-        Choice.failwith "dest_binder"
+        return x, t
+    | _ ->
+        return! Choice.failwith "dest_binder"
+    }
 
 /// Constructs a term with a named constant applied to an abstraction.
 let mk_binder op = 
@@ -414,12 +418,14 @@ let is_binop op tm =
     | _ -> false
 
 /// Breaks apart an application of a given binary operator to two arguments.
-let dest_binop op tm = 
+let dest_binop op tm =
+    choice {
     match tm with
     | Comb(Comb(op', l), r) when op' = op -> 
-        Choice.succeed(l, r)
+        return l, r
     | _ -> 
-        Choice.failwith "dest_binop"
+        return! Choice.failwith "dest_binop"
+    }
 
 /// The call 'mk_binop op l r' returns the term '(op l) r'.
 let mk_binop op tm1 = 
@@ -488,12 +494,12 @@ let is_neg tm =
 
 /// Breaks apart a negation, returning its body.
 let dest_neg tm =
-    dest_comb tm
-    |> Choice.bind (fun (n, p) ->
-        dest_const n
-        |> Choice.bind (fun (s, _ ) ->
-            if s = "~" then Choice.succeed p
-            else Choice.fail()))
+    choice {
+    let! n, p = dest_comb tm
+    let! s, _ = dest_const n
+    if s = "~" then return p
+    else return! Choice.fail ()
+    }
     |> Choice.bindError (fun e -> Choice.nestedFailwith e "dest_neg")
 
 /// Tests if a term is of the form `there exists a unique ...'
@@ -600,10 +606,8 @@ let mk_gabs =
             let bod = Choice.get <| mk_abs(f, list_mk_forall(fvs, mk_geq(Choice.get <| mk_comb(f, tm1), tm2)))
             Choice.get <| mk_comb(Choice.get <| mk_const("GABS", [fty, aty]), bod)
     fun (tm1, tm2) ->
-        try
-            Choice.succeed <| mk_gabs (tm1, tm2)
-        with Failure s ->
-            Choice.failwith s
+        Choice.attempt <| fun () ->
+            mk_gabs (tm1, tm2)
 
 
 /// Iteratively makes a generalized abstraction.
@@ -656,14 +660,15 @@ let mk_let(assigs, bod) =
 
 /// Make a list of terms with stylized variable names.
 let make_args = 
-    let rec margs n s avoid tys = 
-        if tys = [] then Choice.succeed []
-        else 
-            let v = variant avoid (mk_var(s + (string n), hd tys))
-            v |> Choice.bind (fun v ->
-                (margs (n + 1) s (v :: avoid) (tl tys))
-                |> Choice.map (fun vs -> v :: vs))
-    fun s avoid tys -> 
+    let rec margs n s avoid tys =
+        choice {
+        if tys = [] then return []
+        else
+            let! v = variant avoid (mk_var(s + (string n), hd tys))
+            let! vs = margs (n + 1) s (v :: avoid) (tl tys)
+            return v :: vs
+        }
+    fun s avoid tys ->
         if length tys = 1 then 
             variant avoid (mk_var(s, hd tys)) |> Choice.map (fun x -> [x])
         else margs 0 s avoid tys
@@ -682,11 +687,9 @@ let find_path =
                 "r" :: (find_path p (Choice.get <| rand tm))
             with
             | Failure _ -> "l" :: (find_path p (Choice.get <| rator tm))
-    fun p tm -> 
-        try
-            Choice.succeed <| implode(find_path p tm)
-        with Failure s ->
-            Choice.failwith s
+    fun p tm ->
+        Choice.attempt <| fun () ->
+            implode(find_path p tm)
 
 /// Find the subterm of a given term indicated by a path.
 let follow_path = 
@@ -696,8 +699,6 @@ let follow_path =
         | "l" :: t -> follow_path t (Choice.get <| rator tm)
         | "r" :: t -> follow_path t (Choice.get <| rand tm)
         | _ :: t -> follow_path t (Choice.get <| body tm)
-    fun s tm -> 
-        try
-            Choice.succeed <| follow_path (explode s) tm
-        with Failure s ->
-            Choice.failwith s
+    fun s tm ->
+        Choice.attempt <| fun () ->
+            follow_path (explode s) tm

@@ -27,6 +27,8 @@ open System
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open lib
@@ -195,7 +197,7 @@ module Hol_kernel =
     (* Return all the defined constants with generic types.                      *)
     (* ------------------------------------------------------------------------- *)
 
-    /// Returns a list of the constants currently dened.
+    /// Returns a list of the constants currently defined.
     let constants() = !the_term_constants
 
     (* ------------------------------------------------------------------------- *)
@@ -204,11 +206,13 @@ module Hol_kernel =
 
     /// Gets the generic type of a constant from the name of the constant.
     let get_const_type s =
+        choice {
         match assoc s !the_term_constants with
         | Some result -> 
-            Choice.succeed result
+            return result
         | None -> 
-            Choice.failwith "find"
+            return! Choice.failwith "find"
+        }
     
     (* ------------------------------------------------------------------------- *)
     (* Declare a new constant.                                                   *)
@@ -235,10 +239,9 @@ module Hol_kernel =
             | Abs(Var(_, ty), t) -> 
                 Tyapp("fun", [ty; type_of t])
             | _ -> failwith "type_of: not a type of a term"
-        try
-            Choice.succeed <| type_of tm
-        with Failure s ->
-            Choice.failwith s
+
+        Choice.attempt <| fun () ->
+            type_of tm
     
     (* ------------------------------------------------------------------------- *)
     (* Primitive discriminators.                                                 *)
@@ -284,25 +287,29 @@ module Hol_kernel =
             Choice.nestedFailwith e "mk_const: not a constant name")
     
     /// Constructs an abstraction.
-    let mk_abs(bvar, bod) = 
+    let mk_abs(bvar, bod) =
+        choice {
         match bvar with
-        | Var(_, _) -> 
-            Choice.succeed <| Abs(bvar, bod)
-        | _ -> 
-            Choice.failwith "mk_abs: not a variable"
+        | Var(_, _) ->
+            return Abs(bvar, bod)
+        | _ ->
+            return! Choice.failwith "mk_abs: not a variable"
+        }    
     
     /// Constructs a combination.
-    let mk_comb(f, a) = 
-        type_of f 
-        |> Choice.bind (fun ty0 -> 
-            match ty0 with
-            | Tyapp("fun", [ty; _]) ->
-                type_of a
-                |> Choice.bind (fun ta ->
-                    if compare ty ta = 0 then Choice.succeed <| Comb(f, a)
-                    else Choice.failwith "mk_comb: types do not agree")
-            | _ -> 
-                Choice.failwith "mk_comb: types do not agree")
+    let mk_comb(f, a) =
+        choice {
+        let! ty0 = type_of f
+        match ty0 with
+        | Tyapp("fun", [ty; _]) ->
+            let! ta = type_of a
+            if compare ty ta = 0 then
+                return Comb(f, a)
+            else
+                return! Choice.failwith "mk_comb: types do not agree"
+        | _ ->
+            return! Choice.failwith "mk_comb: types do not agree"
+        }
 
     (* ------------------------------------------------------------------------- *)
     (* Primitive destructors.                                                    *)
@@ -390,23 +397,27 @@ module Hol_kernel =
             | Comb(s, t) -> union (type_vars_in_term s) (type_vars_in_term t)
             | Abs(Var(_, ty), t) -> union (tyvars ty) (type_vars_in_term t)
             | _ -> failwith "type_vars_in_term: not a type variable"
-        try
-            Choice.succeed <| type_vars_in_term tm
-        with Failure s ->
-            Choice.failwith s
+
+        Choice.attempt <| fun () ->
+            type_vars_in_term tm
 
     (* ------------------------------------------------------------------------- *)
     (* For name-carrying syntax, we need this early.                             *)
     (* ------------------------------------------------------------------------- *)
 
     /// Modifies a variable name to avoid clashes.
-    let rec variant avoid v = 
-        if not(exists (vfree_in v) avoid) then Choice.succeed v
+    let rec variant avoid v =
+        choice {
+        if not(exists (vfree_in v) avoid) then
+            return v
         else 
             match v with
-            | Var(s, ty) -> variant avoid (Var(s + "'", ty))
-            | _ -> Choice.failwith "variant: not a variable"
-    
+            | Var(s, ty) ->
+                return! variant avoid (Var(s + "'", ty))
+            | _ ->
+                return! Choice.failwith "variant: not a variable"
+        }
+
     (* ------------------------------------------------------------------------- *)
     (* Substitution primitive (substitution for variables only!)                 *)
     (* ------------------------------------------------------------------------- *)
@@ -433,12 +444,11 @@ module Hol_kernel =
                             let v' = Choice.get <| variant [s'] v
                             Abs(v', vsubst ((v', v) :: ilist') s)
                         else Abs(v, s')
-            try
-                Choice.succeed <| vsubst ilist tm
-            with Failure s ->
-                Choice.failwith s
 
-        fun theta -> 
+            Choice.attempt <| fun () ->
+                vsubst ilist tm
+
+        fun theta ->
             if theta = [] then Choice.succeed
             elif forall (fun (t, x) -> 
                     match type_of t, dest_var x with
@@ -626,9 +636,11 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns theorem expressing reflexivity of equality.
-    let REFL tm = 
-        safe_mk_eq tm tm
-        |> Choice.map (fun tm' -> Sequent([], tm'))
+    let REFL tm =
+        choice {
+        let! tm' = safe_mk_eq tm tm
+        return Sequent([], tm')
+        }
 
     /// Uses transitivity of equality on two equational theorems.
     let TRANS thm1 thm2 = 
@@ -675,23 +687,28 @@ module Hol_kernel =
 
     /// Special primitive case of beta-reduction.
     let BETA tm =
+        choice {
         match tm with
         | Comb(Abs(v, bod), arg) when compare arg v = 0 -> 
-            safe_mk_eq tm bod
-            |> Choice.map (fun tm -> Sequent([], tm))
+            let! tm = safe_mk_eq tm bod
+            return Sequent([], tm)
         | _ -> 
-            Choice.failwith "BETA: not a trivial beta-redex"
-    
+            return! Choice.failwith "BETA: not a trivial beta-redex"
+        }
+
     (* ------------------------------------------------------------------------- *)
     (* Rules connected with deduction.                                           *)
     (* ------------------------------------------------------------------------- *)
 
     /// Introduces an assumption.
-    let ASSUME tm = 
-        type_of tm 
-        |> Choice.bind (fun ty ->
-            if compare ty bool_ty = 0 then Choice.succeed <| Sequent([tm], tm)
-            else Choice.failwith "ASSUME: not a proposition")
+    let ASSUME tm =
+        choice {
+        let! ty = type_of tm
+        if compare ty bool_ty = 0 then
+            return Sequent([tm], tm)
+        else
+            return! Choice.failwith "ASSUME: not a proposition"
+        }
     
     /// Equality version of the Modus Ponens rule.
     let EQ_MP thm1 thm2 =
@@ -704,11 +721,13 @@ module Hol_kernel =
     
     /// Deduces logical equivalence from deduction in both directions.
     let DEDUCT_ANTISYM_RULE thm1 thm2 =
-        let DEDUCT_ANTISYM_RULE (Sequent(asl1, c1)) (Sequent(asl2, c2)) = 
+        let DEDUCT_ANTISYM_RULE (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
+            choice {
             let asl1' = term_remove c2 asl1
             let asl2' = term_remove c1 asl2
-            safe_mk_eq c1 c2
-            |> Choice.map (fun tm -> Sequent(term_union asl1' asl2', tm))
+            let! tm = safe_mk_eq c1 c2
+            return Sequent(term_union asl1' asl2', tm)
+            }
         Choice.bind2 DEDUCT_ANTISYM_RULE thm1 thm2
     
     (* ------------------------------------------------------------------------- *)
@@ -718,73 +737,77 @@ module Hol_kernel =
     /// Instantiates types in a theorem.
     let INST_TYPE theta thm =
         // TODO: revise this
-        let INST_TYPE theta (Sequent(asl, c)) = 
-            try
+        let INST_TYPE theta (Sequent(asl, c)) =
+            Choice.attempt <| fun () ->
                 let inst_fn = Choice.get << inst theta
-                Choice.succeed <| Sequent(term_image inst_fn asl, inst_fn c)
-            with Failure s ->
-                Choice.failwith s
+                Sequent(term_image inst_fn asl, inst_fn c)
         Choice.bind (INST_TYPE theta) thm
     
     /// Instantiates free variables in a theorem.
     let INST theta thm =
         // TODO: revise this
-        let INST theta (Sequent(asl, c)) = 
-            try
+        let INST theta (Sequent(asl, c)) =
+            Choice.attempt <| fun () ->
                 let inst_fun = Choice.get << vsubst theta
-                Choice.succeed <| Sequent(term_image inst_fun asl, inst_fun c)
-            with Failure s ->
-                Choice.failwith s
+                Sequent(term_image inst_fun asl, inst_fun c)
         Choice.bind (INST theta) thm
     
     (* ------------------------------------------------------------------------- *)
     (* Handling of axioms.                                                       *)
     (* ------------------------------------------------------------------------- *)
 
-    let the_axioms = ref([] : thm list)
+    let the_axioms = ref([] : thm0 list)
 
     /// Returns the current set of axioms.
     let axioms() = !the_axioms
     
     /// Sets up a new axiom.
-    let new_axiom tm = 
-        type_of tm
-        |> Choice.bind (fun ty ->
-            if compare ty bool_ty = 0 then 
-                let th = Choice.succeed <| Sequent([], tm)
-                the_axioms := th :: (!the_axioms)
-                th
-            else Choice.failwith "new_axiom: Not a proposition")
+    let new_axiom tm =
+        choice {
+        let! ty = type_of tm
+        if compare ty bool_ty = 0 then 
+            let th = Sequent([], tm)
+            the_axioms := th :: (!the_axioms)
+            return th
+        else
+            return! Choice.failwith "new_axiom: Not a proposition"
+        }
     
     (* ------------------------------------------------------------------------- *)
     (* Handling of (term) definitions.                                           *)
     (* ------------------------------------------------------------------------- *)
 
     /// List of all definitions introduced so far.
-    let the_definitions = ref([] : thm list)
+    let the_definitions = ref([] : thm0 list)
 
     /// Returns the current set of primitive definitions.
     let definitions() = !the_definitions
     
     /// Makes a simple new definition of the form 'c = t'.
-    let new_basic_definition tm = 
+    let new_basic_definition tm =
+        choice {
         match tm with
-        | Comb(Comb(Const("=", _), Var(cname, ty)), r) -> 
-            if not(freesin [] r) then Choice.failwith "new_definition: term not closed"
+        | Comb(Comb(Const("=", _), Var(cname, ty)), r) ->
+            if not(freesin [] r) then
+                return! Choice.failwith "new_definition: term not closed"
             else
-                type_vars_in_term r
-                |> Choice.bind (fun ty' ->
-                    if not(subset ty' (tyvars ty)) then 
-                        Choice.failwith "new_definition: Type Choice.get <| variables not reflected in constant"
-                    else 
-                        new_constant(cname, ty)
-                        |> Choice.bind (fun () ->
-                            let c = Const(cname, ty)
-                            let dth = safe_mk_eq c r |> Choice.map (fun tm -> Sequent([], tm))
-                            the_definitions := dth :: (!the_definitions)
-                            dth))
-        | _ -> Choice.failwith "new_basic_definition"
-    
+                let! ty' = type_vars_in_term r
+                if not(subset ty' (tyvars ty)) then 
+                    return! Choice.failwith "new_definition: Type Choice.get <| variables not reflected in constant"
+                else
+                    do! new_constant(cname, ty)
+                    let c = Const(cname, ty)
+                    let! dth =
+                        choice {
+                        let! tm = safe_mk_eq c r
+                        return Sequent([], tm)
+                        }
+                    the_definitions := dth :: (!the_definitions)
+                    return dth
+        | _ ->
+            return! Choice.failwith "new_basic_definition"
+        }
+
     (* ------------------------------------------------------------------------- *)
     (* Handling of type definitions.                                             *)
     (*                                                                           *)
