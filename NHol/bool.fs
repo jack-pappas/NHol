@@ -273,7 +273,7 @@ let rec DISCH_ALL th =
 /// Undischarges the antecedent of an implicative theorem.
 let UNDISCH th = 
     MP th (ASSUME(Choice.get <| rand(Choice.get <| rator(concl <| Choice.get th))))
-    |> Choice.mapError (fun _ -> Exception "UNDISCH")
+    |> Choice.mapError (fun e -> nestedFailure e "UNDISCH")
 
 /// Iteratively undischarges antecedents in a chain of implications.
 let rec UNDISCH_ALL th = 
