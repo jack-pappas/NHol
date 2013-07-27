@@ -576,9 +576,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
             let ptm'' = solve_preterm env' ptm'
             ptm''
         // TODO: recheck this
-        try
+        Choice.attemptNested <| fun () ->
             retypecheck venv ptm
-        with Failure s ->
-            Choice.failwith s
 
     type_of_pretype, term_of_preterm, retypecheck

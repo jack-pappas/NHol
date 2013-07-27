@@ -516,36 +516,43 @@ module Hol_kernel =
 
     /// Returns the operator from a combination (function application).
     let rator tm =
+        choice {
         match tm with
         | Comb(l, r) -> 
-            Choice.result l
+            return l
         | _ -> 
-            Choice.failwith "rator: Not a combination"
+            return! Choice.failwith "rator: Not a combination"
+        }
     
     /// Returns the operand from a combination (function application).
-    let rand tm = 
+    let rand tm =
+        choice {
         match tm with
         | Comb(l, r) -> 
-            Choice.result r
+            return r
         | _ -> 
-            Choice.failwith "rand: Not a combination"
+            return! Choice.failwith "rand: Not a combination"
+        }
     
     (* ------------------------------------------------------------------------- *)
     (* Syntax operations for equations.                                          *)
     (* ------------------------------------------------------------------------- *)
 
-    let safe_mk_eq l r = 
-        type_of l
-        |> Choice.map (fun ty ->
-            Comb(Comb(Const("=", Tyapp("fun", [ty; Tyapp("fun", [ty; bool_ty])])), l), r))
+    let safe_mk_eq l r =
+        choice {
+        let! ty = type_of l
+        return Comb(Comb(Const("=", Tyapp("fun", [ty; Tyapp("fun", [ty; bool_ty])])), l), r)
+        }
     
     /// Term destructor for equality.
-    let dest_eq tm = 
+    let dest_eq tm =
+        choice {
         match tm with
         | Comb(Comb(Const("=", _), l), r) -> 
-            Choice.result (l, r)
+            return l, r
         | _ -> 
-            Choice.failwith "dest_eq"
+            return! Choice.failwith "dest_eq"
+        }
     
     (* ------------------------------------------------------------------------- *)
     (* Useful to have term union modulo alpha-conversion for assumption lists.   *)
@@ -645,10 +652,13 @@ module Hol_kernel =
     /// Uses transitivity of equality on two equational theorems.
     let TRANS thm1 thm2 = 
         let TRANS (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
+            choice {
             match (c1, c2) with
             | Comb((Comb(Const("=", _), _) as eql), m1), Comb(Comb(Const("=", _), m2), r) when alphaorder m1 m2 = 0 -> 
-                Choice.result <| Sequent(term_union asl1 asl2, Comb(eql, r))
-            | _ -> Choice.failwith "TRANS"
+                return Sequent(term_union asl1 asl2, Comb(eql, r))
+            | _ ->
+                return! Choice.failwith "TRANS"
+            }
         Choice.bind2 TRANS thm1 thm2
     
     (* ------------------------------------------------------------------------- *)
@@ -888,18 +898,14 @@ let is_eq tm =
 /// Constructs an equation.
 let mk_eq = 
     let eq = mk_const("=", [])
-    fun (l, r) -> 
-        eq
-        |> Choice.bind (fun eq ->
-            match type_of l with
-            | Success ty ->
-                match inst [ty, aty] eq with
-                | Success eq_tm ->
-                    mk_comb(eq_tm, l)
-                    |> Choice.bind (fun l -> mk_comb(l, r))
-                | Error ex -> Choice2Of2 ex
-            | Error ex -> Choice2Of2 ex)
-        |> Choice.bindError (fun e -> Choice.nestedFailwith e "mk_eq")
+    fun (l, r) ->
+        choice {
+        let! eq = eq
+        let! ty = type_of l
+        let! eq_tm = inst [ty, aty] eq
+        let! l = mk_comb(eq_tm, l)
+        return! mk_comb(l, r)
+        } |> Choice.bindError (fun e -> Choice.nestedFailwith e "mk_eq")
 
 (* ------------------------------------------------------------------------- *)
 (* Tests for alpha-convertibility (equality ignoring names in abstractions). *)

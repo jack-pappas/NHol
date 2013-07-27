@@ -271,10 +271,8 @@ let INSTANTIATE_ALL : instantiation -> thm -> thm =
                 let th2 = INSTANTIATE i th1
                 funpow (length rhyps) UNDISCH th2
     fun i th ->
-        try
+        Choice.attemptNested <| fun () ->
             inst i th
-        with Failure s ->
-            Choice.failwith s
 
 (* ------------------------------------------------------------------------- *)
 (* Higher order matching of terms.                                           *)
@@ -572,7 +570,7 @@ let PART_MATCH, GEN_PART_MATCH =
                 match_bvs l1 l2 (match_bvs r1 r2 acc)
             with
             | Failure _ -> acc
-    let PART_MATCH partfn th tm = 
+    let PART_MATCH partfn (th : thm) tm = 
         // NOTE: change from value to function for easy conversion
         choice {
             let sth = SPEC_ALL th
@@ -600,7 +598,7 @@ let PART_MATCH, GEN_PART_MATCH =
                     return! SUBS [ALPHA tm' tm] fth
                             |> Choice.bindError (fun _ -> Choice.failwith "PART_MATCH: Sanity check failure")
         }
-    let GEN_PART_MATCH partfn th tm = 
+    let GEN_PART_MATCH partfn (th : thm) tm : thm = 
         // NOTE: change from value to function for easy conversion
         choice {
             let sth = SPEC_ALL th
@@ -637,7 +635,7 @@ let PART_MATCH, GEN_PART_MATCH =
 (* ------------------------------------------------------------------------- *)
 
 /// Modus Ponens inference rule with automatic matching.
-let MATCH_MP ith = 
+let MATCH_MP (ith : thm) : thm -> thm = 
     let sth = 
         choice {
             let! tm = Choice.map concl ith
@@ -654,13 +652,11 @@ let MATCH_MP ith =
         |> Choice.bindError (fun _ -> Choice.failwith "MATCH_MP: Not an implication")
 
     let match_fun = PART_MATCH (Choice.map fst << dest_imp) sth
-    fun th -> 
-        // TODO: remove this try/with block when match_fun is safe to use
-        try
+    fun (th : thm) ->
+        // TODO : The Choice.attemptNested "wrapper" can be removed once match_fun is safe to use.
+        Choice.attemptNested <| fun () ->
             MP (match_fun(concl <| Choice.get th)) th
             |> Choice.bindError (fun _ -> Choice.failwith "MATCH_MP: No match")
-        with Failure s ->
-            Choice.failwith s
 
 (* ------------------------------------------------------------------------- *)
 (* Useful instance of more general higher order matching.                    *)
@@ -730,18 +726,16 @@ let HIGHER_REWRITE_CONV =
             let abs = Choice.get <| mk_abs(gv, Choice.get <| subst [gv, stm] tm)
             let _, tmin0, tyin0 = Choice.get <| term_match [] pred abs
             CONV_RULE beta_fn (INST tmin (INST tmin0 (INST_TYPE tyin0 th)))
-    fun ths top tm -> 
-        try
+    fun ths top tm ->
+        Choice.attemptNested <| fun () ->
             higher_rewrite_conv ths top tm
-        with Failure s ->
-            Choice.failwith s
 
 (* ------------------------------------------------------------------------- *)
 (* Derived principle of definition justifying |- c x1 .. xn = t[x1,..,xn]    *)
 (* ------------------------------------------------------------------------- *)
 
 /// Declare a new constant and a definitional axiom.
-let new_definition tm = 
+let new_definition tm : thm = 
     let new_definition tm = 
         let avs, bod = strip_forall tm
         let l, r = 
@@ -765,7 +759,5 @@ let new_definition tm =
                     TRANS ith (BETA_CONV(Choice.get <| rand(concl <| Choice.get ith)))) largs th1
         let rvs = filter (not << C mem avs) largs
         itlist GEN rvs (itlist GEN avs th2)
-    try
+    Choice.attemptNested <| fun () ->
         new_definition tm
-    with Failure s ->
-        Choice.failwith s

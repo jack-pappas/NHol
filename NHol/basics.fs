@@ -151,10 +151,9 @@ let variants av vs =
         else 
             let vh = Choice.get <| variant av (hd vs)
             vh :: (variants (vh :: av) (tl vs))
-    try
-        Choice.result <| variants av vs
-    with Failure s ->
-        Choice.failwith s
+
+    Choice.attempt <| fun () ->
+        variants av vs
 
 (* ------------------------------------------------------------------------- *)
 (* Gets all variables (free and/or bound) in a term.                         *)

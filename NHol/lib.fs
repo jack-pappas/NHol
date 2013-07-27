@@ -107,7 +107,13 @@ module Choice =
         try
             Choice1Of2 <| f()
         with Failure _ as e ->
-            Choice2Of2 e      
+            Choice2Of2 e
+
+    let attemptNested f : Choice<'T, exn> = 
+        try
+            f ()
+        with Failure _ as e ->
+            Choice2Of2 e
 
     let fill defaultResult (value : Choice<'T, 'Error>) =
         match value with
@@ -1262,15 +1268,16 @@ let num_of_string =
         | [h] -> valof b h
         | h :: t -> valof b h +/ b */ num_of_stringlist b t
     fun s ->
-        try 
+        Choice.attempt <| fun () ->
             match explode(s) with
-            | [] -> failwith "num_of_string: no digits"
-            | "0" :: "x" :: hexdigits -> num_of_stringlist sixteen (rev hexdigits)
-            | "0" :: "b" :: bindigits -> num_of_stringlist two (rev bindigits)
-            | decdigits -> num_of_stringlist ten (rev decdigits)
-            |> Choice.result
-        with Failure s ->
-            Choice.failwith s
+            | [] ->
+                failwith "num_of_string: no digits"
+            | "0" :: "x" :: hexdigits ->
+                num_of_stringlist sixteen (rev hexdigits)
+            | "0" :: "b" :: bindigits ->
+                num_of_stringlist two (rev bindigits)
+            | decdigits ->
+                num_of_stringlist ten (rev decdigits)
             
 (* ------------------------------------------------------------------------- *)
 (* Convenient conversion between files and (lists of) strings.               *)
