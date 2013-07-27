@@ -355,7 +355,7 @@ let MONO_TAC =
                 | [a] -> a
                 | _ -> Choice.failwith "MONO_TAC.fun1: Unhandled case."       
             (null_meta, [asl, ant], fun i tl -> MATCH_MP (INSTANTIATE i th1) (fun1 tl))
-            |> Choice.succeed
+            |> Choice.result
 
     let MONO_ABS_TAC(asl, w) = 
         let ant, con = Choice.get <| dest_imp w

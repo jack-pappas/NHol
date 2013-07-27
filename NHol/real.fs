@@ -164,28 +164,28 @@ let REAL_EQ_ADD_LCANCEL_0 =
 #if BUGGY
     prove((parse_term @"!x y. (x + y = x) <=> (y = &0)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. (x + y = x) <=> (y = &0)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. (x + y = x) <=> (y = &0)") : thm
 #endif
 
 let REAL_EQ_ADD_RCANCEL_0 = 
 #if BUGGY
     prove((parse_term @"!x y. (x + y = y) <=> (x = &0)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. (x + y = y) <=> (x = &0)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. (x + y = y) <=> (x = &0)") : thm
 #endif
 
 let REAL_LNEG_UNIQ = 
 #if BUGGY
     prove((parse_term @"!x y. (x + y = &0) <=> (x = --y)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. (x + y = &0) <=> (x = --y)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. (x + y = &0) <=> (x = --y)") : thm
 #endif
 
 let REAL_RNEG_UNIQ = 
 #if BUGGY
     prove((parse_term @"!x y. (x + y = &0) <=> (y = --x)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. (x + y = &0) <=> (y = --x)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. (x + y = &0) <=> (y = --x)") : thm
 #endif
 
 let REAL_NEG_LMUL = 
@@ -206,14 +206,14 @@ let REAL_LT_GT =
 #if BUGGY
     prove((parse_term @"!x y. x < y ==> ~(y < x)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. x < y ==> ~(y < x)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. x < y ==> ~(y < x)") : thm
 #endif
 
 let REAL_NOT_EQ = 
 #if BUGGY
     prove((parse_term @"!x y. ~(x = y) <=> x < y \/ y < x"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. ~(x = y) <=> x < y \/ y < x") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. ~(x = y) <=> x < y \/ y < x") : thm
 #endif
 
 let REAL_NOT_LE = 
@@ -276,21 +276,21 @@ let REAL_NEG_EQ_0 =
 #if BUGGY
     prove((parse_term @"!x. (--x = &0) <=> (x = &0)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x. (--x = &0) <=> (x = &0)") : thm
+    Choice.result <| Sequent([],parse_term @"!x. (--x = &0) <=> (x = &0)") : thm
 #endif
 
 let REAL_ADD_SUB = 
 #if BUGGY
     prove((parse_term @"!x y. (x + y) - x = y"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. (x + y) - x = y") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. (x + y) - x = y") : thm
 #endif
 
 let REAL_NEG_EQ = 
 #if BUGGY
     prove((parse_term @"!x y. (--x = y) <=> (x = --y)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. (--x = y) <=> (x = --y)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. (--x = y) <=> (x = --y)") : thm
 #endif
 
 let REAL_NEG_MINUS1 = 
@@ -300,7 +300,7 @@ let REAL_LT_IMP_NE =
 #if BUGGY
     prove((parse_term @"!x y. x < y ==> ~(x = y)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. x < y ==> ~(x = y)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. x < y ==> ~(x = y)") : thm
 #endif
 
 let REAL_LE_ADDR = 
@@ -353,14 +353,14 @@ let REAL_EQ_SUB_LADD =
 #if BUGGY
     prove((parse_term @"!x y z. (x = y - z) <=> (x + z = y)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y z. (x = y - z) <=> (x + z = y)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y z. (x = y - z) <=> (x + z = y)") : thm
 #endif
 
 let REAL_EQ_SUB_RADD = 
 #if BUGGY
     prove((parse_term @"!x y z. (x - y = z) <=> (x = z + y)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y z. (x - y = z) <=> (x = z + y)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y z. (x - y = z) <=> (x = z + y)") : thm
 #endif
 
 
@@ -372,14 +372,14 @@ let REAL_EQ_IMP_LE =
 #if BUGGY
     prove((parse_term @"!x y. (x = y) ==> x <= y"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. (x = y) ==> x <= y") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. (x = y) ==> x <= y") : thm
 #endif
 
 let REAL_POS_NZ = 
 #if BUGGY
     prove((parse_term @"!x. &0 < x ==> ~(x = &0)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x. &0 < x ==> ~(x = &0)") : thm
+    Choice.result <| Sequent([],parse_term @"!x. &0 < x ==> ~(x = &0)") : thm
 #endif
 
 let REAL_DIFFSQ = 
@@ -391,7 +391,7 @@ let REAL_EQ_NEG2 =
 #if BUGGY
     prove((parse_term @"!x y. (--x = --y) <=> (x = y)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. (--x = --y) <=> (x = y)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. (--x = --y) <=> (x = y)") : thm
 #endif
 
 let REAL_LT_NEG2 = 
@@ -408,7 +408,7 @@ let REAL_ABS_ZERO =
 #if BUGGY
     prove((parse_term @"!x. (abs(x) = &0) <=> (x = &0)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x. (abs(x) = &0) <=> (x = &0)")
+    Choice.result <| Sequent([],parse_term @"!x. (abs(x) = &0) <=> (x = &0)")
 #endif
 
 let REAL_ABS_0 = prove((parse_term @"abs(&0) = &0"), REAL_ARITH_TAC)
@@ -431,7 +431,7 @@ let REAL_ABS_NZ =
 #if BUGGY
     prove((parse_term @"!x. ~(x = &0) <=> &0 < abs(x)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x. ~(x = &0) <=> &0 < abs(x)") : thm
+    Choice.result <| Sequent([],parse_term @"!x. ~(x = &0) <=> &0 < abs(x)") : thm
 #endif
 
 let REAL_ABS_ABS = 
@@ -442,7 +442,7 @@ let REAL_ABS_REFL =
 #if BUGGY
     prove((parse_term @"!x. (abs(x) = x) <=> &0 <= x"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x. (abs(x) = x) <=> &0 <= x") : thm
+    Choice.result <| Sequent([],parse_term @"!x. (abs(x) = x) <=> &0 <= x") : thm
 #endif
 
 let REAL_ABS_BETWEEN = 
@@ -457,7 +457,7 @@ let REAL_ABS_STILLNZ =
     prove
         ((parse_term @"!x y. abs(x - y) < abs(y) ==> ~(x = &0)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. abs(x - y) < abs(y) ==> ~(x = &0)") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. abs(x - y) < abs(y) ==> ~(x = &0)") : thm
 #endif
 
 let REAL_ABS_CASES = 
@@ -651,7 +651,7 @@ let REAL_EQ_MUL_LCANCEL =
          |> THEN <| REWRITE_TAC [GSYM REAL_SUB_LDISTRIB
                                  REAL_ENTIRE; REAL_SUB_RZERO])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!x y z. (x * y = x * z) <=> (x = &0) \/ (y = z)")
+    Choice.result <| Sequent([], parse_term @"!x y z. (x * y = x * z) <=> (x = &0) \/ (y = z)")
 #endif
 
 let REAL_EQ_MUL_RCANCEL = 
@@ -729,7 +729,7 @@ let REAL_LT_INV =
              |> THEN <| REAL_ARITH_TAC
              REWRITE_TAC [REAL_LT_RNEG; REAL_ADD_LID; REAL_OF_NUM_LT; ARITH]])
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x. &0 < x ==> &0 < inv(x)") : thm
+    Choice.result <| Sequent([],parse_term @"!x. &0 < x ==> &0 < inv(x)") : thm
 #endif
 
 let REAL_LT_INV_EQ = 
@@ -913,7 +913,7 @@ let REAL_LT_IMP_NZ =
 #if BUGGY
     prove((parse_term @"!x. &0 < x ==> ~(x = &0)"), REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x. &0 < x ==> ~(x = &0)")
+    Choice.result <| Sequent([],parse_term @"!x. &0 < x ==> ~(x = &0)")
 #endif
 
 let REAL_LT_LCANCEL_IMP = 
@@ -1014,7 +1014,7 @@ let REAL_MUL_POS_LE =
         |> THEN <| REWRITE_TAC [REAL_MUL_POS_LT; REAL_ENTIRE]
         |> THEN <| REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. &0 <= x * y <=>
+    Choice.result <| Sequent([],parse_term @"!x y. &0 <= x * y <=>
          x = &0 \/ y = &0 \/ &0 < x /\ &0 < y \/ x < &0 /\ y < &0") : thm
 #endif
 
@@ -1162,7 +1162,7 @@ let REAL_LT_INV2 =
                                                                    REAL_MUL_ASSOC
                                                                REAL_MUL_RID]]])
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. &0 < x /\ x < y ==> inv(y) < inv(x)")
+    Choice.result <| Sequent([],parse_term @"!x y. &0 < x /\ x < y ==> inv(y) < inv(x)")
 #endif
 
 let REAL_LE_INV2 = 
@@ -1535,7 +1535,7 @@ let REAL_SOS_EQ_0 =
                              (parse_term @"x + y = &0 ==> &0 <= x /\ &0 <= y ==> x = &0 /\ y = &0")))
          |> THEN <| REWRITE_TAC [REAL_LE_SQUARE; REAL_ENTIRE])
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x y. x pow 2 + y pow 2 = &0 <=> x = &0 /\ y = &0") : thm
+    Choice.result <| Sequent([],parse_term @"!x y. x pow 2 + y pow 2 = &0 <=> x = &0 /\ y = &0") : thm
 #endif
 
 let REAL_POW_ZERO = 
@@ -1619,7 +1619,7 @@ let REAL_POW_EQ_1 =
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x n. x pow n = &1 <=> abs(x) = &1 /\ (x < &0 ==> EVEN(n)) \/ n = 0") : thm
+    Choice.result <| Sequent([],parse_term @"!x n. x pow n = &1 <=> abs(x) = &1 /\ (x < &0 ==> EVEN(n)) \/ n = 0") : thm
 #endif
 
 let REAL_POW_LT2_ODD = 
@@ -1790,7 +1790,7 @@ let REAL_SGN_EQ =
        (!x. real_sgn x = -- &1 <=> x < &0)"), REWRITE_TAC [real_sgn]
                                               |> THEN <| REAL_ARITH_TAC)
 #else
-    Choice.succeed <| Sequent([],parse_term @"!x n. x pow n = &1 <=> abs(x) = &1 /\ (x < &0 ==> EVEN(n)) \/ n = 0") : thm
+    Choice.result <| Sequent([],parse_term @"!x n. x pow n = &1 <=> abs(x) = &1 /\ (x < &0 ==> EVEN(n)) \/ n = 0") : thm
 #endif
 
 let REAL_SGN_CASES = 

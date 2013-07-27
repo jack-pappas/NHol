@@ -258,9 +258,9 @@ let new_definition =
         let avs, def = strip_forall tm
         try 
             let th, th' = 
-                tryfind (fun th -> Some (th, PART_MATCH Choice.succeed th def)) (!the_definitions)
+                tryfind (fun th -> Some (th, PART_MATCH Choice.result th def)) (!the_definitions)
                 |> Option.getOrFailWith "tryfind"
-            ignore(PART_MATCH Choice.succeed th' (snd(strip_forall(concl <| Choice.get th))))
+            ignore(PART_MATCH Choice.result th' (snd(strip_forall(concl <| Choice.get th))))
             warn true "Benign redefinition"
             GEN_ALL(GENL avs th')
         with
@@ -429,7 +429,7 @@ let LAMBDA_PAIR_THM =
         ((parse_term @"!t. (\p. t p) = (\(x,y). t(x,y))"), 
          REWRITE_TAC [FORALL_PAIR_THM; FUN_EQ_THM])
 #else
-    Choice.succeed <| Sequent([],parse_term @"!t. (\p. t p) = (\(x,y). t(x,y))") : thm
+    Choice.result <| Sequent([],parse_term @"!t. (\p. t p) = (\(x,y). t(x,y))") : thm
 #endif
 
 // Error unsolved goal
@@ -442,7 +442,7 @@ let PAIRED_ETA_THM =
          REPEAT STRIP_TAC
          |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
 #else
-    Choice.succeed <| Sequent([],parse_term @"(!f. (\(x,y). f (x,y)) = f) /\ (!f. (\(x,y,z). f (x,y,z)) = f) /\ (!f. (\(w,x,y,z). f (w,x,y,z)) = f)")
+    Choice.result <| Sequent([],parse_term @"(!f. (\(x,y). f (x,y)) = f) /\ (!f. (\(x,y,z). f (x,y,z)) = f) /\ (!f. (\(w,x,y,z). f (w,x,y,z)) = f)")
 #endif
 
 // Error unsolved goal
@@ -459,7 +459,7 @@ let FORALL_UNCURRY =
          <| FIRST_ASSUM(MP_TAC << SPEC(parse_term @"\(a,b). (f:A->B->C) a b"))
          |> THEN <| SIMP_TAC [ETA_AX])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!P. (!f:A->B->C. P f) <=> (!f. P (\a b. f(a,b)))")
+    Choice.result <| Sequent([], parse_term @"!P. (!f:A->B->C. P f) <=> (!f. P (\a b. f(a,b)))")
 #endif
 
 let EXISTS_UNCURRY = 
@@ -491,7 +491,7 @@ let FORALL_PAIRED_THM =
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RATOR_CONV) [FORALL_DEF]
          |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!P. (!(x,y). P x y) <=> (!x y. P x y)") : thm
+    Choice.result <| Sequent([], parse_term @"!P. (!(x,y). P x y) <=> (!x y. P x y)") : thm
 #endif
 
 // Error unsolved goal
@@ -504,7 +504,7 @@ let EXISTS_PAIRED_THM =
          |> THEN <| REWRITE_TAC [REWRITE_RULE [ETA_AX] NOT_EXISTS_THM
                                  FORALL_PAIR_THM])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!P. (?(x,y). P x y) <=> (?x y. P x y)") : thm
+    Choice.result <| Sequent([], parse_term @"!P. (?(x,y). P x y) <=> (?x y. P x y)") : thm
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -520,7 +520,7 @@ let FORALL_TRIPLED_THM =
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RATOR_CONV) [FORALL_DEF]
          |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)") : thm
+    Choice.result <| Sequent([], parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)") : thm
 #endif
 
 // Error unsolved goal
@@ -533,7 +533,7 @@ let EXISTS_TRIPLED_THM =
          |> THEN <| REWRITE_TAC [REWRITE_RULE [ETA_AX] NOT_EXISTS_THM
                                  FORALL_PAIR_THM])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)") : thm
+    Choice.result <| Sequent([], parse_term @"!P. (!(x,y,z). P x y z) <=> (!x y z. P x y z)") : thm
 #endif
 
 (* ------------------------------------------------------------------------- *)

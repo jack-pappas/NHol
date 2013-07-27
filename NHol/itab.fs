@@ -50,7 +50,7 @@ open tactics
 let UNIFY_ACCEPT_TAC mvs th (asl, w) = 
     let insts = Choice.get <| term_unify mvs (concl <| Choice.get th) w
     (([], insts), [], let th' = INSTANTIATE insts th in fun i [] -> INSTANTIATE i th')
-    |> Choice.succeed
+    |> Choice.result
 
 (* ------------------------------------------------------------------------- *)
 (* The actual prover, as a tactic.                                           *)

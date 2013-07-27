@@ -584,7 +584,7 @@ let parse_type s =
 
 let tryParseType s =
     try
-        Choice.succeed <| parse_type s
+        Choice.result <| parse_type s
     with
     | :? Noparse ->
         Choice.failwith "Noparse"
@@ -601,7 +601,7 @@ let parse_term s =
 
 let tryParseTerm s =
     try
-        Choice.succeed <| parse_term s
+        Choice.result <| parse_term s
     with
     | :? Noparse ->
         Choice.failwith "Noparse"

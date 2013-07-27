@@ -337,7 +337,7 @@ let pp_print_term =
             elif name_of s = "_GUARDED_PATTERN" && length args = 3 then
                 let! tm1 = rator(hd args)
                 let! tm2 = rator(hd(tl(tl args)))
-                return! Choice.List.map id [rand tm1; Choice.succeed <| hd(tl args); rand tm2]
+                return! Choice.List.map id [rand tm1; Choice.result <| hd(tl args); rand tm2]
             else 
                 return! Choice.failwith "dest_clause"
         }

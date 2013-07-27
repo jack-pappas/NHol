@@ -73,10 +73,10 @@ let the_implicit_types = ref([] : (string * hol_type) list)
 let make_overloadable s gty =
     match assoc s !the_overload_skeletons with
     | Some x ->
-        if x = gty then Choice.succeed ()
+        if x = gty then Choice.result ()
         else Choice.failwith "make_overloadable: differs from existing skeleton"
     | None ->
-        Choice.succeed (the_overload_skeletons := (s, gty) :: (!the_overload_skeletons))
+        Choice.result (the_overload_skeletons := (s, gty) :: (!the_overload_skeletons))
 
 /// Remove all overload/interface mappings for an identifier.
 let remove_interface sym = 
@@ -112,7 +112,7 @@ let override_interface(sym, tm) =
 let overload_interface(sym, tm) = 
     let gty =
         match assoc sym (!the_overload_skeletons) with
-        | Some x -> Choice.succeed x
+        | Some x -> Choice.result x
         | None ->
             Choice.failwith("symbol \"" + sym + "\" is not overloadable")
     gty
@@ -123,9 +123,9 @@ let overload_interface(sym, tm) =
                 Choice.failwith "Not an instance of type skeleton"
             else 
                 let ``interface`` = filter ((<>)(sym, namty)) (!the_interface)
-                Choice.succeed (the_interface := (sym, namty) :: ``interface``)
+                Choice.result (the_interface := (sym, namty) :: ``interface``)
         // NOTE: currently doing nothing if error case is supplied
-        | Error _ -> Choice.succeed ())
+        | Error _ -> Choice.result ())
 
 /// Give overloaded constants involving a given type priority in operator overloading.
 let prioritize_overload ty = 
@@ -301,7 +301,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
 
     let get_generic_type cname = 
         match filter ((=) cname << fst) (!the_interface) with
-        | [_, (c, ty)] -> Choice.succeed ty
+        | [_, (c, ty)] -> Choice.result ty
         | _ :: _ :: _ ->
             assoc cname (!the_overload_skeletons)
             |> Option.toChoiceWithError "find"

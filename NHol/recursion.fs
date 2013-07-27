@@ -147,8 +147,8 @@ let prove_recursive_functions_exist =
 let new_recursive_definition = 
     let the_recursive_definitions = ref []
     let find_redefinition tm th = 
-        let th' = PART_MATCH Choice.succeed th tm
-        ignore(PART_MATCH Choice.succeed th' (concl <| Choice.get th))
+        let th' = PART_MATCH Choice.result th tm
+        ignore(PART_MATCH Choice.result th' (concl <| Choice.get th))
         th'
     fun ax tm -> 
         try 

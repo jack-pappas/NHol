@@ -829,7 +829,7 @@ let instantiate_casewise_recursion,
       let th2 = GEN_REWRITE_CONV TOP_DEPTH_CONV [bth] (hd(hyp <| Choice.get th1))
       SIMPLE_CHOOSE f' (PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th2))) th1)
     let pinstantiate_casewise_recursion def =
-      try PART_MATCH Choice.succeed EXISTS_REFL def 
+      try PART_MATCH Choice.result EXISTS_REFL def 
       with 
       Failure _ ->
       let f,bod = Choice.get <| dest_exists def
@@ -859,7 +859,7 @@ let instantiate_casewise_recursion,
       let ths4 = 
        map2 (fun th t -> 
                let avs,tbod = strip_forall t
-               itlist GEN avs (PART_MATCH Choice.succeed th tbod)) ths3 cjs
+               itlist GEN avs (PART_MATCH Choice.result th tbod)) ths3 cjs
       let th5 = SIMPLE_EXISTS f (end_itlist CONJ ths4)
       let th6 = PROVE_HYP th2 (SIMPLE_CHOOSE f th5)
       let th7 =
@@ -1046,9 +1046,9 @@ let define =
     f,itlist GEN avs (itlist PROVE_HYP (CONJUNCTS th) (end_itlist CONJ ths))
   fun tm ->
     let tm' = snd(strip_forall tm)
-    try let th,th' = tryfind (fun th -> Some (th,PART_MATCH Choice.succeed th tm')) (!the_definitions)
+    try let th,th' = tryfind (fun th -> Some (th,PART_MATCH Choice.result th tm')) (!the_definitions)
                      |> Option.getOrFailWith "tryfind"
-        if (Choice.isResult << PART_MATCH Choice.succeed th') (concl <| Choice.get th) then
+        if (Choice.isResult << PART_MATCH Choice.result th') (concl <| Choice.get th) then
          (warn true "Benign redefinition"; th')
         else failwith ""
     with Failure _ ->

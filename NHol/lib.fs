@@ -61,27 +61,15 @@ let inline fail () : 'T = failwith ""
 let inline nestedFailwith innerException message =
     raise <| exn (message, innerException)
 
+/// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
+/// This is an alias for ExtCore.Choice.bindOrRaise.
+let inline get (value : Choice<'T, #exn>) =
+    ExtCore.Control.Choice.bindOrRaise value
+
 // Follow the naming convention of ExtCore
 [<RequireQualifiedAccess>]
 module Choice =
     (* Functions which will be included in a future version of ExtCore. *)
-
-    //[<Obsolete("This function is deprecated. Uses of it should be replaced with ExtCore.Choice.result.")>]
-    let inline succeed x : Choice<'T, 'Error> =
-        Choice1Of2 x
-
-    /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
-    //[<Obsolete("This function is deprecated. Uses of it should be replaced with ExtCore.Control.Choice.bindOrRaise.")>]
-    let get (value : Choice<'T, exn>) =
-        match value with
-        | Choice1Of2 a -> a
-        | Choice2Of2 e ->
-            // NOTE: This is a more specialized version of get to deal with Exception
-            raise e
-
-    // [<Obsolete("This function is deprecated. Uses of it should be replaced with ExtCore.Choice.failwith.")>]
-    let inline failwith msg : Choice<'T, exn> =
-        Choice2Of2 <| exn msg
 
     /// Convert choice to option where Choice2Of2 is interpreted as None.
     // NOTE : This function is included in ExtCore 0.8.32 and can be removed
@@ -94,6 +82,11 @@ module Choice =
 
     (* These functions are fairly specific to this project,
        and so probably won't be included in ExtCore. *)
+
+    // The Choice.failwith in ExtCore returns the error string as-is, instead of wrapping it in an exception.
+    // We could modify NHol to work the same way, we'd just need to use the Choice.bindOrFail function at the call sites.
+    let inline failwith msg : Choice<'T, exn> =
+        Choice2Of2 <| exn msg
 
     let inline nestedFailwith innerException message : Choice<'T, exn> =
         Choice2Of2 <| exn (message, innerException)
@@ -183,7 +176,7 @@ module Option =
 
     let toChoiceWithError msg (value : 'T option) =
         match value with
-        | Some v -> Choice.succeed v
+        | Some v -> Choice.result v
         | None -> Choice.failwith msg
 
 
@@ -1275,7 +1268,7 @@ let num_of_string =
             | "0" :: "x" :: hexdigits -> num_of_stringlist sixteen (rev hexdigits)
             | "0" :: "b" :: bindigits -> num_of_stringlist two (rev bindigits)
             | decdigits -> num_of_stringlist ten (rev decdigits)
-            |> Choice.succeed
+            |> Choice.result
         with Failure s ->
             Choice.failwith s
             

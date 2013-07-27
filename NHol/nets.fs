@@ -105,10 +105,10 @@ let enter =
 
     let rec sinsert x l = 
         match l with
-        | [] -> Choice.succeed [x]
+        | [] -> Choice.result [x]
         | hd :: tl -> 
             if canon_eq hd x then Choice.failwith "sinsert"
-            elif canon_lt x hd then Choice.succeed (x :: l)
+            elif canon_lt x hd then Choice.result (x :: l)
             else 
                 sinsert x tl
                 |> Choice.map (fun tl -> hd :: tl)
@@ -161,7 +161,7 @@ let lookup =
                 let! collection =
                     // OPTIMIZE : Use Option.map and Option.fill to replace the 'match' statement.
                     match assoc label edges with
-                    | None -> Choice.succeed []
+                    | None -> Choice.result []
                     | Some child ->
                         follow(ntms @ rtms, child)
                 if label = Vnet then 

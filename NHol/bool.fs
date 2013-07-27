@@ -76,7 +76,7 @@ let is_iff tm =
 let dest_iff tm = 
     match tm with
     | Comb(Comb(Const("=", Tyapp("fun", [Tyapp("bool", []); _])), l), r) -> 
-        Choice.succeed (l, r)
+        Choice.result (l, r)
     | _ -> 
         Choice.failwith "dest_iff"
 

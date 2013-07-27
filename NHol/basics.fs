@@ -52,7 +52,7 @@ let genvar =
 /// Break apart a function type into domain and range.
 let dest_fun_ty ty = 
     match ty with
-    | Tyapp("fun", [ty1; ty2]) -> Choice.succeed (ty1, ty2)
+    | Tyapp("fun", [ty1; ty2]) -> Choice.result (ty1, ty2)
     | _ -> Choice.failwith "dest_fun_ty"
 
 /// Tests if one type occurs in another.
@@ -87,14 +87,14 @@ let tysubst alist ty =
 /// Returns the bound variable of an abstraction.
 let bndvar tm = 
     match dest_abs tm with
-    | Success(tm0, _) -> Choice.succeed tm0
+    | Success(tm0, _) -> Choice.result tm0
     | Error e ->
         Choice.nestedFailwith e "bndvar: Not an abstraction"
 
 /// Returns the body of an abstraction.
 let body tm = 
     match dest_abs tm with
-    | Success(_, tm1) -> Choice.succeed tm1
+    | Success(_, tm1) -> Choice.result tm1
     | Error e ->
         Choice.nestedFailwith e "body: Not an abstraction"
 
@@ -126,7 +126,7 @@ let is_binary s tm =
 let dest_binary s tm = 
     match tm with
     | Comb(Comb(Const(s', _), l), r) when s' = s -> 
-        Choice.succeed (l, r)
+        Choice.result (l, r)
     | _ -> 
         Choice.failwith "dest_binary"
 
@@ -152,7 +152,7 @@ let variants av vs =
             let vh = Choice.get <| variant av (hd vs)
             vh :: (variants (vh :: av) (tl vs))
     try
-        Choice.succeed <| variants av vs
+        Choice.result <| variants av vs
     with Failure s ->
         Choice.failwith s
 
@@ -162,18 +162,20 @@ let variants av vs =
 
 /// Determines the variables used, free or bound, in a given term.
 let variables = 
-    let rec vars(acc, tm) = 
-        if is_var tm then Choice.succeed <| insert tm acc
-        elif is_const tm then Choice.succeed <| acc
+    let rec vars(acc, tm) =
+        choice {
+        if is_var tm then
+            return insert tm acc
+        elif is_const tm then
+            return acc
         elif is_abs tm then 
-            dest_abs tm
-            |> Choice.bind (fun (v, bod) ->
-                vars(insert v acc, bod))
+            let! v, bod = dest_abs tm
+            return! vars(insert v acc, bod)
         else
-            dest_comb tm
-            |> Choice.bind (fun (l, r) ->
-                vars(acc, l) 
-                |> Choice.bind (fun l' -> vars(l', r)))            
+            let! l, r = dest_comb tm
+            let! l' = vars(acc, l)
+            return! vars(l', r)
+        }
     fun tm -> vars([], tm)
 
 (* ------------------------------------------------------------------------- *)
@@ -209,10 +211,8 @@ let subst =
                 if tm' == tm then tm
                 else Choice.get <| vsubst (zip ts gs) tm'
     fun ilist tm ->
-        try
-            Choice.succeed <| subst ilist tm
-        with Failure s ->
-            Choice.failwith s     
+        Choice.attempt <| fun () ->
+            subst ilist tm
 
 (* ------------------------------------------------------------------------- *)
 (* Alpha conversion term operation.                                          *)
@@ -519,7 +519,7 @@ let dest_list tm =
     let v = 
         let tms, nil = splitlist (Choice.toOption << dest_cons) tm
         match dest_const nil with
-        | Success("NIL", _) -> Choice.succeed tms
+        | Success("NIL", _) -> Choice.result tms
         | _ -> Choice.fail()
     v |> Choice.bindError (fun e -> nestedFailwith e "dest_list")
 
@@ -549,7 +549,7 @@ let dest_numeral =
     fun tm -> 
         try 
             let l, r = Choice.get <| dest_comb tm
-            if fst(Choice.get <| dest_const l) = "NUMERAL" then Choice.succeed <| dest_num r
+            if fst(Choice.get <| dest_const l) = "NUMERAL" then Choice.result <| dest_num r
             else Choice.fail()
         with
         | Failure _ as e ->

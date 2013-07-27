@@ -92,7 +92,7 @@ module Hol_kernel =
     let get_type_arity s =
         match assoc s !the_type_constants with
         | Some result -> 
-            Choice.succeed result
+            Choice.result result
         | None -> 
             Choice.failwith "find"
     
@@ -105,7 +105,7 @@ module Hol_kernel =
         if Choice.isResult <| get_type_arity name then 
             Choice.failwith("new_type: type " + name + " has already been declared")
         else 
-            Choice.succeed (the_type_constants := (name, arity) :: (!the_type_constants))
+            Choice.result (the_type_constants := (name, arity) :: (!the_type_constants))
     
     (* ------------------------------------------------------------------------- *)
     (* Basic type constructors.                                                  *)
@@ -117,7 +117,7 @@ module Hol_kernel =
         arity 
         |> Choice.bindEither 
             (fun arity ->      
-                if arity = length args then Choice.succeed <| Tyapp(tyop, args)
+                if arity = length args then Choice.result <| Tyapp(tyop, args)
                 else Choice.failwith ("mk_type: wrong number of arguments to " + tyop))
             (fun e -> Choice.nestedFailwith e ("mk_type: type " + tyop + " has not been defined"))
     
@@ -131,14 +131,14 @@ module Hol_kernel =
     /// Breaks apart a type (other than a variable type).
     let dest_type = function 
         | (Tyapp(s, ty)) ->
-            Choice.succeed (s, ty)
+            Choice.result (s, ty)
         | (Tyvar _) ->
             Choice.failwith "dest_type: type variable not a constructor"
     
     /// Breaks a type variable down to its name.
     let dest_vartype = function 
         | (Tyvar s) ->
-            Choice.succeed s
+            Choice.result s
         | (Tyapp(_, _)) ->
             Choice.failwith "dest_vartype: type constructor not a variable"
             
@@ -223,7 +223,7 @@ module Hol_kernel =
         if Choice.isResult <| get_const_type name then 
             Choice.failwith("new_constant: constant " + name + " has already been declared")
         else 
-            Choice.succeed (the_term_constants := (name, ty) :: (!the_term_constants))
+            Choice.result (the_term_constants := (name, ty) :: (!the_term_constants))
     
     (* ------------------------------------------------------------------------- *)
     (* Finds the type of a term (assumes it is well-typed).                      *)
@@ -319,7 +319,7 @@ module Hol_kernel =
     let dest_var = 
         function 
         | Var(s, ty) -> 
-            Choice.succeed (s, ty)
+            Choice.result (s, ty)
         | _ -> 
             Choice.failwith "dest_var: not a variable"
     
@@ -327,7 +327,7 @@ module Hol_kernel =
     let dest_const = 
         function 
         | Const(s, ty) -> 
-            Choice.succeed (s, ty)
+            Choice.result (s, ty)
         | _ -> 
             Choice.failwith "dest_const: not a constant"
     
@@ -335,7 +335,7 @@ module Hol_kernel =
     let dest_comb = 
         function 
         | Comb(f, x) -> 
-            Choice.succeed (f, x)
+            Choice.result (f, x)
         | _ -> 
             Choice.failwith "dest_comb: not a combination"
     
@@ -343,7 +343,7 @@ module Hol_kernel =
     let dest_abs = 
         function 
         | Abs(v, b) -> 
-            Choice.succeed (v, b)
+            Choice.result (v, b)
         | _ -> 
             Choice.failwith "dest_abs: not an abstraction"
     
@@ -449,7 +449,7 @@ module Hol_kernel =
                 vsubst ilist tm
 
         fun theta ->
-            if theta = [] then Choice.succeed
+            if theta = [] then Choice.result
             elif forall (fun (t, x) -> 
                     match type_of t, dest_var x with
                     | Success r1, Success r2 -> r1 = snd r2
@@ -499,7 +499,7 @@ module Hol_kernel =
                             let z = Var(fst(Choice.get <| dest_var y''), snd(Choice.get <| dest_var y))
                             inst env tyin (Abs(z, Choice.get <| vsubst [z, y] t))
             try
-                Choice.succeed <| inst env tyin tm
+                Choice.result <| inst env tyin tm
             with 
             | :? Clash as ex ->
                 Choice2Of2 (ex :> exn)
@@ -507,7 +507,7 @@ module Hol_kernel =
                 Choice.failwith s
 
         fun tyin -> 
-            if tyin = [] then Choice.succeed
+            if tyin = [] then Choice.result
             else inst [] tyin
     
     (* ------------------------------------------------------------------------- *)
@@ -515,10 +515,10 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the operator from a combination (function application).
-    let rator tm = 
+    let rator tm =
         match tm with
         | Comb(l, r) -> 
-            Choice.succeed l
+            Choice.result l
         | _ -> 
             Choice.failwith "rator: Not a combination"
     
@@ -526,7 +526,7 @@ module Hol_kernel =
     let rand tm = 
         match tm with
         | Comb(l, r) -> 
-            Choice.succeed r
+            Choice.result r
         | _ -> 
             Choice.failwith "rand: Not a combination"
     
@@ -543,7 +543,7 @@ module Hol_kernel =
     let dest_eq tm = 
         match tm with
         | Comb(Comb(Const("=", _), l), r) -> 
-            Choice.succeed (l, r)
+            Choice.result (l, r)
         | _ -> 
             Choice.failwith "dest_eq"
     
@@ -647,7 +647,7 @@ module Hol_kernel =
         let TRANS (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
             match (c1, c2) with
             | Comb((Comb(Const("=", _), _) as eql), m1), Comb(Comb(Const("=", _), m2), r) when alphaorder m1 m2 = 0 -> 
-                Choice.succeed <| Sequent(term_union asl1 asl2, Comb(eql, r))
+                Choice.result <| Sequent(term_union asl1 asl2, Comb(eql, r))
             | _ -> Choice.failwith "TRANS"
         Choice.bind2 TRANS thm1 thm2
     
@@ -715,7 +715,7 @@ module Hol_kernel =
         let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) = 
             match eq with
             | Comb(Comb(Const("=", _), l), r) when alphaorder l c = 0 -> 
-                Choice.succeed <| Sequent(term_union asl1 asl2, r)
+                Choice.result <| Sequent(term_union asl1 asl2, r)
             | _ -> Choice.failwith "EQ_MP"
         Choice.bind2 EQ_MP thm1 thm2
     

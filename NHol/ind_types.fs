@@ -82,7 +82,7 @@ let INJ_INVERSE2 =
    |> THEN <| W(EXISTS_TAC << Choice.get <| rand << snd << Choice.get <| dest_exists << snd)
    |> THEN <| REFL_TAC)
 #else
-    Choice.succeed <| Sequent([], parse_term @"!P. (!x1 y1 x2 y2. P x1 y1 = P x2 y2 <=> x1 = x2 /\ y1 = y2)
+    Choice.result <| Sequent([], parse_term @"!P. (!x1 y1 x2 y2. P x1 y1 = P x2 y2 <=> x1 = x2 /\ y1 = y2)
          ==> (?X Y. !x y. X (P x y) = x /\ Y (P x y) = y)") : thm
 #endif
 
@@ -121,7 +121,7 @@ let NUMPAIR_INJ =
          |> THEN <| REWRITE_TAC [NUMPAIR]
          |> THEN <| REWRITE_TAC [EQ_MULT_LCANCEL; EQ_ADD_RCANCEL; EXP_EQ_0; ARITH])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!x1 y1 x2 y2. NUMPAIR x1 y1 = NUMPAIR x2 y2 <=> x1 = x2 /\ y1 = y2") : thm
+    Choice.result <| Sequent([], parse_term @"!x1 y1 x2 y2. NUMPAIR x1 y1 = NUMPAIR x2 y2 <=> x1 = x2 /\ y1 = y2") : thm
 #endif
 
 let NUMPAIR_DEST = 
@@ -151,7 +151,7 @@ let NUMSUM_INJ =
          |> THEN <| REWRITE_TAC [EVEN; EVEN_DOUBLE]
          |> THEN <| REWRITE_TAC [SUC_INJ; EQ_MULT_LCANCEL; ARITH])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!b1 x1 b2 x2. NUMSUM b1 x1 = NUMSUM b2 x2 <=> (b1 <=> b2) /\ x1 = x2") : thm
+    Choice.result <| Sequent([], parse_term @"!b1 x1 b2 x2. NUMSUM b1 x1 = NUMSUM b2 x2 <=> (b1 <=> b2) /\ x1 = x2") : thm
 #endif
 
 let NUMSUM_DEST = 
@@ -177,7 +177,7 @@ let INJN_INJ =
          |> THEN <| DISCH_THEN(MP_TAC << C AP_THM (parse_term @"a:A"))
          |> THEN <| REWRITE_TAC [BETA_THM])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!n1 n2. INJN n1 = INJN n2 <=> n1 = n2") : thm
+    Choice.result <| Sequent([], parse_term @"!n1 n2. INJN n1 = INJN n2 <=> n1 = n2") : thm
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -198,7 +198,7 @@ let INJA_INJ =
                       DISCH_THEN SUBST1_TAC
                       |> THEN <| REWRITE_TAC []])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!n1 n2. INJN n1 = INJN n2 <=> n1 = n2") : thm
+    Choice.result <| Sequent([], parse_term @"!n1 n2. INJN n1 = INJN n2 <=> n1 = n2") : thm
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -226,7 +226,7 @@ let INJF_INJ =
                         (MP_TAC << C AP_THM (parse_term @"a:A") << C AP_THM (parse_term @"NUMPAIR n m"))
          |> THEN <| REWRITE_TAC [NUMPAIR_DEST])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!f1 f2. INJF f1 = INJF f2 <=> f1 = f2") : thm
+    Choice.result <| Sequent([], parse_term @"!f1 f2. INJF f1 = INJF f2 <=> f1 = f2") : thm
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -256,7 +256,7 @@ let INJP_INJ =
                                        |> THEN <| MP_TAC(SPEC (parse_term @"F") th))
        |> THEN <| ASM_SIMP_TAC [NUMSUM_DEST; ETA_AX])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!f1 f1' f2 f2'. INJP f1 f2 = INJP f1' f2' <=> f1 = f1' /\ f2 = f2'") : thm
+    Choice.result <| Sequent([], parse_term @"!f1 f1' f2 f2'. INJP f1 f2 = INJP f1' f2' <=> f1 = f1' /\ f2 = f2'") : thm
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -310,7 +310,7 @@ let MK_REC_INJ =
         |> THEN <| DISCH_THEN(fun th -> ONCE_REWRITE_TAC [GSYM th])
         |> THEN <| ASM_REWRITE_TAC [])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!x y. _mk_rec x = _mk_rec y ==> ZRECSPACE x /\ ZRECSPACE y ==> x = y") : thm
+    Choice.result <| Sequent([], parse_term @"!x y. _mk_rec x = _mk_rec y ==> ZRECSPACE x /\ ZRECSPACE y ==> x = y") : thm
 #endif
 ;;
 
@@ -327,7 +327,7 @@ let DEST_REC_INJ =
                          << AP_TERM(parse_term @"_mk_rec:(num->A->bool)->(A)recspace"))
          |> THEN <| REWRITE_TAC [fst recspace_tydef])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!x y. _dest_rec x = _dest_rec y <=> x = y") : thm
+    Choice.result <| Sequent([], parse_term @"!x y. _dest_rec x = _dest_rec y <=> x = y") : thm
 #endif
 ;;
 
@@ -347,7 +347,7 @@ let CONSTR_BOT =
          |> THEN <| REWRITE_TAC [fst recspace_tydef
                                  snd recspace_tydef])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!c i r. ~(CONSTR c i r = BOTTOM)") : thm
+    Choice.result <| Sequent([], parse_term @"!c i r. ~(CONSTR c i r = BOTTOM)") : thm
 #endif
 ;;
 
@@ -374,7 +374,7 @@ let CONSTR_INJ =
                       |> THEN <| BETA_TAC
                       |> THEN <| REWRITE_TAC [SUC_INJ; DEST_REC_INJ]])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!c1 i1 r1 c2 i2 r2.
+    Choice.result <| Sequent([], parse_term @"!c1 i1 r1 c2 i2 r2.
          CONSTR c1 i1 r1 = CONSTR c2 i2 r2 <=> c1 = c2 /\ i1 = i2 /\ r1 = r2") : thm
 #endif
 ;;
@@ -413,7 +413,7 @@ let CONSTR_IND =
                    |> THEN <| REWRITE_TAC [fst recspace_tydef
                                            snd recspace_tydef]])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!P. P BOTTOM /\ (!c i r. (!n. P (r n)) ==> P (CONSTR c i r))
+    Choice.result <| Sequent([], parse_term @"!P. P BOTTOM /\ (!c i r. (!n. P (r n)) ==> P (CONSTR c i r))
          ==> (!x. P x)") : thm
 #endif
 ;;
@@ -491,7 +491,7 @@ let CONSTR_REC =
                  |> THEN <| FIRST_ASSUM(fun th -> GEN_REWRITE_TAC I [GSYM th])
                  |> THEN <| REWRITE_TAC [BETA_THM]])
 #else
-    Choice.succeed <| Sequent([], parse_term @"!Fn. ?f. !c i r. f (CONSTR c i r) = Fn c i r (\n. f (r n))") : thm
+    Choice.result <| Sequent([], parse_term @"!Fn. ?f. !c i r. f (CONSTR c i r) = Fn c i r (\n. f (r n))") : thm
 #endif
 
 (* ------------------------------------------------------------------------- *)
@@ -512,7 +512,7 @@ let FCONS_UNDO =
          |> THEN <| INDUCT_TAC
          |> THEN <| REWRITE_TAC [FCONS; o_THM])
 #else
-    Choice.succeed <| Sequent([],parse_term @"!f:num->A. f = FCONS (f 0) (f << SUC)") : thm
+    Choice.result <| Sequent([],parse_term @"!f:num->A. f = FCONS (f 0) (f << SUC)") : thm
 #endif
 
 let FNIL = new_definition(parse_term @"FNIL (n:num) = @x:A. T");;
@@ -820,7 +820,7 @@ let define_type_raw_001 =
             else 
                 let con = bimp
                 let conth2 = BETA_CONV con
-                let tth = PART_MATCH Choice.succeed rthm (Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get conth2)))
+                let tth = PART_MATCH Choice.result rthm (Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get conth2)))
                 let conth3 = PRERULE conth2
                 let asmgen = Choice.get <| rand(Choice.get <| rand(concl <| Choice.get conth3))
                 let asmquant = 
