@@ -66,60 +66,36 @@ let inline nestedFailwith innerException message =
 module Choice =
     (* Functions which will be included in a future version of ExtCore. *)
 
+    //[<Obsolete("This function is deprecated. Uses of it should be replaced with ExtCore.Choice.result.")>]
     let inline succeed x =
         Choice1Of2 x
 
-    let inline failwith msg =
-        Choice2Of2 <| exn msg
-
-    let inline nestedFailwith innerException message =
-        Choice2Of2 <| exn (message, innerException)
-
     /// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
+    //[<Obsolete("This function is deprecated. Uses of it should be replaced with ExtCore.Control.Choice.bindOrRaise.")>]
     let get = function
         | Choice1Of2 a -> a
         | Choice2Of2 e ->
             // NOTE: This is a more specialized version of get to deal with Exception
             raise e
 
-    /// Applies the specified binding function to a choice value representing a pair of result values
-    /// (Choice1Of2). If one of choice values represents an error value (Choice2Of2), the error value
-    /// is passed through without modification.
-    let bind2 (binding : 'T -> 'U -> Choice<'V, 'Error>) value1 value2 =
-        match value1, value2 with
-        | Choice1Of2 result1, Choice1Of2 result2 ->
-            binding result1 result2
-        | Choice1Of2 _, Choice2Of2 error
-        | Choice2Of2 error, _ ->
-            Choice2Of2 error
+    // [<Obsolete("This function is deprecated. Uses of it should be replaced with ExtCore.Choice.failwith.")>]
+    let inline failwith msg =
+        Choice2Of2 <| exn msg
 
-    /// Convert choice to option where Choice2Of2 is interpreted as None
+    /// Convert choice to option where Choice2Of2 is interpreted as None.
+    // NOTE : This function is included in ExtCore 0.8.32 and can be removed
+    // once we update to that version (or newer).
     let toOption value =
         match value with
         | Choice1Of2 result -> Some result
         | Choice2Of2 _ -> None
 
-    module List =
-        /// Don't know why this function is missing from ExtCore 
-        let map (mapping : 'T -> Choice<'U, 'Error>) (list : 'T list) =
-            list 
-            |> List.toArray 
-            |> Choice.Array.map mapping
-            |> Choice.map Array.toList
 
     (* These functions are fairly specific to this project,
        and so probably won't be included in ExtCore. *)
 
-    let attempt f = 
-        try
-            succeed <| f()
-        with Failure s ->
-            failwith s           
-
-    let fill defaultResult value =
-        match value with
-        | Choice1Of2 result -> result
-        | Choice2Of2 _ -> defaultResult
+    let inline nestedFailwith innerException message =
+        Choice2Of2 <| exn (message, innerException)
 
     let inline fail () =
         failwith ""
@@ -132,6 +108,17 @@ module Choice =
 
     let inline pair (x, y) =
         (Choice1Of2 x, Choice1Of2 y)
+
+    let attempt f = 
+        try
+            Choice1Of2 <| f()
+        with Failure _ as e ->
+            Choice2Of2 e      
+
+    let fill defaultResult value =
+        match value with
+        | Choice1Of2 result -> result
+        | Choice2Of2 _ -> defaultResult
 
     /// Applies the specified binding function to a choice value representing an error value
     /// (Choice2Of2). If the choice value represents a result value (Choice1Of2), the result value
@@ -155,11 +142,6 @@ module Choice =
 (* the functionality of the FSharp.Compatibility.OCaml library. Some of      *)
 (* these may be included in a future release of FSharp.Compatibility.OCaml.  *)
 (* ------------------------------------------------------------------------- *)
-
-// TEMP : This can be removed after upgrading to ExtCore 0.8.30 or newer.
-// It will also be defined in a future version of FSharp.Compatibility.OCaml.
-let inline (==) (x : 'T) (y : 'T) =
-    System.Object.ReferenceEquals(x, y)
 
 module Ratio =
     open System.Diagnostics

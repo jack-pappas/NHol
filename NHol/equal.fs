@@ -27,6 +27,7 @@ open System
 open FSharp.Compatibility.OCaml
 
 open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open lib
