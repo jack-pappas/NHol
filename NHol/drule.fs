@@ -75,31 +75,31 @@ let MK_DISJ =
 /// Universally quantifies both sides of equational theorem.
 let MK_FORALL = 
     let atm = mk_const("!", [])
-    fun v th -> 
+    fun v (th : thm) -> 
         choice {
             let! tm = atm
             let! ty = type_of v
             let! tm' = inst [ty, aty] tm
             return! AP_TERM tm' (ABS v th)
-        }
+        } : thm
 
 /// Existentially quantifies both sides of equational theorem.
 let MK_EXISTS = 
     let atm = mk_const("?", [])
-    fun v th -> 
+    fun v (th : thm) -> 
         choice {
             let! tm = atm
             let! ty = type_of v
             let! tm' = inst [ty, aty] tm
             return! AP_TERM tm' (ABS v th)
-        }
+        } : thm
 
 (* ------------------------------------------------------------------------- *)
 (* Eliminate the antecedent of a theorem using a conversion/proof rule.      *)
 (* ------------------------------------------------------------------------- *)
 
 /// Removes antecedent of implication theorem by solving it with a conversion.
-let MP_CONV (cnv : conv) th = 
+let MP_CONV (cnv : conv) (th : thm) : thm = 
     choice {
         let! l, r = Choice.bind (dest_imp << concl) th
         let ath = cnv l
@@ -111,7 +111,7 @@ let MP_CONV (cnv : conv) th =
 (* Multiple beta-reduction (we use a slight Choice.get <| variant below).                  *)
 (* ------------------------------------------------------------------------- *)
 /// Beta conversion over multiple arguments.
-let rec BETAS_CONV tm = 
+let rec BETAS_CONV tm : thm = 
     match tm with
     | Comb(Abs(_, _), _) -> BETA_CONV tm
     | Comb(Comb(_, _), _) -> (RATOR_CONV(THENC BETAS_CONV BETA_CONV)) tm
@@ -570,7 +570,7 @@ let PART_MATCH, GEN_PART_MATCH =
                 match_bvs l1 l2 (match_bvs r1 r2 acc)
             with
             | Failure _ -> acc
-    let PART_MATCH partfn (th : thm) tm = 
+    let PART_MATCH partfn (th : thm) tm : thm = 
         // NOTE: change from value to function for easy conversion
         choice {
             let sth = SPEC_ALL th
@@ -595,8 +595,9 @@ let PART_MATCH, GEN_PART_MATCH =
                 if compare tm' tm = 0 then 
                     return! fth
                 else 
-                    return! SUBS [ALPHA tm' tm] fth
-                            |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
+                    return!
+                        SUBS [ALPHA tm' tm] fth
+                        |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
         }
     let GEN_PART_MATCH partfn (th : thm) tm : thm = 
         // NOTE: change from value to function for easy conversion
@@ -727,8 +728,8 @@ let HIGHER_REWRITE_CONV =
             let _, tmin0, tyin0 = Choice.get <| term_match [] pred abs
             CONV_RULE beta_fn (INST tmin (INST tmin0 (INST_TYPE tyin0 th)))
     fun ths top tm ->
-        Choice.attemptNested <| fun () ->
-            higher_rewrite_conv ths top tm
+        (Choice.attemptNested <| fun () ->
+            higher_rewrite_conv ths top tm) : thm
 
 (* ------------------------------------------------------------------------- *)
 (* Derived principle of definition justifying |- c x1 .. xn = t[x1,..,xn]    *)

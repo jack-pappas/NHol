@@ -48,13 +48,14 @@ open tactics
 (* Accept a theorem modulo unification.                                      *)
 (* ------------------------------------------------------------------------- *)
 /// Unify free variables in theorem and metavariables in goal to accept theorem.
-let UNIFY_ACCEPT_TAC mvs th (asl, w) =
-    choice {
-    let! th' = th
-    let! insts = term_unify mvs (concl th') w
-    let th'' = INSTANTIATE insts th
-    return (([], insts), [], (fun i [] -> INSTANTIATE i th''))
-    }
+let UNIFY_ACCEPT_TAC mvs (th : thm) : tactic =
+    fun (asl, w) ->
+        choice {
+        let! th' = th
+        let! insts = term_unify mvs (concl th') w
+        let th'' = INSTANTIATE insts th
+        return (([], insts), [], (fun i [] -> INSTANTIATE i th''))
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* The actual prover, as a tactic.                                           *)
@@ -63,7 +64,7 @@ let UNIFY_ACCEPT_TAC mvs th (asl, w) =
 let ITAUT_TAC = 
     let CONJUNCTS_THEN' ttac cth = ttac(CONJUNCT1 cth)
                                    |> THEN <| ttac(CONJUNCT2 cth)
-    let IMPLICATE t =
+    let IMPLICATE t : thm =
         choice {
         let! t' = dest_neg t
         let th1 = AP_THM NOT_DEF t'
@@ -76,7 +77,7 @@ let ITAUT_TAC =
                DISCH_TAC                                                (* implies *)
                (fun gl -> CONV_TAC (K(IMPLICATE(snd gl))) gl)           (* not     *)
                EQ_TAC]                                                  (* iff     *)
-    let LEFT_REVERSIBLE_TAC th gl = 
+    let LEFT_REVERSIBLE_TAC th gl : goalstate = 
         tryfind (fun ttac -> Choice.toOption <| ttac th gl)        
             [CONJUNCTS_THEN' ASSUME_TAC;                                 (* and    *)
              DISJ_CASES_TAC;                                             (* or     *)
@@ -85,7 +86,7 @@ let ITAUT_TAC =
              (CONJUNCTS_THEN' MP_TAC << uncurry CONJ << EQ_IMP_RULE);]   (* iff    *)
         |> Option.toChoiceWithError "tryfind"
 
-    let rec ITAUT_TAC mvs n gl =
+    let rec ITAUT_TAC mvs n gl : goalstate =
         if n <= 0
         then Choice.failwith "ITAUT_TAC: Too deep"
         else 

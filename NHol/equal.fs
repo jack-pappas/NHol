@@ -80,7 +80,7 @@ let mk_primed_var =
 (* ------------------------------------------------------------------------- *)
 
 /// General case of beta-conversion.
-let BETA_CONV tm = 
+let BETA_CONV tm : thm = 
     BETA tm
     |> Choice.bindError (fun _ ->
         choice { 
@@ -106,7 +106,7 @@ let AP_THM th tm : thm =
     |> Choice.mapError (fun e -> nestedFailure e "AP_THM")
 
 /// Swaps left-hand and right-hand sides of an equation.
-let SYM th = 
+let SYM (th : thm) : thm = 
     choice {
         let! tm = Choice.map concl th
         let! l, r = dest_eq tm
@@ -261,7 +261,7 @@ let SUB_CONV conv tm =
     | _ -> REFL tm
 
 /// Applies a conversion to both arguments of a binary operator.
-let BINOP_CONV conv tm = 
+let BINOP_CONV conv tm : thm = 
     choice {
         let! lop, r = dest_comb tm
         let! op, l = dest_comb lop
@@ -294,7 +294,7 @@ and private THENCQC (conv1 : conv) (conv2 : conv) tm : thm =
     }
     |> Choice.bindError (fun _ -> th1)
 
-and private COMB_QCONV conv tm = 
+and private COMB_QCONV conv tm : thm = 
     dest_comb tm
     |> Choice.bind (fun (l, r) ->
         let v = 

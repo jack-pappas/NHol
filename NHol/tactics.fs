@@ -61,7 +61,7 @@ let null_meta = (([] : term list), null_inst)
 type goal = (string * thm) list * term
 
 /// Redefine equals_thm
-let equals_thm th th' =
+let equals_thm (th : thm) (th' : thm) =
     match th, th' with
     | Success th, Success th' ->
         equals_thm th th'
@@ -568,7 +568,7 @@ let BETA_TAC = CONV_TAC(REDEPTH_CONV BETA_CONV)
 (* ------------------------------------------------------------------------- *)
 
 /// Use an equation to substitute "safely" in goal.
-let SUBST_VAR_TAC th g = 
+let SUBST_VAR_TAC (th : thm) g : goalstate = 
     let v = 
         let asm, eq = dest_thm <| Choice.get th
         let l, r = Choice.get <| dest_eq eq
@@ -673,7 +673,7 @@ let private tactic_type_compatibility_check pfx e g =
     }
 
 /// Specializes a goal with the given variable.
-let X_GEN_TAC x' = 
+let X_GEN_TAC x' : tactic = 
     if not(is_var x') then
         failwith "X_GEN_TAC: not a variable"
     else 
@@ -699,7 +699,7 @@ let X_GEN_TAC x' =
             }
 
 /// Assumes a theorem, with existentially quantified variable replaced by a given witness.
-let X_CHOOSE_TAC x' (xth : thm) =
+let X_CHOOSE_TAC x' (xth : thm) : tactic =
     let xtm = concl <| Choice.get xth
     let x, bod = 
         try 
@@ -727,21 +727,22 @@ let X_CHOOSE_TAC x' (xth : thm) =
             |> Choice.result
 
 /// Reduces existentially quantified goal to one involving a specific witness.
-let EXISTS_TAC t (asl, w) =
-    choice {
-    let! v, bod = 
-        try 
-            dest_exists w
-        with
-        | Failure _ as e ->
-            Choice.nestedFailwith e "EXISTS_TAC: Goal not existentially quantified"
-    do! tactic_type_compatibility_check "EXISTS_TAC" v t
-    let fun1 l =
-        match l with
-        | [a] -> a
-        | _ -> Choice.failwith "EXISTS_TAC.fun1: Unhandled case."
-    return (null_meta, [asl, Choice.get <| vsubst [t, v] bod], fun i tl -> EXISTS (Choice.get <| instantiate i w, Choice.get <| instantiate i t) (fun1 tl))
-    }
+let EXISTS_TAC t : tactic =
+    fun (asl, w) ->
+        choice {
+        let! v, bod = 
+            try 
+                dest_exists w
+            with
+            | Failure _ as e ->
+                Choice.nestedFailwith e "EXISTS_TAC: Goal not existentially quantified"
+        do! tactic_type_compatibility_check "EXISTS_TAC" v t
+        let fun1 l =
+            match l with
+            | [a] -> a
+            | _ -> Choice.failwith "EXISTS_TAC.fun1: Unhandled case."
+        return (null_meta, [asl, Choice.get <| vsubst [t, v] bod], fun i tl -> EXISTS (Choice.get <| instantiate i w, Choice.get <| instantiate i t) (fun1 tl))
+        }
 
 /// Strips the outermost universal quantifier from the conclusion of a goal.
 let GEN_TAC : tactic = 
@@ -1031,8 +1032,7 @@ let (FREEZE_THEN : thm_tactical) =
 let (X_META_EXISTS_TAC : term -> tactic) = 
     fun t (asl, w) -> 
         try 
-            if not(is_var t)
-            then fail()
+            if not(is_var t) then fail()
             else 
                 let fun1 l =
                     match l with
@@ -1045,11 +1045,12 @@ let (X_META_EXISTS_TAC : term -> tactic) =
         | Failure _ -> Choice.failwith "X_META_EXISTS_TAC: Failure."
 
 /// Changes existentially quantified variable to metavariable.
-let META_EXISTS_TAC((asl, w) as gl) = 
-    let v = fst(Choice.get <| dest_exists w)
-    let avoids = itlist (union << frees << concl << Choice.get << snd) asl (frees w)
-    let v' = Choice.get <| mk_primed_var avoids v
-    X_META_EXISTS_TAC v' gl
+let META_EXISTS_TAC : tactic =
+    fun ((asl, w) as gl) ->
+        let v = fst(Choice.get <| dest_exists w)
+        let avoids = itlist (union << frees << concl << Choice.get << snd) asl (frees w)
+        let v' = Choice.get <| mk_primed_var avoids v
+        X_META_EXISTS_TAC v' gl
 
 /// Replaces universally quantified variable in theorem with metavariable.
 let META_SPEC_TAC : term -> thm -> tactic = 
@@ -1256,7 +1257,7 @@ let TAC_PROOF : goal * tactic -> thm =
                 Choice2Of2 ex)
 
 /// Attempts to prove a boolean term using the supplied tactic.
-let prove(t, tac) =
+let prove(t, tac) : thm =
     choice {
     let! th = TAC_PROOF(([], t), tac)
     let t' = concl th

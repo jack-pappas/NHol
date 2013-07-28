@@ -645,14 +645,14 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns theorem expressing reflexivity of equality.
-    let REFL tm =
+    let REFL tm : thm =
         choice {
         let! tm' = safe_mk_eq tm tm
         return Sequent([], tm')
         }
 
     /// Uses transitivity of equality on two equational theorems.
-    let TRANS (thm1 : thm) (thm2 : thm) = 
+    let TRANS (thm1 : thm) (thm2 : thm) : thm = 
         let TRANS (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
             choice {
             match (c1, c2) with

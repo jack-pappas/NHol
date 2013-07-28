@@ -131,7 +131,7 @@ let term_order =
 (* which forces a first order match (otherwise it would loop on a lambda).   *)
 (* ------------------------------------------------------------------------- *)
 /// Insert a theorem into a net as a (conditional) rewrite.
-let net_of_thm rep th = 
+let net_of_thm rep (th : thm) = 
     let tm = concl <| Choice.get th
     let lconsts = freesl(hyp <| Choice.get th)
     let matchable = fun x -> Choice.isResult << term_match lconsts x
@@ -172,7 +172,7 @@ let net_of_conv tm conv sofar = Choice.get <| enter [] (tm, (2, conv)) sofar
 (* Create a gconv net for a congruence rule (in canonical form!)             *)
 (* ------------------------------------------------------------------------- *)
 /// Add a congruence rule to a net.
-let net_of_cong th sofar = 
+let net_of_cong (th : thm) sofar = 
     let conc, n = repeat (fun (tm, m) -> snd(Choice.get <| dest_imp tm), m + 1) (concl <| Choice.get th, 0)
     if n = 0
     then failwith "net_of_cong: Non-implicational congruence"
@@ -230,7 +230,8 @@ let mk_rewrites =
             then split_rewrites oldhyps cf (EQF_INTRO(GSYM th)) ths
             else ths
         else split_rewrites oldhyps cf (EQT_INTRO th) sofar
-    fun cf th sofar -> split_rewrites (hyp <| Choice.get th) cf th sofar
+    fun cf (th : thm) (sofar : thm list) ->
+        split_rewrites (hyp <| Choice.get th) cf th sofar : thm list
 
 (* ------------------------------------------------------------------------- *)
 (* Rewriting (and application of other conversions) based on a convnet.      *)
@@ -304,7 +305,7 @@ and strategy = simpset -> int -> term -> thm
 (* Very simple prover: recursively simplify then try provers.                *)
 (* ------------------------------------------------------------------------- *)
 /// The basic prover use function used in the simplifier.
-let basic_prover strat (Simpset(net, prover, provers, rewmaker) as ss) lev tm = 
+let basic_prover (strat : simpset -> int -> term -> thm) (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
     let sth = 
         strat ss lev tm
         |> Choice.bindError (fun _ -> REFL tm)
@@ -447,7 +448,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                 else Choice.failwith "GEN_SUB_CONV")
 
     let rec ONCE_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) 
-            lev tm = 
+            lev tm : thm = 
         let pconvs = Choice.get <| lookup tm net
         try 
             IMP_REWRITES_CONV ONCE_DEPTH_SQCONV ss lev pconvs tm
