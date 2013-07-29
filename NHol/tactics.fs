@@ -160,7 +160,7 @@ let mk_fthm =
 (* ------------------------------------------------------------------------- *)
 
 /// Tries to ensure that a tactic is valid.
-let VALID : tactic -> tactic = 
+let (VALID : tactic -> tactic) = 
     let fake_thm(asl, w) = 
         let asms = itlist (union << hyp << Choice.get << snd) asl []
         mk_fthm(asms, w)
@@ -234,20 +234,20 @@ let THEN, THENL =
     then_, thenl_
 
 /// Applies first tactic, and iff it fails, applies the second instead.
-let ORELSE : tactic -> tactic -> tactic = 
+let (ORELSE : tactic -> tactic -> tactic) = 
     fun tac1 tac2 g -> 
         tac1 g
         |> Choice.bindError (fun _ -> tac2 g)
 
 /// Tactic that always fails, with the supplied string.
-let FAIL_TAC : string -> tactic = 
+let (FAIL_TAC : string -> tactic) = 
     fun tok g -> Choice.failwith tok
 
 /// Tactic that always fails.
-let NO_TAC : tactic = FAIL_TAC "NO_TAC"
+let (NO_TAC : tactic) = FAIL_TAC "NO_TAC"
 
 /// Passes on a goal unchanged.
-let ALL_TAC : tactic = 
+let (ALL_TAC : tactic) = 
     let fun1 x y =
         match (x,y) with
         | (_, [th]) -> th
@@ -272,7 +272,7 @@ let FIRST : tactic list -> tactic =
     fun tacl g -> end_itlist (fun t1 t2 -> t1 |> ORELSE <| t2) tacl g;;
 
 /// Sequentially applies all tactics given by mapping a function over a list.
-let MAP_EVERY (tacf : 'a -> tactic) (lst : 'a list) : tactic = 
+let MAP_EVERY (tacf : 'T -> tactic) (lst : 'T list) : tactic = 
     EVERY(map tacf lst)
 
 /// Applies first tactic that succeeds in a list given by mapping a function over a list.
@@ -300,11 +300,11 @@ let rec REPLICATE_TAC n tac =
 (* ------------------------------------------------------------------------- *)
 
 /// Composes two theorem-tacticals.
-let THEN_TCL : thm_tactical -> thm_tactical -> thm_tactical = 
+let (THEN_TCL : thm_tactical -> thm_tactical -> thm_tactical) = 
     fun ttcl1 ttcl2 ttac -> ttcl1(ttcl2 ttac)
 
 /// Applies a theorem-tactical, and if it fails, tries a second.
-let ORELSE_TCL : thm_tactical -> thm_tactical -> thm_tactical = 
+let (ORELSE_TCL : thm_tactical -> thm_tactical -> thm_tactical) = 
     fun ttcl1 ttcl2 ttac th g -> 
         ttcl1 ttac th g
         |> Choice.bindError (fun _ -> ttcl2 ttac th g)
@@ -343,7 +343,7 @@ let FIRST_TCL ttcll =
 (* ------------------------------------------------------------------------- *)
     
 /// Add an assumption with a named label to a goal.
-let LABEL_TAC : string -> thm_tactic = 
+let (LABEL_TAC : string -> thm_tactic) = 
     let fun1 l =
         match l with
         | [a] -> a
@@ -359,36 +359,36 @@ let ASSUME_TAC = LABEL_TAC ""
 (* ------------------------------------------------------------------------- *)
 
 /// Apply a theorem-tactic to the the first assumption equal to given term.
-let FIND_ASSUM : thm_tactic -> term -> tactic = 
+let (FIND_ASSUM : thm_tactic -> term -> tactic) = 
     fun ttac t ((asl, w) as g) -> ttac (snd(Option.get <| find (fun (_, th) -> concl <| Choice.get th = t) asl)) g
 
 /// Applies tactic generated from the first element of a goal's assumption list.
-let POP_ASSUM : thm_tactic -> tactic = 
+let (POP_ASSUM : thm_tactic -> tactic) = 
     fun ttac -> 
         function 
         | (((_, th) :: asl), w) -> ttac th (asl, w)
         | _ -> Choice.failwith "POP_ASSUM: No assumption to pop"
 
 /// Applies a tactic generated from the goal's assumption list.
-let ASSUM_LIST : (thm list -> tactic) -> tactic = 
+let (ASSUM_LIST : (thm list -> tactic) -> tactic) = 
     fun aslfun (asl, w) -> aslfun (map snd asl) (asl, w)
 
 /// Generates a tactic from the assumptions, discards the assumptions and applies the tactic.
-let POP_ASSUM_LIST : (thm list -> tactic) -> tactic = 
+let (POP_ASSUM_LIST : (thm list -> tactic) -> tactic) = 
     fun asltac (asl, w) -> asltac (map snd asl) ([], w)
 
 /// Sequentially applies all tactics given by mapping a function over the assumptions of a goal.
-let EVERY_ASSUM : thm_tactic -> tactic = 
+let (EVERY_ASSUM : thm_tactic -> tactic) = 
     fun ttac -> ASSUM_LIST(MAP_EVERY ttac)
 
 /// Applied theorem-tactic to rst assumption possible.
-let FIRST_ASSUM : thm_tactic -> tactic = 
+let (FIRST_ASSUM : thm_tactic -> tactic) = 
     fun ttac (asl, w as g) -> 
         tryfind (fun (_, th) -> Choice.toOption <| ttac th g) asl 
         |> Option.toChoiceWithError "tryfind"
 
 /// Maps an inference rule over the assumptions of a goal.
-let RULE_ASSUM_TAC : (thm -> thm) -> tactic = 
+let (RULE_ASSUM_TAC : (thm -> thm) -> tactic) = 
     fun rule (asl,w) ->
         (POP_ASSUM_LIST(K ALL_TAC) 
          |> THEN <| MAP_EVERY (fun (s,th) -> LABEL_TAC s (rule th)) (rev asl)) (asl,w)
@@ -398,20 +398,20 @@ let RULE_ASSUM_TAC : (thm -> thm) -> tactic =
 (* ------------------------------------------------------------------------- *)
 
 /// Apply a theorem tactic to named assumption.
-let USE_THEN : string -> thm_tactic -> tactic = 
+let (USE_THEN : string -> thm_tactic -> tactic) = 
     fun s ttac (asl, w as gl) -> 
         let th =            
             assoc s asl
-            |> Option.getOrFailWith ("USE_TAC: didn't Option.get <| find assumption " + s)
+            |> Option.getOrFailWith ("USE_TAC: didn't find assumption " + s)
 
         ttac th gl
 
 /// Apply a theorem tactic to named assumption, removing the assumption.
-let REMOVE_THEN : string -> thm_tactic -> tactic = 
+let (REMOVE_THEN : string -> thm_tactic -> tactic) = 
     fun s ttac (asl, w) -> 
         let th =
             assoc s asl
-            |> Option.getOrFailWith ("USE_TAC: didn't Option.get <| find assumption " + s)
+            |> Option.getOrFailWith ("USE_TAC: didn't find assumption " + s)
         let asl1, asl2 = chop_list (index s (map fst asl)) asl
         let asl' = asl1 @ tl asl2
         ttac th (asl', w)
@@ -446,7 +446,7 @@ let HYP =
 (* ------------------------------------------------------------------------- *)
 
 /// Solves a goal if supplied with the desired theorem (up to alpha-conversion).
-let ACCEPT_TAC : thm_tactic = 
+let (ACCEPT_TAC : thm_tactic) = 
     let propagate_thm th i x =
         match x with
         | [] -> INSTANTIATE_ALL i th
@@ -463,7 +463,7 @@ let ACCEPT_TAC : thm_tactic =
 (* ------------------------------------------------------------------------- *)
 
 /// Makes a tactic from a conversion.
-let CONV_TAC : conv -> tactic = 
+let (CONV_TAC : conv -> tactic) = 
     let t_tm = parse_term @"T"
     fun conv ((asl, w) as g) ->
         choice {
@@ -492,13 +492,13 @@ let CONV_TAC : conv -> tactic =
 (* ------------------------------------------------------------------------- *)
 
 /// Solves a goal that is an equation between alpha-equivalent terms.
-let REFL_TAC : tactic = 
+let (REFL_TAC : tactic) = 
     fun ((asl, w) as g) -> 
         ACCEPT_TAC (REFL(Choice.get <| rand w)) g
         |> Choice.mapError (fun e -> nestedFailure e "REFL_TAC")
 
 /// Strips an abstraction from each side of an equational goal.
-let ABS_TAC : tactic = 
+let (ABS_TAC : tactic) = 
     fun (asl, w) -> 
         let v = 
             let l, r = Choice.get <| dest_eq w
@@ -518,7 +518,7 @@ let ABS_TAC : tactic =
         v |> Choice.mapError (fun e -> nestedFailure e "ABS_TAC: Failure.")
 
 /// Breaks down a goal between function applications into equality of functions and arguments.
-let MK_COMB_TAC : tactic = 
+let (MK_COMB_TAC : tactic) = 
     fun (asl, gl) -> 
         let v = 
             let fun1 l =
@@ -533,7 +533,7 @@ let MK_COMB_TAC : tactic =
         v |> Choice.mapError (fun e -> nestedFailure e "MK_COMB_TAC: Failure.")
 
 /// Strips a function application from both sides of an equational goal.
-let AP_TERM_TAC : tactic =
+let (AP_TERM_TAC : tactic) =
      let tac = MK_COMB_TAC |> THENL <| [REFL_TAC; ALL_TAC]
      fun gl ->
         tac gl
@@ -547,14 +547,14 @@ let (AP_THM_TAC : tactic) =
         |> Choice.mapError (fun e -> nestedFailure e "AP_THM_TAC")
 
 /// Breaks apart equation between binary operator applications into equality between their arguments.
-let BINOP_TAC : tactic =
+let (BINOP_TAC : tactic) =
     let tac = MK_COMB_TAC |> THENL <| [AP_TERM_TAC; ALL_TAC]
     fun gl -> 
         tac gl
         |> Choice.mapError (fun e -> nestedFailure e "AP_THM_TAC")
 
 /// Makes a simple term substitution in a goal using a single equational theorem.
-let SUBST1_TAC : thm_tactic = fun th -> CONV_TAC(SUBS_CONV [th])
+let (SUBST1_TAC : thm_tactic) = fun th -> CONV_TAC(SUBS_CONV [th])
 
 /// Substitutes using a single equation in both the assumptions and conclusion of a goal.
 let SUBST_ALL_TAC rth =
@@ -588,7 +588,7 @@ let SUBST_VAR_TAC (th : thm) g : goalstate =
 (* ------------------------------------------------------------------------- *)
 
 /// Moves the antecedent of an implicative goal into the assumptions.
-let DISCH_TAC : tactic = 
+let (DISCH_TAC : tactic) = 
     let f_tm = parse_term @"F"
     fun (asl, w) ->
         choice {
@@ -613,7 +613,7 @@ let DISCH_TAC : tactic =
             |> Choice.mapError (fun e -> nestedFailure e "DISCH_TAC"))
 
 /// Adds a theorem as an antecedent to the conclusion of the goal.
-let MP_TAC : thm_tactic = 
+let (MP_TAC : thm_tactic) = 
     let fun1 l =
         match l with
         | [a] -> a
@@ -623,7 +623,7 @@ let MP_TAC : thm_tactic =
         |> Choice.result
 
 /// Reduces goal of equality of boolean terms to forward and backward implication.
-let EQ_TAC : tactic = 
+let (EQ_TAC : tactic) = 
     fun (asl, w) ->
         choice {
         let fun1 l =
@@ -636,7 +636,7 @@ let EQ_TAC : tactic =
         |> Choice.mapError (fun e -> nestedFailure e "EQ_TAC: Failure.")
 
 /// Undischarges an assumption.
-let UNDISCH_TAC : term -> tactic = 
+let (UNDISCH_TAC : term -> tactic) = 
     fun tm (asl, w) -> 
         choice {
         let fun1 l =
@@ -650,7 +650,7 @@ let UNDISCH_TAC : term -> tactic =
         |> Choice.mapError (fun e -> nestedFailure e "UNDISCH_TAC: Failure.")
 
 /// Generalizes a goal.
-let SPEC_TAC : term * term -> tactic = 
+let (SPEC_TAC : term * term -> tactic) = 
     fun (t, x) (asl, w) ->
         choice {
         let fun1 l =
@@ -745,7 +745,7 @@ let EXISTS_TAC t : tactic =
         }
 
 /// Strips the outermost universal quantifier from the conclusion of a goal.
-let GEN_TAC : tactic = 
+let (GEN_TAC : tactic) = 
     fun (asl, w) -> 
         try 
             let x = fst(Choice.get <| dest_forall w)
@@ -756,8 +756,8 @@ let GEN_TAC : tactic =
         | Failure _ as e ->
             Choice.nestedFailwith e "GEN_TAC"
 
-/// Adds the Choice.get <| body of an existentially quantified theorem to the assumptions of a goal.
-let CHOOSE_TAC : thm_tactic = 
+/// Adds the body of an existentially quantified theorem to the assumptions of a goal.
+let (CHOOSE_TAC : thm_tactic) = 
     fun xth g -> 
         let f = 
             let x = fst(Choice.get <| dest_exists(concl <| Choice.get xth))
@@ -784,7 +784,7 @@ let (CONJ_TAC : tactic) =
         |> Choice.mapError (fun e -> nestedFailure e "CONJ_TAC: Failure.")
 
 /// Selects the left disjunct of a disjunctive goal.
-let DISJ1_TAC : tactic = 
+let (DISJ1_TAC : tactic) = 
     fun (asl, w) ->
         choice {
         let fun1 l =
@@ -797,7 +797,7 @@ let DISJ1_TAC : tactic =
         |> Choice.mapError (fun e -> nestedFailure e "DISJ1_TAC: Failure.")
 
 /// Selects the right disjunct of a disjunctive goal.
-let DISJ2_TAC : tactic = 
+let (DISJ2_TAC : tactic) = 
     fun (asl, w) ->
         choice {
         let fun1 l =
@@ -810,7 +810,7 @@ let DISJ2_TAC : tactic =
         |> Choice.mapError (fun e -> nestedFailure e "DISJ2_TAC: Failure.")
 
 /// Produces a case split based on a disjunctive theorem.
-let DISJ_CASES_TAC : thm_tactic = 
+let (DISJ_CASES_TAC : thm_tactic) = 
     fun dth g -> 
         let f = 
             let fun1 l i =
@@ -841,7 +841,7 @@ let (CONTR_TAC : thm_tactic) =
         | Failure _ -> Choice.failwith "CONTR_TAC: Failure."
 
 /// Solves a goal which is an instance of the supplied theorem.
-let MATCH_ACCEPT_TAC : thm_tactic =
+let (MATCH_ACCEPT_TAC : thm_tactic) =
     let propagate_thm th i l =
         match l with
         | [] -> INSTANTIATE_ALL i th
@@ -854,7 +854,7 @@ let MATCH_ACCEPT_TAC : thm_tactic =
     fun th -> REPEAT GEN_TAC |> THEN <| rawtac th
 
 /// Reduces the goal using a supplied implication, with matching.
-let MATCH_MP_TAC : thm_tactic = 
+let (MATCH_MP_TAC : thm_tactic) = 
     fun th -> 
         let sth = 
             try 
@@ -889,7 +889,7 @@ let MATCH_MP_TAC : thm_tactic =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies two theorem-tactics to the corresponding conjuncts of a theorem.
-let CONJUNCTS_THEN2 : thm_tactic -> thm_tactic -> thm_tactic =
+let (CONJUNCTS_THEN2 : thm_tactic -> thm_tactic -> thm_tactic) =
     fun ttac1 ttac2 cth ->
         let c1,c2 = Choice.get <| dest_conj(concl <| Choice.get cth)
         fun gl -> 
@@ -997,7 +997,7 @@ let (UNDISCH_THEN : term -> thm_tactic -> tactic) =
 let FIRST_X_ASSUM ttac = FIRST_ASSUM(fun th -> UNDISCH_THEN (concl <| Choice.get th) ttac)
 
 (* ------------------------------------------------------------------------- *)
-(* Subgoaling and freezing Choice.get <| variables (latter is especially useful now).      *)
+(* Subgoaling and freezing variables (latter is especially useful now).      *)
 (* ------------------------------------------------------------------------- *)
 
 /// Introduces a lemma as a new subgoal.
@@ -1238,7 +1238,7 @@ let (mk_goalstate : goal -> goalstate) =
         else Choice.failwith "mk_goalstate: Non-boolean goal"
 
 /// Attempts to prove a goal using a given tactic.
-let TAC_PROOF : goal * tactic -> thm = 
+let (TAC_PROOF : goal * tactic -> thm) = 
     fun (g, tac) -> 
         let gstate = mk_goalstate g
         by tac gstate

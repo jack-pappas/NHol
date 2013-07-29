@@ -1610,17 +1610,17 @@ let ``{rev_assocd y [x1,y1; _; xn,yn] x} returns y if there isn't an {yi} in the
 
 (* qmap tests *)
 
-[<Test>]
-let ``{qmap} applies a function to every element of a list``() =
+//[<Test>]
+//let ``{qmap} applies a function to every element of a list``() =
+//
+//    qmap (fun x -> x * 2) [1;2;3]
+//    |> should equal [2;4;6]
 
-    qmap (fun x -> x * 2) [1;2;3]
-    |> should equal [2;4;6]
-
-[<Test>]
-let ``{qmap} applied to an empty list returns again an empty list``() =
-
-    qmap (fun x -> x * 2) []
-    |> should equal []
+//[<Test>]
+//let ``{qmap} applied to an empty list returns again an empty list``() =
+//
+//    qmap (fun x -> x * 2) []
+//    |> should equal []
 
 //[<Test>]
 //let ``{qmap} is faster then map where the function returns the argument unchanged ``() =
