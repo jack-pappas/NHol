@@ -744,7 +744,7 @@ let REAL_ARITH_TAC = CONV_TAC REAL_ARITH
 
 /// Attempt to prove goal using basic algebra and linear arithmetic over the reals.
 let ASM_REAL_ARITH_TAC =
-  REPEAT(FIRST_X_ASSUM(MP_TAC << check (not << is_forall << concl <<Choice.get))) |>THEN<|
+  REPEAT(FIRST_X_ASSUM(MP_TAC << Choice.get << check (not << is_forall << concl << Choice.get))) |>THEN<|
   REAL_ARITH_TAC
 
 (* ------------------------------------------------------------------------- *)

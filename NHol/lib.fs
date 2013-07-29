@@ -277,8 +277,8 @@ let rec map2 f l1 l2 =
 
 /// Checks that a value satisfies a predicate.
 let check p x = 
-    if p x then x
-    else failwith "check"
+    if p x then Choice.result x
+    else Choice.failwith "check"
 
 (* ------------------------------------------------------------------------- *)
 (* Repetition of a function.                                                 *)

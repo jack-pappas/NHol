@@ -888,7 +888,7 @@ let INT_ARITH_TAC = CONV_TAC(EQT_INTRO << INT_ARITH)
 /// Attempt to prove goal using basic algebra and linear arithmetic over the integers.
 let ASM_INT_ARITH_TAC = REPEAT
                             (FIRST_X_ASSUM
-                                 (MP_TAC << check(not << is_forall << concl <<Choice.get)))
+                                 (MP_TAC << Choice.get << check (not << is_forall << concl << Choice.get)))
                         |> THEN <| INT_ARITH_TAC
 
 (* ------------------------------------------------------------------------- *)
@@ -1655,7 +1655,7 @@ let INTEGER_TAC_001 =
         let evs, bod = strip_exists w
         let ps = 
             mapfilter 
-                (Some << check(fun t -> Choice.get <| type_of t = int_ty) << Choice.get << lhs << concl <<Choice.get << snd) asl
+                (Choice.toOption << check(fun t -> Choice.get <| type_of t = int_ty) << Choice.get << lhs << concl << Choice.get << snd) asl
         let cfs = solve_idealism evs ps (map (Choice.get << lhs) (conjuncts bod))
         (MAP_EVERY EXISTS_TAC (map (fun v -> rev_assocd v cfs zero_tm) evs)
          |> THEN <| REPEAT(POP_ASSUM MP_TAC)
@@ -1880,7 +1880,7 @@ let ARITH_TAC = CONV_TAC(EQT_INTRO << ARITH_RULE);;
 /// Tactic for proving arithmetic goals needing basic rearrangement and linear inequality
 /// reasoning only, using assumptions.
 let ASM_ARITH_TAC =
-  REPEAT(FIRST_X_ASSUM(MP_TAC << check (not << is_forall << concl <<Choice.get))) |> THEN <|
+  REPEAT(FIRST_X_ASSUM(MP_TAC << Choice.get << check (not << is_forall << concl << Choice.get))) |> THEN <|
   ARITH_TAC;;
 
 (* ------------------------------------------------------------------------- *)

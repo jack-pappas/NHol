@@ -443,7 +443,7 @@ let WF_REC_CASES =
             clauses
         ==> ?f:A->B. !x. f x = CASEWISE clauses f x"),
   REPEAT STRIP_TAC |>THEN<| MATCH_MP_TAC WF_REC_TAIL_GENERAL' |>THEN<|
-  FIRST_X_ASSUM(MP_TAC << check(is_binary "ALL" << concl <<Choice.get)) |>THEN<|
+  FIRST_X_ASSUM(MP_TAC << Choice.get << check (is_binary "ALL" << concl << Choice.get)) |>THEN<|
   SPEC_TAC((parse_term @"clauses:((P->A)#((A->B)->P->B))list"),
            (parse_term @"clauses:((P->A)#((A->B)->P->B))list")) |>THEN<|
   ASM_REWRITE_TAC[] |>THEN<| POP_ASSUM(K ALL_TAC) |>THEN<|
