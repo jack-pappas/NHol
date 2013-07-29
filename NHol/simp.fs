@@ -27,7 +27,9 @@ open System
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
 open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open lib
@@ -664,60 +666,87 @@ let ONCE_REWRITE_CONV thl =
 (* ------------------------------------------------------------------------- *)
 
 /// Rewrites a theorem, selecting terms according to a user-specified strategy.
-let GEN_REWRITE_RULE cnvl thl = CONV_RULE(GEN_REWRITE_CONV cnvl thl)
+let GEN_REWRITE_RULE cnvl thl = 
+    CONV_RULE (GEN_REWRITE_CONV cnvl thl)
 
 /// Rewrites a theorem with only the given list of rewrites.
-let PURE_REWRITE_RULE thl = CONV_RULE(PURE_REWRITE_CONV thl)
+let PURE_REWRITE_RULE thl = 
+    CONV_RULE (PURE_REWRITE_CONV thl)
 
 /// Rewrites a theorem including built-in tautologies in the list of rewrites.
-let REWRITE_RULE thl = CONV_RULE(REWRITE_CONV thl)
+let REWRITE_RULE thl = 
+    CONV_RULE (REWRITE_CONV thl)
 
 /// Rewrites a theorem once with only the given list of rewrites.
-let PURE_ONCE_REWRITE_RULE thl = CONV_RULE(PURE_ONCE_REWRITE_CONV thl)
+let PURE_ONCE_REWRITE_RULE thl = 
+    CONV_RULE (PURE_ONCE_REWRITE_CONV thl)
 
 /// Rewrites a theorem, including built-in tautologies in the list of rewrites.
-let ONCE_REWRITE_RULE thl = CONV_RULE(ONCE_REWRITE_CONV thl)
+let ONCE_REWRITE_RULE thl = 
+    CONV_RULE (ONCE_REWRITE_CONV thl)
 
 /// Rewrites a theorem including the theorem's assumptions as rewrites.
 let PURE_ASM_REWRITE_RULE thl (th : thm) = 
-    PURE_REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
+    choice {
+        let! tms = Choice.map hyp th
+        return! PURE_REWRITE_RULE ((map ASSUME tms) @ thl) th
+    }
 
 /// Rewrites a theorem including built-in rewrites and the theorem's assumptions.
-let ASM_REWRITE_RULE thl (th : thm) = REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
+let ASM_REWRITE_RULE thl (th : thm) = 
+    choice {
+        let! tms = Choice.map hyp th
+        return! REWRITE_RULE ((map ASSUME tms) @ thl) th
+    }
 
 /// Rewrites a theorem once, including the theorem's assumptions as rewrites.
-let PURE_ONCE_ASM_REWRITE_RULE thl (th : thm) = 
-    PURE_ONCE_REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
+let PURE_ONCE_ASM_REWRITE_RULE thl (th : thm) =
+    choice {
+        let! tms = Choice.map hyp th 
+        return! PURE_ONCE_REWRITE_RULE ((map ASSUME tms) @ thl) th
+    }
 
 let ONCE_ASM_REWRITE_RULE thl (th : thm) = 
-    ONCE_REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
+    choice {
+        let! tms = Choice.map hyp th 
+        return! ONCE_REWRITE_RULE ((map ASSUME tms) @ thl) th
+    }
 
 /// Rewrites a goal, selecting terms according to a user-specified strategy.
-let GEN_REWRITE_TAC cnvl thl = CONV_TAC(GEN_REWRITE_CONV cnvl thl)
+let GEN_REWRITE_TAC cnvl thl = 
+    CONV_TAC (GEN_REWRITE_CONV cnvl thl)
 
 /// Rewrites a goal with only the given list of rewrites.
-let PURE_REWRITE_TAC thl = CONV_TAC(PURE_REWRITE_CONV thl)
+let PURE_REWRITE_TAC thl = 
+    CONV_TAC (PURE_REWRITE_CONV thl)
 
 /// Rewrites a goal including built-in tautologies in the list of rewrites.
-let REWRITE_TAC thl = CONV_TAC(REWRITE_CONV thl)
+let REWRITE_TAC thl = 
+    CONV_TAC (REWRITE_CONV thl)
 
 /// Rewrites a goal using a supplied list of theorems, making one rewriting pass over the goal.
-let PURE_ONCE_REWRITE_TAC thl = CONV_TAC(PURE_ONCE_REWRITE_CONV thl)
+let PURE_ONCE_REWRITE_TAC thl = 
+    CONV_TAC (PURE_ONCE_REWRITE_CONV thl)
 
 /// Rewrites a goal only once with basic_rewrites and the supplied list of theorems.
-let ONCE_REWRITE_TAC thl = CONV_TAC(ONCE_REWRITE_CONV thl)
+let ONCE_REWRITE_TAC thl = 
+    CONV_TAC (ONCE_REWRITE_CONV thl)
 
 /// Rewrites a goal including the goal's assumptions as rewrites.
-let (PURE_ASM_REWRITE_TAC : thm list -> tactic) = ASM PURE_REWRITE_TAC
+let (PURE_ASM_REWRITE_TAC : thm list -> tactic) = 
+    ASM PURE_REWRITE_TAC
 
 /// Rewrites a goal including built-in rewrites and the goal's assumptions.
-let (ASM_REWRITE_TAC : thm list -> tactic) = ASM REWRITE_TAC
+let (ASM_REWRITE_TAC : thm list -> tactic) = 
+    ASM REWRITE_TAC
 
 /// Rewrites a goal once, including the goal's assumptions as rewrites.
-let (PURE_ONCE_ASM_REWRITE_TAC : thm list -> tactic) = ASM PURE_ONCE_REWRITE_TAC
+let (PURE_ONCE_ASM_REWRITE_TAC : thm list -> tactic) = 
+    ASM PURE_ONCE_REWRITE_TAC
 
 /// Rewrites a goal once including built-in rewrites and the goal's assumptions.
-let (ONCE_ASM_REWRITE_TAC : thm list -> tactic) = ASM ONCE_REWRITE_TAC
+let (ONCE_ASM_REWRITE_TAC : thm list -> tactic) = 
+    ASM ONCE_REWRITE_TAC
 
 (* ------------------------------------------------------------------------- *)
 (* Simplification functions.                                                 *)
@@ -726,20 +755,23 @@ let (ONCE_ASM_REWRITE_TAC : thm list -> tactic) = ASM ONCE_REWRITE_TAC
 /// General simplification with given strategy and simpset and theorems.
 let GEN_SIMPLIFY_CONV (strat : strategy) ss lev thl = 
     let ss' = itlist AUGMENT_SIMPSET thl ss
-    TRY_CONV(strat ss' lev)
+    TRY_CONV (strat ss' lev)
 
 /// General top-level simplification with arbitrary simpset.
-let ONCE_SIMPLIFY_CONV ss = GEN_SIMPLIFY_CONV ONCE_DEPTH_SQCONV ss 1
+let ONCE_SIMPLIFY_CONV ss = 
+    GEN_SIMPLIFY_CONV ONCE_DEPTH_SQCONV ss 1
 
 /// General simplification at depth with arbitrary simpset.
-let SIMPLIFY_CONV ss = GEN_SIMPLIFY_CONV TOP_DEPTH_SQCONV ss 3
+let SIMPLIFY_CONV ss = 
+    GEN_SIMPLIFY_CONV TOP_DEPTH_SQCONV ss 3
 
 (* ------------------------------------------------------------------------- *)
 (* Simple but useful default version.                                        *)
 (* ------------------------------------------------------------------------- *)
 
 /// Simpset consisting of only the default rewrites and conversions.
-let empty_ss = Simpset(empty_net, basic_prover, [], fun x y -> Choice.get <| mk_rewrites true x y)
+let empty_ss = 
+    Simpset(empty_net, basic_prover, [], fun x y -> Choice.get <| mk_rewrites true x y)
 
 /// Construct a straightforward simpset from a list of theorems.
 let basic_ss = 
@@ -751,41 +783,53 @@ let basic_ss =
         Simpset(net'', basic_prover, [], rewmaker)
 
 /// Simplify a term repeatedly by conditional contextual rewriting.
-let SIMP_CONV thl = SIMPLIFY_CONV (basic_ss []) thl
+let SIMP_CONV thl = 
+    SIMPLIFY_CONV (basic_ss []) thl
 
 /// Simplify a term repeatedly by conditional contextual rewriting, not using default simplications.
-let PURE_SIMP_CONV thl = SIMPLIFY_CONV empty_ss thl
+let PURE_SIMP_CONV thl = 
+    SIMPLIFY_CONV empty_ss thl
 
 /// Simplify a term once by conditional contextual rewriting.
-let ONCE_SIMP_CONV thl = ONCE_SIMPLIFY_CONV (basic_ss []) thl
+let ONCE_SIMP_CONV thl = 
+    ONCE_SIMPLIFY_CONV (basic_ss []) thl
 
 /// Simplify conclusion of a theorem repeatedly by conditional contextual rewriting.
-let SIMP_RULE thl = CONV_RULE(SIMP_CONV thl)
+let SIMP_RULE thl = 
+    CONV_RULE (SIMP_CONV thl)
 
 /// Simplify conclusion of a theorem repeatedly by conditional contextual rewriting, not using default simplifications.
-let PURE_SIMP_RULE thl = CONV_RULE(PURE_SIMP_CONV thl)
+let PURE_SIMP_RULE thl = 
+    CONV_RULE (PURE_SIMP_CONV thl)
 
 /// Simplify conclusion of a theorem once by conditional contextual rewriting.
-let ONCE_SIMP_RULE thl = CONV_RULE(ONCE_SIMP_CONV thl)
+let ONCE_SIMP_RULE thl = 
+    CONV_RULE (ONCE_SIMP_CONV thl)
 
 /// Simplify a goal repeatedly by conditional contextual rewriting.
-let SIMP_TAC thl = CONV_TAC(SIMP_CONV thl)
+let SIMP_TAC thl = 
+    CONV_TAC (SIMP_CONV thl)
 
 /// Simplify a goal repeatedly by conditional contextual rewriting without default simplifications.
-let PURE_SIMP_TAC thl = CONV_TAC(PURE_SIMP_CONV thl)
+let PURE_SIMP_TAC thl = 
+    CONV_TAC (PURE_SIMP_CONV thl)
 
 /// Simplify conclusion of goal once by conditional contextual rewriting.
-let ONCE_SIMP_TAC thl = CONV_TAC(ONCE_SIMP_CONV thl)
+let ONCE_SIMP_TAC thl = 
+    CONV_TAC (ONCE_SIMP_CONV thl)
 
 /// Perform simplification of goal by conditional contextual rewriting using assumptions and
 /// built-in simplifications.
-let ASM_SIMP_TAC = ASM SIMP_TAC
+let ASM_SIMP_TAC = 
+    ASM SIMP_TAC
 
 /// Perform simplification of goal by conditional contextual rewriting using assumptions.
-let PURE_ASM_SIMP_TAC = ASM PURE_SIMP_TAC
+let PURE_ASM_SIMP_TAC = 
+    ASM PURE_SIMP_TAC
 
 /// Simplify toplevel applicable terms in goal using assumptions and context.
-let ONCE_ASM_SIMP_TAC = ASM ONCE_SIMP_TAC
+let ONCE_ASM_SIMP_TAC = 
+    ASM ONCE_SIMP_TAC
 
 (* ------------------------------------------------------------------------- *)
 (* Abbreviation tactics.                                                     *)
@@ -793,27 +837,37 @@ let ONCE_ASM_SIMP_TAC = ASM ONCE_SIMP_TAC
 
 /// Tactic to introduce an abbreviation.
 let ABBREV_TAC tm : tactic =
-    let cvs, t = Choice.get <| dest_eq tm
-    let v, vs = strip_comb cvs
-    let rs = list_mk_abs(vs, t)
-    let eq = Choice.get <| mk_eq(rs, v)
-    let th1 = 
-        itlist (fun v th -> CONV_RULE (LAND_CONV BETA_CONV) (AP_THM th v)) 
-            (rev vs) (ASSUME eq)
-    let th2 = SIMPLE_CHOOSE v (SIMPLE_EXISTS v (GENL vs th1))
-    let th3 = PROVE_HYP (EXISTS (Choice.get <| mk_exists(v, eq), rs) (REFL rs)) th2
+    let v_th3 = 
+        choice {
+            let! cvs, t = dest_eq tm
+            let v, vs = strip_comb cvs
+            let rs = list_mk_abs (vs, t)
+            let! eq = mk_eq(rs, v)
+            let th1 =  itlist (fun v th -> CONV_RULE (LAND_CONV BETA_CONV) (AP_THM th v)) (rev vs) (ASSUME eq)
+            let th2 = SIMPLE_CHOOSE v (SIMPLE_EXISTS v (GENL vs th1))
+            let! tm = mk_exists(v, eq)
+            let th3 = PROVE_HYP (EXISTS (tm, rs) (REFL rs)) th2
+            return (v, th3)
+        }
     fun (asl, w as gl) -> 
-            let avoids = itlist (union << frees << concl << Choice.get << snd) asl (frees w)
-            if mem v avoids
-            then failwith "ABBREV_TAC: variable already used"
+        choice {
+            let! (v, th3) = v_th3 
+            let! asl' = Choice.List.map snd asl
+            let avoids = itlist (union << frees << concl) asl' (frees w)
+            if mem v avoids then 
+                return! Choice.failwith "ABBREV_TAC: variable already used"
             else 
-                CHOOSE_THEN (fun th -> 
+                return! CHOOSE_THEN (fun th -> 
                         RULE_ASSUM_TAC(PURE_ONCE_REWRITE_RULE [th])
                         |> THEN <| PURE_ONCE_REWRITE_TAC [th]
                         |> THEN <| ASSUME_TAC th) th3 gl
+        }
 
 /// Expand an abbreviation in the hypotheses.
-let EXPAND_TAC s = FIRST_ASSUM
-                       (SUBST1_TAC << SYM 
-                        << Choice.get << check((=) (Choice.result s) << Choice.map fst << Choice.bind dest_var << Choice.bind rhs << Choice.map concl))
-                   |> THEN <| BETA_TAC
+let EXPAND_TAC s = 
+    let f thm =
+        match check ((=) (Choice.result s) << Choice.map fst << Choice.bind dest_var << Choice.bind rhs << Choice.map concl) thm with
+        | Success th -> th
+        | Error ex -> Choice2Of2 ex
+    FIRST_ASSUM (SUBST1_TAC << SYM << f)
+    |> THEN <| BETA_TAC
