@@ -1005,6 +1005,7 @@ let (ANTE_RES_THEN : thm_tactical) =
 let (IMP_RES_THEN : thm_tactical) = 
     fun ttac imp -> 
         ASSUM_LIST(fun asl -> 
+            // NOTE: revise this as well
             let tacs = mapfilter (fun ante -> Some <| ttac(MATCH_MP imp ante)) asl
             match tacs with
             | [] -> fun tm -> Choice.failwith "IMP_RES_THEN"

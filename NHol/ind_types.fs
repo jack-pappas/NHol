@@ -1417,10 +1417,10 @@ let extend_rectype_net(tyname, (_, _, rth)) =
             [prove_constructors_injective rth]
         with
         | Failure _ -> []
-    let canon_thl = itlist (mk_rewrites false) (ths1 @ ths2) []
+    let canon_thl = itlist (fun x y -> Choice.get <| mk_rewrites false x y) (ths1 @ ths2) []
     distinctness_store := map (fun th -> tyname, th) ths1 @ (!distinctness_store)
     injectivity_store := map (fun th -> tyname, th) ths2 @ (!injectivity_store)
-    basic_rectype_net := itlist (net_of_thm true) canon_thl (!basic_rectype_net)
+    basic_rectype_net := itlist (fun x y -> Choice.get <| net_of_thm true x y) canon_thl (!basic_rectype_net)
 
 do_list extend_rectype_net (!inductive_type_store);;
 
@@ -1719,8 +1719,8 @@ let define_type_raw =
     let ISO_USAGE_RULE = MATCH_MP ISO_USAGE
     let SIMPLE_ISO_EXPAND_RULE = CONV_RULE(REWR_CONV ISO)
     let REWRITE_FUN_EQ_RULE = 
-        let ths = itlist (mk_rewrites false) [FUN_EQ_THM] []
-        let net = itlist (net_of_thm false) ths (basic_net())
+        let ths = itlist (fun x y -> Choice.get <| mk_rewrites false x y) [FUN_EQ_THM] []
+        let net = itlist (fun x y -> Choice.get <| net_of_thm false x y) ths (basic_net())
         CONV_RULE << GENERAL_REWRITE_CONV true TOP_DEPTH_CONV net
     let is_nested vs ty = 
         not(is_vartype ty) && not(intersect (tyvars ty) vs = [])

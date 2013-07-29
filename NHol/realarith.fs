@@ -297,7 +297,7 @@ let GEN_REAL_ARITH_001 =
     let MATCH_MP_RULE th = 
         let net = 
             itlist 
-                (fun th -> net_of_conv (Choice.get <| lhand(concl <| Choice.get th)) (PART_MATCH lhand th)) 
+                (fun th -> Choice.get << net_of_conv (Choice.get <| lhand(concl <| Choice.get th)) (PART_MATCH lhand th)) 
                 (CONJUNCTS th) empty_net
         fun th -> MP (REWRITES_CONV net (concl <| Choice.get th)) th
     let x_tm = (parse_term @"x:real")
@@ -378,7 +378,7 @@ let GEN_REAL_ARITH_001 =
                                                          z_tm)
                                             TRANS th th'
                                     let net_single = 
-                                        itlist (uncurry net_of_conv) 
+                                        itlist (uncurry (fun x y -> Choice.get << net_of_conv x y)) 
                                             [xy_lt, REAL_LT_CONV
                                              xy_nlt, 
                                              (fun t -> REAL_NOT_LT_CONV(Choice.get <| rand t))
@@ -395,7 +395,7 @@ let GEN_REAL_ARITH_001 =
                                              xy_ne, 
                                              (fun t -> REAL_NOT_EQ_CONV(Choice.get <| rand t))] empty_net
                                     let net_double = 
-                                        itlist (uncurry net_of_conv) 
+                                        itlist (uncurry (fun x y -> Choice.get << net_of_conv x y)) 
                                             [xy_lt, 
                                              (fun t -> 
                                                  REAL_LT_CONV t, 

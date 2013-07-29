@@ -550,7 +550,7 @@ let instantiate_casewise_recursion,
       DISCH_THEN(MP_TAC << AP_TERM (parse_term @"EVEN")) |>THEN<|
       REWRITE_TAC[EVEN_MULT; EVEN_ADD; ARITH; EVEN])
     let allsimps = 
-     itlist (mk_rewrites false) [EQ_ADD_RCANCEL; EQ_ADD_LCANCEL;
+     itlist (fun x y -> Choice.get <| mk_rewrites false x y) [EQ_ADD_RCANCEL; EQ_ADD_LCANCEL;
        EQ_ADD_RCANCEL_0; EQ_ADD_LCANCEL_0;
        LSYM EQ_ADD_RCANCEL_0; LSYM EQ_ADD_LCANCEL_0;
        EQ_MULT_RCANCEL; EQ_MULT_LCANCEL;
@@ -575,7 +575,7 @@ let instantiate_casewise_recursion,
     let and_tm = (parse_term @"(/\)")
     let eq_refl = EQT_INTRO(SPEC_ALL EQ_REFL)
     fun tm ->
-      let net = itlist (net_of_thm false) allsimps (!basic_rectype_net)
+      let net = itlist (fun x y -> Choice.get <| net_of_thm false x y) allsimps (!basic_rectype_net)
       let RECTYPE_ARITH_EQ_CONV =
         TOP_SWEEP_CONV (REWRITES_CONV net) |>THENC<|
         GEN_REWRITE_CONV DEPTH_CONV [AND_CLAUSES; OR_CLAUSES]

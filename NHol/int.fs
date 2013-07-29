@@ -1470,22 +1470,22 @@ let INT_DIV_CONV, INT_REM_CONV =
 /// Performs one arithmetic or relational operation on integer literals of type :int.
 let INT_RED_CONV = 
     let gconv_net = 
-        itlist (uncurry net_of_conv) 
-            [(parse_term @"x <= y"), INT_LE_CONV
-             (parse_term @"x < y"), INT_LT_CONV
-             (parse_term @"x >= y"), INT_GE_CONV
-             (parse_term @"x > y"), INT_GT_CONV
-             (parse_term @"x:int = y"), INT_EQ_CONV
+        itlist (uncurry (fun x y -> Choice.get << net_of_conv x y)) 
+            [(parse_term @"x <= y"), INT_LE_CONV;
+             (parse_term @"x < y"), INT_LT_CONV;
+             (parse_term @"x >= y"), INT_GE_CONV;
+             (parse_term @"x > y"), INT_GT_CONV;
+             (parse_term @"x:int = y"), INT_EQ_CONV;
              (parse_term @"--x"), 
-             CHANGED_CONV INT_NEG_CONV
-             (parse_term @"abs(x)"), INT_ABS_CONV
-             (parse_term @"x + y"), INT_ADD_CONV
-             (parse_term @"x - y"), INT_SUB_CONV
-             (parse_term @"x * y"), INT_MUL_CONV
-             (parse_term @"x div y"), INT_DIV_CONV
-             (parse_term @"x rem y"), INT_REM_CONV
-             (parse_term @"x pow n"), INT_POW_CONV
-             (parse_term @"max x y"), INT_MAX_CONV
+             CHANGED_CONV INT_NEG_CONV;
+             (parse_term @"abs(x)"), INT_ABS_CONV;
+             (parse_term @"x + y"), INT_ADD_CONV;
+             (parse_term @"x - y"), INT_SUB_CONV;
+             (parse_term @"x * y"), INT_MUL_CONV;
+             (parse_term @"x div y"), INT_DIV_CONV;
+             (parse_term @"x rem y"), INT_REM_CONV;
+             (parse_term @"x pow n"), INT_POW_CONV;
+             (parse_term @"max x y"), INT_MAX_CONV;
              (parse_term @"min x y"), INT_MIN_CONV] 
             (basic_net())
     REWRITES_CONV gconv_net;;

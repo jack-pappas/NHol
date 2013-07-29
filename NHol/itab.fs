@@ -47,6 +47,7 @@ open tactics
 (* ------------------------------------------------------------------------- *)
 (* Accept a theorem modulo unification.                                      *)
 (* ------------------------------------------------------------------------- *)
+
 /// Unify free variables in theorem and metavariables in goal to accept theorem.
 let UNIFY_ACCEPT_TAC mvs (th : thm) : tactic =
     fun (asl, w) ->
@@ -60,6 +61,7 @@ let UNIFY_ACCEPT_TAC mvs (th : thm) : tactic =
 (* ------------------------------------------------------------------------- *)
 (* The actual prover, as a tactic.                                           *)
 (* ------------------------------------------------------------------------- *)
+
 /// Simple intuitionistic logic prover.
 let ITAUT_TAC = 
     let CONJUNCTS_THEN' ttac cth = 
@@ -155,5 +157,6 @@ let ITAUT_TAC =
 (* ------------------------------------------------------------------------- *)
 (* Alternative interface.                                                    *)
 (* ------------------------------------------------------------------------- *)
+
 /// Attempt to prove term using intuitionistic first-order logic.
 let ITAUT tm = prove(tm, ITAUT_TAC)

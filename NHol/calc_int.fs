@@ -530,18 +530,19 @@ let REAL_INT_ABS_CONV =
 /// Performs one arithmetic or relational operation on integer literals of type :real.
 let REAL_INT_RED_CONV = 
     let gconv_net = 
-        itlist (uncurry net_of_conv) [(parse_term @"x <= y"), REAL_INT_LE_CONV
-                                      (parse_term @"x < y"), REAL_INT_LT_CONV
-                                      (parse_term @"x >= y"), REAL_INT_GE_CONV
-                                      (parse_term @"x > y"), REAL_INT_GT_CONV
+        itlist (uncurry (fun x y -> Choice.get << net_of_conv x y)) 
+                                     [(parse_term @"x <= y"), REAL_INT_LE_CONV;
+                                      (parse_term @"x < y"), REAL_INT_LT_CONV;
+                                      (parse_term @"x >= y"), REAL_INT_GE_CONV;
+                                      (parse_term @"x > y"), REAL_INT_GT_CONV;
                                       (parse_term @"x:real = y"), 
-                                      REAL_INT_EQ_CONV
+                                      REAL_INT_EQ_CONV;
                                       (parse_term @"--x"), 
-                                      CHANGED_CONV REAL_INT_NEG_CONV
-                                      (parse_term @"abs(x)"), REAL_INT_ABS_CONV
-                                      (parse_term @"x + y"), REAL_INT_ADD_CONV
-                                      (parse_term @"x - y"), REAL_INT_SUB_CONV
-                                      (parse_term @"x * y"), REAL_INT_MUL_CONV
+                                      CHANGED_CONV REAL_INT_NEG_CONV;
+                                      (parse_term @"abs(x)"), REAL_INT_ABS_CONV;
+                                      (parse_term @"x + y"), REAL_INT_ADD_CONV;
+                                      (parse_term @"x - y"), REAL_INT_SUB_CONV;
+                                      (parse_term @"x * y"), REAL_INT_MUL_CONV;
                                       (parse_term @"x pow n"), REAL_INT_POW_CONV] 
             (basic_net())
     REWRITES_CONV gconv_net

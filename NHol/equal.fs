@@ -474,15 +474,17 @@ let CACHE_CONV (conv : conv) : conv =
     // NOTE : This is not thread-safe!
     let net = ref empty_net
     fun tm -> 
-        try 
-            tryfind (fun f -> Some <| f tm) (Choice.get <| lookup tm (!net))
-            |> Option.getOrFailWith "tryfind"
-        with
-        | Failure _ -> 
-            let th = conv tm
-            match enter [] (tm, ALPHA_HACK th) (!net) with
-            | Success n -> net := n
-            | Error _ -> 
-                // NOTE: currently do nothing in case of error
-                ()
-            th
+        lookup tm (!net)
+        |> Choice.bind (fun fs ->
+            tryfind (fun f -> Choice.toOption <| f tm) fs
+            |> Option.toChoiceWithError "tryfind"
+            |> Choice.bindError (fun _ ->
+                let th = conv tm
+                match enter [] (tm, ALPHA_HACK th) (!net) with
+                | Success n -> 
+                    net := n
+                | Error _ -> 
+                    // NOTE: currently do nothing in case of error
+                    ()
+                th))
+        

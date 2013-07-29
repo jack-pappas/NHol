@@ -823,8 +823,8 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
                 else 
                     let asm_0 = Choice.get <| mk_eq(p, false_tm)
                     let asm_1 = Choice.get <| mk_eq(p, true_tm)
-                    let simp_0 = net_of_thm false (ASSUME asm_0) propsimps
-                    let simp_1 = net_of_thm false (ASSUME asm_1) propsimps
+                    let simp_0 = Choice.get <| net_of_thm false (ASSUME asm_0) propsimps
+                    let simp_1 = Choice.get <| net_of_thm false (ASSUME asm_1) propsimps
                     let th_0 = 
                         DISCH asm_0 (DEPTH_CONV (REWRITES_CONV simp_0) tm)
                     let th_1 = 

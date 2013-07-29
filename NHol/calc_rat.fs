@@ -566,23 +566,24 @@ let REAL_RAT_MIN_CONV =
 /// Performs one arithmetic or relational operation on rational literals of type :real.
 let REAL_RAT_RED_CONV = 
     let gconv_net = 
-        itlist (uncurry net_of_conv) [(parse_term @"x <= y"), REAL_RAT_LE_CONV
-                                      (parse_term @"x < y"), REAL_RAT_LT_CONV
-                                      (parse_term @"x >= y"), REAL_RAT_GE_CONV
-                                      (parse_term @"x > y"), REAL_RAT_GT_CONV
+        itlist (uncurry (fun x y -> Choice.get << net_of_conv x y)) 
+                                     [(parse_term @"x <= y"), REAL_RAT_LE_CONV;
+                                      (parse_term @"x < y"), REAL_RAT_LT_CONV;
+                                      (parse_term @"x >= y"), REAL_RAT_GE_CONV;
+                                      (parse_term @"x > y"), REAL_RAT_GT_CONV;
                                       (parse_term @"x:real = y"), 
-                                      REAL_RAT_EQ_CONV
+                                      REAL_RAT_EQ_CONV;
                                       (parse_term @"--x"), 
-                                      CHANGED_CONV REAL_RAT_NEG_CONV
-                                      (parse_term @"abs(x)"), REAL_RAT_ABS_CONV
-                                      (parse_term @"inv(x)"), REAL_RAT_INV_CONV
-                                      (parse_term @"x + y"), REAL_RAT_ADD_CONV
-                                      (parse_term @"x - y"), REAL_RAT_SUB_CONV
-                                      (parse_term @"x * y"), REAL_RAT_MUL_CONV
+                                      CHANGED_CONV REAL_RAT_NEG_CONV;
+                                      (parse_term @"abs(x)"), REAL_RAT_ABS_CONV;
+                                      (parse_term @"inv(x)"), REAL_RAT_INV_CONV;
+                                      (parse_term @"x + y"), REAL_RAT_ADD_CONV;
+                                      (parse_term @"x - y"), REAL_RAT_SUB_CONV;
+                                      (parse_term @"x * y"), REAL_RAT_MUL_CONV;
                                       (parse_term @"x / y"), 
-                                      CHANGED_CONV REAL_RAT_DIV_CONV
-                                      (parse_term @"x pow n"), REAL_RAT_POW_CONV
-                                      (parse_term @"max x y"), REAL_RAT_MAX_CONV
+                                      CHANGED_CONV REAL_RAT_DIV_CONV;
+                                      (parse_term @"x pow n"), REAL_RAT_POW_CONV;
+                                      (parse_term @"max x y"), REAL_RAT_MAX_CONV;
                                       (parse_term @"min x y"), REAL_RAT_MIN_CONV] 
             (basic_net())
     REWRITES_CONV gconv_net

@@ -837,7 +837,7 @@ let NUM_MIN_CONV =
 /// Performs relational operation on natural number numerals by proof.
 let NUM_REL_CONV : conv =
     let gconv_net = 
-     itlist (uncurry net_of_conv)
+     itlist (uncurry (fun x y -> Choice.get << net_of_conv x y))
       [(parse_term @"NUMERAL m < NUMERAL n"),NUM_LT_CONV;
        (parse_term @"NUMERAL m <= NUMERAL n"),NUM_LE_CONV;
        (parse_term @"NUMERAL m > NUMERAL n"),NUM_GT_CONV;
@@ -849,7 +849,7 @@ let NUM_REL_CONV : conv =
 /// Performs one arithmetic or relational operation on natural number numerals by proof.
 let NUM_RED_CONV =
     let gconv_net = 
-     itlist (uncurry net_of_conv)
+     itlist (uncurry (fun x y -> Choice.get << net_of_conv x y))
       [(parse_term @"SUC(NUMERAL n)"),NUM_SUC_CONV;
        (parse_term @"PRE(NUMERAL n)"),NUM_PRE_CONV;
        (parse_term @"FACT(NUMERAL n)"),NUM_FACT_CONV;
