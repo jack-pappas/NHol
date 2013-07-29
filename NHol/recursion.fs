@@ -68,14 +68,14 @@ let prove_recursive_functions_exist =
         let exvs, axbody = strip_exists(concl <| Choice.get axth)
         let axcls = conjuncts axbody
         let f = 
-            fst << Choice.get << dest_const << repeat (Choice.get << rator) << Choice.get << rand << Choice.get << lhand << snd 
+            fst << Choice.get << dest_const << repeat (Choice.toOption << rator) << Choice.get << rand << Choice.get << lhand << snd 
             << strip_forall
         let findax s =
             assoc s (map (fun t -> f t, t) axcls)
             |> Option.getOrFailWith "find"
         let raxs = 
-            map (findax << fst << Choice.get << dest_const << repeat (Choice.get << rator) << hd << snd) lpats
-        let axfns = map (repeat (Choice.get << rator) << Choice.get << lhand << snd << strip_forall) raxs
+            map (findax << fst << Choice.get << dest_const << repeat (Choice.toOption << rator) << hd << snd) lpats
+        let axfns = map (repeat (Choice.toOption << rator) << Choice.get << lhand << snd << strip_forall) raxs
         let urfns = 
             map (fun v -> assocd v (setify(zip axfns (map fst lpats))) v) exvs
         let axtm = list_mk_exists(exvs, list_mk_conj raxs)

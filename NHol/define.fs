@@ -712,7 +712,7 @@ let instantiate_casewise_recursion,
       "superadmissible","COND"
           -> APPLY_PROFORMA_TAC SUPERADMISSIBLE_COND gl
     | "superadmissible","_MATCH" when
-          name_of(repeat (Choice.get << rator) (last args)) = "_SEQPATTERN"
+          name_of(repeat (Choice.toOption << rator) (last args)) = "_SEQPATTERN"
           -> (APPLY_PROFORMA_TAC SUPERADMISSIBLE_MATCH_SEQPATTERN |>THEN<|
               CONV_TAC(ONCE_DEPTH_CONV EXISTS_PAT_CONV)) gl
     | "superadmissible","_MATCH" when
@@ -736,7 +736,7 @@ let instantiate_casewise_recursion,
     | "admissible","MAP"
           -> APPLY_PROFORMA_TAC ADMISSIBLE_MAP gl
     | "admissible","_MATCH" when
-          name_of(repeat (Choice.get << rator) (last args)) = "_SEQPATTERN"
+          name_of(repeat (Choice.toOption << rator) (last args)) = "_SEQPATTERN"
           -> (APPLY_PROFORMA_TAC ADMISSIBLE_MATCH_SEQPATTERN |>THEN<|
               CONV_TAC(ONCE_DEPTH_CONV EXISTS_PAT_CONV)) gl
     | "admissible","_MATCH"
@@ -1030,7 +1030,7 @@ let define =
     let avs,bod = strip_forall tm
     let cjs = conjuncts bod
     let fs =
-      try map (repeat (Choice.get << rator) << Choice.get << lhs << snd << strip_forall) cjs
+      try map (repeat (Choice.toOption << rator) << Choice.get << lhs << snd << strip_forall) cjs
       with Failure _ -> failwith "close_definition_clauses: non-equation"
     if length (setify fs) <> 1
     then failwith "close_definition_clauses: defining multiple functions" else

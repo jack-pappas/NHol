@@ -1062,11 +1062,10 @@ let GEN_MESON_TAC =
         |> THEN <| SPLIT_TAC(!meson_split_limit)
         |> THEN <| RULE_ASSUM_TAC(CONV_RULE(PRENEX_CONV
                                             |> THENC <| WEAK_CNF_CONV))
-        |> THEN 
-        <| RULE_ASSUM_TAC
-               (repeat
-                    (fun th -> 
-                        SPEC (genvar(Choice.get <| type_of(fst(Choice.get <| dest_forall(concl <| Choice.get th))))) th))
+        |> THEN <| RULE_ASSUM_TAC
+                    (repeat
+                        (fun th -> 
+                            (Choice.toOption << Choice.map Choice.result) <| SPEC (genvar(Choice.get <| type_of(fst(Choice.get <| dest_forall(concl <| Choice.get th))))) th))
         |> THEN <| REPEAT(FIRST_X_ASSUM(CONJUNCTS_THEN' ASSUME_TAC))
         |> THEN <| RULE_ASSUM_TAC(CONV_RULE(ASSOC_CONV DISJ_ASSOC))
         |> THEN <| REPEAT(FIRST_X_ASSUM SUBST_VAR_TAC)

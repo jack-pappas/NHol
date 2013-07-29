@@ -192,7 +192,10 @@ let net_of_conv tm conv sofar = enter [] (tm, (2, conv)) sofar
 let net_of_cong (th : thm) sofar = 
     choice {
         let! tm = Choice.map concl th
-        let conc, n = repeat (fun (tm, m) -> snd(Choice.get <| dest_imp tm), m + 1) (tm, 0)
+        let conc, n = repeat (fun (tm, m) -> 
+                        match dest_imp tm with
+                        | Success (_, tm') -> Some (tm', m + 1)
+                        | Error _ -> None) (tm, 0)
         if n = 0 then 
             return! Choice.failwith "net_of_cong: Non-implicational congruence"
         else 

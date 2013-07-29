@@ -99,7 +99,7 @@ let EXISTS_EQUATION =
 /// Deduce inductive definitions properties from an explicit assignment.
 let derive_nonschematic_inductive_relations = 
     let getconcl tm = 
-        let bod = repeat (snd << Choice.get << dest_forall) tm
+        let bod = repeat (Choice.toOption << Choice.map snd << dest_forall) tm
         try 
             snd(Choice.get <| dest_imp bod)
         with
@@ -227,7 +227,7 @@ let derive_nonschematic_inductive_relations =
         let clauses = conjuncts closed
         let vargs, bodies = unzip(map strip_forall clauses)
         let ants, concs = unzip(map (Choice.get << dest_imp) bodies)
-        let rels = map (repeat (Choice.get << rator)) concs
+        let rels = map (repeat (Choice.toOption << rator)) concs
         let avoids = Choice.get <| variables closed
         let rels' = Choice.get <| variants avoids rels
         let crels = zip rels' rels
@@ -235,7 +235,7 @@ let derive_nonschematic_inductive_relations =
         let closed' = prime_fn closed
         let mk_def arg con = 
             Choice.get <| mk_eq
-                (repeat (Choice.get << rator) con, 
+                (repeat (Choice.toOption << rator) con, 
                  list_mk_abs
                      (arg, list_mk_forall(rels', Choice.get <| mk_imp(closed', prime_fn con))))
         let deftms = map2 mk_def vargs concs
@@ -374,7 +374,7 @@ let MONO_TAC =
         else 
             let cn = 
                 try 
-                    fst(Choice.get <| dest_const(repeat (Choice.get << rator) c))
+                    fst(Choice.get <| dest_const(repeat (Choice.toOption << rator) c))
                 with
                 | Failure _ -> ""
             tryfind (fun (k, t) -> 
@@ -385,7 +385,7 @@ let MONO_TAC =
     fun gl -> 
         let tacs = 
             itlist (fun th l -> 
-                    let ft = repeat (Choice.get << rator) (funpow 2 (Choice.get << rand) (concl <| Choice.get th))
+                    let ft = repeat (Choice.toOption << rator) (funpow 2 (Choice.get << rand) (concl <| Choice.get th))
                     let c = 
                         try 
                             fst(Choice.get <| dest_const ft)
@@ -471,7 +471,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
         then failwith "Schematic Choice.get <| variables not used consistently"
         else 
             let avoids = Choice.get <| variables(list_mk_conj clauses)
-            let hack_fn tm = mk_var(fst(Choice.get <| dest_var(repeat (Choice.get << rator) tm)), Choice.get <| type_of tm)
+            let hack_fn tm = mk_var(fst(Choice.get <| dest_var(repeat (Choice.toOption << rator) tm)), Choice.get <| type_of tm)
             let grels = Choice.get <| variants avoids (map hack_fn schems)
             let crels = zip grels schems
             let clauses' = map (Choice.get << subst crels) clauses

@@ -90,7 +90,7 @@ let CONJ_ACI_RULE =
 let DISJ_ACI_RULE = 
     let pth_left = UNDISCH(TAUT(parse_term @"~(a \/ b) ==> ~a"))
     let pth_right = UNDISCH(TAUT(parse_term @"~(a \/ b) ==> ~b"))
-    let pth = repeat UNDISCH (TAUT(parse_term @"~a ==> ~b ==> ~(a \/ b)"))
+    let pth = repeat (Choice.toOption << Choice.map Choice.result << UNDISCH) (TAUT(parse_term @"~a ==> ~b ==> ~(a \/ b)"))
     let pth_neg = UNDISCH(TAUT(parse_term @"(~a <=> ~b) ==> (a <=> b)"))
     let a_tm = (parse_term @"a:bool")
     let b_tm = (parse_term @"b:bool")

@@ -566,32 +566,32 @@ let ``{funpow n f x} fails if any of the {n} applications of {f} fail``() =
 
 (* repeat tests *)
 
-[<Test>]
-let ``{repeat f x} repeatedly apply a function until it fails``() =
-
-    let funcUtil x = 
-        match x with
-        | 1 -> failwith ("func 1")
-        | 2 -> failwith ("func 2")
-        | 9 -> failwith ("func 4")
-        | _ -> x + 2
-
-    repeat funcUtil 3
-    |> should equal 9
-
-[<Test>]
-[<ExpectedException(typeof<System.DivideByZeroException>, ExpectedMessage = "Attempted to divide by zero.")>]
-let ``{repeat f x} fails if {f} raises an exception different from System.Exception at once``() =
-
-    let funcUtil x = 
-        match x with
-        | 1 -> failwith ("func 1")
-        | 2 -> failwith ("func 2")
-        | 9 -> x / 0
-        | _ -> x + 2
-
-    repeat funcUtil 3
-    |> should equal 9
+//[<Test>]
+//let ``{repeat f x} repeatedly apply a function until it fails``() =
+//
+//    let funcUtil x = 
+//        match x with
+//        | 1 -> failwith ("func 1")
+//        | 2 -> failwith ("func 2")
+//        | 9 -> failwith ("func 4")
+//        | _ -> x + 2
+//
+//    repeat funcUtil 3
+//    |> should equal 9
+//
+//[<Test>]
+//[<ExpectedException(typeof<System.DivideByZeroException>, ExpectedMessage = "Attempted to divide by zero.")>]
+//let ``{repeat f x} fails if {f} raises an exception different from System.Exception at once``() =
+//
+//    let funcUtil x = 
+//        match x with
+//        | 1 -> failwith ("func 1")
+//        | 2 -> failwith ("func 2")
+//        | 9 -> x / 0
+//        | _ -> x + 2
+//
+//    repeat funcUtil 3
+//    |> should equal 9
 
 (* itlist tests *)
 

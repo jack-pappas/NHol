@@ -21,7 +21,7 @@ limitations under the License.
 #r "FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
 #r "FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
 #r "FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
-#r "ExtCore.0.8.29/lib/net40/ExtCore.dll"
+#r "ExtCore.0.8.32/lib/net40/ExtCore.dll"
 
 #I "./../NHol"
 #r @"bin/Debug/NHol.dll"

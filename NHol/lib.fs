@@ -291,11 +291,10 @@ let rec funpow n f x =
 
 /// Repeatedly apply a function until it fails.
 let rec repeat f x = 
-    try 
-        let y = f x
+    match f x with
+    | Some y -> 
         repeat f y
-    with
-    | Failure _ -> x
+    | None -> x
 
 (* ------------------------------------------------------------------------- *)
 (* To avoid consing in various situations, we propagate this exception.      *)

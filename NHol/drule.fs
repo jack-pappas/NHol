@@ -341,7 +341,7 @@ let term_match : term list -> term -> term -> _ =
                     insts, homs
             term_pmatch lconsts ((cv, vv) :: env) vbod cbod sofar'
         | _ -> 
-            let vhop = repeat (Choice.get << rator) vtm
+            let vhop = repeat (Choice.toOption << rator) vtm
             if is_var vhop && not(mem vhop lconsts) 
                && (Option.isNone <| rev_assoc vhop env)
             then 

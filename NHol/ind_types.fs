@@ -657,7 +657,7 @@ let define_type_raw_001 =
         let srules = map SPEC_ALL (CONJUNCTS rth)
         let imps, bases = partition (is_imp << concl << Choice.get) srules
         let concs = map (concl << Choice.get) bases @ map (Choice.get << rand << concl << Choice.get) imps
-        let preds = setify(map (repeat (Choice.get << rator)) concs)
+        let preds = setify(map (repeat (Choice.toOption << rator)) concs)
         let rec exhaust_inhabitations ths sofar = 
             let dunnit = setify(map (fst << strip_comb << concl << Choice.get) sofar)
             let useful = 
@@ -752,7 +752,7 @@ let define_type_raw_001 =
     let instantiate_induction_theorem consindex ith = 
         let avs, bod = strip_forall(concl <| Choice.get ith)
         let corlist = 
-            map ((repeat (Choice.get << rator) ||>> repeat (Choice.get << rator)) << Choice.get << dest_imp << Choice.get << body << Choice.get << rand) 
+            map ((repeat (Choice.toOption << rator) ||>> repeat (Choice.toOption << rator)) << Choice.get << dest_imp << Choice.get << body << Choice.get << rand) 
                 (conjuncts(Choice.get <| rand bod))
         let consindex' = 
             map (fun v -> 
@@ -908,7 +908,7 @@ let define_type_raw_001 =
         let ERULE = GEN_REWRITE_RULE I (map snd tybijpairs)
         let simplify_fxthm rthm fxth = 
             let pat = funpow 4 (Choice.get << rand) (concl <| Choice.get fxth)
-            if is_imp(repeat (snd << Choice.get << dest_forall) (concl <| Choice.get rthm))
+            if is_imp(repeat (Choice.toOption << Choice.map snd << dest_forall) (concl <| Choice.get rthm))
             then 
                 let th1 = PART_MATCH (Choice.bind rand << rand) rthm pat
                 let tms1 = conjuncts(Choice.get <| lhand(concl <| Choice.get th1))
@@ -978,7 +978,7 @@ let define_type_raw_001 =
                 let allargs = cargs' @ rargs' @ sargs'
                 let funty = itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) allargs zty
                 let funname = 
-                    fst(Choice.get <| dest_const(repeat (Choice.get << rator) (Choice.get <| lhand(concl <| Choice.get cth)))) + "'"
+                    fst(Choice.get <| dest_const(repeat (Choice.toOption << rator) (Choice.get <| lhand(concl <| Choice.get cth)))) + "'"
                 let funarg = mk_var(funname, funty)
                 list_mk_abs([i; r; s], list_mk_comb(funarg, allargs))
 
@@ -1030,7 +1030,7 @@ let define_type_raw_001 =
             let rethm = itlist EXISTS_EQUATION seqs rthm
             let fethm = CHOOSE (fn, eth) rethm
             let pcons = 
-                map (repeat (Choice.get << rator) << Choice.get << rand << repeat(snd << Choice.get << dest_forall)) 
+                map (repeat (Choice.toOption << rator) << Choice.get << rand << repeat(Choice.toOption << Choice.map snd << dest_forall)) 
                     (conjuncts(concl <| Choice.get rthm))
             GENL pcons fethm
     fun def -> 
@@ -1040,7 +1040,7 @@ let define_type_raw_001 =
         let defs, rth, ith = justify_inductive_type_model def
         let neths = prove_model_inhabitation rth
         let tybijpairs = map (define_inductive_type defs) neths
-        let preds = map (repeat (Choice.get << rator) << concl <<Choice.get) neths
+        let preds = map (repeat (Choice.toOption << rator) << concl <<Choice.get) neths
         let mkdests = 
             map (fun (th, _) -> 
                     let tm = Choice.get <| lhand(concl <| Choice.get th)
@@ -1805,7 +1805,7 @@ let define_type_raw =
             let irth5 = 
                 REWRITE_RULE (rclauses :: map SIMPLE_ISO_EXPAND_RULE isoths') 
                     irth4
-            let irth6 = repeat SCRUB_ASSUMPTION irth5
+            let irth6 = repeat (Choice.toOption << Choice.result << SCRUB_ASSUMPTION) irth5
             let ncjs = 
                 filter 
                     (fun t -> 
@@ -1834,7 +1834,7 @@ let define_type_raw =
         let allcls = conjuncts(snd(strip_exists etm))
         let relcls = fst(chop_list (length truecons) allcls)
         let gencons = 
-            map (repeat (Choice.get << rator) << Choice.get << rand << Choice.get << lhand << snd << strip_forall) relcls
+            map (repeat (Choice.toOption << rator) << Choice.get << rand << Choice.get << lhand << snd << strip_forall) relcls
         let cdefs = 
             map2 
                 (fun s r -> SYM(new_definition(Choice.get <| mk_eq(mk_var(s, Choice.get <| type_of r), r)))) 
