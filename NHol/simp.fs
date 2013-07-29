@@ -314,7 +314,7 @@ let apply_prover (Prover(conv, _)) tm = conv tm
 (* ------------------------------------------------------------------------- *)
 
 type simpset = 
-    | Simpset of gconv net * (strategy -> strategy) * prover list * (thm -> thm list -> thm list)
+    | Simpset of gconv net * (strategy -> strategy) * prover list * (thm -> thm list -> Choice<thm list, exn>)
 
 (* Rewrites & congruences *)
 (* Prover for conditions  *)
@@ -347,19 +347,25 @@ let basic_prover (strat : strategy) (Simpset(net, prover, provers, rewmaker) as 
 
 /// Add theorems to a simpset.
 let ss_of_thms thms (Simpset(net, prover, provers, rewmaker)) = 
-    let cthms = itlist rewmaker thms []
-    let net' = itlist (fun x y -> Choice.get <| net_of_thm true x y) cthms net
-    Simpset(net', prover, provers, rewmaker)
+    choice {
+        let! cthms = Choice.List.fold (fun acc x -> rewmaker x acc) [] thms
+        let! net' = Choice.List.fold (fun acc x -> net_of_thm true x acc) net cthms
+        return Simpset(net', prover, provers, rewmaker)
+    }
 
 /// Add a new conversion to a simpset.
 let ss_of_conv keytm conv (Simpset(net, prover, provers, rewmaker)) = 
-    let net' = Choice.get <| net_of_conv keytm conv net
-    Simpset(net', prover, provers, rewmaker)
+    choice {
+        let! net' = net_of_conv keytm conv net
+        return Simpset(net', prover, provers, rewmaker)
+    }
 
 /// Add congruence rules to a simpset.
 let ss_of_congs thms (Simpset(net, prover, provers, rewmaker)) = 
-    let net' = itlist (fun x y -> Choice.get <| net_of_cong x y) thms net
-    Simpset(net', prover, provers, rewmaker)
+    choice {
+        let! net' = Choice.List.fold (fun acc x -> net_of_cong x acc) net thms
+        return Simpset(net', prover, provers, rewmaker)
+    }
 
 /// Change the method of prover application in a simpset.
 let ss_of_prover newprover (Simpset(net, _, provers, rewmaker)) = 
@@ -379,10 +385,12 @@ let ss_of_maker newmaker (Simpset(net, prover, provers, _)) =
 
 /// Augment context of a simpset with a list of theorems.
 let AUGMENT_SIMPSET cth (Simpset(net, prover, provers, rewmaker)) = 
-    let provers' = map (C augment [cth]) provers
-    let cthms = rewmaker cth []
-    let net' = itlist (fun x y -> Choice.get <| net_of_thm true x y) cthms net
-    Simpset(net', prover, provers', rewmaker)
+    choice {
+        let provers' = map (C augment [cth]) provers
+        let! cthms = rewmaker cth []
+        let! net' = Choice.List.fold (fun acc x -> net_of_thm true x acc) net cthms
+        return Simpset(net', prover, provers', rewmaker)
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Depth conversions.                                                        *)
@@ -428,11 +436,11 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                     | Error _ ->
                         match dest_imp bod with
                         | Success (cxt, deq) ->
-                            dest_eq deq
-                            |> Choice.map (fun tm' ->
-                                (tm', AUGMENT_SIMPSET (ASSUME cxt) ss, DISCH cxt))
+                            (dest_eq deq, AUGMENT_SIMPSET (ASSUME cxt) ss)
+                            ||> Choice.bind2 (fun tm' ss' ->
+                                Choice.result (tm', ss', DISCH cxt))
                         | Error _ -> Choice.fail()
-
+                
                 let! eth, triv' = 
                     match strat ss' lev t with
                     | Success st ->
@@ -586,31 +594,42 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
     let rewrites = ref([] : thm list)
     let conversions = ref ([] : (string * (term * conv)) list)
     let conv_net = ref(empty_net : gconv net)
+
     let rehash_convnet() = 
-        conv_net := itlist (fun x y -> Choice.get <| net_of_thm true x y) (!rewrites) 
-               (itlist (fun (_, (pat,cnv)) -> Choice.get << net_of_conv pat cnv) (!conversions) 
-                    empty_net)
+        choice {
+            let! nets = Choice.List.fold (fun acc (_, (pat,cnv)) -> net_of_conv pat cnv acc) empty_net (!conversions)
+            let! nets2 = Choice.List.fold (fun acc x -> net_of_thm true x acc) nets (!rewrites)
+            return conv_net := nets2
+        }
+
     let set_basic_rewrites thl = 
-        let canon_thl = itlist (fun x y -> Choice.get <| mk_rewrites false x y) thl []
-        rewrites := canon_thl
-        rehash_convnet()
-    let extend_basic_rewrites thl = 
-        let canon_thl = itlist (fun x y -> Choice.get <| mk_rewrites false x y) thl []
-        rewrites := canon_thl @ !rewrites
-        rehash_convnet()
+        choice {
+            let! canon_thl = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
+            rewrites := canon_thl
+            do! rehash_convnet()
+        }
+
+    let extend_basic_rewrites thl =
+        choice { 
+            let! canon_thl = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
+            rewrites := canon_thl @ !rewrites
+            do! rehash_convnet()
+        }
+
     let basic_rewrites() = !rewrites
+
     let set_basic_convs cnvs = 
         conversions := cnvs
         rehash_convnet()
+
     let extend_basic_convs(name, patcong) = 
-        (conversions 
-         := (name, patcong) 
-            :: filter (fun (name', _) -> name <> name') (!conversions)
-         rehash_convnet())
+        conversions := (name, patcong) :: filter (fun (name', _) -> name <> name') (!conversions)
+        rehash_convnet()
+
     let basic_convs() = !conversions
     let basic_net() = !conv_net
-    set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
-    extend_basic_convs, basic_convs, basic_net
+
+    set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, extend_basic_convs, basic_convs, basic_net
 
 (* ------------------------------------------------------------------------- *)
 (* Same thing for the default congruences.                                   *)
@@ -752,8 +771,11 @@ let (ONCE_ASM_REWRITE_TAC : thm list -> tactic) =
 
 /// General simplification with given strategy and simpset and theorems.
 let GEN_SIMPLIFY_CONV (strat : strategy) ss lev thl = 
-    let ss' = itlist AUGMENT_SIMPSET thl ss
-    TRY_CONV (strat ss' lev)
+    fun tm ->
+        choice {
+            let! ss' = Choice.List.fold (flip AUGMENT_SIMPSET) ss thl
+            return! TRY_CONV (strat ss' lev) tm
+        }
 
 /// General top-level simplification with arbitrary simpset.
 let ONCE_SIMPLIFY_CONV ss = 
@@ -769,28 +791,38 @@ let SIMPLIFY_CONV ss =
 
 /// Simpset consisting of only the default rewrites and conversions.
 let empty_ss = 
-    Simpset(empty_net, basic_prover, [], fun x y -> Choice.get <| mk_rewrites true x y)
+    Simpset(empty_net, basic_prover, [], mk_rewrites true)
 
 /// Construct a straightforward simpset from a list of theorems.
 let basic_ss = 
-    let rewmaker x y = Choice.get <| mk_rewrites true x y
+    let rewmaker = mk_rewrites true
     fun thl -> 
-        let cthms = itlist rewmaker thl []
-        let net' = itlist (fun x y -> Choice.get <| net_of_thm true x y) cthms (basic_net())
-        let net'' = itlist (fun x y -> Choice.get <| net_of_cong x y) (basic_congs()) net'
-        Simpset(net'', basic_prover, [], rewmaker)
+        choice {
+            let! cthms = Choice.List.fold (fun acc x -> rewmaker x acc) [] thl
+            let! net' = Choice.List.fold (fun acc x -> net_of_thm true x acc) (basic_net()) cthms
+            let! net'' = Choice.List.fold (fun acc x -> net_of_cong x acc) net' (basic_congs()) 
+            return Simpset(net'', basic_prover, [], rewmaker)
+        }
 
 /// Simplify a term repeatedly by conditional contextual rewriting.
-let SIMP_CONV thl = 
-    SIMPLIFY_CONV (basic_ss []) thl
+let SIMP_CONV thl : conv = 
+    fun tm ->
+        choice {
+            let! ss = basic_ss []
+            return! SIMPLIFY_CONV ss thl tm
+        }
 
 /// Simplify a term repeatedly by conditional contextual rewriting, not using default simplications.
 let PURE_SIMP_CONV thl = 
     SIMPLIFY_CONV empty_ss thl
 
 /// Simplify a term once by conditional contextual rewriting.
-let ONCE_SIMP_CONV thl = 
-    ONCE_SIMPLIFY_CONV (basic_ss []) thl
+let ONCE_SIMP_CONV thl : conv = 
+    fun tm ->
+        choice {
+            let! ss = basic_ss []
+            return! ONCE_SIMPLIFY_CONV ss thl tm
+        }
 
 /// Simplify conclusion of a theorem repeatedly by conditional contextual rewriting.
 let SIMP_RULE thl = 

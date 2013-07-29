@@ -196,44 +196,53 @@ let THEN, THENL =
         match x with
         | [] -> []
         | _ -> failwith "propagate_empty: Unhandled case."
+
     let propagate_thm th i l =
         match l with
         | [] -> INSTANTIATE_ALL i th
-        | _ -> failwith "propagate_thm: Unhandled case."
+        | _ -> Choice.failwith "propagate_thm: Unhandled case."
+
     let compose_justs n just1 just2 i ths = 
         let ths1, ths2 = chop_list n ths
         (just1 i ths1) :: (just2 i ths2)
+
     let rec seqapply l1 l2 = 
-        match (l1, l2) with
-        | ([], []) -> null_meta, [], propagate_empty
-        | ((tac : tactic) :: tacs), ((goal : goal) :: goals) ->
-            match tac goal with 
-            | Success ((mvs1, insts1), gls1, just1) ->
-                let goals' = map (inst_goal insts1) goals
-                let ((mvs2, insts2), gls2, just2) = seqapply tacs goals'
-                ((union mvs1 mvs2, compose_insts insts1 insts2), gls1 @ gls2, 
-                 compose_justs (length gls1) just1 just2)
-            | Error _ -> failwith "seqapply: Erroneous goalstate"
-        | _, _ -> failwith "seqapply: Length mismatch"
+        choice {
+            match (l1, l2) with
+            | ([], []) -> return (null_meta, [], propagate_empty)
+            | ((tac : tactic) :: tacs), ((goal : goal) :: goals) ->
+                match tac goal with 
+                | Success ((mvs1, insts1), gls1, just1) ->
+                    let goals' = map (inst_goal insts1) goals
+                    let! ((mvs2, insts2), gls2, just2) = seqapply tacs goals'
+                    return ((union mvs1 mvs2, compose_insts insts1 insts2), gls1 @ gls2, 
+                            compose_justs (length gls1) just1 just2)
+                | Error _ -> return! Choice.failwith "seqapply: Erroneous goalstate"
+            | _, _ -> return! Choice.failwith "seqapply: Length mismatch"
+        }
+
     let justsequence just1 just2 insts2 i ths = 
         just1 (compose_insts insts2 i) (just2 i ths)
-    let tacsequence ((mvs1, insts1), gls1, just1) tacl = 
-        let ((mvs2, insts2), gls2, just2) = seqapply tacl gls1
-        let jst = justsequence just1 just2 insts2
-        let just = 
-            if gls2 = [] then 
-                propagate_thm(jst null_inst [])
-            else jst
-        ((union mvs1 mvs2, compose_insts insts1 insts2), gls2, just)
+
+    let tacsequence ((mvs1, insts1), gls1, just1) tacl : goalstate = 
+        choice {
+            let! ((mvs2, insts2), gls2, just2) = seqapply tacl gls1
+            let jst = justsequence just1 just2 insts2
+            let just = 
+                if gls2 = [] then 
+                    propagate_thm(jst null_inst [])
+                else jst
+            return ((union mvs1 mvs2, compose_insts insts1 insts2), gls2, just)
+        }
     let then_ : tactic -> tactic -> tactic = 
         fun tac1 tac2 g -> 
             tac1 g
-            |> Choice.map (fun (_, gls, _ as gstate) ->
+            |> Choice.bind (fun (_, gls, _ as gstate) ->
                 tacsequence gstate (replicate tac2 (length gls)))
     let thenl_ : tactic -> tactic list -> tactic = 
         fun tac1 tac2l g -> 
             tac1 g
-            |> Choice.map (fun (_, gls, _ as gstate) ->
+            |> Choice.bind (fun (_, gls, _ as gstate) ->
                 if gls = [] then 
                     tacsequence gstate []
                 else tacsequence gstate tac2l)

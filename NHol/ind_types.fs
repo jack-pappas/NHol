@@ -2026,7 +2026,7 @@ let UNWIND_CONV, MATCH_CONV =
     let MATCH_ONEPATTERN_CONV_GEN = 
         MATCH_ONEPATTERN_CONV
         |> THENC <| GEN_REWRITE_CONV TRY_CONV [pth_0; pth_5]
-    do_list extend_basic_convs 
+    do_list (ignore << extend_basic_convs)
         ["MATCH_SEQPATTERN_CONV", 
          ((parse_term @"_MATCH x (_SEQPATTERN r s)"), MATCH_SEQPATTERN_CONV_TRIV)
          "FUN_SEQPATTERN_CONV", 
