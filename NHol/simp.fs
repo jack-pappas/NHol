@@ -336,10 +336,13 @@ let basic_prover (strat : strategy) (Simpset(net, prover, provers, rewmaker) as 
         |> Choice.bindError (fun _ -> REFL tm)
     EQT_ELIM sth
     |> Choice.bindError (fun _ ->
-        let tth = 
-            tryfind (fun pr -> Choice.toOption <| apply_prover pr (Choice.get <| rand(concl <| Choice.get sth))) provers
-            |> Option.toChoiceWithError "tryfind"
-        EQ_MP (SYM sth) tth)
+        choice {
+            let! tm = Choice.bind (rand << concl)  sth
+            let tth = 
+                tryfind (fun pr -> Choice.toOption <| apply_prover pr tm) provers
+                |> Option.toChoiceWithError "tryfind"
+            return! EQ_MP (SYM sth) tth
+            })
 
 (* ------------------------------------------------------------------------- *)
 (* Functions for changing or augmenting components of simpsets.              *)
@@ -364,6 +367,7 @@ let ss_of_congs thms (Simpset(net, prover, provers, rewmaker)) =
 /// Change the method of prover application in a simpset.
 let ss_of_prover newprover (Simpset(net, _, provers, rewmaker)) = 
     Simpset(net, newprover, provers, rewmaker)
+
 /// Add new provers to a simpset.
 let ss_of_provers newprovers (Simpset(net, prover, provers, rewmaker)) = 
     Simpset(net, prover, newprovers @ provers, rewmaker)
@@ -393,155 +397,182 @@ let AUGMENT_SIMPSET cth (Simpset(net, prover, provers, rewmaker)) =
 // TOP_DEPTH_SQCONV: Applies simplification top-down to all subterms, retraversing changed ones.
 // TOP_SWEEP_SQCONV: Applies simplification top-down at all levels, but after descending to subterms, does not return to higher ones.
 let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP_SQCONV = 
-    let IMP_REWRITES_CONV strat (Simpset(net, prover, provers, rewmaker) as ss) 
-        lev pconvs tm = 
+    let IMP_REWRITES_CONV strat (Simpset(net, prover, provers, rewmaker) as ss) lev pconvs tm = 
         tryfind (fun (n, cnv) -> 
-                if n >= 4
-                then None
+                if n >= 4 then 
+                    None
                 else 
                     let th = cnv tm
-                    let etm = concl <| Choice.get th
-                    if is_eq etm
-                    then Choice.toOption th
-                    elif lev <= 0
-                    then None
-                    else 
-                        let cth = prover strat ss (lev - 1) (Choice.get <| lhand etm)
-                        Choice.toOption <| MP th cth) pconvs
+                    match Choice.map concl th with
+                    | Success etm ->
+                        if is_eq etm then 
+                            Choice.toOption th
+                        elif lev <= 0 then 
+                            None
+                        else
+                            match lhand etm with
+                            | Success tm' ->
+                                let cth = prover strat ss (lev - 1) tm'
+                                Choice.toOption <| MP th cth
+                            | Error _ -> None
+                    | Error _ -> None) pconvs
         |> Option.toChoiceWithError "IMP_REWRITES_CONV: Too deep"
 
     let rec RUN_SUB_CONV strat ss lev triv th = 
-        let tm = concl <| Choice.get th
-        if is_imp tm
-        then 
-            let subtm = Choice.get <| lhand tm
-            let avs, bod = strip_forall subtm
-            let (t, t'), ss', mk_fun = 
-                try 
-                    Choice.get <| dest_eq bod, ss, I
-                with
-                | Failure _ -> 
-                    let cxt, deq = Choice.get <| dest_imp bod
-                    Choice.get <| dest_eq deq, AUGMENT_SIMPSET (ASSUME cxt) ss, DISCH cxt
-            let eth, triv' = 
-                try 
-                    strat ss' lev t, false
-                with
-                | Failure _ -> REFL t, triv
-            let eth' = GENL avs (mk_fun eth)
-            let th' = 
-                if is_var t'
-                then INST [Choice.get <| rand(concl <| Choice.get eth), t'] th
-                else GEN_PART_MATCH lhand th (concl <| Choice.get eth')
-            let th'' = MP th' eth'
-            RUN_SUB_CONV strat ss lev triv' th''
-        elif triv
-        then fail()
-        else th
+        choice {
+            let! tm = Choice.map concl th
+            if is_imp tm then 
+                let! subtm = lhand tm
+                let avs, bod = strip_forall subtm
+                let! (t, t'), ss', mk_fun = 
+                    match dest_eq bod with
+                    | Success t_pair ->
+                        Choice.result (t_pair, ss, I)
+                    | Error _ ->
+                        match dest_imp bod with
+                        | Success (cxt, deq) ->
+                            dest_eq deq
+                            |> Choice.map (fun tm' ->
+                                (tm', AUGMENT_SIMPSET (ASSUME cxt) ss, DISCH cxt))
+                        | Error _ -> Choice.fail()
+
+                let! eth, triv' = 
+                    match strat ss' lev t with
+                    | Success st ->
+                        Choice.result (Choice.result st, false)
+                    | Error _ -> 
+                        Choice.result (REFL t, triv)
+
+                let eth' = GENL avs (mk_fun eth)
+                let! tm1 = Choice.bind (rand << concl) eth
+                let! tm2 = Choice.map concl eth'
+                let th' = 
+                    if is_var t' then INST [tm1, t'] th
+                    else GEN_PART_MATCH lhand th tm2
+                let th'' = MP th' eth'
+                return! RUN_SUB_CONV strat ss lev triv' th''
+            elif triv then 
+                return! Choice.fail()
+            else 
+                return! th
+        }
+
     let GEN_SUB_CONV strat ss lev pconvs tm = 
-        let v = 
-            tryfind (fun (n, cnv) -> 
-                    if n < 4
-                    then None
-                    else 
-                        let th = cnv tm
-                        Choice.toOption <| RUN_SUB_CONV strat ss lev true th) pconvs
-            |> Option.toChoiceWithError "tryfind"
-        v |> Choice.bindError (fun _ ->
-                if is_comb tm
-                then 
-                    let l, r = Choice.get <| dest_comb tm
+        tryfind (fun (n, cnv) -> 
+            if n < 4 then None
+            else 
+                let th = cnv tm
+                Choice.toOption <| RUN_SUB_CONV strat ss lev true th) pconvs
+        |> Option.toChoiceWithError "tryfind"
+        |> Choice.bindError (fun _ ->
+            choice {
+                if is_comb tm then 
+                    let! l, r = dest_comb tm
                     let v = 
                         let th1 = strat ss lev l
-                        let v = 
+                        let v' = 
                             let th2 = strat ss lev r
                             MK_COMB(th1, th2)
-                        v |> Choice.bindError (fun _ -> AP_THM th1 r)
-                    v |> Choice.bindError (fun _ -> AP_TERM l (strat ss lev r))
-                elif is_abs tm
-                then 
-                    let v, bod = Choice.get <| dest_abs tm
+                        v' |> Choice.bindError (fun _ -> AP_THM th1 r)
+                    return! v |> Choice.bindError (fun _ -> AP_TERM l (strat ss lev r))
+                elif is_abs tm then 
+                    let! v, bod = dest_abs tm
                     let th = strat ss lev bod
-                    let v' = 
-                        ABS v th
-                    v' |> Choice.bindError (fun _ ->
-                            let gv = genvar(Choice.get <| type_of v)
-                            let gbod = Choice.get <| vsubst [gv, v] bod
-                            let gth = ABS gv (strat ss lev gbod)
-                            let gtm = concl <| Choice.get gth
-                            let l, r = Choice.get <| dest_eq gtm
-                            let v' = Choice.get <| variant (frees gtm) v
-                            let l' = Choice.get <| alpha v' l
-                            let r' = Choice.get <| alpha v' r
-                            EQ_MP (ALPHA gtm (Choice.get <| mk_eq(l', r'))) gth)
-                else Choice.failwith "GEN_SUB_CONV")
+                    let v' = ABS v th
+                    return! v' |> Choice.bindError (fun _ ->
+                                    choice {
+                                        let! ty = type_of v
+                                        let gv = genvar ty
+                                        let! gbod = vsubst [gv, v] bod
+                                        let gth = ABS gv (strat ss lev gbod)
+                                        let! gtm = Choice.map concl gth
+                                        let! l, r = dest_eq gtm
+                                        let! v' = variant (frees gtm) v
+                                        let! l' = alpha v' l
+                                        let! r' = alpha v' r
+                                        let! tm' = mk_eq(l', r')
+                                        return! EQ_MP (ALPHA gtm tm') gth
+                                    })
+                else 
+                    return! Choice.failwith "GEN_SUB_CONV"
+            })
 
-    let rec ONCE_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) 
-            lev tm : thm = 
-        let pconvs = Choice.get <| lookup tm net
-        try 
-            IMP_REWRITES_CONV ONCE_DEPTH_SQCONV ss lev pconvs tm
-        with
-        | Failure _ -> GEN_SUB_CONV ONCE_DEPTH_SQCONV ss lev pconvs tm
-    let rec DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm = 
-        let pconvs = Choice.get <| lookup tm net
-        try 
-            let th1 = GEN_SUB_CONV DEPTH_SQCONV ss lev pconvs tm
-            let tm1 = Choice.get <| rand(concl <| Choice.get th1)
-            let pconvs1 = Choice.get <| lookup tm1 net
-            try 
-                TRANS th1 (IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs1 tm1)
-            with
-            | Failure _ -> th1
-        with
-        | Failure _ -> IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs tm
-    let rec REDEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev 
-            tm = 
-        let pconvs = Choice.get <| lookup tm net
-        let th = 
-            try 
-                let th1 = GEN_SUB_CONV REDEPTH_SQCONV ss lev pconvs tm
-                let tm1 = Choice.get <| rand(concl <| Choice.get th1)
-                let pconvs1 = Choice.get <| lookup tm1 net
-                try 
-                    TRANS th1 
-                        (IMP_REWRITES_CONV REDEPTH_SQCONV ss lev pconvs1 tm1)
-                with
-                | Failure _ -> th1
-            with
-            | Failure _ -> IMP_REWRITES_CONV REDEPTH_SQCONV ss lev pconvs tm
-        try 
-            let th' = REDEPTH_SQCONV ss lev (Choice.get <| rand(concl <| Choice.get th))
-            TRANS th th'
-        with
-        | Failure _ -> th
-    let rec TOP_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev 
-            tm = 
-        let pconvs = Choice.get <| lookup tm net
-        let th1 = 
-            try 
+    let rec ONCE_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+        choice {
+            let! pconvs = lookup tm net
+            return! IMP_REWRITES_CONV ONCE_DEPTH_SQCONV ss lev pconvs tm
+                    |> Choice.bindError (fun _ -> GEN_SUB_CONV ONCE_DEPTH_SQCONV ss lev pconvs tm)
+        }
+
+    let rec DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+        choice {
+            let! pconvs = lookup tm net
+            let v = 
+                choice {
+                    let th1 = GEN_SUB_CONV DEPTH_SQCONV ss lev pconvs tm
+                    let! tm1 = Choice.bind (rand << concl) th1
+                    let! pconvs1 = lookup tm1 net
+                    return! TRANS th1 (IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs1 tm1)
+                            |> Choice.bindError (fun _ -> th1)
+                }
+            return! v |> Choice.bindError (fun _ -> IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs tm)
+        }
+
+    let rec REDEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+        choice {
+            let! pconvs = lookup tm net
+            let th = 
+                choice { 
+                    let th1 = GEN_SUB_CONV REDEPTH_SQCONV ss lev pconvs tm
+                    let! tm1 = Choice.bind (rand << concl) th1
+                    let! pconvs1 = lookup tm1 net
+                    return! TRANS th1 (IMP_REWRITES_CONV REDEPTH_SQCONV ss lev pconvs1 tm1)
+                            |> Choice.bindError (fun _ -> th1)
+                }
+                |> Choice.bindError (fun _ -> IMP_REWRITES_CONV REDEPTH_SQCONV ss lev pconvs tm)
+
+            let v = 
+                choice {
+                    let! tm' = Choice.bind (rand << concl) th
+                    let th' = REDEPTH_SQCONV ss lev tm'
+                    return! TRANS th th'
+                }
+            return! v |> Choice.bindError (fun _ -> th)
+        }
+
+    let rec TOP_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+        choice {
+            let! pconvs = lookup tm net
+            let th1 = 
                 IMP_REWRITES_CONV TOP_DEPTH_SQCONV ss lev pconvs tm
-            with
-            | Failure _ -> GEN_SUB_CONV TOP_DEPTH_SQCONV ss lev pconvs tm
-        try 
-            let th2 = TOP_DEPTH_SQCONV ss lev (Choice.get <| rand(concl <| Choice.get th1))
-            TRANS th1 th2
-        with
-        | Failure _ -> th1
-    let rec TOP_SWEEP_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev 
-            tm = 
-        let pconvs = Choice.get <| lookup tm net
-        try 
-            let th1 = IMP_REWRITES_CONV TOP_SWEEP_SQCONV ss lev pconvs tm
-            try 
-                let th2 = TOP_SWEEP_SQCONV ss lev (Choice.get <| rand(concl <| Choice.get th1))
-                TRANS th1 th2
-            with
-            | Failure _ -> th1
-        with
-        | Failure _ -> GEN_SUB_CONV TOP_SWEEP_SQCONV ss lev pconvs tm
-    ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, 
-    TOP_SWEEP_SQCONV
+                |> Choice.bindError (fun _ -> GEN_SUB_CONV TOP_DEPTH_SQCONV ss lev pconvs tm)
+            let v = 
+                choice {
+                    let! tm1 = Choice.bind (rand << concl) th1
+                    let th2 = TOP_DEPTH_SQCONV ss lev tm1
+                    return! TRANS th1 th2
+                }
+            return! v |> Choice.bindError (fun _ -> th1)
+        }
+
+    let rec TOP_SWEEP_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+        choice {
+            let! pconvs = lookup tm net
+            let v = 
+                choice {
+                    let th1 = IMP_REWRITES_CONV TOP_SWEEP_SQCONV ss lev pconvs tm
+                    let v' = 
+                        choice {
+                            let! tm1 = Choice.bind (rand << concl) th1
+                            let th2 = TOP_SWEEP_SQCONV ss lev tm1
+                            return! TRANS th1 th2
+                        }
+                    return! v' |> Choice.bindError (fun _ -> th1)
+                }
+            return! v |> Choice.bindError (fun _ -> GEN_SUB_CONV TOP_SWEEP_SQCONV ss lev pconvs tm)
+        }
+
+    ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP_SQCONV
 
 (* ------------------------------------------------------------------------- *)
 (* Maintenence of basic rewrites and conv nets for rewriting.                *)
