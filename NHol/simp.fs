@@ -267,23 +267,18 @@ let mk_rewrites =
 (* ------------------------------------------------------------------------- *)
 
 /// Apply a prioritized conversion net to the term at the top level.
-let REWRITES_CONV (net : net<int * (term -> 'T)>) tm =
+let REWRITES_CONV (net : net<int * (term -> Choice<'T, exn>)>) tm =
     choice {
-    let! pconvs = lookup tm net
-    // NOTE: using Some here is incorrect, since the condition is always satisfied
-    // It should be changed to Choice.toOption later.
-    match tryfind (fun (_, cnv) -> Some <| cnv tm) pconvs with
-    | Some result ->
-        return result
-    | None ->
-        return!
-            Choice.failwith "tryfind"
-            |> Choice.mapError (fun e ->
-                nestedFailure e "REWRITES_CONV")
+        let! pconvs = lookup tm net
+        match tryfind (fun (_, cnv) -> Choice.toOption <| cnv tm) pconvs with
+        | Some result ->
+            return result
+        | None ->
+            return!
+                Choice.failwith "tryfind"
+                |> Choice.mapError (fun e ->
+                    nestedFailure e "REWRITES_CONV")
     }
-    // TEMP : Until call sites can be modified, we have to raise the exception
-    // contained in the error value (if the result of this function is an error).
-    |> ExtCore.Choice.bindOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Decision procedures may accumulate their state in different ways (e.g.    *)
@@ -636,10 +631,13 @@ let set_basic_congs, extend_basic_congs, basic_congs =
 
 /// Rewrite with theorems as well as an existing net.
 let GENERAL_REWRITE_CONV rep (cnvl : conv -> conv) (builtin_net : gconv net) thl = 
-    let thl_canon = itlist (fun x y -> Choice.get <| mk_rewrites false x y) thl []
-    let final_net = itlist (fun x y -> Choice.get <| net_of_thm rep x y) thl_canon builtin_net
-    let foo1 = REWRITES_CONV final_net
-    cnvl foo1
+    fun tm ->
+        choice {
+            let! thl_canon = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
+            let! final_net = Choice.List.fold (fun acc x -> net_of_thm rep x acc) builtin_net thl_canon
+            let conv = REWRITES_CONV final_net
+            return! cnvl conv tm
+        }
 
 /// Rewrites a term, selecting terms according to a user-specified strategy.
 let GEN_REWRITE_CONV (cnvl : conv -> conv) thl = 

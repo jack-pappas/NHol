@@ -748,21 +748,20 @@ let X_GEN_TAC x' : tactic =
 
 /// Assumes a theorem, with existentially quantified variable replaced by a given witness.
 let X_CHOOSE_TAC x' (xth : thm) : tactic =
-    let xtm = Choice.map concl xth
-    let xbod = Choice.bind dest_exists xtm
-    do
-        xbod |> Choice.iter (fun (x, _) ->
-            tactic_type_compatibility_check "X_CHOOSE_TAC" x x' |> ignore)
+    let xth' =
+        choice {
+            let! xtm = Choice.map concl xth
+            let! x, bod = 
+                dest_exists xtm
+                |> Choice.mapError (fun e -> nestedFailure e "X_CHOOSE_TAC: not existential") 
 
-    let pat = xbod |> Choice.bind (fun (x, bod) -> vsubst [x', x] bod)
-    let xth' = Choice.bind ASSUME pat
+            do! tactic_type_compatibility_check "X_CHOOSE_TAC" x x'
+
+            let! pat = vsubst [x', x] bod
+            return! ASSUME pat
+        }
     fun (asl, w) -> 
         choice {
-            let! xtm = xtm
-            let! x, bod = xbod |> Choice.mapError (fun e -> nestedFailure e "X_CHOOSE_TAC: not existential") 
-            let! pat = pat
-            let xth' = xth'
-
             let! asl' = Choice.List.map snd asl
             let! tms = Choice.map thm_frees xth
             let avoids = 

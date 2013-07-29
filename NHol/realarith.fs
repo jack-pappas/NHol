@@ -26,6 +26,8 @@ module NHol.realarith
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -338,6 +340,26 @@ let GEN_REAL_ARITH_001 =
                             | POLY_ADD_CONV -> 
                                 match POLY_MUL_CONV with
                                 | POLY_MUL_CONV -> 
+
+                                    // This is the specialized and incorrect version 
+                                    let REWRITES_CONV (net : net<int * (term -> 'T)>) tm =
+                                        choice {
+                                        let! pconvs = lookup tm net
+                                        // NOTE: using Some here is incorrect, since the condition is always satisfied
+                                        // It should be changed to Choice.toOption later.
+                                        match tryfind (fun (_, cnv) -> Some <| cnv tm) pconvs with
+                                        | Some result ->
+                                            return result
+                                        | None ->
+                                            return!
+                                                Choice.failwith "tryfind"
+                                                |> Choice.mapError (fun e ->
+                                                    nestedFailure e "REWRITES_CONV")
+                                        }
+                                        // TEMP : Until call sites can be modified, we have to raise the exception
+                                        // contained in the error value (if the result of this function is an error).
+                                        |> ExtCore.Choice.bindOrRaise
+
                                     let REAL_INEQ_CONV pth tm = 
                                         let lop, r = Choice.get <| dest_comb tm
                                         let th = 
