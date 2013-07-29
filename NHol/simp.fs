@@ -237,30 +237,21 @@ let mk_rewrites =
 (* Rewriting (and application of other conversions) based on a convnet.      *)
 (* ------------------------------------------------------------------------- *)
 /// Apply a prioritized conversion net to the term at the top level.
-let REWRITES_CONV net tm = 
-    let pconvs = Choice.get <| lookup tm net
-    try 
-        tryfind (fun (_, cnv) -> Some <| cnv tm) pconvs
-        |> Option.getOrFailWith "tryfind"
-    with
-    | Failure _ as e ->
-        nestedFailwith e "REWRITES_CONV"
-
-(* This should be the same as above, but isn't -- because the original (above)
-   raises exceptions, some of the type parameters are more generic than they
-   should be; this means the code compiles but fails at run-time. *)
-//let REWRITES_CONV net tm =
-//    choice {
-//    let! pconvs = lookup tm net
-//    match tryfind (fun (_, cnv) -> Some <| cnv tm) pconvs with
-//    | None ->
-//        return!
-//            Choice.failwith "tryfind"
-//            |> Choice.mapError (fun e ->
-//                nestedFailure e "REWRITES_CONV")
-//    | Some result ->
-//        result
-//    }
+let REWRITES_CONV (net : net<int * (term -> 'T)>) tm =
+    choice {
+    let! pconvs = lookup tm net
+    match tryfind (fun (_, cnv) -> Some <| cnv tm) pconvs with
+    | Some result ->
+        return result
+    | None ->
+        return!
+            Choice.failwith "tryfind"
+            |> Choice.mapError (fun e ->
+                nestedFailure e "REWRITES_CONV")
+    }
+    // TEMP : Until call sites can be modified, we have to raise the exception
+    // contained in the error value (if the result of this function is an error).
+    |> ExtCore.Choice.bindOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Decision procedures may accumulate their state in different ways (e.g.    *)
@@ -562,8 +553,9 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
 // basic_congs: Lists the congruence rules used by the simplifier.
 let set_basic_congs, extend_basic_congs, basic_congs = 
     let congs = ref([] : thm list)
-    (fun thl -> congs := thl), 
-    (fun thl -> congs := union' equals_thm thl (!congs)), (fun () -> !congs)
+    (fun thl -> congs := thl),
+    (fun thl -> congs := union' equals_thm thl (!congs)),
+    (fun () -> !congs)
 
 (* ------------------------------------------------------------------------- *)
 (* Main rewriting conversions.                                               *)
@@ -572,7 +564,8 @@ let set_basic_congs, extend_basic_congs, basic_congs =
 let GENERAL_REWRITE_CONV rep (cnvl : conv -> conv) (builtin_net : gconv net) thl = 
     let thl_canon = itlist (mk_rewrites false) thl []
     let final_net = itlist (net_of_thm rep) thl_canon builtin_net
-    cnvl(REWRITES_CONV final_net)
+    let foo1 = REWRITES_CONV final_net
+    cnvl foo1
 
 /// Rewrites a term, selecting terms according to a user-specified strategy.
 let GEN_REWRITE_CONV (cnvl : conv -> conv) thl = 
@@ -691,7 +684,7 @@ let ONCE_ASM_SIMP_TAC = ASM ONCE_SIMP_TAC
 (* Abbreviation tactics.                                                     *)
 (* ------------------------------------------------------------------------- *)
 /// Tactic to introduce an abbreviation.
-let ABBREV_TAC tm = 
+let ABBREV_TAC tm : tactic =
     let cvs, t = Choice.get <| dest_eq tm
     let v, vs = strip_comb cvs
     let rs = list_mk_abs(vs, t)
