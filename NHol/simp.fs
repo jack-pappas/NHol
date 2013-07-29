@@ -296,7 +296,7 @@ and strategy = simpset -> int -> term -> thm
 (* Very simple prover: recursively simplify then try provers.                *)
 (* ------------------------------------------------------------------------- *)
 /// The basic prover use function used in the simplifier.
-let basic_prover (strat : simpset -> int -> term -> thm) (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+let basic_prover (strat : strategy) (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
     let sth = 
         strat ss lev tm
         |> Choice.bindError (fun _ -> REFL tm)
@@ -598,14 +598,14 @@ let PURE_ONCE_REWRITE_RULE thl = CONV_RULE(PURE_ONCE_REWRITE_CONV thl)
 /// Rewrites a theorem, including built-in tautologies in the list of rewrites.
 let ONCE_REWRITE_RULE thl = CONV_RULE(ONCE_REWRITE_CONV thl)
 /// Rewrites a theorem including the theorem's assumptions as rewrites.
-let PURE_ASM_REWRITE_RULE thl th = 
+let PURE_ASM_REWRITE_RULE thl (th : thm) = 
     PURE_REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
 /// Rewrites a theorem including built-in rewrites and the theorem's assumptions.
-let ASM_REWRITE_RULE thl th = REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
+let ASM_REWRITE_RULE thl (th : thm) = REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
 /// Rewrites a theorem once, including the theorem's assumptions as rewrites.
-let PURE_ONCE_ASM_REWRITE_RULE thl th = 
+let PURE_ONCE_ASM_REWRITE_RULE thl (th : thm) = 
     PURE_ONCE_REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
-let ONCE_ASM_REWRITE_RULE thl th = 
+let ONCE_ASM_REWRITE_RULE thl (th : thm) = 
     ONCE_REWRITE_RULE ((map ASSUME (hyp <| Choice.get th)) @ thl) th
 /// Rewrites a goal, selecting terms according to a user-specified strategy.
 let GEN_REWRITE_TAC cnvl thl = CONV_TAC(GEN_REWRITE_CONV cnvl thl)
