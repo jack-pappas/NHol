@@ -28,7 +28,9 @@ open System
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
 open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open lib
@@ -127,6 +129,7 @@ type thm_tactical = thm_tactic -> thm_tactic
 
 /// Apply higher-order instantiation to a goal.
 let inst_goal : instantiation -> goal -> goal = 
+    // TODO: to get rid of Choice.get, we have to lift from term to Choice<term, exn> in declaration of goal
     fun p (thms, w) -> map (I ||>> INSTANTIATE_ALL p) thms, Choice.get <| instantiate p w
 
 (* ------------------------------------------------------------------------- *)
@@ -161,23 +164,26 @@ let mk_fthm =
 
 /// Tries to ensure that a tactic is valid.
 let (VALID : tactic -> tactic) = 
-    let fake_thm(asl, w) = 
-        let asms = itlist (union << hyp << Choice.get << snd) asl []
-        mk_fthm(asms, w)
+    let fake_thm ((asl, w) : goal) = 
+        choice {
+            let! asl = Choice.List.map snd asl
+            let asms = itlist (union << hyp) asl []
+            return! mk_fthm(asms, w)
+        }
     let false_tm = parse_term @"_FALSITY_"
     fun tac (asl, w) -> 
-        tac(asl, w)
-        |> Choice.bind (fun ((mvs, i), gls, just as res) ->
+        choice {
+            let! ((mvs, i), gls, just as res) = tac(asl, w)
             let ths = map fake_thm gls
-            let asl', w' = dest_thm <| Choice.get(just null_inst ths)
+            let! thm = just null_inst ths
+            let asl', w' = dest_thm thm
             let asl'', w'' = inst_goal i (asl, w)
-            let maxasms = 
-                itlist (fun (_, th) -> union(insert (concl <| Choice.get th) (hyp <| Choice.get th))) asl'' []
-            if aconv w' w'' 
-               && forall (fun t -> exists (aconv t) maxasms) 
-                      (subtract asl' [false_tm])
-            then Choice.result <| res
-            else Choice.failwith "VALID: Invalid tactic")
+            let! asl'' = Choice.List.map snd asl''
+            let maxasms = itlist (fun th -> union (insert (concl th) (hyp th))) asl'' []
+            if aconv w' w'' && forall (fun t -> exists (aconv t) maxasms) (subtract asl' [false_tm]) then 
+                return res
+            else return! Choice.failwith "VALID: Invalid tactic"
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Various simple combinators for tactics, identity tactic etc.              *)
@@ -215,8 +221,8 @@ let THEN, THENL =
         let ((mvs2, insts2), gls2, just2) = seqapply tacl gls1
         let jst = justsequence just1 just2 insts2
         let just = 
-            if gls2 = []
-            then propagate_thm(jst null_inst [])
+            if gls2 = [] then 
+                propagate_thm(jst null_inst [])
             else jst
         ((union mvs1 mvs2, compose_insts insts1 insts2), gls2, just)
     let then_ : tactic -> tactic -> tactic = 
@@ -228,8 +234,8 @@ let THEN, THENL =
         fun tac1 tac2l g -> 
             tac1 g
             |> Choice.map (fun (_, gls, _ as gstate) ->
-                if gls = []
-                then tacsequence gstate []
+                if gls = [] then 
+                    tacsequence gstate []
                 else tacsequence gstate tac2l)
     then_, thenl_
 
@@ -265,11 +271,11 @@ let rec REPEAT tac g =
 
 /// Sequentially applies all the tactics in a given list of tactics.
 let EVERY tacl =
-    itlist (fun t1 t2 -> t1 |> THEN <| t2) tacl ALL_TAC
+    itlist THEN tacl ALL_TAC
 
 /// Applies the first tactic in a tactic list that succeeds.
 let FIRST : tactic list -> tactic =
-    fun tacl g -> end_itlist (fun t1 t2 -> t1 |> ORELSE <| t2) tacl g;;
+    fun tacl g -> end_itlist ORELSE tacl g
 
 /// Sequentially applies all tactics given by mapping a function over a list.
 let MAP_EVERY (tacf : 'T -> tactic) (lst : 'T list) : tactic = 
@@ -279,13 +285,14 @@ let MAP_EVERY (tacf : 'T -> tactic) (lst : 'T list) : tactic =
 let MAP_FIRST tacf lst = FIRST(map tacf lst)
 
 /// Makes a tactic fail if it has no effect.
-let CHANGED_TAC : tactic -> tactic = 
+let (CHANGED_TAC : tactic -> tactic) = 
     fun tac g -> 
-        tac g
-        |> Choice.bind (fun (meta, gl, _ as gstate) ->
+        choice {
+            let! (meta, gl, _ as gstate) = tac g
             if meta = null_meta && length gl = 1 && equals_goal (hd gl) g
-            then Choice.failwith "CHANGED_TAC"
-            else Choice.result <| gstate)
+            then return! Choice.failwith "CHANGED_TAC"
+            else return gstate
+        }
 
 /// Apply a tactic a specific number of times.
 let rec REPLICATE_TAC n tac =
@@ -315,7 +322,7 @@ let rec REPEAT_TCL ttcl ttac th =
     ((ttcl |> THEN_TCL <| (REPEAT_TCL ttcl)) |> ORELSE_TCL <| I) ttac th;;
 
 /// Applies a theorem-tactical until it fails when applied to a goal.
-let REPEAT_GTCL : thm_tactical -> thm_tactical = 
+let (REPEAT_GTCL : thm_tactical -> thm_tactical) = 
     let rec REPEAT_GTCL ttcl ttac th g = 
         ttcl (REPEAT_GTCL ttcl ttac) th g
         |> Choice.bindError (fun _ -> ttac th g)
@@ -325,16 +332,16 @@ let REPEAT_GTCL : thm_tactical -> thm_tactical =
 let (ALL_THEN : thm_tactical) = I
 
 /// Theorem-tactical which always fails.
-let NO_THEN : thm_tactical = 
+let (NO_THEN : thm_tactical) = 
     fun ttac th g -> Choice.failwith "NO_THEN"
 
 /// Composes a list of theorem-tacticals.
 let EVERY_TCL ttcll =
-    itlist (fun t1 t2 -> t1 |> THEN_TCL <| t2) ttcll ALL_THEN;;
+    itlist THEN_TCL ttcll ALL_THEN
 
 /// Applies the first theorem-tactical in a list that succeeds.
 let FIRST_TCL ttcll =
-    end_itlist (fun t1 t2 -> t1 |> ORELSE_TCL <| t2) ttcll;;
+    end_itlist ORELSE_TCL ttcll
 
 (* ------------------------------------------------------------------------- *)
 (* Tactics to augment assumption list. Note that to allow "ASSUME p" for     *)
@@ -349,7 +356,8 @@ let (LABEL_TAC : string -> thm_tactic) =
         | [a] -> a
         | _ -> Choice.failwith "LABEL_TAC.fun1: Unhandled case."
     fun s thm ((asl : (string * thm) list), (w : term)) ->
-        Choice.result <| (null_meta, [(s, thm) :: asl, w], (fun i thml -> PROVE_HYP (INSTANTIATE_ALL i thm) (fun1 thml)))
+        Choice.result <| 
+            (null_meta, [(s, thm) :: asl, w], (fun i thml -> PROVE_HYP (INSTANTIATE_ALL i thm) (fun1 thml)))
 
 /// Adds an assumption to a goal.
 let ASSUME_TAC = LABEL_TAC ""
@@ -360,7 +368,11 @@ let ASSUME_TAC = LABEL_TAC ""
 
 /// Apply a theorem-tactic to the the first assumption equal to given term.
 let (FIND_ASSUM : thm_tactic -> term -> tactic) = 
-    fun ttac t ((asl, w) as g) -> ttac (snd(Option.get <| find (fun (_, th) -> concl <| Choice.get th = t) asl)) g
+    fun ttac t ((asl, w) as g) -> 
+        choice {
+            let! asl = Choice.List.map snd asl
+            return! ttac (Option.toChoiceWithError "find" <| find (fun th -> concl th = t) asl) g
+        }
 
 /// Applies tactic generated from the first element of a goal's assumption list.
 let (POP_ASSUM : thm_tactic -> tactic) = 
@@ -391,7 +403,7 @@ let (FIRST_ASSUM : thm_tactic -> tactic) =
 let (RULE_ASSUM_TAC : (thm -> thm) -> tactic) = 
     fun rule (asl,w) ->
         (POP_ASSUM_LIST(K ALL_TAC) 
-         |> THEN <| MAP_EVERY (fun (s,th) -> LABEL_TAC s (rule th)) (rev asl)) (asl,w)
+         |> THEN <| MAP_EVERY (fun (s,th) -> LABEL_TAC s (rule th)) (rev asl)) (asl, w)
 
 (* ------------------------------------------------------------------------- *)
 (* Operate on assumption identified by a label.                              *)
@@ -401,8 +413,9 @@ let (RULE_ASSUM_TAC : (thm -> thm) -> tactic) =
 let (USE_THEN : string -> thm_tactic -> tactic) = 
     fun s ttac (asl, w as gl) -> 
         let th =            
-            assoc s asl
-            |> Option.getOrFailWith ("USE_TAC: didn't find assumption " + s)
+            match assoc s asl with
+            | Some thm -> thm
+            | None -> Choice.failwith ("USE_TAC: didn't find assumption " + s)
 
         ttac th gl
 
@@ -410,8 +423,9 @@ let (USE_THEN : string -> thm_tactic -> tactic) =
 let (REMOVE_THEN : string -> thm_tactic -> tactic) = 
     fun s ttac (asl, w) -> 
         let th =
-            assoc s asl
-            |> Option.getOrFailWith ("USE_TAC: didn't find assumption " + s)
+            match assoc s asl with
+            | Some thm -> thm
+            | None -> Choice.failwith ("USE_TAC: didn't find assumption " + s)
         let asl1, asl2 = chop_list (index s (map fst asl)) asl
         let asl' = asl1 @ tl asl2
         ttac th (asl', w)
@@ -452,9 +466,13 @@ let (ACCEPT_TAC : thm_tactic) =
         | [] -> INSTANTIATE_ALL i th
         | _ -> Choice.failwith  "propagate_thm: Unhandled case."
     fun th (asl, w) -> 
-        if aconv (concl <| Choice.get th) w
-        then Choice.result <| (null_meta, [], propagate_thm th)
-        else Choice.failwith "ACCEPT_TAC"
+        choice {
+            let! tm = Choice.map concl th
+            if aconv tm w then 
+                return (null_meta, [], propagate_thm th)
+            else 
+                return! Choice.failwith "ACCEPT_TAC"
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Create tactic from a conversion. This allows the conversion to return     *)
@@ -494,7 +512,10 @@ let (CONV_TAC : conv -> tactic) =
 /// Solves a goal that is an equation between alpha-equivalent terms.
 let (REFL_TAC : tactic) = 
     fun ((asl, w) as g) -> 
-        ACCEPT_TAC (REFL(Choice.get <| rand w)) g
+        choice {
+            let! tm = rand w
+            return! ACCEPT_TAC (REFL tm) g
+        }
         |> Choice.mapError (fun e -> nestedFailure e "REFL_TAC")
 
 /// Strips an abstraction from each side of an equational goal.
