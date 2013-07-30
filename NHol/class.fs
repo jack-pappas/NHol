@@ -155,10 +155,16 @@ let (SELECT_CONV : conv) =
               |> THEN <| REFL_TAC)
     fun tm -> 
         choice { 
+            // NOTE: we translate the exceptional cases to return false
             let is_epsok t = 
                 is_select t && 
-                let bv, bod = Choice.get <| dest_select t
-                aconv tm (Choice.get <| vsubst [t, bv] bod)
+                match dest_select t with
+                | Success (bv, bod) ->
+                    match vsubst [t, bv] bod with
+                    | Success tm1 ->
+                        aconv tm tm1
+                    | Error _ -> false
+                | Error _ -> false
 
             let! pickeps = find_term is_epsok tm
             let! abs = rand pickeps
