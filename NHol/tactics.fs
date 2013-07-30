@@ -62,7 +62,7 @@ let null_meta = (([] : term list), null_inst)
 
 type goal = (string * thm) list * term
 
-/// Redefine equals_thm
+/// NOTE: Redefine equals_thm
 let equals_thm (th : thm) (th' : thm) =
     match th, th' with
     | Success th, Success th' ->
@@ -1000,24 +1000,29 @@ let STRIP_THM_THEN =
 
 /// Resolves implicative assumptions with an antecedent.
 let (ANTE_RES_THEN : thm_tactical) = 
-    fun ttac ante -> 
+    fun ttac ante gl -> 
         ASSUM_LIST (fun asl -> 
             // NOTE: this mapfilter call can throw exception in the original version, but can't return Choice2Of2 case here
-            // We need to review this to ensure equivalent semantics
-            let tacs = mapfilter (fun imp -> Some <| ttac(MATCH_MP imp ante)) asl
+            // We need to execute the tactic to be able to determine its failure
+            let tacs = mapfilter (fun imp -> 
+                          let f = ttac (MATCH_MP imp ante)
+                          if Choice.isResult <| f gl then Some f else None) asl
             match tacs with
             | [] -> fun tm -> Choice.failwith "IMP_RES_THEN"
-            | _ -> EVERY tacs)
+            | _ -> EVERY tacs) gl
 
 /// Resolves an implication with the assumptions of a goal.
 let (IMP_RES_THEN : thm_tactical) = 
-    fun ttac imp -> 
+    fun ttac imp gl -> 
         ASSUM_LIST(fun asl -> 
-            // NOTE: revise this as well
-            let tacs = mapfilter (fun ante -> Some <| ttac(MATCH_MP imp ante)) asl
+            // NOTE: this mapfilter call can throw exception in the original version, but can't return Choice2Of2 case here
+            // We need to execute the tactic to be able to determine its failure
+            let tacs = mapfilter (fun ante ->
+                           let f = ttac (MATCH_MP imp ante)
+                           if Choice.isResult <| f gl then Some f else None) asl
             match tacs with
             | [] -> fun tm -> Choice.failwith "IMP_RES_THEN"
-            | _ -> EVERY tacs)
+            | _ -> EVERY tacs) gl
 
 /// Splits a theorem into a list of theorems and then adds them to the assumptions.
 let STRIP_ASSUME_TAC = 

@@ -268,7 +268,7 @@ let install_user_printer, delete_user_printer, try_user_printer =
     let user_printers = ref([] : (string * (term -> unit)) list)
     (fun pr -> user_printers := pr :: (!user_printers)), 
     (fun s -> user_printers := snd(Option.get <| remove (fun (s', _) -> s = s') (!user_printers))),
-    // TODO: this function doesn't seem correct 
+    // NOTE: wrong use of Some, need to change this
     (fun tm -> tryfind (fun (_, pr) -> Some <| pr tm) (!user_printers) 
                |> Option.toChoiceWithError "find")
 

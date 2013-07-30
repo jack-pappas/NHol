@@ -484,7 +484,7 @@ let CACHE_CONV (conv : conv) : conv =
                 | Success n -> 
                     net := n
                 | Error _ -> 
-                    // NOTE: currently do nothing in case of error
+                    // NOTE: currently doing nothing in case of error
                     ()
                 th))
         

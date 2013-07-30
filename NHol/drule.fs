@@ -570,65 +570,75 @@ let PART_MATCH, GEN_PART_MATCH =
                 match_bvs l1 l2 (match_bvs r1 r2 acc)
             with
             | Failure _ -> acc
-    let PART_MATCH partfn (th : thm) tm : thm = 
-        // NOTE: change from value to function for easy conversion
-        choice {
-            let sth = SPEC_ALL th
-            let! bod = Choice.map concl sth
-            let! pbod = partfn bod
-            let! tm0 = Choice.map concl th
-            let! tl = Choice.map hyp th
-            let lconsts = intersect (frees tm0) (freesl tl)
-        
-            let bvms = match_bvs tm pbod []
-            let abod = deep_alpha bvms bod
-            let ath = EQ_MP (ALPHA bod abod) sth
-            let! tm1 = partfn abod
-            let! insts = term_match lconsts tm1 tm
-            let fth = INSTANTIATE insts ath
-            let! fth' = fth
-            let! ath' = ath
-            if hyp fth' <> hyp ath' then 
-                return! Choice.failwith "PART_MATCH: instantiated hyps"
-            else 
-                let! tm' = Choice.bind (partfn << concl) fth
-                if compare tm' tm = 0 then 
-                    return! fth
+    let PART_MATCH partfn (th : thm) =
+        let v = 
+            choice {
+                let sth = SPEC_ALL th
+                let! bod = Choice.map concl sth
+                let! pbod = partfn bod
+                let! tm0 = Choice.map concl th
+                let! tl = Choice.map hyp th
+                let lconsts = intersect (frees tm0) (freesl tl)
+                return (sth, bod, pbod, lconsts)
+                }
+
+        fun tm ->
+            choice {      
+                let! (sth, bod, pbod, lconsts) = v
+                let bvms = match_bvs tm pbod []
+                let abod = deep_alpha bvms bod
+                let ath = EQ_MP (ALPHA bod abod) sth
+                let! tm1 = partfn abod
+                let! insts = term_match lconsts tm1 tm
+                let fth = INSTANTIATE insts ath
+                let! fth' = fth
+                let! ath' = ath
+                if hyp fth' <> hyp ath' then 
+                    return! Choice.failwith "PART_MATCH: instantiated hyps"
                 else 
-                    return!
-                        SUBS [ALPHA tm' tm] fth
-                        |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
-        }
-    let GEN_PART_MATCH partfn (th : thm) tm : thm = 
-        // NOTE: change from value to function for easy conversion
-        choice {
-            let sth = SPEC_ALL th
-            let! bod = Choice.map concl sth
-            let! pbod = partfn bod
-            let! tm0 = Choice.map concl th
-            let! tl = Choice.map hyp th
-            let lconsts = intersect (frees tm0) (freesl tl)
-            let fvs = subtract (subtract (frees bod) (frees pbod)) lconsts
-        
-            let bvms = match_bvs tm pbod []
-            let abod = deep_alpha bvms bod
-            let ath = EQ_MP (ALPHA bod abod) sth
-            let! tm1 = partfn abod
-            let! insts = term_match lconsts tm1 tm
-            let eth = INSTANTIATE insts (GENL fvs ath)
-            let fth = itlist (fun v th -> snd(SPEC_VAR th)) fvs eth
-            let! fth' = fth
-            let! ath' = ath
-            if hyp fth' <> hyp ath' then 
-                return! Choice.failwith "PART_MATCH: instantiated hyps"
-            else 
-                let! tm' = Choice.bind (partfn << concl) fth
-                if compare tm' tm = 0 then 
-                    return! fth
-                else 
-                    return! SUBS [ALPHA tm' tm] fth
+                    let! tm' = Choice.bind (partfn << concl) fth
+                    if compare tm' tm = 0 then 
+                        return! fth
+                    else 
+                        return!
+                            SUBS [ALPHA tm' tm] fth
                             |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
-        }
+            }
+
+    let GEN_PART_MATCH partfn (th : thm) = 
+        let v =
+            choice {
+                let sth = SPEC_ALL th
+                let! bod = Choice.map concl sth
+                let! pbod = partfn bod
+                let! tm0 = Choice.map concl th
+                let! tl = Choice.map hyp th
+                let lconsts = intersect (frees tm0) (freesl tl)
+                let fvs = subtract (subtract (frees bod) (frees pbod)) lconsts
+                return (sth, bod, pbod, lconsts, fvs)
+            }
+        fun tm ->
+            choice {
+                let! (sth, bod, pbod, lconsts, fvs) = v
+                let bvms = match_bvs tm pbod []
+                let abod = deep_alpha bvms bod
+                let ath = EQ_MP (ALPHA bod abod) sth
+                let! tm1 = partfn abod
+                let! insts = term_match lconsts tm1 tm
+                let eth = INSTANTIATE insts (GENL fvs ath)
+                let fth = itlist (fun v th -> snd(SPEC_VAR th)) fvs eth
+                let! fth' = fth
+                let! ath' = ath
+                if hyp fth' <> hyp ath' then 
+                    return! Choice.failwith "PART_MATCH: instantiated hyps"
+                else 
+                    let! tm' = Choice.bind (partfn << concl) fth
+                    if compare tm' tm = 0 then 
+                        return! fth
+                    else 
+                        return! SUBS [ALPHA tm' tm] fth
+                                |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
+            }
     PART_MATCH, GEN_PART_MATCH
 
 (* ------------------------------------------------------------------------- *)

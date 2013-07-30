@@ -453,6 +453,7 @@ let GEN_MESON_TAC =
     (* Perform first basic expansion which allows continuation call.           *)
     (* ----------------------------------------------------------------------- *)
     let meson_expand_cont loffset rules state cont = 
+        // NOTE: wrong use of Some, need to change this
         tryfind (fun r -> Some <| cont (snd r) (meson_single_expand loffset r state)) rules
         |> Option.getOrFailWith "tryfind"
 

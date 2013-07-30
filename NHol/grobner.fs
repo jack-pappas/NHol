@@ -167,6 +167,7 @@ let RING_AND_IDEAL_CONV =
   (* ----------------------------------------------------------------------- *)
   
   let reduceb cm basis = 
+    // NOTE: wrong use of Some, need to change this
     tryfind (fun p -> Some <| reduce1 cm p) basis
     |> Option.getOrFailWith "tryfind"
   
