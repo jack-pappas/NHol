@@ -549,8 +549,7 @@ let DESTRUCT_TAC, FIX_TAC, INTRO_TAC =
             | Ident s :: rest -> 
                 (try 
                      let n = int_of_string s
-                     if n < 1
-                     then raise Noparse
+                     if n < 1 then raise Noparse
                      else n, rest
                  with
                  | Failure _ -> raise Noparse)
@@ -574,17 +573,14 @@ let DESTRUCT_TAC, FIX_TAC, INTRO_TAC =
         pa_intro
     let DESTRUCT_TAC s = 
         let tac, rest = (fix "Destruct pattern" parse_destruct << lex << explode) s
-        if rest = []
-        then tac
+        if rest = [] then tac
         else fun _ _ -> Choice.failwith "Garbage after destruct pattern"
     let INTRO_TAC s = 
         let tac, rest = (fix "Introduction pattern" parse_intro << lex << explode) s
-        if rest = []
-        then tac
+        if rest = [] then tac
         else fun _ -> Choice.failwith "Garbage after intro pattern"
     let FIX_TAC s = 
         let tac, rest = (parse_fix << lex << explode) s
-        if rest = []
-        then tac
+        if rest = [] then tac
         else fun _ -> Choice.failwith "FIX_TAC: invalid pattern"
     DESTRUCT_TAC, FIX_TAC, INTRO_TAC

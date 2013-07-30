@@ -568,7 +568,7 @@ let define_type_raw_001 =
             let newtys, rights = unzip def
             let tyargls = itlist ((@) << map snd) rights []
             let alltys = itlist (munion << C subtract newtys) tyargls []
-            let epstms = map (fun ty -> mk_select(mk_var("v", ty), t_tm)) alltys
+            let epstms = map (fun ty -> Choice.get <| mk_select(mk_var("v", ty), t_tm)) alltys
             let pty = 
                 try 
                     end_itlist (fun ty1 ty2 -> Choice.get <| mk_type("prod", [ty1; ty2])) 

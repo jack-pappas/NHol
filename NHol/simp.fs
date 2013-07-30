@@ -115,10 +115,8 @@ let ORDERED_IMP_REWR_CONV ord th =
 /// Term order for use in AC-rewriting.
 let term_order = 
     let rec lexify ord l1 l2 = 
-        if l1 = []
-        then false
-        elif l2 = []
-        then true
+        if l1 = [] then false
+        elif l2 = [] then true
         else 
             let h1 = hd l1
             let h2 = hd l2
@@ -126,12 +124,9 @@ let term_order =
     let rec dyn_order top tm1 tm2 = 
         let f1, args1 = strip_comb tm1
         let f2, args2 = strip_comb tm2
-        if f1 = f2
-        then lexify (dyn_order f1) args1 args2
-        elif f2 = top
-        then false
-        elif f1 = top
-        then true
+        if f1 = f2 then lexify (dyn_order f1) args1 args2
+        elif f2 = top then false
+        elif f1 = top then true
         else f1 > f2
     dyn_order(parse_term @"T")
 
@@ -449,11 +444,13 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                         Choice.result (REFL t, triv)
 
                 let eth' = GENL avs (mk_fun eth)
-                let! tm1 = Choice.bind (rand << concl) eth
-                let! tm2 = Choice.map concl eth'
                 let th' = 
-                    if is_var t' then INST [tm1, t'] th
-                    else GEN_PART_MATCH lhand th tm2
+                    if is_var t' then
+                        Choice.bind (rand << concl) eth 
+                        |> Choice.bind (fun tm1 -> INST [tm1, t'] th)
+                    else
+                        Choice.map concl eth' 
+                        |> Choice.bind (fun tm2 -> GEN_PART_MATCH lhand th tm2)
                 let th'' = MP th' eth'
                 return! RUN_SUB_CONV strat ss lev triv' th''
             elif triv then 
