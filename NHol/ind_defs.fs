@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Derived rules for inductive definitions.
 module NHol.ind_defs

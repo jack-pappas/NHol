@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Calculation with natural numbers.
 module NHol.calc_num

@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// More sophisticated derived rules including definitions and rewriting.
 module NHol.drule

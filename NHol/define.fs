@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 // Support for general recursive definitions.
 module NHol.define

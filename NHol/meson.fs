@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// First order automation: MESON (model elimination).
 module NHol.meson

@@ -20,7 +20,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Preterms and pretypes; typechecking; translation to types and terms.
 module NHol.preterm

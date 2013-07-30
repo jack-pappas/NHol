@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Additional theorems (mainly for quantifiers) etc.
 module NHol.theorems

@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Intuitionistic theorem prover (complete for propositional fragment).
 module NHol.itab

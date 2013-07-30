@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Lexical analyzer, type and preterm parsers.
 module NHol.parser

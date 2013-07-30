@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Classical reasoning: Choice and Extensionality.
 module NHol.``class``

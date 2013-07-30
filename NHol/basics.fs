@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// More syntax constructors, and prelogical utilities like matching.
 module NHol.basics

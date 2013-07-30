@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Boolean theory including (intuitionistic) defs of logical connectives.
 module NHol.bool

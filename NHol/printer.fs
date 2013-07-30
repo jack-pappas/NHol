@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Simplistic HOL Light prettyprinter, using the OCaml "Format" library.
 module NHol.printer

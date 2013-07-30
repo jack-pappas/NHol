@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Polynomial normalizer for rings and semirings.
 module NHol.normalizer

@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Complete HOL kernel of types, terms and theorems.
 module NHol.fusion

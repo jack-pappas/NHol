@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Term nets: reasonably fast lookup based on term matchability.
 module NHol.nets

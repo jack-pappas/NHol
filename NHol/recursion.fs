@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Tools for primitive recursion on inductive types.
 module NHol.recursion

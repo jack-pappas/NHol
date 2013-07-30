@@ -19,7 +19,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// System of tactics (slightly different from any traditional LCF method).
 module NHol.tactics

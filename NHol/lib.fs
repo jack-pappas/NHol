@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 open System
 
 open FSharp.Compatibility.OCaml

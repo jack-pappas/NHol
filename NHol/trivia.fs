@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Some very basic theories, e.g. type ":1".
 module NHol.trivia

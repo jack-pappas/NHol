@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Axiom of Infinity, definition of natural numbers.
 module NHol.nums

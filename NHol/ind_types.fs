@@ -18,7 +18,7 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 //// Tools for defining inductive types.
 module NHol.ind_types
