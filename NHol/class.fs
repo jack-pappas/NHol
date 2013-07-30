@@ -48,7 +48,7 @@ open ind_defs
 (* ------------------------------------------------------------------------- *)
 (* Eta-axiom, corresponding conversion, and extensionality.                  *)
 (* ------------------------------------------------------------------------- *)
-let ETA_AX = new_axiom(parse_term @"!t:A->B. (\x. t x) = t")
+let ETA_AX = new_axiom(parse_term @"!t:A->B. (\x. t x) = t");;
 
 /// Performs a toplevel eta-conversion.
 let ETA_CONV = 
@@ -66,14 +66,14 @@ let ETA_CONV =
             else fail()
         with
         | Failure _ as e ->
-            nestedFailwith e "ETA_CONV"
+            nestedFailwith e "ETA_CONV";;
 
 let EQ_EXT = 
     prove
         ((parse_term @"!(f:A->B) g. (!x. f x = g x) ==> f = g"), 
          REPEAT GEN_TAC
          |> THEN <| DISCH_THEN (MP_TAC << ABS(parse_term @"x:A") << SPEC(parse_term @"x:A"))
-         |> THEN <| REWRITE_TAC [ETA_AX])
+         |> THEN <| REWRITE_TAC [ETA_AX]);;
 
 let FUN_EQ_THM = 
     prove
@@ -83,7 +83,7 @@ let FUN_EQ_THM =
          |> THENL <| [DISCH_THEN SUBST1_TAC
                       |> THEN <| GEN_TAC
                       |> THEN <| REFL_TAC
-                      MATCH_ACCEPT_TAC EQ_EXT])
+                      MATCH_ACCEPT_TAC EQ_EXT]);;
 
 
 let result = new_constant("@", parse_type @"(A->bool)->A")
@@ -93,17 +93,19 @@ parse_as_binder "@"
 (* Indefinite descriptor (giving AC).                                        *)
 (* ------------------------------------------------------------------------- *)
 /// Tests a term to see if it is a choice binding.
-let is_select = is_binder "@"
+let is_select = is_binder "@";;
 
-/// Breaks apart a choice term into selected variable and Choice.get <| body.
+/// Breaks apart a choice term into selected variable and body.
 let dest_select = Choice.get << dest_binder "@"
 /// Constructs a choice binding.
 let mk_select = Choice.get << mk_binder "@"
-let SELECT_AX = new_axiom(parse_term @"!P (x:A). P x ==> P((@) P)")
+
+let SELECT_AX = new_axiom(parse_term @"!P (x:A). P x ==> P((@) P)");;
 
 (* ------------------------------------------------------------------------- *)
 (* Useful for compatibility. (The old EXISTS_DEF.)                           *)
 (* ------------------------------------------------------------------------- *)
+
 let EXISTS_THM = 
     prove
         ((parse_term @"(?) = \P:A->bool. P ((@) P)"), 
@@ -116,11 +118,12 @@ let EXISTS_THM =
                       |> THEN <| MATCH_ACCEPT_TAC SELECT_AX
                       DISCH_TAC
                       |> THEN <| EXISTS_TAC(parse_term @"((@) P):A")
-                      |> THEN <| POP_ASSUM ACCEPT_TAC])
+                      |> THEN <| POP_ASSUM ACCEPT_TAC]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Rules and so on for the select operator.                                  *)
 (* ------------------------------------------------------------------------- *)
+
 /// Introduces an epsilon term in place of an existential quantifier.
 let SELECT_RULE = 
     let P = (parse_term @"P:A->bool")
@@ -135,7 +138,7 @@ let SELECT_RULE =
             CONV_RULE BETA_CONV (MP (PINST [ty, aty] [abs, P] pth) th)
         with
         | Failure _ as e ->
-            nestedFailwith e "SELECT_RULE"
+            nestedFailwith e "SELECT_RULE";;
 
 /// Eliminates an epsilon term by introducing an existential quantifier.
 let SELECT_CONV = 
@@ -157,29 +160,31 @@ let SELECT_CONV =
             CONV_RULE (LAND_CONV BETA_CONV) (PINST [ty, aty] [abs, P] pth)
         with
         | Failure _ as e ->
-            nestedFailwith e "SELECT_CONV"
+            nestedFailwith e "SELECT_CONV";;
 
 (* ------------------------------------------------------------------------- *)
 (* Some basic theorems.                                                      *)
 (* ------------------------------------------------------------------------- *)
+
 let SELECT_REFL = 
     prove((parse_term @"!x:A. (@y. y = x) = x"), GEN_TAC
                                                 |> THEN <| CONV_TAC SELECT_CONV
                                                 |> THEN <| EXISTS_TAC(parse_term @"x:A")
-                                                |> THEN <| REFL_TAC)
+                                                |> THEN <| REFL_TAC);;
 
 let SELECT_UNIQUE = 
     prove
         ((parse_term @"!P x. (!y:A. P y = (y = x)) ==> ((@) P = x)"), 
          REPEAT STRIP_TAC
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM ETA_AX]
-         |> THEN <| ASM_REWRITE_TAC [SELECT_REFL])
+         |> THEN <| ASM_REWRITE_TAC [SELECT_REFL]);;
 
-extend_basic_rewrites [SELECT_REFL]
+extend_basic_rewrites [SELECT_REFL] |> ignore
 
 (* ------------------------------------------------------------------------- *)
 (* Now we can derive type definitions from existence; check benignity.       *)
 (* ------------------------------------------------------------------------- *)
+
 /// List of type definitions made so far.
 let the_type_definitions = ref([] : ((string * string * string) * (thm * thm)) list)
 
@@ -203,11 +208,12 @@ let new_type_definition tyname (absname, repname) th =
             CONJ (GEN_ALL th1) 
                 (GEN_ALL(CONV_RULE (LAND_CONV(TRY_CONV BETA_CONV)) th2))
         the_type_definitions := ((tyname, absname, repname), (th, tth)) :: (!the_type_definitions)
-        tth
+        tth;;
 
 (* ------------------------------------------------------------------------- *)
 (* Derive excluded middle (the proof is from Beeson's book).                 *)
 (* ------------------------------------------------------------------------- *)
+
 let EXCLUDED_MIDDLE = 
     prove
         ((parse_term @"!t. t \/ ~t"), 
@@ -229,63 +235,67 @@ let EXCLUDED_MIDDLE =
              |> THEN <| DISCH_TAC
              |> THEN <| MP_TAC(ITAUT(parse_term @"~(T <=> F)"))
              |> THEN <| PURE_ONCE_ASM_REWRITE_TAC []
-             |> THEN <| ASM_REWRITE_TAC [ITAUT(parse_term @"p \/ T <=> T")]])
+             |> THEN <| ASM_REWRITE_TAC [ITAUT(parse_term @"p \/ T <=> T")]]);;
 
 let BOOL_CASES_AX = 
     prove
         ((parse_term @"!t. (t <=> T) \/ (t <=> F)"), 
          GEN_TAC
          |> THEN <| DISJ_CASES_TAC(SPEC (parse_term @"t:bool") EXCLUDED_MIDDLE)
-         |> THEN <| ASM_REWRITE_TAC [])
+         |> THEN <| ASM_REWRITE_TAC []);;
 
 (* ------------------------------------------------------------------------- *)
 (* Classically based tactics. (See also COND_CASES_TAC later on.)            *)
 (* ------------------------------------------------------------------------- *)
+
 /// Performs boolean case analysis on a (free) term in the goal.
-let BOOL_CASES_TAC p = STRUCT_CASES_TAC(SPEC p BOOL_CASES_AX)
+let BOOL_CASES_TAC p = STRUCT_CASES_TAC(SPEC p BOOL_CASES_AX);;
 
 /// Given a term, produces a case split based on whether or not that term is true.
-let ASM_CASES_TAC t = DISJ_CASES_TAC(SPEC t EXCLUDED_MIDDLE)
+let ASM_CASES_TAC t = DISJ_CASES_TAC(SPEC t EXCLUDED_MIDDLE);;
 
 (* ------------------------------------------------------------------------- *)
 (* Set up a reasonable tautology checker for classical logic.                *)
 (* ------------------------------------------------------------------------- *)
-let TAUT_001 =
-    /// Tests for failure.
-    let can f x = 
-        try f x |> ignore; true
-        with Failure _ -> false
 
+let TAUT_001 =
     let PROP_REWRITE_TAC = REWRITE_TAC []
+
     let RTAUT_001_TAC(asl, w) = 
         let ok t = 
-            Choice.get <| type_of t = bool_ty && can (Choice.get << find_term is_var) t && free_in t w
+            Choice.get <| type_of t = bool_ty && Choice.isResult <| find_term is_var t && free_in t w
+
         (PROP_REWRITE_TAC
          |> THEN <| W
-                ((fun t1 t2 -> t1 |> THEN <| t2)(REWRITE_TAC []) << BOOL_CASES_TAC 
-                 << hd << sort free_in << Choice.get << find_terms ok << snd))(asl, w)
-    let TAUT_001_TAC = REPEAT(GEN_TAC
-                              |> ORELSE <| CONJ_TAC)
+                (THEN (REWRITE_TAC []) << BOOL_CASES_TAC 
+                 << hd << sort free_in << Choice.get << find_terms ok << snd)) (asl, w)
+
+    let TAUT_001_TAC = REPEAT (GEN_TAC |> ORELSE <| CONJ_TAC)
                        |> THEN <| REPEAT RTAUT_001_TAC
-    fun tm -> prove(tm, TAUT_001_TAC)
+
+    fun tm -> prove(tm, TAUT_001_TAC);;
 
 (* ------------------------------------------------------------------------- *)
 (* A few useful classical tautologies.                                       *)
 (* ------------------------------------------------------------------------- *)
+
 let DE_MORGAN_THM = 
     TAUT_001
-        (parse_term @"!t1 t2. (~(t1 /\ t2) <=> ~t1 \/ ~t2) /\ (~(t1 \/ t2) <=> ~t1 /\ ~t2)")
+        (parse_term @"!t1 t2. (~(t1 /\ t2) <=> ~t1 \/ ~t2) /\ (~(t1 \/ t2) <=> ~t1 /\ ~t2)");;
 
 let NOT_CLAUSES = 
-    TAUT_001(parse_term @"(!t. ~ ~t <=> t) /\ (~T <=> F) /\ (~F <=> T)")
-let NOT_IMP = TAUT_001(parse_term @"!t1 t2. ~(t1 ==> t2) <=> t1 /\ ~t2")
-let CONTRAPOS_THM = TAUT_001(parse_term @"!t1 t2. (~t1 ==> ~t2) <=> (t2 ==> t1)")
+    TAUT_001(parse_term @"(!t. ~ ~t <=> t) /\ (~T <=> F) /\ (~F <=> T)");;
 
-extend_basic_rewrites [CONJUNCT1 NOT_CLAUSES]
+let NOT_IMP = TAUT_001(parse_term @"!t1 t2. ~(t1 ==> t2) <=> t1 /\ ~t2");;
+
+let CONTRAPOS_THM = TAUT_001(parse_term @"!t1 t2. (~t1 ==> ~t2) <=> (t2 ==> t1)");;
+
+extend_basic_rewrites [CONJUNCT1 NOT_CLAUSES] |> ignore
 
 (* ------------------------------------------------------------------------- *)
 (* Some classically based rules.                                             *)
 (* ------------------------------------------------------------------------- *)
+
 /// Implements the classical contradiction rule.
 let CCONTR = 
     let P = (parse_term @"P:bool")
@@ -296,7 +306,7 @@ let CCONTR =
             MP (INST [tm, P] pth) (DISCH tm' th)
         with
         | Failure _ as e ->
-            nestedFailwith e "CCONTR"
+            nestedFailwith e "CCONTR";;
 
 /// Proves the equivalence of an implication and its contrapositive.
 let CONTRAPOS_CONV = 
@@ -306,15 +316,15 @@ let CONTRAPOS_CONV =
     fun tm -> 
         try 
             let P, Q = Choice.get <| dest_imp tm
-            INST [P, a
-                  Q, b] pth
+            INST [P, a; Q, b] pth
         with
         | Failure _ as e ->
-            nestedFailwith e "CONTRAPOS_CONV"
+            nestedFailwith e "CONTRAPOS_CONV";;
 
 (* ------------------------------------------------------------------------- *)
-(* A classical "refutation" tactic.                                        *)
+(* A classical "refutation" tactic.                                          *)
 (* ------------------------------------------------------------------------- *)
+
 /// Assume the negation of the goal and apply theorem-tactic to it.
 let REFUTE_THEN = 
     let f_tm = (parse_term @"F")
@@ -325,11 +335,12 @@ let REFUTE_THEN =
             elif is_neg w
             then DISCH_THEN ttac gl
             else (CONV_TAC conv
-                  |> THEN <| DISCH_THEN ttac) gl
+                  |> THEN <| DISCH_THEN ttac) gl;;
 
 (* ------------------------------------------------------------------------- *)
 (* Infinite de Morgan laws.                                                  *)
 (* ------------------------------------------------------------------------- *)
+
 let NOT_EXISTS_THM = 
     prove
         ((parse_term @"!P. ~(?x:A. P x) <=> (!x. ~(P x))"), 
@@ -343,25 +354,28 @@ let NOT_EXISTS_THM =
                       |> THEN <| EXISTS_TAC(parse_term @"x:A")
                       |> THEN <| POP_ASSUM ACCEPT_TAC
                       DISCH_THEN(CHOOSE_THEN MP_TAC)
-                      |> THEN <| ASM_REWRITE_TAC []])
+                      |> THEN <| ASM_REWRITE_TAC []]);;
 
 let EXISTS_NOT_THM = 
     prove
         ((parse_term @"!P. (?x:A. ~(P x)) <=> ~(!x. P x)"), 
          ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> ~b) <=> (~a <=> b)")]
-         |> THEN <| REWRITE_TAC [NOT_EXISTS_THM])
+         |> THEN <| REWRITE_TAC [NOT_EXISTS_THM]);;
+
 let NOT_FORALL_THM = 
     prove
         ((parse_term @"!P. ~(!x. P x) <=> (?x:A. ~(P x))"), 
-         MATCH_ACCEPT_TAC(GSYM EXISTS_NOT_THM))
+         MATCH_ACCEPT_TAC(GSYM EXISTS_NOT_THM));;
+
 let FORALL_NOT_THM = 
     prove
         ((parse_term @"!P. (!x. ~(P x)) <=> ~(?x:A. P x)"), 
-         MATCH_ACCEPT_TAC(GSYM NOT_EXISTS_THM))
+         MATCH_ACCEPT_TAC(GSYM NOT_EXISTS_THM));;
 
 (* ------------------------------------------------------------------------- *)
 (* Expand quantification over Booleans.                                      *)
 (* ------------------------------------------------------------------------- *)
+
 let FORALL_BOOL_THM = 
     prove
         ((parse_term @"(!b. P b) <=> P T /\ P F"), EQ_TAC
@@ -380,6 +394,7 @@ let EXISTS_BOOL_THM =
 (* ------------------------------------------------------------------------- *)
 (* Universal quantifier and disjunction                                      *)
 (* ------------------------------------------------------------------------- *)
+
 let LEFT_FORALL_OR_THM = 
     prove
         ((parse_term @"!P Q. (!x:A. P x \/ Q) <=> (!x. P x) \/ Q"), 
@@ -407,6 +422,7 @@ let RIGHT_OR_FORALL_THM =
 (* ------------------------------------------------------------------------- *)
 (* Implication and quantifiers.                                              *)
 (* ------------------------------------------------------------------------- *)
+
 let LEFT_IMP_FORALL_THM = 
     prove
         ((parse_term @"!P Q. ((!x:A. P x) ==> Q) <=> (?x. P x ==> Q)"), 
@@ -433,6 +449,7 @@ let RIGHT_EXISTS_IMP_THM =
 (* ------------------------------------------------------------------------- *)
 (* The conditional.                                                          *)
 (* ------------------------------------------------------------------------- *)
+
 let COND_DEF = new_definition(parse_term @"COND = \t t1 t2. @x:A. ((t <=> T) ==> (x = t1)) /\ ((t <=> F) ==> (x = t2))")
 
 let COND_CLAUSES = prove((parse_term @"!(t1:A) t2. ((if T then t1 else t2) = t1) /\
@@ -467,7 +484,7 @@ let dest_cond tm =
     | Failure _ as e ->
         nestedFailwith e "dest_cond"
 
-extend_basic_rewrites [COND_CLAUSES]
+extend_basic_rewrites [COND_CLAUSES] |> ignore
 
 let COND_EXPAND = 
   prove
@@ -505,8 +522,9 @@ let COND_ABS =
      |> THEN <| REWRITE_TAC [ETA_AX])
 
 (* ------------------------------------------------------------------------- *)
-(* Redefine TAUT_001 to freeze in the rewrites including COND.                   *)
+(* Redefine TAUT_001 to freeze in the rewrites including COND.               *)
 (* ------------------------------------------------------------------------- *)
+
 /// Proves a propositional tautology.
 let TAUT =
     /// Tests for failure.
@@ -531,6 +549,7 @@ let TAUT =
 (* ------------------------------------------------------------------------- *)
 (* Throw monotonicity in.                                                    *)
 (* ------------------------------------------------------------------------- *)
+
 let MONO_COND = 
     prove
         ((parse_term @"(A ==> B) /\ (C ==> D) ==> (if b then A else C) ==> (if b then B else D)"), 
@@ -571,6 +590,7 @@ let (COND_CASES_TAC : tactic) =
 (* ------------------------------------------------------------------------- *)
 (* Skolemization.                                                            *)
 (* ------------------------------------------------------------------------- *)
+
 let SKOLEM_THM = 
     prove
         ((parse_term @"!P. (!x:A. ?y:B. P x y) <=> (?y. !x. P x (y x))"), 
@@ -586,6 +606,7 @@ let SKOLEM_THM =
 (* ------------------------------------------------------------------------- *)
 (* NB: this one is true intutionistically and intensionally.                 *)
 (* ------------------------------------------------------------------------- *)
+
 let UNIQUE_SKOLEM_ALT = 
     prove
         ((parse_term @"!P:A->B->bool. (!x. ?!y. P x y) <=> ?f. !x y. P x y <=> (f x = y)"), 
@@ -595,6 +616,7 @@ let UNIQUE_SKOLEM_ALT =
 (* ------------------------------------------------------------------------- *)
 (* and this one intuitionistically and extensionally.                        *)
 (* ------------------------------------------------------------------------- *)
+
 let UNIQUE_SKOLEM_THM = 
   prove ((parse_term @"!P. (!x:A. ?!y:B. P x y) <=> (?!f. !x. P x (f x))"),
     GEN_TAC 
@@ -630,18 +652,23 @@ let UNIQUE_SKOLEM_THM =
 (* ------------------------------------------------------------------------- *)
 (* Extend default congruences for contextual rewriting.                      *)
 (* ------------------------------------------------------------------------- *)
+
 let COND_CONG = TAUT(parse_term @"(g = g') ==>
         (g' ==> (t = t')) ==>
         (~g' ==> (e = e')) ==>
         ((if g then t else e) = (if g' then t' else e'))")
+
 extend_basic_congs [COND_CONG]
+
 let COND_EQ_CLAUSE = 
     prove((parse_term @"(if x = x then y else z) = y"), REWRITE_TAC [])
-extend_basic_rewrites [COND_EQ_CLAUSE]
+
+extend_basic_rewrites [COND_EQ_CLAUSE] |> ignore
 
 (* ------------------------------------------------------------------------- *)
 (* We can now treat "bool" as an enumerated type for some purposes.          *)
 (* ------------------------------------------------------------------------- *)
+
 let bool_INDUCT = 
   prove
     ((parse_term @"!P. P F /\ P T ==> !x. P x"), REPEAT STRIP_TAC

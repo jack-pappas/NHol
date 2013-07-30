@@ -213,7 +213,10 @@ let CONJ_PAIR th =
     CONJUNCT1 th, CONJUNCT2 th
 
 /// Recursively splits conjunctions into a list of conjuncts.
-let CONJUNCTS = striplist (Some << CONJ_PAIR)
+let CONJUNCTS = striplist (fun th ->
+                    match CONJ_PAIR th with
+                    | (Success th1, Success th2) as th' -> Some th'
+                    | _ -> None)
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for ==>                                                             *)
@@ -654,8 +657,9 @@ let CONTR =
     fun tm (th : thm) -> 
         Choice.map concl th
         |> Choice.bind (fun tm' ->
+            printfn "%O <-> %O" (string_of_term f_tm) (string_of_term tm')
             if tm' <> f_tm then Choice.failwith "CONTR"
-            else PROVE_HYP th (INST [tm, P] <| pth())) : thm
+            else PROVE_HYP th (INST [tm, P] <| pth())) : thm;;
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for unique existence.                                               *)
