@@ -26,6 +26,8 @@ module NHol.theorems
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -46,6 +48,7 @@ open simp
 (* ------------------------------------------------------------------------- *)
 (* More stuff about equality.                                                *)
 (* ------------------------------------------------------------------------- *)
+
 let EQ_REFL = 
     prove((parse_term @"!x:A. x = x"), 
           GEN_TAC
@@ -444,42 +447,56 @@ let EXISTS_UNIQUE =
 (* ------------------------------------------------------------------------- *)
 
 // DESTRUCT_TAC: Performs elimination on a theorem within a tactic proof.
-// FIX_TAC: Fixes universally quantified Choice.get <| variables in goal.
+// FIX_TAC: Fixes universally quantified variables in goal.
 // INTRO_TAC: Breaks down outer quantifiers in goal, introducing variables and named hypotheses.
 let DESTRUCT_TAC, FIX_TAC, INTRO_TAC = 
     let NAME_GEN_TAC s gl = 
-        let ty = (snd << Choice.get << dest_var << fst << Choice.get << dest_forall << snd) gl
-        X_GEN_TAC (mk_var(s, ty)) gl
+        choice {
+            let! ty = (Choice.map snd << Choice.bind dest_var << Choice.map fst << dest_forall << snd) gl
+            return! X_GEN_TAC (mk_var(s, ty)) gl
+        }
+
     let OBTAIN_THEN v ttac th = 
-        let ty = (snd << Choice.get << dest_var << fst << Choice.get << dest_exists << concl << Choice.get) th
-        X_CHOOSE_THEN (mk_var(v, ty)) ttac th
+        fun tm ->
+            choice {
+                let! ty = Choice.bind (Choice.map snd << Choice.bind dest_var << Choice.map fst << dest_exists << concl) th
+                return! X_CHOOSE_THEN (mk_var(v, ty)) ttac th tm
+            }
+
     let CONJ_LIST_TAC = end_itlist(fun t1 t2 -> CONJ_TAC
                                                 |> THENL <| [t1; t2])
+
     let NUM_DISJ_TAC n = 
-        if n <= 0
-        then failwith "NUM_DISJ_TAC"
+        if n <= 0 then 
+            fun _ -> Choice.failwith "NUM_DISJ_TAC"
         else REPLICATE_TAC (n - 1) DISJ2_TAC
              |> THEN <| REPEAT DISJ1_TAC
+
     let NAME_PULL_FORALL_CONV = 
         let SWAP_FORALL_CONV = REWR_CONV SWAP_FORALL_THM
         let AND_FORALL_CONV = GEN_REWRITE_CONV I [AND_FORALL_THM]
         let RIGHT_IMP_FORALL_CONV = GEN_REWRITE_CONV I [RIGHT_IMP_FORALL_THM]
         fun s -> 
             let rec PULL_FORALL tm = 
-                if is_forall tm
-                then 
-                    if name_of(fst(Choice.get <| dest_forall tm)) = s
-                    then REFL tm
-                    else (BINDER_CONV PULL_FORALL
-                          |> THENC <| SWAP_FORALL_CONV) tm
-                elif is_imp tm
-                then (RAND_CONV PULL_FORALL
-                      |> THENC <| RIGHT_IMP_FORALL_CONV) tm
-                elif is_conj tm
-                then (BINOP_CONV PULL_FORALL
-                      |> THENC <| AND_FORALL_CONV) tm
-                else fail()
+                choice {
+                    if is_forall tm then 
+                        let! (tm', _) = dest_forall tm
+                        if name_of tm' = s then 
+                            return! REFL tm
+                        else 
+                            return! (BINDER_CONV PULL_FORALL
+                                     |> THENC <| SWAP_FORALL_CONV) tm
+                    elif is_imp tm then 
+                        return! (RAND_CONV PULL_FORALL
+                                 |> THENC <| RIGHT_IMP_FORALL_CONV) tm
+                    elif is_conj tm then 
+                        return! (BINOP_CONV PULL_FORALL
+                                 |> THENC <| AND_FORALL_CONV) tm
+                    else 
+                        return! Choice.fail()
+                }
             PULL_FORALL
+
     let parse_fix = 
         let ident = 
             function 
@@ -556,20 +573,18 @@ let DESTRUCT_TAC, FIX_TAC, INTRO_TAC =
                 toks
         pa_intro
     let DESTRUCT_TAC s = 
-        let tac, rest = 
-            (fix "Destruct pattern" parse_destruct << lex << explode) s
+        let tac, rest = (fix "Destruct pattern" parse_destruct << lex << explode) s
         if rest = []
         then tac
-        else failwith "Garbage after destruct pattern"
+        else fun _ _ -> Choice.failwith "Garbage after destruct pattern"
     let INTRO_TAC s = 
-        let tac, rest = 
-            (fix "Introduction pattern" parse_intro << lex << explode) s
+        let tac, rest = (fix "Introduction pattern" parse_intro << lex << explode) s
         if rest = []
         then tac
-        else failwith "Garbage after intro pattern"
+        else fun _ -> Choice.failwith "Garbage after intro pattern"
     let FIX_TAC s = 
         let tac, rest = (parse_fix << lex << explode) s
         if rest = []
         then tac
-        else failwith "FIX_TAC: invalid pattern"
+        else fun _ -> Choice.failwith "FIX_TAC: invalid pattern"
     DESTRUCT_TAC, FIX_TAC, INTRO_TAC
