@@ -89,20 +89,20 @@ let PAIR_EXISTS_THM =
     prove((parse_term @"?x. ?(a:A) (b:B). x = mk_pair a b"), MESON_TAC [])
 
 let prod_tybij = 
-    new_type_definition "prod" ("ABS_prod", "REP_prod") PAIR_EXISTS_THM
+    new_type_definition "prod" ("ABS_prod", "REP_prod") PAIR_EXISTS_THM;;
 
 let REP_ABS_PAIR = 
     prove
         ((parse_term @"!(x:A) (y:B). REP_prod (ABS_prod (mk_pair x y)) = mk_pair x y"), 
-         MESON_TAC [prod_tybij])
+         MESON_TAC [prod_tybij]);;
 
 parse_as_infix(",", (14, "right"))
 
-let COMMA_DEF = new_definition(parse_term @"(x:A),(y:B) = ABS_prod(mk_pair x y)") // try to put a space after ABS_Prod
+let COMMA_DEF = new_definition(parse_term @"(x:A),(y:B) = ABS_prod(mk_pair x y)");;
 
-let FST_DEF = new_definition(parse_term @"FST (p:A#B) = @x. ?y. p = x,y")
+let FST_DEF = new_definition(parse_term @"FST (p:A#B) = @x. ?y. p = x,y");;
 
-let SND_DEF = new_definition(parse_term @"SND (p:A#B) = @y. ?x. p = x,y")
+let SND_DEF = new_definition(parse_term @"SND (p:A#B) = @y. ?x. p = x,y");;
 
 let PAIR_EQ = 
     prove
@@ -117,42 +117,21 @@ let PAIR_EQ =
                       |> THEN <| REWRITE_TAC [REP_ABS_PAIR]
                       |> THEN <| REWRITE_TAC [mk_pair_def; FUN_EQ_THM]
                       ALL_TAC]
-         |> THEN <| MESON_TAC [])
+         |> THEN <| MESON_TAC []);;
 
 let PAIR_SURJECTIVE = 
-    prove((parse_term @"!p:A#B. ?x y. p = x,y"), GEN_TAC
-                                                |> THEN 
-                                                <| REWRITE_TAC [COMMA_DEF]
-                                                |> THEN 
-                                                <| MP_TAC
-                                                       (SPEC 
-                                                            (parse_term @"REP_prod p :A->B->bool") 
-                                                            (CONJUNCT2 
-                                                                 prod_tybij))
-                                                |> THEN 
-                                                <| REWRITE_TAC 
-                                                       [CONJUNCT1 prod_tybij]
-                                                |> THEN 
-                                                <| DISCH_THEN
-                                                       (X_CHOOSE_THEN 
-                                                            (parse_term @"a:A") 
-                                                            (X_CHOOSE_THEN 
-                                                                 (parse_term @"b:B") 
-                                                                 MP_TAC))
-                                                |> THEN 
-                                                <| DISCH_THEN
-                                                       (MP_TAC 
-                                                        << AP_TERM
-                                                               (parse_term @"ABS_prod:(A->B->bool)->A#B"))
-                                                |> THEN 
-                                                <| REWRITE_TAC 
-                                                       [CONJUNCT1 prod_tybij]
-                                                |> THEN <| DISCH_THEN SUBST1_TAC
-                                                |> THEN 
-                                                <| MAP_EVERY EXISTS_TAC 
-                                                       [(parse_term @"a:A")
-                                                        (parse_term @"b:B")]
-                                                |> THEN <| REFL_TAC)
+    prove((parse_term @"!p:A#B. ?x y. p = x,y"), 
+          GEN_TAC
+          |> THEN <| REWRITE_TAC [COMMA_DEF]
+          |> THEN <| MP_TAC(SPEC (parse_term @"REP_prod p :A->B->bool") (CONJUNCT2 prod_tybij))
+          |> THEN <| REWRITE_TAC [CONJUNCT1 prod_tybij]
+          |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term @"a:A") (X_CHOOSE_THEN (parse_term @"b:B") MP_TAC))
+          |> THEN <| DISCH_THEN(MP_TAC << AP_TERM(parse_term @"ABS_prod:(A->B->bool)->A#B"))
+          |> THEN <| REWRITE_TAC [CONJUNCT1 prod_tybij]
+          |> THEN <| DISCH_THEN SUBST1_TAC
+          |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"a:A");
+                                           (parse_term @"b:B")];;
+          |> THEN <| REFL_TAC)
 
 let FST = 
     prove
@@ -167,7 +146,7 @@ let FST =
          |> THEN <| STRIP_TAC
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| EXISTS_TAC(parse_term @"y:B")
-         |> THEN <| ASM_REWRITE_TAC [])
+         |> THEN <| ASM_REWRITE_TAC []);;
 
 let SND = 
     prove
@@ -182,16 +161,15 @@ let SND =
          |> THEN <| STRIP_TAC
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| EXISTS_TAC(parse_term @"x:A")
-         |> THEN <| ASM_REWRITE_TAC [])
+         |> THEN <| ASM_REWRITE_TAC []);;
 
 let PAIR = 
     prove
         ((parse_term @"!x:A#B. FST x,SND x = x"), 
          GEN_TAC
-         |> THEN 
-         <| (X_CHOOSE_THEN (parse_term @"a:A") 
-                 (X_CHOOSE_THEN (parse_term @"b:B") SUBST1_TAC) 
-                 (SPEC (parse_term @"x:A#B") PAIR_SURJECTIVE))
+         |> THEN <| (X_CHOOSE_THEN (parse_term @"a:A") 
+                        (X_CHOOSE_THEN (parse_term @"b:B") SUBST1_TAC) 
+                        (SPEC (parse_term @"x:A#B") PAIR_SURJECTIVE))
          |> THEN <| REWRITE_TAC [FST; SND])
 
 let pair_INDUCT = 
@@ -211,6 +189,7 @@ let pair_RECURSION =
 (* ------------------------------------------------------------------------- *)
 (* Syntax operations.                                                        *)
 (* ------------------------------------------------------------------------- *)
+
 /// Tests a term to see if it is a pair.
 let is_pair = is_binary ","
 
@@ -277,12 +256,13 @@ let new_definition =
             let threps = map (SYM << PURE_REWRITE_CONV [FST; SND]) xreps
             let th3 = TRANS th2 (SYM(SUBS_CONV threps r))
             let th4 = GEN_ALL(GENL avs th3)
-            the_definitions := th4 :: (!the_definitions) // to be checked
+            the_definitions := th4 :: (!the_definitions)
             th4
 
 (* ------------------------------------------------------------------------- *)
 (* A few more useful definitions.                                            *)
 (* ------------------------------------------------------------------------- *)
+
 let CURRY_DEF = new_definition(parse_term @"CURRY(f:A#B->C) x y = f(x,y)")
 
 let UNCURRY_DEF = 
@@ -295,6 +275,7 @@ let PASSOC_DEF =
 (* ------------------------------------------------------------------------- *)
 (* Analog of ABS_CONV for generalized abstraction.                           *)
 (* ------------------------------------------------------------------------- *)
+
 /// Applies a conversion to the Choice.get <| body of a generalized abstraction.
 let GABS_CONV conv tm = 
     if is_abs tm
@@ -308,6 +289,7 @@ let GABS_CONV conv tm =
 (* ------------------------------------------------------------------------- *)
 (* General beta-conversion over linear pattern of nested constructors.       *)
 (* ------------------------------------------------------------------------- *)
+
 /// Beta-reduces general beta-redexes (e.g. paired ones).
 let GEN_BETA_CONV = 
     let projection_cache = ref []
@@ -379,7 +361,7 @@ let GEN_BETA_CONV =
                             create_iterated_projections(Choice.get <| lhand(concl <| Choice.get arth))
                         map (CONV_RULE(RAND_CONV(SUBS_CONV [arth]))) sths) arths
             unions' equals_thm ths
-    let GEN_BETA_CONV1 tm = //I don't know if using the same name of the function to be defined can cause problems
+    let GEN_BETA_CONV tm =
         try 
             BETA_CONV tm
         with
@@ -402,20 +384,20 @@ let GEN_BETA_CONV =
                 CONV_RULE (funpow (length avs + 1) BINDER_CONV GEQ_CONV) th4
             let th6 = CONV_RULE BETA_CONV (GABS_RULE th5)
             INSTANTIATE instn (DEGEQ_RULE(SPEC_ALL th6))
-    GEN_BETA_CONV1
-
+    GEN_BETA_CONV
 
 (* ------------------------------------------------------------------------- *)
 (* Add this to the basic "rewrites" and pairs to the inductive type store.   *)
 (* ------------------------------------------------------------------------- *)
 
-extend_basic_convs ("GEN_BETA_CONV", ((parse_term @"GABS (\a. b) c"), GEN_BETA_CONV))
+extend_basic_convs ("GEN_BETA_CONV", ((parse_term @"GABS (\a. b) c"), GEN_BETA_CONV)) |> ignore
 
 inductive_type_store := ("prod", (1, pair_INDUCT, pair_RECURSION)) :: (!inductive_type_store)
 
 (* ------------------------------------------------------------------------- *)
 (* Convenient rules to eliminate binders over pairs.                         *)
 (* ------------------------------------------------------------------------- *)
+
 let FORALL_PAIR_THM = 
     prove((parse_term @"!P. (!p. P p) <=> (!p1 p2. P(p1,p2))"), MESON_TAC [PAIR])
 
@@ -539,6 +521,7 @@ let EXISTS_TRIPLED_THM =
 (* ------------------------------------------------------------------------- *)
 (* Expansion of a let-term.                                                  *)
 (* ------------------------------------------------------------------------- *)
+
 /// Evaluates let-terms in the HOL logic.
 let let_CONV = 
     let let1_CONV = REWR_CONV LET_DEF

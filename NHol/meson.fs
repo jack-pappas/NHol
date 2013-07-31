@@ -679,16 +679,20 @@ let GEN_MESON_TAC =
                 mk_contraposes (n + 1) th (used @ [h]) t (nw :: sofar)
 
         let fol_of_hol_clause th = 
-            let lconsts = freesl(hyp <| Choice.get th)
-            let tm = concl <| Choice.get th
-            let hlits = disjuncts tm
-            let flits = map (Choice.get << fol_of_literal [] lconsts) hlits
-            let basics = mk_contraposes 0 th [] flits []
-            if forall (fun (p, _) -> p < 0) flits then ((map mk_negated flits, (1, [])), (-1, th)) :: basics
-            else basics
+            choice {
+                let! lconsts = Choice.map (freesl << hyp) th
+                let! tm = Choice.map concl th
+                let hlits = disjuncts tm
+                let! flits = Choice.List.map (fol_of_literal [] lconsts) hlits
+                let basics = mk_contraposes 0 th [] flits []
+                if forall (fun (p, _) -> p < 0) flits then 
+                    return ((map mk_negated flits, (1, [])), (-1, th)) :: basics
+                else 
+                    return basics
+            }
 
         fun thms -> 
-            let rawrules = itlist (union' eqt << fol_of_hol_clause) thms []
+            let rawrules = itlist (union' eqt << Choice.get << fol_of_hol_clause) thms []
             let prs = setify(map (fst << snd << fst) rawrules)
             let prules = map (fun t -> t, filter ((=) t << fst << snd << fst) rawrules) prs
             let srules = sort (fun (p, _) (q, _) -> abs(p) <= abs(q)) prules
@@ -711,40 +715,45 @@ let GEN_MESON_TAC =
         let DISJ_AC = AC DISJ_ACI
         let imp_CONV = REWR_CONV(TAUT(parse_term @"a \/ b <=> ~b ==> a"))
         let push_CONV = 
-            GEN_REWRITE_CONV TOP_SWEEP_CONV [TAUT
-                                                 (parse_term @"~(a \/ b) <=> ~a /\ ~b")
-                                             TAUT(parse_term @"~(~a) <=> a")]
+            GEN_REWRITE_CONV TOP_SWEEP_CONV [TAUT (parse_term @"~(a \/ b) <=> ~a /\ ~b");
+                                             TAUT (parse_term @"~(~a) <=> a")]
         let pull_CONV = 
             GEN_REWRITE_CONV DEPTH_CONV 
                 [TAUT(parse_term @"~a \/ ~b <=> ~(a /\ b)")]
+
         let imf_CONV = REWR_CONV(TAUT(parse_term @"~p <=> p ==> F"))
         let memory = ref []
         let clear_contrapos_cache() = memory := []
+
         let make_hol_contrapos(n, th) = 
-            let tm = concl <| Choice.get th
-            let key = (n, tm)
-            match assoc key !memory with
-            | Some x -> x
-            | None ->
-                if n < 0
-                then CONV_RULE (pull_CONV
-                                |> THENC <| imf_CONV) th
-                else 
-                    let djs = disjuncts tm
-                    let acth = 
-                        if n = 0
-                        then th
-                        else 
-                            let ldjs, rdjs = chop_list n djs
-                            let ndjs = (hd rdjs) :: (ldjs @ (tl rdjs))
-                            EQ_MP (DISJ_AC(Choice.get <| mk_eq(tm, list_mk_disj ndjs))) th
-                    let fth = 
-                        if length djs = 1
-                        then acth
-                        else CONV_RULE (imp_CONV
-                                        |> THENC <| push_CONV) acth
-                    (memory := (key, fth) :: (!memory)
-                     fth)
+            choice {
+                let! tm = Choice.map concl th
+                let key = (n, tm)
+                match assoc key !memory with
+                | Some th' -> return! th'
+                | None ->
+                    if n < 0 then 
+                        return! CONV_RULE (pull_CONV
+                                           |> THENC <| imf_CONV) th
+                    else 
+                        let djs = disjuncts tm
+                        let acth =
+                            choice { 
+                                if n = 0 then 
+                                    return! th
+                                else 
+                                    let ldjs, rdjs = chop_list n djs
+                                    let ndjs = (hd rdjs) :: (ldjs @ (tl rdjs))
+                                    let! tm1 = mk_eq(tm, list_mk_disj ndjs)
+                                    return! EQ_MP (DISJ_AC tm1) th
+                            }
+                        let fth = 
+                            if length djs = 1 then acth
+                            else CONV_RULE (imp_CONV
+                                            |> THENC <| push_CONV) acth
+                        memory := (key, fth) :: (!memory)
+                        return! fth
+            }
         clear_contrapos_cache, make_hol_contrapos
 
     (* ----------------------------------------------------------------------- *)
@@ -790,19 +799,21 @@ let GEN_MESON_TAC =
         let eq_thms = 
             (CONJUNCTS << prove)((parse_term @"(x:A = x) /\
         (~(x:A = y) \/ ~(x = z) \/ (y = z))"), REWRITE_TAC []
-                                               |> THEN 
-                                               <| ASM_CASES_TAC
-                                                      (parse_term @"x:A = y")
+                                               |> THEN <| ASM_CASES_TAC (parse_term @"x:A = y")
                                                |> THEN <| ASM_REWRITE_TAC []
                                                |> THEN <| CONV_TAC TAUT)
 
         let imp_elim_CONV = REWR_CONV(TAUT(parse_term @"(a ==> b) <=> ~a \/ b"))
         let eq_elim_RULE = MATCH_MP(TAUT(parse_term @"(a <=> b) ==> b \/ ~a"))
-        let veq_tm = Choice.get <| rator(Choice.get <| rator(concl <| Choice.get(hd eq_thms)))
+        let veq_tm = (Choice.bind rator << Choice.bind rator << Choice.map concl) (hd eq_thms)
 
         let create_equivalence_axioms(eq, _) = 
-            let tyins = Choice.get <| type_match (Choice.get <| type_of veq_tm) (Choice.get <| type_of eq) []
-            map (INST_TYPE tyins) eq_thms
+            choice {
+                let! ty1 = Choice.bind type_of veq_tm
+                let! ty2 = type_of eq  
+                let! tyins = type_match ty1 ty2 []
+                return map (INST_TYPE tyins) eq_thms
+            }
 
         let rec tm_consts tm acc = 
             let fn, args = strip_comb tm
@@ -811,86 +822,97 @@ let GEN_MESON_TAC =
 
         (* OPTIMIZE :   Modify the code below to use option instead of try/catch. *)
         let rec fm_consts tm ((preds, funs) as acc) = 
-            try 
-                fm_consts (snd(Choice.get <| dest_forall tm)) acc
-            with
-            | Failure _ -> 
-                try 
-                    fm_consts (snd(Choice.get <| dest_exists tm)) acc
-                with
-                | Failure _ -> 
-                    try 
-                        let l, r = Choice.get <| dest_conj tm
-                        fm_consts l (fm_consts r acc)
-                    with
-                    | Failure _ -> 
-                        try 
-                            let l, r = Choice.get <| dest_disj tm
-                            fm_consts l (fm_consts r acc)
-                        with
-                        | Failure _ -> 
-                            try 
-                                let l, r = Choice.get <| dest_imp tm
-                                fm_consts l (fm_consts r acc)
-                            with
-                            | Failure _ -> 
-                                try 
-                                    fm_consts (Choice.get <| dest_neg tm) acc
-                                with
-                                | Failure _ -> 
-                                    try 
-                                        let l, r = Choice.get <| dest_eq tm
-                                        if Choice.get <| type_of l = bool_ty
-                                        then fm_consts r (fm_consts l acc)
-                                        else failwith "atomic equality"
-                                    with
-                                    | Failure _ -> 
-                                        let pred, args = strip_comb tm
-                                        if args = []
-                                        then acc
+            choice {
+                let! (_, tm1) = dest_forall tm
+                return! fm_consts tm1 acc
+            }
+            |> Choice.bindError (fun _ ->
+                choice {
+                    let! (_, tm1) = dest_exists tm 
+                    return! fm_consts tm1 acc
+                }
+                |> Choice.bindError (fun _ ->
+                    choice { 
+                        let! l, r = dest_conj tm
+                        let! r' = fm_consts r acc
+                        return! fm_consts l r'
+                    }
+                    |> Choice.bindError (fun _ ->
+                        choice { 
+                            let! l, r = dest_disj tm
+                            let! r' = fm_consts r acc
+                            return! fm_consts l r'
+                        }
+                        |> Choice.bindError (fun _ ->
+                            choice { 
+                                let! l, r = dest_imp tm
+                                let! r' = fm_consts r acc
+                                return! fm_consts l r'
+                            }
+                            |> Choice.bindError (fun _ ->
+                                choice { 
+                                    let! tm1 = dest_neg tm
+                                    return! fm_consts tm1 acc
+                                }
+                                |> Choice.bindError (fun _ ->
+                                    choice { 
+                                        let! l, r = dest_eq tm
+                                        let! ty1 = type_of l
+                                        if ty1 = bool_ty then
+                                            let! l' = fm_consts l acc
+                                            return! fm_consts r l'
                                         else 
-                                            insert (pred, length args) preds, 
-                                            itlist tm_consts args funs
+                                            return! Choice.failwith "atomic equality"
+                                    }
+                                    |> Choice.bindError (fun _ ->
+                                        let pred, args = strip_comb tm
+                                        if args = [] then 
+                                            Choice.result acc
+                                        else
+                                            Choice.result(insert (pred, length args) preds, itlist tm_consts args funs))))))))
 
         let create_congruence_axiom pflag (tm, len) = 
-            let atys, rty = 
-                splitlist (fun ty -> 
-                        let op, l = Choice.get <| dest_type ty
-                        if op = "fun"
-                        then Some (hd l, hd(tl l))
-                        else None) (Choice.get <| type_of tm)
-            let ctys = fst(chop_list len atys)
-            let largs = map genvar ctys
-            let rargs = map genvar ctys
-            let th1 = 
-                rev_itlist (C(curry MK_COMB)) 
-                    (map (ASSUME << Choice.get << mk_eq) (zip largs rargs)) (REFL tm)
-            let th2 = 
-                if pflag
-                then eq_elim_RULE th1
-                else th1
-            itlist (fun e th -> CONV_RULE imp_elim_CONV (DISCH e th)) (hyp <| Choice.get th2) 
-                th2
+            choice {
+                let! ty1 = type_of tm
+                let atys, rty = 
+                    splitlist (fun ty -> 
+                        choice {
+                            let! op, l = dest_type ty
+                            if op = "fun" then 
+                                return (hd l, hd(tl l))
+                            else
+                                return! Choice.fail()
+                        } |> Choice.toOption) ty1
+
+                let ctys = fst(chop_list len atys)
+                let largs = map genvar ctys
+                let rargs = map genvar ctys
+                let th1 = rev_itlist (C(curry MK_COMB)) (map (ASSUME << Choice.get << mk_eq) (zip largs rargs)) (REFL tm)
+                let th2 = if pflag then eq_elim_RULE th1 else th1
+                let! tms = Choice.map hyp th2
+                return! itlist (fun e th -> CONV_RULE imp_elim_CONV (DISCH e th)) tms th2
+            }
+
         fun tms -> 
-            let preds, funs = itlist fm_consts tms ([], [])
-            let eqs0, noneqs = 
-                partition (fun (t, _) -> is_const t && fst(Choice.get <| dest_const t) = "=") 
-                    preds
-            if eqs0 = []
-            then []
-            else 
-                let pcongs = map (create_congruence_axiom true) noneqs
-                let fcongs = map (create_congruence_axiom false) funs
-                let preds1, _ = 
-                    itlist fm_consts (map (concl << Choice.get) (pcongs @ fcongs)) ([], [])
-                let eqs1 = 
-                    filter (fun (t, _) -> is_const t && fst(Choice.get <| dest_const t) = "=") 
-                        preds1
-                let eqs = union eqs0 eqs1
-                let equivs = 
-                    itlist (union' equals_thm << create_equivalence_axioms) eqs 
-                        []
-                equivs @ pcongs @ fcongs
+            choice {
+                let! preds, funs = Choice.List.fold (fun acc x -> fm_consts x acc) ([], []) tms
+                let eqs0, noneqs = partition (fun (t, _) -> is_const t && fst(Choice.get <| dest_const t) = "=") preds
+                if eqs0 = [] then 
+                    return []
+                else 
+                    let pcongs = map (create_congruence_axiom true) noneqs
+                    let fcongs = map (create_congruence_axiom false) funs
+                    let! tms1 = Choice.List.map (Choice.map concl) (pcongs @ fcongs)
+                    let! preds1, _ = Choice.List.fold (fun acc x -> fm_consts x acc) ([], []) tms1
+                    let eqs1 = filter (fun (t, _) -> 
+                                    match dest_const t with
+                                    | Success (s, _) -> is_const t && s = "="
+                                    | Error _ -> false) preds1
+
+                    let eqs = union eqs0 eqs1
+                    let equivs = itlist (union' equals_thm << Choice.get << create_equivalence_axioms) eqs []
+                    return equivs @ pcongs @ fcongs
+            }
 
     (* ----------------------------------------------------------------------- *)
     (* Brand's transformation.                                                 *)
@@ -902,6 +924,7 @@ let GEN_MESON_TAC =
             else 
                 let fn, args = strip_comb tm
                 itlist (subterms_refl lconsts) args acc
+
         and subterms_refl lconsts tm acc = 
             if is_var tm then 
                 if mem tm lconsts then insert tm acc
@@ -910,80 +933,104 @@ let GEN_MESON_TAC =
             else 
                 let fn, args = strip_comb tm
                 itlist (subterms_refl lconsts) args (insert tm acc)
+
         let CLAUSIFY = CONV_RULE(REWR_CONV(TAUT(parse_term @"a ==> b <=> ~a \/ b")))
+
         let rec BRAND tms th = 
-            if tms = [] then th
-            else 
-                let tm = hd tms
-                let gv = genvar(Choice.get <| type_of tm)
-                let eq = Choice.get <| mk_eq(gv, tm)
-                let th' = CLAUSIFY(DISCH eq (SUBS [SYM(ASSUME eq)] th))
-                let tms' = map (Choice.get << subst [gv, tm]) (tl tms)
-                BRAND tms' th'
-        let BRAND_CONGS th = 
-            let lconsts = freesl(hyp <| Choice.get th)
-            let lits = disjuncts(concl <| Choice.get th)
-            let atoms = 
-                map (fun t -> 
-                    try 
-                        Choice.get <| dest_neg t
-                    with
-                    | Failure _ -> t) lits
-            let eqs, noneqs = 
-                partition (fun t -> 
-                    try 
-                        fst(Choice.get <| dest_const(fst(strip_comb t))) = "="
-                    with
-                    | Failure _ -> false) atoms
-            let acc = itlist (subterms_irrefl lconsts) noneqs []
-            let uts = itlist (itlist(subterms_irrefl lconsts) << snd << strip_comb) eqs acc
-            let sts = sort (fun s t -> not(free_in s t)) uts
-            BRAND sts th
-        let BRANDE th = 
-            let tm = concl <| Choice.get th
-            let l, r = Choice.get <| dest_eq tm
-            let gv = genvar(Choice.get <| type_of l)
-            let eq = Choice.get <| mk_eq(r, gv)
-            CLAUSIFY(DISCH eq (EQ_MP (AP_TERM (Choice.get <| rator tm) (ASSUME eq)) th))
-        let LDISJ_CASES th lth rth = 
-            DISJ_CASES th (DISJ1 lth (concl <| Choice.get rth)) (DISJ2 (concl <| Choice.get lth) rth)
-        let ASSOCIATE = CONV_RULE(REWR_CONV(GSYM DISJ_ASSOC))
-        let rec BRAND_TRANS th = 
-            let tm = concl <| Choice.get th
-            try 
-                let l, r = Choice.get <| dest_disj tm
-                if is_eq l then 
-                    let lth = ASSUME l
-                    let lth1 = BRANDE lth
-                    let lth2 = BRANDE(SYM lth)
-                    let rth = BRAND_TRANS(ASSUME r)
-                    map (ASSOCIATE << LDISJ_CASES th lth1) rth @ map (ASSOCIATE << LDISJ_CASES th lth2) rth
+            choice {
+                if tms = [] then 
+                    return! th
                 else 
-                    let rth = BRAND_TRANS(ASSUME r)
-                    map (LDISJ_CASES th (ASSUME l)) rth
-            with
-            | Failure _ -> 
-                if is_eq tm then 
-                    [BRANDE th;
-                     BRANDE(SYM th)]
-                else [th]
+                    let tm = hd tms
+                    let! gv = Choice.map genvar (type_of tm)
+                    let! eq = mk_eq(gv, tm)
+                    let th' = CLAUSIFY(DISCH eq (SUBS [SYM(ASSUME eq)] th))
+                    let! tms' = Choice.List.map (subst [gv, tm]) (tl tms)
+                    return! BRAND tms' th'
+            }
+
+        let BRAND_CONGS th = 
+            choice {
+                let! lconsts = Choice.map (freesl << hyp) th
+                let! lits = Choice.map (disjuncts << concl) th
+                let! atoms = 
+                    Choice.List.map (fun t -> 
+                        dest_neg t
+                        |> Choice.bindError (fun _ -> Choice.result t)) lits
+
+                let eqs, noneqs = 
+                    partition (fun t -> 
+                        match dest_const(fst(strip_comb t)) with
+                        | Success (s, _) -> s = "="
+                        | Error _ -> false) atoms
+
+                let acc = itlist (subterms_irrefl lconsts) noneqs []
+                let uts = itlist (itlist(subterms_irrefl lconsts) << snd << strip_comb) eqs acc
+                let sts = sort (fun s t -> not(free_in s t)) uts
+                return! BRAND sts th
+            }
+
+        let BRANDE th = 
+            choice {
+                let! tm = Choice.map concl th
+                let! l, r = dest_eq tm
+                let! gv = Choice.map genvar (type_of l)
+                let! eq = mk_eq(r, gv)
+                let! tm1 = rator tm
+                return! CLAUSIFY(DISCH eq (EQ_MP (AP_TERM tm1 (ASSUME eq)) th))
+            }
+
+        let LDISJ_CASES th lth rth = 
+            choice {
+                let! tm1 = Choice.map concl rth
+                let! tm2 = Choice.map concl lth
+                return! DISJ_CASES th (DISJ1 lth tm1) (DISJ2 tm2 rth)
+            }
+
+        let ASSOCIATE = CONV_RULE(REWR_CONV(GSYM DISJ_ASSOC))
+
+        let rec BRAND_TRANS th = 
+            choice {
+                let! tm = Choice.map concl th
+                return! 
+                    choice { 
+                        let! l, r = dest_disj tm
+                        if is_eq l then 
+                            let lth = ASSUME l
+                            let lth1 = BRANDE lth
+                            let lth2 = BRANDE(SYM lth)
+                            let! rth = BRAND_TRANS(ASSUME r)
+                            return map (ASSOCIATE << LDISJ_CASES th lth1) rth @ map (ASSOCIATE << LDISJ_CASES th lth2) rth
+                        else 
+                            let! rth = BRAND_TRANS(ASSUME r)
+                            return map (LDISJ_CASES th (ASSUME l)) rth
+                    }
+                    |> Choice.bindError (fun _ ->
+                        if is_eq tm then 
+                            Choice.result [BRANDE th; BRANDE(SYM th)]
+                        else Choice.result [th])
+            }
+
         let find_eqs = 
-            Choice.get << find_terms(fun t -> 
-                              try 
-                                  fst(Choice.get <| dest_const t) = "="
-                              with
-                              | Failure _ -> false)
+            find_terms(fun t -> 
+                match dest_const t with
+                | Success (s, _) -> s = "="
+                | Error _ -> false)
+
         let REFLEXATE ths = 
-            let eqs = itlist (union << find_eqs << concl << Choice.get) ths []
-            let tys = map (hd << snd << Choice.get << dest_type << snd << Choice.get << dest_const) eqs
-            let gvs = map genvar tys
-            itlist (fun v acc -> (REFL v) :: acc) gvs ths
+            choice {
+                let eqs = itlist (union << Choice.get << find_eqs << concl << Choice.get) ths []
+                let tys = map (hd << snd << Choice.get << dest_type << snd << Choice.get << dest_const) eqs
+                let gvs = map genvar tys
+                return itlist (fun v acc -> (REFL v) :: acc) gvs ths
+            }
+
         fun ths -> 
             if exists (function Success th -> (Choice.isResult << find_term is_eq << concl) th
                               | Error _ -> false) ths then 
                 let ths' = map BRAND_CONGS ths
-                let ths'' = itlist (union' equals_thm << BRAND_TRANS) ths' []
-                REFLEXATE ths''
+                let ths'' = itlist (union' equals_thm << Choice.get << BRAND_TRANS) ths' []
+                Choice.get <| REFLEXATE ths''
             else ths
 
     (* ----------------------------------------------------------------------- *)
@@ -1004,45 +1051,78 @@ let GEN_MESON_TAC =
         let setify' le eq s = uniq' eq (sort le s)
 
         let rec grab_constants tm acc = 
-            if is_forall tm || is_exists tm then grab_constants (Choice.get <| body(Choice.get <| rand tm)) acc
-            elif is_iff tm || is_imp tm || is_conj tm || is_disj tm then 
-                grab_constants (Choice.get <| rand tm) (grab_constants (Choice.get <| lhand tm) acc)
-            elif is_neg tm then grab_constants (Choice.get <| rand tm) acc
-            else union (Choice.get <| find_terms is_const tm) acc
+            choice {
+                if is_forall tm || is_exists tm then
+                    let! tm1 = Choice.bind body (rand tm)
+                    return! grab_constants tm1 acc
+                elif is_iff tm || is_imp tm || is_conj tm || is_disj tm then
+                    let! tm1 = lhand tm
+                    let! r1 = grab_constants tm1 acc
+                    let! tm2 = rand tm
+                    return! grab_constants tm2 r1
+                elif is_neg tm then
+                    let! tm1 = rand tm
+                    return! grab_constants tm1 acc
+                else
+                    let! tms = find_terms is_const tm
+                    return union tms acc
+            }
 
         let match_consts(tm1, tm2) = 
-            let s1, ty1 = Choice.get <| dest_const tm1
-            let s2, ty2 = Choice.get <| dest_const tm2
-            if s1 = s2 then Choice.get <| type_match ty1 ty2 []
-            else failwith "match_consts"
+            choice {
+                let! s1, ty1 = dest_const tm1
+                let! s2, ty2 = dest_const tm2
+                if s1 = s2 then 
+                    return! type_match ty1 ty2 []
+                else
+                    return! Choice.failwith "match_consts"
+            }
 
         let polymorph mconsts th = 
-            let tvs = 
-                subtract (Choice.get <| type_vars_in_term(concl <| Choice.get th)) 
-                    (unions(map (Choice.get << type_vars_in_term) (hyp <| Choice.get th)))
-            if tvs = [] then [th]
-            else 
-                let pconsts = grab_constants (concl <| Choice.get th) []
-                let tyins = mapfilter (Some << match_consts) (allpairs (fun x y -> x, y) pconsts mconsts)
-                let ths' = 
-                    setify' (fun th th' -> dest_thm(Choice.get th) <= dest_thm(Choice.get th')) equals_thm 
-                        (mapfilter (Some << C INST_TYPE th) tyins)
-                if ths' = [] then 
-                    (warn true "No useful-looking instantiations of lemma"
-                     [th])
-                else ths'
+            choice {
+                let! tys1 = Choice.bind (type_vars_in_term << concl) th
+                let! tms2 = Choice.map hyp th
+                let! tys3 = Choice.List.map type_vars_in_term tms2
+                let tvs = subtract tys1 (unions tys3)
+                if tvs = [] then 
+                    return [th]
+                else
+                    let! tm1 = Choice.map concl th
+                    let! pconsts = grab_constants tm1 []
+                    let tyins = mapfilter (Choice.toOption << match_consts) (allpairs (fun x y -> x, y) pconsts mconsts)
+                    let ths' = 
+                        // NOTE: it doesn't make sense to compare two exceptions
+                        setify' (fun th th' -> 
+                                match th, th' with
+                                | Success th, Success th' -> dest_thm th <= dest_thm th'
+                                | _ -> false) 
+                            equals_thm 
+                            // NOTE: the use of Some here is incorrect
+                            (mapfilter (Some << C INST_TYPE th) tyins)
+                    if ths' = [] then 
+                        warn true "No useful-looking instantiations of lemma"
+                        return [th]
+                    else 
+                        return ths'
+            }
 
         let rec polymorph_all mconsts ths acc = 
-            if ths = [] then acc
-            else 
-                let ths' = polymorph mconsts (hd ths)
-                let mconsts' = itlist grab_constants (map (concl << Choice.get) ths') mconsts
-                polymorph_all mconsts' (tl ths) (union' equals_thm ths' acc)
+            choice {
+                if ths = [] then 
+                    return acc
+                else 
+                    let! ths' = polymorph mconsts (hd ths)
+                    let! tms1 = Choice.List.map (Choice.map concl) ths'
+                    let! mconsts' = Choice.List.fold (fun acc x -> grab_constants x acc) mconsts tms1
+                    return! polymorph_all mconsts' (tl ths) (union' equals_thm ths' acc)
+            }
 
         fun ths (asl, w as gl) -> 
-            let mconsts = itlist (grab_constants << concl << Choice.get << snd) asl []
-            let ths' = polymorph_all mconsts ths []
-            MAP_EVERY ASSUME_TAC ths' gl
+            choice {
+                let! mconsts = Choice.List.fold (fun acc (_, x) -> Choice.map concl x |> Choice.bind (fun x -> grab_constants x acc)) [] asl
+                let! ths' = polymorph_all mconsts ths []
+                return! MAP_EVERY ASSUME_TAC ths' gl
+            }
 
     (* ----------------------------------------------------------------------- *)
     (* Basic HOL MESON procedure.                                              *)
@@ -1055,9 +1135,15 @@ let GEN_MESON_TAC =
             let old_dcutin = !meson_dcutin
             if !meson_depth then meson_dcutin := 100001
             else ()
-            let ths' = 
-                if !meson_brand then perform_brand_modification ths
-                else ths @ create_equality_axioms(map (concl << Choice.get) ths)
+            let! ths' = 
+                choice {
+                    if !meson_brand then 
+                        return perform_brand_modification ths
+                    else
+                        let! tms1 = Choice.List.map (Choice.map concl) ths
+                        let! tms2 = create_equality_axioms tms1
+                        return ths @ tms2
+                }
             let rules = optimize_rules(fol_of_hol_clauses ths')
             let! proof, (insts, _, _) = solve_goal rules (!meson_depth) min max inc (1, [])
             meson_dcutin := old_dcutin
