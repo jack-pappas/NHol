@@ -324,48 +324,60 @@ let GEN_BETA_CONV =
     let projection_cache = ref []
 
     let create_projections conname =
-        match assoc conname !projection_cache with
-        | Some x -> x
-        | None ->
-            let genty = Choice.get <| get_const_type conname
-            let conty = fst(Choice.get <| dest_type(repeat (Choice.toOption << Choice.map snd << dest_fun_ty) genty))
-            let _, _, rth =
-                assoc conty (!inductive_type_store)
-                |> Option.getOrFailWith "find"
-            let sth = SPEC_ALL rth
-            let evs, bod = strip_exists(concl <| Choice.get sth)
-            let cjs = conjuncts bod
-            let ourcj = 
-                Option.get <| find 
-                    ((=) conname << fst << Choice.get << dest_const << fst << strip_comb
-                     << Choice.get << rand << Choice.get << lhand << snd << strip_forall) cjs
-            let n = index ourcj cjs
-            let avs, eqn = strip_forall ourcj
-            let con', args = strip_comb(Choice.get <| rand eqn)
-            let aargs, zargs = chop_list (length avs) args
-            let gargs = map (genvar << Choice.get << type_of) zargs
-            let gcon = 
-                genvar(itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) avs (Choice.get <| type_of(Choice.get <| rand eqn)))
-            let bth = 
-                INST [list_mk_abs(aargs @ gargs, list_mk_comb(gcon, avs)), con'] 
-                    sth
-            let cth = el n (CONJUNCTS(ASSUME(snd(strip_exists(concl <| Choice.get bth)))))
-            let dth = 
-                CONV_RULE 
-                    (funpow (length avs) BINDER_CONV (RAND_CONV(BETAS_CONV))) 
-                    cth
-            let eth = 
-                SIMPLE_EXISTS (Choice.get <| rator(Choice.get <| lhand(snd(strip_forall(concl <| Choice.get dth))))) dth
-            let fth = PROVE_HYP bth (itlist SIMPLE_CHOOSE evs eth)
-            let zty = Choice.get <| type_of(Choice.get <| rand(snd(strip_forall(concl <| Choice.get dth))))
-            let mk_projector a = 
-                let ity = Choice.get <| type_of a
-                let th = 
-                    BETA_RULE(PINST [ity, zty] [list_mk_abs(avs, a), gcon] fth)
-                SYM(SPEC_ALL(SELECT_RULE th))
-            let ths = map mk_projector avs
-            (projection_cache := (conname, ths) :: (!projection_cache)
-             ths)
+        choice {
+            match assoc conname !projection_cache with
+            | Some ths -> 
+                return ths
+            | None ->
+                let! genty = get_const_type conname
+                let! (conty, _)= dest_type(repeat (Choice.toOption << Choice.map snd << dest_fun_ty) genty)
+                let! _, _, rth =
+                    assoc conty (!inductive_type_store)
+                    |> Option.toChoiceWithError "find"
+
+                let sth = SPEC_ALL rth
+                let! tm1 = Choice.map concl sth
+                let evs, bod = strip_exists tm1
+                let cjs = conjuncts bod
+                let! ourcj = 
+                    find 
+                        ((=) conname << fst << Choice.get << dest_const << fst << strip_comb
+                         << Choice.get << rand << Choice.get << lhand << snd << strip_forall) cjs
+                    |> Option.toChoiceWithError "find"
+
+                let n = index ourcj cjs
+                let avs, eqn = strip_forall ourcj
+                let! tm2 = rand eqn
+                let con', args = strip_comb tm2
+                let aargs, zargs = chop_list (length avs) args
+                let! gargs = Choice.List.map (Choice.map genvar << type_of) zargs
+                let! tms = Choice.bind type_of (rand eqn)
+                let gcon = 
+                    genvar(itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) avs tms)
+
+                let bth = INST [list_mk_abs(aargs @ gargs, list_mk_comb(gcon, avs)), con'] sth
+                let cth = el n (CONJUNCTS(ASSUME(snd(strip_exists(concl <| Choice.get bth)))))
+                let dth = CONV_RULE (funpow (length avs) BINDER_CONV (RAND_CONV(BETAS_CONV))) cth
+                let! tm3 = Choice.bind (lhand << snd << strip_forall << concl) dth
+                let! tm4 = rator tm3
+                let eth = SIMPLE_EXISTS tm4 dth
+
+                let fth = PROVE_HYP bth (itlist SIMPLE_CHOOSE evs eth)
+
+                let! tm5 = Choice.bind (rand << snd << strip_forall << concl) dth
+                let! zty = type_of tm5
+
+                let mk_projector a = 
+                    choice {
+                        let! ity = type_of a
+                        let th = BETA_RULE(PINST [ity, zty] [list_mk_abs(avs, a), gcon] fth)
+                        return! SYM(SPEC_ALL(SELECT_RULE th))
+                    }
+
+                let ths = map mk_projector avs
+                projection_cache := (conname, ths) :: (!projection_cache)
+                return ths
+        }
 
     let GEQ_CONV = REWR_CONV(GSYM GEQ_DEF)
     let DEGEQ_RULE = CONV_RULE(REWR_CONV GEQ_DEF)
@@ -378,46 +390,58 @@ let GEN_BETA_CONV =
         MATCH_MP pth
 
     let rec create_iterated_projections tm = 
-        if frees tm = []
-        then []
-        elif is_var tm
-        then [REFL tm]
-        else 
-            let con, args = strip_comb tm
-            let prjths = create_projections(fst(Choice.get <| dest_const con))
-            let atm = Choice.get <| rand(Choice.get <| rand(concl <| Choice.get(hd prjths)))
-            let instn = Choice.get <| term_match [] atm tm
-            let arths = map (INSTANTIATE instn) prjths
-            let ths = 
-                map (fun arth -> 
-                        let sths = 
-                            create_iterated_projections(Choice.get <| lhand(concl <| Choice.get arth))
-                        map (CONV_RULE(RAND_CONV(SUBS_CONV [arth]))) sths) arths
-            unions' equals_thm ths
+        choice {
+            if frees tm = [] then 
+                return []
+            elif is_var tm then 
+                return [REFL tm]
+            else 
+                let con, args = strip_comb tm
+                let! (name, _ ) = dest_const con
+                let! prjths = create_projections name
+                let! tm1 = Choice.bind (rand << concl) (hd prjths)
+                let! atm = rand tm1
+                let! instn = term_match [] atm tm
+                let arths = map (INSTANTIATE instn) prjths
+                let! ths = 
+                    Choice.List.map (fun arth -> 
+                        choice {
+                            let! tm1 = Choice.bind (lhand << concl) arth
+                            let! sths = create_iterated_projections tm1
+                            return map (CONV_RULE(RAND_CONV(SUBS_CONV [arth]))) sths
+                        }) arths
+                return unions' equals_thm ths
+        }
 
     let GEN_BETA_CONV tm =
-        try 
-            BETA_CONV tm
-        with
-        | Failure _ -> 
-            let l, r = Choice.get <| dest_comb tm
-            let vstr, bod = Choice.get <| dest_gabs l
-            let instn = Choice.get <| term_match [] vstr r
-            let prjs = create_iterated_projections vstr
-            let th1 = SUBS_CONV prjs bod
-            let bod' = Choice.get <| rand(concl <| Choice.get th1)
-            let gv = genvar(Choice.get <| type_of vstr)
-            let pat = Choice.get <| mk_abs(gv, Choice.get <| subst [gv, vstr] bod')
-            let th2 = TRANS (BETA_CONV(Choice.get <| mk_comb(pat, vstr))) (SYM th1)
-            let avs = fst(strip_forall(Choice.get <| body(Choice.get <| rand l)))
-            let th3 = GENL (fst(strip_forall(Choice.get <| body(Choice.get <| rand l)))) th2
-            let efn = genvar(Choice.get <| type_of pat)
-            let th4 = 
-                EXISTS (Choice.get <| mk_exists(efn, Choice.get <| subst [efn, pat] (concl <| Choice.get th3)), pat) th3
-            let th5 = 
-                CONV_RULE (funpow (length avs + 1) BINDER_CONV GEQ_CONV) th4
-            let th6 = CONV_RULE BETA_CONV (GABS_RULE th5)
-            INSTANTIATE instn (DEGEQ_RULE(SPEC_ALL th6))
+        BETA_CONV tm
+        |> Choice.bindError (fun _ -> 
+            choice {
+                let! l, r = dest_comb tm
+                let! vstr, bod = dest_gabs l
+                let! instn = term_match [] vstr r
+                let! prjs = create_iterated_projections vstr
+                let th1 = SUBS_CONV prjs bod
+                let! bod' = Choice.bind (rand << concl) th1
+                let! gv = Choice.map genvar (type_of vstr)
+                let! tm1 = subst [gv, vstr] bod'
+                let! pat = mk_abs(gv, tm1)
+                let! tm2 = mk_comb(pat, vstr)
+                let th2 = TRANS (BETA_CONV tm2) (SYM th1)
+                let! tm3 = Choice.bind body (rand l)
+                let avs = fst(strip_forall tm3)
+                let! tm4 = Choice.bind body (rand l)
+                let tms = fst(strip_forall tm4)
+                let th3 = GENL tms th2
+                let! efn = Choice.map genvar (type_of pat)
+                let! tm5 = Choice.map concl th3
+                let! tm6 = subst [efn, pat] tm5
+                let! tm7 = mk_exists(efn, tm6)
+                let th4 = EXISTS (tm7, pat) th3
+                let th5 = CONV_RULE (funpow (length avs + 1) BINDER_CONV GEQ_CONV) th4
+                let th6 = CONV_RULE BETA_CONV (GABS_RULE th5)
+                return! INSTANTIATE instn (DEGEQ_RULE(SPEC_ALL th6))
+            })
     GEN_BETA_CONV
 
 (* ------------------------------------------------------------------------- *)
