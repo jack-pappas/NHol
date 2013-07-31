@@ -508,11 +508,11 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
 
 /// Convert a term to negation normal form.
 let NNF_CONV = 
-    (GEN_NNF_CONV false (ALL_CONV, fun t -> REFL t, REFL(Choice.get <| mk_neg t)) : conv)
+    (GEN_NNF_CONV false (ALL_CONV, fun t -> REFL t, Choice.bind REFL (mk_neg t)) : conv)
 
 /// Convert a term to negation normal form.
 let NNFC_CONV = 
-    (GEN_NNF_CONV true (ALL_CONV, fun t -> REFL t, REFL(Choice.get <| mk_neg t)) : conv)
+    (GEN_NNF_CONV true (ALL_CONV, fun t -> REFL t, Choice.bind REFL (mk_neg t)) : conv)
 
 (* ------------------------------------------------------------------------- *)
 (* Skolemize a term already in NNF (doesn't matter if it's not prenex).      *)
@@ -560,44 +560,58 @@ let WEAK_DNF_CONV, DNF_CONV =
     let c_tm = (parse_term @"c:bool")
 
     let rec distribute tm = 
-        match tm with
-        | Comb(Comb(Const("/\\", _), a), Comb(Comb(Const("\\/", _), b), c)) -> 
-            let th = 
-                INST [a, a_tm
-                      b, b_tm
-                      c, c_tm] pth1
-            TRANS th (BINOP_CONV distribute (Choice.get <| rand(concl <| Choice.get th)))
-        | Comb(Comb(Const("/\\", _), Comb(Comb(Const("\\/", _), a), b)), c) -> 
-            let th = INST [a, a_tm; b, b_tm; c, c_tm] pth2
-            TRANS th (BINOP_CONV distribute (Choice.get <| rand(concl <| Choice.get th)))
-        | _ -> REFL tm
+        choice {
+            match tm with
+            | Comb(Comb(Const("/\\", _), a), Comb(Comb(Const("\\/", _), b), c)) -> 
+                let th = INST [a, a_tm; b, b_tm; c, c_tm] pth1
+                let! tm1 = Choice.bind (rand << concl) th
+                return! TRANS th (BINOP_CONV distribute tm1)
+            | Comb(Comb(Const("/\\", _), Comb(Comb(Const("\\/", _), a), b)), c) -> 
+                let th = INST [a, a_tm; b, b_tm; c, c_tm] pth2
+                let! tm1 = Choice.bind (rand << concl) th
+                return! TRANS th (BINOP_CONV distribute tm1)
+            | _ -> 
+                return! REFL tm
+        }
 
     let strengthen = DEPTH_BINOP_CONV (parse_term @"(\/)") CONJ_CANON_CONV
                      |> THENC <| DISJ_CANON_CONV
 
     let rec weakdnf tm = 
-        match tm with
-        | Comb(Const("!", _), Abs(_, _)) | Comb(Const("?", _), Abs(_, _)) -> 
-            BINDER_CONV weakdnf tm
-        | Comb(Comb(Const("\\/", _), _), _) -> BINOP_CONV weakdnf tm
-        | Comb(Comb(Const("/\\", _) as op, l), r) -> 
-            let th = MK_COMB(AP_TERM op (weakdnf l), weakdnf r)
-            TRANS th (distribute(Choice.get <| rand(concl <| Choice.get th)))
-        | _ -> REFL tm
+        choice {
+            match tm with
+            | Comb(Const("!", _), Abs(_, _)) | Comb(Const("?", _), Abs(_, _)) -> 
+                return! BINDER_CONV weakdnf tm
+            | Comb(Comb(Const("\\/", _), _), _) -> 
+                return! BINOP_CONV weakdnf tm
+            | Comb(Comb(Const("/\\", _) as op, l), r) -> 
+                let th = MK_COMB(AP_TERM op (weakdnf l), weakdnf r)
+                let th1 = (Choice.bind distribute << Choice.bind rand << Choice.map concl) th
+                return! TRANS th th1
+            | _ -> 
+                return! REFL tm
+        }
 
     and substrongdnf tm = 
-        match tm with
-        | Comb(Const("!", _), Abs(_, _)) | Comb(Const("?", _), Abs(_, _)) -> 
-            BINDER_CONV strongdnf tm
-        | Comb(Comb(Const("\\/", _), _), _) -> BINOP_CONV substrongdnf tm
-        | Comb(Comb(Const("/\\", _) as op, l), r) -> 
-            let th = MK_COMB(AP_TERM op (substrongdnf l), substrongdnf r)
-            TRANS th (distribute(Choice.get <| rand(concl <| Choice.get th)))
-        | _ -> REFL tm
+        choice {
+            match tm with
+            | Comb(Const("!", _), Abs(_, _)) | Comb(Const("?", _), Abs(_, _)) -> 
+                return! BINDER_CONV strongdnf tm
+            | Comb(Comb(Const("\\/", _), _), _) -> 
+                return! BINOP_CONV substrongdnf tm
+            | Comb(Comb(Const("/\\", _) as op, l), r) -> 
+                let th = MK_COMB(AP_TERM op (substrongdnf l), substrongdnf r)
+                return! TRANS th (distribute(Choice.get <| rand(concl <| Choice.get th)))
+            | _ -> 
+                return! REFL tm
+        }
 
     and strongdnf tm = 
-        let th = substrongdnf tm
-        TRANS th (strengthen(Choice.get <| rand(concl <| Choice.get th)))
+        choice {
+            let th = substrongdnf tm
+            let! tm1 = Choice.bind (rand << concl) th
+            return! TRANS th (strengthen tm1)
+        }
 
     weakdnf, strongdnf
 
@@ -615,47 +629,60 @@ let WEAK_CNF_CONV, CNF_CONV =
     let c_tm = (parse_term @"c:bool")
 
     let rec distribute tm = 
-        match tm with
-        | Comb(Comb(Const("\\/", _), a), Comb(Comb(Const("/\\", _), b), c)) -> 
-            let th = 
-                INST [a, a_tm
-                      b, b_tm
-                      c, c_tm] pth1
-            TRANS th (BINOP_CONV distribute (Choice.get <| rand(concl <| Choice.get th)))
-        | Comb(Comb(Const("\\/", _), Comb(Comb(Const("/\\", _), a), b)), c) -> 
-            let th = 
-                INST [a, a_tm
-                      b, b_tm
-                      c, c_tm] pth2
-            TRANS th (BINOP_CONV distribute (Choice.get <| rand(concl <| Choice.get th)))
-        | _ -> REFL tm
+        choice {
+            match tm with
+            | Comb(Comb(Const("\\/", _), a), Comb(Comb(Const("/\\", _), b), c)) -> 
+                let th = INST [a, a_tm; b, b_tm; c, c_tm] pth1
+                let! tm1 = Choice.bind (rand << concl) th
+                return! TRANS th (BINOP_CONV distribute tm1)
+            | Comb(Comb(Const("\\/", _), Comb(Comb(Const("/\\", _), a), b)), c) -> 
+                let th = INST [a, a_tm; b, b_tm; c, c_tm] pth2
+                let! tm1 = Choice.bind (rand << concl) th
+                return! TRANS th (BINOP_CONV distribute tm1)
+            | _ -> 
+                return! REFL tm
+        }
 
     let strengthen = DEPTH_BINOP_CONV (parse_term @"(/\)") DISJ_CANON_CONV
                      |> THENC <| CONJ_CANON_CONV
 
     let rec weakcnf tm = 
-        match tm with
-        | Comb(Const("!", _), Abs(_, _)) | Comb(Const("?", _), Abs(_, _)) -> 
-            BINDER_CONV weakcnf tm
-        | Comb(Comb(Const("/\\", _), _), _) -> BINOP_CONV weakcnf tm
-        | Comb(Comb(Const("\\/", _) as op, l), r) -> 
-            let th = MK_COMB(AP_TERM op (weakcnf l), weakcnf r)
-            TRANS th (distribute(Choice.get <| rand(concl <| Choice.get th)))
-        | _ -> REFL tm
+        choice {
+            match tm with
+            | Comb(Const("!", _), Abs(_, _)) | Comb(Const("?", _), Abs(_, _)) -> 
+                return! BINDER_CONV weakcnf tm
+            | Comb(Comb(Const("/\\", _), _), _) -> 
+                return! BINOP_CONV weakcnf tm
+            | Comb(Comb(Const("\\/", _) as op, l), r) -> 
+                let th = MK_COMB(AP_TERM op (weakcnf l), weakcnf r)
+                let! tm1 = Choice.bind (rand << concl) th
+                return! TRANS th (distribute tm1)
+            | _ -> 
+                return! REFL tm
+        }
 
     and substrongcnf tm = 
-        match tm with
-        | Comb(Const("!", _), Abs(_, _)) | Comb(Const("?", _), Abs(_, _)) -> 
-            BINDER_CONV strongcnf tm
-        | Comb(Comb(Const("/\\", _), _), _) -> BINOP_CONV substrongcnf tm
-        | Comb(Comb(Const("\\/", _) as op, l), r) -> 
-            let th = MK_COMB(AP_TERM op (substrongcnf l), substrongcnf r)
-            TRANS th (distribute(Choice.get <| rand(concl <| Choice.get th)))
-        | _ -> REFL tm
+        choice {
+            match tm with
+            | Comb(Const("!", _), Abs(_, _)) | Comb(Const("?", _), Abs(_, _)) -> 
+                return! BINDER_CONV strongcnf tm
+            | Comb(Comb(Const("/\\", _), _), _) -> 
+                return! BINOP_CONV substrongcnf tm
+            | Comb(Comb(Const("\\/", _) as op, l), r) -> 
+                let th = MK_COMB(AP_TERM op (substrongcnf l), substrongcnf r)
+                let! tm1 = Choice.bind (rand << concl) th
+                return! TRANS th (distribute tm1)
+            | _ -> 
+                return! REFL tm
+        }
+
 
     and strongcnf tm = 
-        let th = substrongcnf tm
-        TRANS th (strengthen(Choice.get <| rand(concl <| Choice.get th)))
+        choice {
+            let th = substrongcnf tm
+            let! tm1 = Choice.bind (rand << concl) th
+            return! TRANS th (strengthen tm1)
+        }
 
     weakcnf, strongcnf
 
@@ -665,26 +692,42 @@ let WEAK_CNF_CONV, CNF_CONV =
 
 /// Right-associates a term with respect to an associative binary operator.
 let ASSOC_CONV th = 
-    let th' = SYM(SPEC_ALL th)
-    let opx, yopz = Choice.get <| dest_comb(Choice.get <| rhs(concl <| Choice.get th'))
-    let op, x = Choice.get <| dest_comb opx
-    let y = Choice.get <| lhand yopz
-    let z = Choice.get <| rand yopz
+    let v =
+        choice {
+            let th' = SYM(SPEC_ALL th)
+            let! tm1 = Choice.bind (rhs << concl) th'
+            let! opx, yopz = dest_comb tm1
+            let! op, x = dest_comb opx
+            let! y = lhand yopz
+            let! z = rand yopz
+            return (th', op, x, y, z)
+        }
     let rec distrib tm = 
-        match tm with
-        | Comb(Comb(op', Comb(Comb(op'', p), q)), r) when op' = op && op'' = op -> 
-            let th1 =  INST [p, x; q, y; r, z] th'
-            let l, r' = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-            let th2 = AP_TERM l (distrib r')
-            let th3 = distrib(Choice.get <| rand(concl <| Choice.get th2))
-            TRANS th1 (TRANS th2 th3)
-        | _ -> REFL tm
+        choice {
+            let! (th', op, x, y, z) = v
+            match tm with
+            | Comb(Comb(op', Comb(Comb(op'', p), q)), r) when op' = op && op'' = op -> 
+                let th1 =  INST [p, x; q, y; r, z] th'
+                let! tm1 = Choice.bind (rand << concl) th1
+                let! l, r' = dest_comb tm1
+                let th2 = AP_TERM l (distrib r')
+                let! tm2 = Choice.bind (rand << concl) th
+                let th3 = distrib tm2
+                return! TRANS th1 (TRANS th2 th3)
+            | _ -> 
+                return! REFL tm
+        }
     let rec assoc tm = 
-        match tm with
-        | Comb(Comb(op', p) as l, q) when op' = op -> 
-            let th = AP_TERM l (assoc q)
-            TRANS th (distrib(Choice.get <| rand(concl <| Choice.get th)))
-        | _ -> REFL tm
+        choice {
+            let! (_, op, _, _, _) = v
+            match tm with
+            | Comb(Comb(op', p) as l, q) when op' = op -> 
+                let th = AP_TERM l (assoc q)
+                let! tm1 = Choice.bind (rand << concl) th
+                return! TRANS th (distrib tm1)
+            | _ -> 
+                return! REFL tm
+        }
     assoc
 
 (* ------------------------------------------------------------------------- *)
@@ -704,10 +747,8 @@ let SELECT_ELIM_TAC =
             let ptm = (parse_term @"P:A->bool")
             fun tm -> 
                 let stm, atm = Choice.get <| dest_comb tm
-                if is_const stm && fst(Choice.get <| dest_const stm) = "@"
-                then 
-                    CONV_RULE (LAND_CONV BETA_CONV) 
-                        (PINST [Choice.get <| type_of(Choice.get <| bndvar atm), aty] [atm, ptm] pth)
+                if is_const stm && fst(Choice.get <| dest_const stm) = "@" then 
+                    CONV_RULE (LAND_CONV BETA_CONV) (PINST [Choice.get <| type_of(Choice.get <| bndvar atm), aty] [atm, ptm] pth)
                 else failwith "SELECT_ELIM_THM: not a select-term"
         fun tm -> 
             PURE_REWRITE_CONV (map SELECT_ELIM_THM (Choice.get <| find_terms is_select tm)) tm
@@ -767,8 +808,7 @@ let LAMBDA_ELIM_CONV =
                 ((parse_term @"(s = \x. t x) <=> (!x. s x = t x)"), 
                  REWRITE_TAC [FUN_EQ_THM])
         let rec conv vs tm = 
-            if vs = []
-            then REFL tm
+            if vs = [] then REFL tm
             else (GEN_REWRITE_CONV I [pth]
                   |> THENC <| BINDER_CONV(conv(tl vs))) tm
         conv
@@ -861,8 +901,7 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
     let rec find_conditional fvs tm = 
         match tm with
         | Comb(s, t) -> 
-            if is_cond tm && intersect (frees(Choice.get <| lhand s)) fvs = []
-            then tm
+            if is_cond tm && intersect (frees(Choice.get <| lhand s)) fvs = [] then tm
             else 
                 (try 
                      (find_conditional fvs s)
