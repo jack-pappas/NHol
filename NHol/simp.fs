@@ -146,13 +146,16 @@ let net_of_thm rep (th : thm) net =
         let! lconsts = Choice.map (freesl << hyp) th
         let matchable x y = Choice.isResult <| term_match lconsts x y
         match tm with
-        | Comb(Comb(Const("=", _), (Abs(x, Comb(Var(s, ty) as v, x')) as l)), v') 
-            when x' = x && v' = v && not (x = v) -> 
+        | Comb(Comb(Const("=", _), (Abs(x, Comb(Var(s, ty) as v, x')) as l)), v') when x' = x && v' = v && not (x = v) -> 
             let conv tm = 
-                match tm with
-                | Abs(y, Comb(t, y')) when y = y' && not(free_in y t) -> 
-                    INSTANTIATE (Choice.get <| term_match [] v t) th
-                | _ -> failwith "REWR_CONV (ETA_AX special case)"
+                choice {
+                    match tm with
+                    | Abs(y, Comb(t, y')) when y = y' && not(free_in y t) ->
+                        let! inst = term_match [] v t
+                        return! INSTANTIATE inst th
+                    | _ -> 
+                        return! Choice.failwith "REWR_CONV (ETA_AX special case)"
+                }
             return! enter lconsts (l, (1, conv)) net
         | Comb(Comb(Const("=", _), l), r) -> 
             if rep && free_in l r then 

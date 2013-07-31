@@ -197,7 +197,7 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
     let pth_eq' = TAUT(parse_term @"(p <=> q) <=> (p \/ ~q) /\ (~p \/ q)")
     let pth_not_eq' = TAUT(parse_term @"~(p <=> q) <=> (p \/ q) /\ (~p \/ ~q)")
 
-    let pth_not_forall, pth_not_exists, pth_not_exu = 
+    let pth_triple = 
         let pth_notFuncs =
             (CONJUNCTS << prove)
               ((parse_term @"(~((!) P) <=> ?x:A. ~(P x)) /\
@@ -208,8 +208,8 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
                   |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; NOT_FORALL_THM; EXISTS_UNIQUE_DEF; DE_MORGAN_THM; NOT_IMP]
                   |> THEN <| REWRITE_TAC [CONJ_ASSOC; EQ_SYM_EQ])
         match pth_notFuncs with
-        | [pth_not_forall; pth_not_exists; pth_not_exu] -> pth_not_forall, pth_not_exists, pth_not_exu
-        | _ -> failwith "pth_notFuncs: Unhandled case."
+        | [pth_not_forall; pth_not_exists; pth_not_exu] -> Choice.result (pth_not_forall, pth_not_exists, pth_not_exu)
+        | _ -> Choice.failwith "pth_notFuncs: Unhandled case."
 
     let pth_exu = 
         prove
@@ -223,6 +223,8 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
 
     let rec NNF_DCONV cf baseconvs tm = 
         choice {
+            let! (pth_not_forall, pth_not_exists, pth_not_exu) = pth_triple
+
             match tm with
             | Comb(Comb(Const("/\\", _), l), r) -> 
                 let th_lp, th_ln = NNF_DCONV cf baseconvs l
@@ -418,6 +420,8 @@ let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) =
 
     and NNF_CONV' cf (base1, base2 as baseconvs) tm = 
         choice {
+            let! (pth_not_forall, pth_not_exists, pth_not_exu) = pth_triple
+
             match tm with
             | Comb(Comb(Const("/\\", _), l), r) -> 
                 let th_ln = NNF_CONV' cf baseconvs l
@@ -1083,8 +1087,7 @@ let rec PROP_ATOM_CONV conv tm =
     match tm with
     | Comb((Const("!", _) | Const("?", _) | Const("?!", _)), Abs(_, _)) -> 
         BINDER_CONV (PROP_ATOM_CONV conv) tm
-    | Comb(Comb((Const("/\\", _) | Const("\\/", _) 
-    | Const("==>", _) | (Const("=", Tyapp("fun", [Tyapp("bool", []); _])))), _), _) -> 
+    | Comb(Comb((Const("/\\", _) | Const("\\/", _) | Const("==>", _) | (Const("=", Tyapp("fun", [Tyapp("bool", []); _])))), _), _) -> 
         BINOP_CONV (PROP_ATOM_CONV conv) tm
     | Comb(Const("~", _), _) -> 
         RAND_CONV (PROP_ATOM_CONV conv) tm
