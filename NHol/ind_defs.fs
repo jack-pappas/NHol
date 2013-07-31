@@ -463,21 +463,24 @@ let MONO_TAC =
         }
 
     fun gl -> 
-        let tacs = 
-            itlist (fun th l -> 
-                    let ft = repeat (Choice.toOption << rator) (funpow 2 (Choice.get << rand) (concl <| Choice.get th))
-                    let c = 
-                        match dest_const ft with
-                        | Success(s, _) -> s
-                        | Error _ -> ""
-                    (c, BACKCHAIN_TAC th
-                        |> THEN <| REPEAT CONJ_TAC) :: l) 
-                (!monotonicity_theorems) ["", MONO_ABS_TAC]
+        choice {
+            let! tacs = 
+                Choice.List.fold (fun acc th -> 
+                        choice {
+                            let! tm = funpow 2 (Choice.bind rand) (Choice.map concl th)
+                            let ft = repeat (Choice.toOption << rator) tm
+                            let c = 
+                                match dest_const ft with
+                                | Success(s, _) -> s
+                                | Error _ -> ""
+                            return (c, BACKCHAIN_TAC th |> THEN <| REPEAT CONJ_TAC) :: acc
+                        }) ["", MONO_ABS_TAC] (!monotonicity_theorems) 
 
-        let MONO_STEP_TAC = REPEAT GEN_TAC
-                            |> THEN <| APPLY_MONOTAC tacs
-        (REPEAT MONO_STEP_TAC
-         |> THEN <| ASM_REWRITE_TAC []) gl
+            let MONO_STEP_TAC = REPEAT GEN_TAC
+                                |> THEN <| APPLY_MONOTAC tacs
+            return! (REPEAT MONO_STEP_TAC
+                     |> THEN <| ASM_REWRITE_TAC []) gl
+         }
 
 (* ------------------------------------------------------------------------- *)
 (* Attempt to dispose of the non-equational assumption(s) of a theorem.      *)
@@ -521,7 +524,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
             choice {
                 let! l, r = dest_eq tm
                 let! lname, lty = dest_var l
-                // TODO: revise due to massive change
+                // TODO: revise due to massive changes
                 let! tm1 = Choice.List.fold (fun acc x -> type_of x |> Choice.bind (fun y -> mk_fun_ty y acc)) lty vs
                 let l' = mk_var(lname, tm1)
                 let r' = list_mk_abs(vs, r)
@@ -538,10 +541,9 @@ let prove_inductive_relations_exist, new_inductive_definition =
                 let defs, others = partition is_eq tms
                 let th1 = itlist generalize_def defs th
                 if gflag then 
-                    let others' = 
-                        map (fun t -> 
-                                let fvs = frees t
-                                SPECL fvs (ASSUME(list_mk_forall(fvs, t)))) others
+                    let others' = map (fun t -> 
+                                    let fvs = frees t
+                                    SPECL fvs (ASSUME(list_mk_forall(fvs, t)))) others
                     return! GENL vs (itlist PROVE_HYP others' th1)
                 else 
                     return! th1
@@ -617,24 +619,26 @@ let prove_inductive_relations_exist, new_inductive_definition =
             return! derive_existence th2
         }
 
-    let new_inductive_definition tm = 
-         
+    let new_inductive_definition tm =          
         let th = tryfind (Choice.toOption << find_redefinition tm) (!the_inductive_definitions)
                  |> Option.toChoiceWithError "tryfind"
         warn true "Benign redefinition of inductive predicate"
         match th with
         | Success th -> th
         | Error _ ->
-            // NOTE: this part is unsafe
-            let fvs, th1 = Choice.get <| prove_inductive_properties tm
-            let th2 = generalize_schematic_variables true fvs th1
-            let th3 = make_definitions th2
-            let avs = fst(strip_forall(concl <| Choice.get th3))
-            let r, ic = CONJ_PAIR(SPECL avs th3)
-            let i, c = CONJ_PAIR ic
-            let thtr = GENL avs r, GENL avs i, GENL avs c
-            the_inductive_definitions := thtr :: (!the_inductive_definitions)
-            thtr
+            choice {
+                let! fvs, th1 = prove_inductive_properties tm
+                let th2 = generalize_schematic_variables true fvs th1
+                let th3 = make_definitions th2
+                let! (avs, _) = Choice.map (strip_forall << concl) th3
+                let r, ic = CONJ_PAIR(SPECL avs th3)
+                let i, c = CONJ_PAIR ic
+                let thtr = GENL avs r, GENL avs i, GENL avs c
+                the_inductive_definitions := thtr :: (!the_inductive_definitions)
+                return thtr
+            }
+            // We return three exceptions in case of errors. It's still better than raising exceptions directly.
+            |> Choice.getOrFailure3 "new_inductive_definition"
 
     prove_inductive_relations_exist, new_inductive_definition
 
@@ -701,9 +705,7 @@ let derive_strong_induction =
                     (fun n (r, p) -> 
                         let tys, ty = nsplit (Choice.get << dest_fun_ty) (1 -- n) (Choice.get <| type_of r)
                         let gvs = map genvar tys
-                        list_mk_abs
-                            (gvs, 
-                             Choice.get <| mk_conj(list_mk_comb(r, gvs), list_mk_comb(p, gvs)))) 
+                        list_mk_abs(gvs, Choice.get <| mk_conj(list_mk_comb(r, gvs), list_mk_comb(p, gvs)))) 
                     ns prrs
 
             let modify_rule rcl itm = 

@@ -116,6 +116,16 @@ module Choice =
         | Choice1Of2 result -> result
         | Choice2Of2 _ -> defaultResult
 
+    let getOrFailure2 msg (value : Choice<Choice<'T, exn> * Choice<'U, exn>, exn>) =
+        match value with
+        | Success (result1, result2) -> (result1, result2)
+        | Error _ -> (failwith msg, failwith msg) 
+
+    let getOrFailure3 msg (value : Choice<Choice<'T, exn> * Choice<'U, exn> * Choice<'V, exn>, exn>) =
+        match value with
+        | Success (result1, result2, result3) -> (result1, result2, result3)
+        | Error _ -> (failwith msg, failwith msg, failwith msg) 
+
     /// Applies the specified binding function to a choice value representing an error value
     /// (Choice2Of2). If the choice value represents a result value (Choice1Of2), the result value
     /// is passed through without modification.

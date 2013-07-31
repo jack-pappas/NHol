@@ -69,7 +69,7 @@ let (ETA_CONV : conv) =
             else 
                 return! Choice.fail()
         }
-        |> Choice.mapError (fun e -> nestedFailwith e "ETA_CONV");;
+        |> Choice.mapError (fun e -> nestedFailure e "ETA_CONV");;
 
 let EQ_EXT = 
     prove
@@ -143,7 +143,7 @@ let (SELECT_RULE : thm -> thm) =
             let! ty = Choice.bind type_of (bndvar abs)
             return! CONV_RULE BETA_CONV (MP (PINST [ty, aty] [abs, P] pth) th)
         }
-        |> Choice.mapError (fun e -> nestedFailwith e "SELECT_RULE");;
+        |> Choice.mapError (fun e -> nestedFailure e "SELECT_RULE");;
 
 /// Eliminates an epsilon term by introducing an existential quantifier.
 let (SELECT_CONV : conv) = 
@@ -171,7 +171,7 @@ let (SELECT_CONV : conv) =
             let! ty = Choice.bind type_of (bndvar abs)
             return! CONV_RULE (LAND_CONV BETA_CONV) (PINST [ty, aty] [abs, P] pth)
         }
-        |> Choice.mapError (fun e -> nestedFailwith e "SELECT_CONV");;
+        |> Choice.mapError (fun e -> nestedFailure e "SELECT_CONV");;
 
 (* ------------------------------------------------------------------------- *)
 (* Some basic theorems.                                                      *)
@@ -315,7 +315,7 @@ let (CCONTR : term -> thm -> thm) =
             let! tm' = mk_neg tm
             return! MP (INST [tm, P] pth) (DISCH tm' th)
         }
-        |> Choice.mapError (fun e -> nestedFailwith e "CCONTR");;
+        |> Choice.mapError (fun e -> nestedFailure e "CCONTR");;
 
 /// Proves the equivalence of an implication and its contrapositive.
 let (CONTRAPOS_CONV : conv) = 
@@ -327,7 +327,7 @@ let (CONTRAPOS_CONV : conv) =
             let! P, Q = dest_imp tm
             return! INST [P, a; Q, b] pth
         }
-        |> Choice.mapError (fun e -> nestedFailwith e "CONTRAPOS_CONV");;
+        |> Choice.mapError (fun e -> nestedFailure e "CONTRAPOS_CONV");;
 
 (* ------------------------------------------------------------------------- *)
 (* A classical "refutation" tactic.                                          *)
@@ -478,7 +478,7 @@ let mk_cond(b, x, y) =
         let! tm2 = mk_comb(tm1, x)
         return! mk_comb(tm2, y)
     }
-    |> Choice.mapError (fun e -> nestedFailwith e "mk_cond")
+    |> Choice.mapError (fun e -> nestedFailure e "mk_cond")
 
 /// Breaks apart a conditional into the three terms involved.
 let dest_cond tm = 
@@ -492,7 +492,7 @@ let dest_cond tm =
         else 
             return! Choice.fail()
     }
-    |> Choice.mapError (fun e -> nestedFailwith e "dest_cond")
+    |> Choice.mapError (fun e -> nestedFailure e "dest_cond")
 
 extend_basic_rewrites [COND_CLAUSES] |> ignore
 
