@@ -29,6 +29,7 @@ open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
 open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open lib
@@ -747,28 +748,27 @@ let HIGHER_REWRITE_CONV =
 
 /// Declare a new constant and a definitional axiom.
 let new_definition tm : thm = 
-    let new_definition tm = 
+    choice { 
         let avs, bod = strip_forall tm
-        let l, r = 
-            try 
-                Choice.get <| dest_eq bod
-            with
-            | Failure _ as e ->
-                nestedFailwith e "new_definition: Not an equation"
+        let! l, r = 
+            dest_eq bod
+            |> Choice.mapError (fun e -> nestedFailure e "new_definition: Not an equation")
         let lv, largs = strip_comb l
-        let rtm = 
-            try 
-                list_mk_abs(largs, r)
-            with
-            | Failure _ as e ->
-                nestedFailwith e "new_definition: Non-variable in LHS pattern"
-        let def = Choice.get <| mk_eq(lv, rtm)
+        let! rtm = 
+            // NOTE:  list_mk_abs isn't converted yet, so exceptions can leak out
+            Choice.attempt (fun () -> list_mk_abs(largs, r))
+            |> Choice.mapError (fun e -> nestedFailure e "new_definition: Non-variable in LHS pattern")
+
+        let! def = mk_eq(lv, rtm)
         let th1 = new_basic_definition def
-        let th2 = 
-            rev_itlist (fun tm th -> 
-                    let ith = AP_THM th tm
-                    TRANS ith (BETA_CONV(Choice.get <| rand(concl <| Choice.get ith)))) largs th1
+        let! th2 = 
+            Choice.List.foldBack (fun tm acc -> 
+                choice {
+                    let ith = AP_THM acc tm
+                    let! tm1 = Choice.bind (rand << concl) ith
+                    return TRANS ith (BETA_CONV tm1)
+                }) largs th1
+
         let rvs = filter (not << C mem avs) largs
-        itlist GEN rvs (itlist GEN avs th2)
-    Choice.attemptNested <| fun () ->
-        new_definition tm
+        return! itlist GEN rvs (itlist GEN avs th2)
+    }

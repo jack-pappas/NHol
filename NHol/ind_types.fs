@@ -602,7 +602,7 @@ let define_type_raw_001 =
                             :: (mk_injector (tl epstms) (tl alltys) iargs)
                 let iarg = 
                     try 
-                        end_itlist (curry mk_pair) 
+                        end_itlist (curry (Choice.get << mk_pair))
                             (mk_injector epstms alltys iargs)
                     with
                     | Failure _ -> beps_tm
@@ -941,7 +941,7 @@ let define_type_raw_001 =
             if v = tup
             then REFL tup
             else 
-                let t1, t2 = dest_pair tup
+                let t1, t2 = Choice.get <| dest_pair tup
                 let PAIR_th = 
                     ISPECL [t1; t2] (if free_in v t1
                                      then FST
@@ -1258,7 +1258,7 @@ let prove_constructors_injective =
     let DEPAIR = GEN_REWRITE_RULE TOP_SWEEP_CONV [PAIR_EQ]
     let prove_distinctness ax pat = 
         let f, args = strip_comb pat
-        let rt = end_itlist (curry mk_pair) args
+        let rt = end_itlist (curry (Choice.get << mk_pair)) args
         let ty = Choice.get <| mk_fun_ty (Choice.get <| type_of pat) (Choice.get <| type_of rt)
         let fn = genvar ty
         let dtm = Choice.get <| mk_eq(Choice.get <| mk_comb(fn, pat), rt)

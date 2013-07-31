@@ -1772,7 +1772,7 @@ let INTEGER_TAC =
                 try f x |> ignore; true
                 with Failure _ -> false
             Choice.get <| find_terms (can dest_gcd) w in
-          let ths = map (fun tm -> let a,b = dest_gcd tm in SPECL [a;b] int_gcd) gts
+          let ths = map (fun tm -> let a,b = Choice.get <| dest_gcd tm in SPECL [a;b] int_gcd) gts
           MAP_EVERY MP_TAC ths |> THEN <|
           MAP_EVERY SPEC_TAC (zip gts (map (genvar << Choice.get << type_of) gts))) in
   REPEAT(GEN_TAC |>ORELSE<| CONJ_TAC) |> THEN <| GCD_ELIM_TAC |> THEN <| INTEGER_TAC_001;;

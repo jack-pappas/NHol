@@ -26,6 +26,9 @@ module NHol.pair
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+open ExtCore.Control.Collections
+
 open NHol
 open lib
 open fusion
@@ -53,6 +56,7 @@ open quot
 (* ------------------------------------------------------------------------- *)
 (* Constants implementing (or at least tagging) syntactic sugar.             *)
 (* ------------------------------------------------------------------------- *)
+
 let LET_DEF = new_definition(parse_term @"LET (f:A->B) x = f x")
 
 let LET_END_DEF = new_definition(parse_term @"LET_END (t:A) = t")
@@ -82,6 +86,7 @@ let _FUNCTION =
 (* ------------------------------------------------------------------------- *)
 (* Pair type.                                                                *)
 (* ------------------------------------------------------------------------- *)
+
 let mk_pair_def = 
     new_definition(parse_term @"mk_pair (x:A) (y:B) = \a b. (a = x) /\ (b = y)")
 
@@ -130,8 +135,8 @@ let PAIR_SURJECTIVE =
           |> THEN <| REWRITE_TAC [CONJUNCT1 prod_tybij]
           |> THEN <| DISCH_THEN SUBST1_TAC
           |> THEN <| MAP_EVERY EXISTS_TAC [(parse_term @"a:A");
-                                           (parse_term @"b:B")];;
-          |> THEN <| REFL_TAC)
+                                           (parse_term @"b:B")]
+          |> THEN <| REFL_TAC);;
 
 let FST = 
     prove
@@ -194,29 +199,33 @@ let pair_RECURSION =
 let is_pair = is_binary ","
 
 /// Breaks apart a pair into two separate terms.
-let dest_pair = Choice.get << dest_binary ","
+let dest_pair = dest_binary ","
 
 /// Constructs object-level pair from a pair of terms.
 let mk_pair = 
-    let ptm = Choice.get <| mk_const(",", [])
+    let ptm = mk_const(",", [])
     fun (l, r) -> 
-        Choice.get <| mk_comb(Choice.get <| mk_comb(Choice.get <| inst [Choice.get <| type_of l, aty; Choice.get <| type_of r, bty] ptm, l), r)
-
-//extend_basic_rewrites [FST; SND; PAIR] duplicate line
+        choice {
+            let! ptm = ptm
+            let! ty1 = type_of l
+            let! ty2 = type_of r
+            let! tm1 = inst [ty1, aty; ty2, bty] ptm
+            let! tm2 = mk_comb(tm1, l)
+            return! mk_comb(tm2, r)
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Extend basic rewrites; extend new_definition to allow paired varstructs.  *)
 (* ------------------------------------------------------------------------- *)
 
-extend_basic_rewrites [FST; SND; PAIR] // deleted ;;
+extend_basic_rewrites [FST; SND; PAIR] |> ignore
 
 (* ------------------------------------------------------------------------- *)
 (* Extend definitions to paired varstructs with benignity checking.          *)
 (* ------------------------------------------------------------------------- *)
 /// List of all definitions introduced so far.
 let the_definitions = 
-    ref 
-        [SND_DEF; FST_DEF; COMMA_DEF; mk_pair_def; GEQ_DEF; GABS_DEF; 
+    ref [SND_DEF; FST_DEF; COMMA_DEF; mk_pair_def; GEQ_DEF; GABS_DEF; 
          LET_END_DEF; LET_DEF; one_DEF; I_DEF; o_DEF; COND_DEF; _FALSITY_; 
          EXISTS_UNIQUE_DEF; NOT_DEF; F_DEF; OR_DEF; EXISTS_DEF; FORALL_DEF; 
          IMP_DEF; AND_DEF; T_DEF]
@@ -225,39 +234,57 @@ let the_definitions =
 let new_definition = 
     let depair = 
         let rec depair gv arg = 
-            try 
-                let l, r = dest_pair arg
-                (depair (Choice.get <| list_mk_icomb "FST" [gv]) l) @ (depair (Choice.get <| list_mk_icomb "SND" [gv]) r) //deleted new line before @
-            with
-            | Failure _ -> [gv, arg]
+            choice { 
+                let! l, r = dest_pair arg
+                let! tm1 = list_mk_icomb "FST" [gv]
+                let! tms1 = depair tm1 l
+                let! tm2 = list_mk_icomb "SND" [gv]
+                let! tms2 = depair tm2 r
+                return tms1 @ tms2
+            }
+            |> Choice.bindError (fun _ -> Choice.result [gv, arg])
+
         fun arg -> 
-            let gv = genvar(Choice.get <| type_of arg)
-            gv, depair gv arg
+            choice {
+                let! gv = Choice.map genvar (type_of arg)
+                let! tms = depair gv arg
+                return gv, tms
+            }
+
     fun tm -> 
         let avs, def = strip_forall tm
-        try 
-            let th, th' = 
-                tryfind (fun th -> Some (th, PART_MATCH Choice.result th def)) (!the_definitions)
-                |> Option.getOrFailWith "tryfind"
-            ignore(PART_MATCH Choice.result th' (snd(strip_forall(concl <| Choice.get th))))
+        choice { 
+            let! th, th' = 
+                tryfind (fun th -> 
+                    match (th, PART_MATCH Choice.result th def) with
+                    | Success _, Success _ as th_pair -> Some th_pair
+                    | _ -> None) (!the_definitions)
+                |> Option.toChoiceWithError "tryfind"
+
+            let! tm = Choice.map concl th 
+            ignore(PART_MATCH Choice.result th' (snd(strip_forall tm)))
             warn true "Benign redefinition"
-            GEN_ALL(GENL avs th')
-        with
-        | Failure _ -> 
-            let l, r = Choice.get <| dest_eq def
-            let fn, args = strip_comb l
-            let gargs, reps = (I ||>> unions)(unzip(map depair args))
-            let l' = list_mk_comb(fn, gargs)
-            let r' = Choice.get <| subst reps r
-            let th1 = new_definition(Choice.get <| mk_eq(l', r'))
-            let slist = zip args gargs
-            let th2 = INST slist (SPEC_ALL th1)
-            let xreps = map (Choice.get << subst slist << fst) reps
-            let threps = map (SYM << PURE_REWRITE_CONV [FST; SND]) xreps
-            let th3 = TRANS th2 (SYM(SUBS_CONV threps r))
-            let th4 = GEN_ALL(GENL avs th3)
-            the_definitions := th4 :: (!the_definitions)
-            th4
+            return! GEN_ALL(GENL avs th')
+        }
+        |> Choice.bindError (fun _ ->
+            choice {
+                let! l, r = dest_eq def
+                let fn, args = strip_comb l
+                let! tms = Choice.List.map depair args
+                let gargs, reps = (I ||>> unions) (unzip tms)
+                let l' = list_mk_comb(fn, gargs)
+                let! r' = subst reps r
+                let! tm1 = mk_eq(l', r')
+                let th1 = new_definition tm1
+                let slist = zip args gargs
+                let th2 = INST slist (SPEC_ALL th1)
+                let! xreps = Choice.List.map (subst slist << fst) reps
+                let threps = map (SYM << PURE_REWRITE_CONV [FST; SND]) xreps
+                let th3 = TRANS th2 (SYM(SUBS_CONV threps r))
+                let th4 = GEN_ALL(GENL avs th3)
+                the_definitions := th4 :: (!the_definitions)
+                return! th4
+            })
 
 (* ------------------------------------------------------------------------- *)
 (* A few more useful definitions.                                            *)
@@ -276,15 +303,17 @@ let PASSOC_DEF =
 (* Analog of ABS_CONV for generalized abstraction.                           *)
 (* ------------------------------------------------------------------------- *)
 
-/// Applies a conversion to the Choice.get <| body of a generalized abstraction.
+/// Applies a conversion to the body of a generalized abstraction.
 let GABS_CONV conv tm = 
-    if is_abs tm
-    then ABS_CONV conv tm
-    else 
-        let gabs, bod = Choice.get <| dest_comb tm
-        let f, qtm = Choice.get <| dest_abs bod
-        let xs, bod = strip_forall qtm
-        AP_TERM gabs (ABS f (itlist MK_FORALL xs (RAND_CONV conv bod)))
+    choice {
+        if is_abs tm then 
+            return! ABS_CONV conv tm
+        else 
+            let! gabs, bod = dest_comb tm
+            let! f, qtm = dest_abs bod
+            let xs, bod = strip_forall qtm
+            return! AP_TERM gabs (ABS f (itlist MK_FORALL xs (RAND_CONV conv bod)))
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* General beta-conversion over linear pattern of nested constructors.       *)
@@ -293,6 +322,7 @@ let GABS_CONV conv tm =
 /// Beta-reduces general beta-redexes (e.g. paired ones).
 let GEN_BETA_CONV = 
     let projection_cache = ref []
+
     let create_projections conname =
         match assoc conname !projection_cache with
         | Some x -> x
@@ -336,14 +366,17 @@ let GEN_BETA_CONV =
             let ths = map mk_projector avs
             (projection_cache := (conname, ths) :: (!projection_cache)
              ths)
+
     let GEQ_CONV = REWR_CONV(GSYM GEQ_DEF)
     let DEGEQ_RULE = CONV_RULE(REWR_CONV GEQ_DEF)
+
     let GABS_RULE = 
         let pth = 
             prove
                 ((parse_term @"(?) P ==> P (GABS P)"), 
                  SIMP_TAC [GABS_DEF; SELECT_AX; ETA_AX])
         MATCH_MP pth
+
     let rec create_iterated_projections tm = 
         if frees tm = []
         then []
@@ -361,6 +394,7 @@ let GEN_BETA_CONV =
                             create_iterated_projections(Choice.get <| lhand(concl <| Choice.get arth))
                         map (CONV_RULE(RAND_CONV(SUBS_CONV [arth]))) sths) arths
             unions' equals_thm ths
+
     let GEN_BETA_CONV tm =
         try 
             BETA_CONV tm
@@ -526,82 +560,116 @@ let EXISTS_TRIPLED_THM =
 let let_CONV = 
     let let1_CONV = REWR_CONV LET_DEF
                     |> THENC <| GEN_BETA_CONV
+
     let lete_CONV = REWR_CONV LET_END_DEF
+
     let rec EXPAND_BETAS_CONV tm = 
-        let tm' = Choice.get <| rator tm
-        try 
-            let1_CONV tm
-        with
-        | Failure _ -> 
-            let th1 = AP_THM (EXPAND_BETAS_CONV tm') (Choice.get <| rand tm)
-            let th2 = GEN_BETA_CONV(Choice.get <| rand(concl <| Choice.get th1))
-            TRANS th1 th2
+        choice {
+            let! tm' = rator tm
+            return! let1_CONV tm
+                    |> Choice.bindError (fun _ ->
+                        choice {
+                            let! tm1 = rand tm
+                            let th1 = AP_THM (EXPAND_BETAS_CONV tm') tm1
+                            let! tm2 = Choice.bind (rand << concl) th1
+                            let th2 = GEN_BETA_CONV tm2
+                            return! TRANS th1 th2
+                        })
+        }
+
     fun tm -> 
-        let ltm, pargs = strip_comb tm
-        if fst(Choice.get <| dest_const ltm) <> "LET" || pargs = []
-        then failwith "let_CONV"
-        else 
-            let abstm = hd pargs
-            let vs, bod = strip_gabs abstm
-            let es = tl pargs
-            let n = length es
-            if length vs <> n
-            then failwith "let_CONV"
-            else (EXPAND_BETAS_CONV
-                  |> THENC <| lete_CONV) tm
+        choice {
+            let ltm, pargs = strip_comb tm
+            let! (s, _)  = dest_const ltm
+            if s <> "LET" || pargs = [] then 
+                return! Choice.failwith "let_CONV"
+            else 
+                let abstm = hd pargs
+                let vs, bod = strip_gabs abstm
+                let es = tl pargs
+                let n = length es
+                if length vs <> n then 
+                    return! Choice.failwith "let_CONV"
+                else 
+                    return! (EXPAND_BETAS_CONV
+                             |> THENC <| lete_CONV) tm
+        }
 
 /// Eliminates a let binding in a goal by introducing equational assumptions.
 let (LET_TAC : tactic) = 
     let is_trivlet tm = 
-        try 
-            let assigs, bod = Choice.get <| dest_let tm
+        match dest_let tm with
+        | Success (assigs, bod ) ->
             forall (uncurry (=)) assigs
-        with
-        | Failure _ -> false
+        | Error _ -> false
+
     let PROVE_DEPAIRING_EXISTS = 
         let pth = 
             prove
                 ((parse_term @"((x,y) = a) <=> (x = FST a) /\ (y = SND a)"), 
                  MESON_TAC [PAIR; PAIR_EQ])
+
         let rewr1_CONV = GEN_REWRITE_CONV TOP_DEPTH_CONV [pth]
+
         let rewr2_RULE = 
             GEN_REWRITE_RULE (LAND_CONV << DEPTH_CONV) 
                 [TAUT(parse_term @"(x = x) <=> T")
                  TAUT(parse_term @"a /\ T <=> a")]
         fun tm -> 
-            let th1 = rewr1_CONV tm
-            let tm1 = Choice.get <| rand(concl <| Choice.get th1)
-            let cjs = conjuncts tm1
-            let vars = map (Choice.get << lhand) cjs
-            let th2 = EQ_MP (SYM th1) (ASSUME tm1)
-            let th3 = DISCH_ALL(itlist SIMPLE_EXISTS vars th2)
-            let th4 = INST (map (fun t -> Choice.get <| rand t, Choice.get <| lhand t) cjs) th3
-            MP (rewr2_RULE th4) TRUTH
-    fun (asl, w as gl) ->  
-            let path = 
-                try 
-                    Choice.get <| find_path is_trivlet w
-                with
-                | Failure _ -> Choice.get <| find_path is_let w
-            let tm = Choice.get <| follow_path path w
-            let assigs, bod = Choice.get <| dest_let tm
+            choice {
+                let th1 = rewr1_CONV tm
+                let! tm1 = Choice.bind (rand << concl) th1
+                let cjs = conjuncts tm1
+                let! vars = Choice.List.map lhand cjs
+                let th2 = EQ_MP (SYM th1) (ASSUME tm1)
+                let th3 = DISCH_ALL(itlist SIMPLE_EXISTS vars th2)
+                let! tms = Choice.List.map (fun t -> 
+                                match rand t, lhand t with
+                                | Success t1, Success t2 -> Choice.result (t1, t2)
+                                | _ -> Choice.fail()) cjs
+                let th4 = INST tms th3
+                return! MP (rewr2_RULE th4) TRUTH
+            }
+
+    fun (asl, w as gl) ->
+        choice {  
+            let! path = 
+                find_path is_trivlet w
+                |> Choice.bindError (fun _ -> find_path is_let w)
+
+            let! tm = follow_path path w
+            let! assigs, bod = dest_let tm
             let abbrevs = 
                 mapfilter (fun (x, y) -> 
-                        if x = y
-                        then None
-                        else Choice.toOption <| mk_eq(x, y)) assigs
+                    if x = y then None
+                    else Choice.toOption <| mk_eq(x, y)) assigs
+
             let lvars = itlist (union << frees << Choice.get << lhs) abbrevs []
             let avoids = itlist (union << thm_frees << Choice.get << snd) asl (frees w)
-            let rename = Choice.get << vsubst(zip (Choice.get <| variants avoids lvars) lvars)
-            let abbrevs' = 
-                map (fun eq -> 
-                        let l, r = Choice.get <| dest_eq eq
-                        Choice.get <| mk_eq(rename l, r)) abbrevs
+
+            let rename tm = 
+                choice {
+                    let! tms = variants avoids lvars
+                    return! vsubst(zip tms lvars) tm
+                }
+
+            let! abbrevs' = 
+                Choice.List.map (fun eq -> 
+                    choice {
+                        let! l, r = dest_eq eq
+                        let! tm1 = rename l
+                        return! mk_eq(tm1, r)
+                    }) abbrevs
+
             let deprths = map PROVE_DEPAIRING_EXISTS abbrevs'
-            (MAP_EVERY (REPEAT_TCL CHOOSE_THEN (fun th -> 
-                                let th' = SYM th
-                                SUBST_ALL_TAC th'
-                                |> THEN <| ASSUME_TAC th')) deprths
-             |> THEN <| W(fun (asl', w') -> 
-                                let tm' = Choice.get <| follow_path path w'
-                                CONV_TAC(PATH_CONV path (K(let_CONV tm'))))) gl
+            return!
+                (MAP_EVERY (REPEAT_TCL CHOOSE_THEN (fun th -> 
+                                    let th' = SYM th
+                                    SUBST_ALL_TAC th'
+                                    |> THEN <| ASSUME_TAC th')) deprths
+                 |> THEN <| W(fun (asl', w') gl -> 
+                                choice {
+                                    let! tm' = follow_path path w'
+                                    return! CONV_TAC(PATH_CONV path (K(let_CONV tm'))) gl
+                                })) gl
+        }

@@ -805,7 +805,7 @@ module Hol_kernel =
             else
                 let! ty' = type_vars_in_term r
                 if not(subset ty' (tyvars ty)) then 
-                    return! Choice.failwith "new_definition: Type Choice.get <| variables not reflected in constant"
+                    return! Choice.failwith "new_definition: Type variables not reflected in constant"
                 else
                     do! new_constant(cname, ty)
                     let c = Const(cname, ty)

@@ -676,7 +676,7 @@ let instantiate_casewise_recursion,
 
   let APPLY_PROFORMA_TAC th (asl,w as gl) =
     let vs = fst(Choice.get <| dest_gabs(Choice.get <| body(Choice.get <| rand w)))
-    let n = 1 + length(fst(splitlist (Some << dest_pair) vs))
+    let n = 1 + length(fst(splitlist (Choice.toOption << dest_pair) vs))
     (MATCH_MP_TAC(HACK_PROFORMA n th) |>THEN<| BETA_TAC) gl in
 
   let is_pattern p n tm =
@@ -785,7 +785,7 @@ let instantiate_casewise_recursion,
       let rewr1 =  GEN_REWRITE_RULE I [GSYM FORALL_PAIR_THM]
       in let rewr2 = GEN_REWRITE_CONV I [FUN_EQ_THM]
       fun parms tm ->
-        let parm = end_itlist (curry mk_pair) parms
+        let parm = end_itlist (curry (Choice.get << mk_pair)) parms
         let x,bod = Choice.get <| dest_abs tm
         let tm' = Choice.get <| mk_gabs(parm,Choice.get <| vsubst[parm,x] bod)
         let th1 = BETA_CONV(Choice.get <| mk_comb(tm,parm))
@@ -822,7 +822,7 @@ let instantiate_casewise_recursion,
       let f' = Choice.get <| variant (frees tm)
                        (mk_var(fst(Choice.get <| dest_var f), Choice.get <| mk_fun_ty dty ranty))
       let gvs = map genvar domtys
-      let f'' = list_mk_abs(gvs,Choice.get <| mk_comb(f',end_itlist (curry mk_pair) gvs))
+      let f'' = list_mk_abs(gvs,Choice.get <| mk_comb(f',end_itlist (curry (Choice.get << mk_pair)) gvs))
       let def' = Choice.get <| subst [f'',f] def
       let th1 = EXISTS (tm,f'') (ASSUME def')
       in let bth = BETAS_CONV (list_mk_comb(f'',gvs))
@@ -839,10 +839,10 @@ let instantiate_casewise_recursion,
       let arglists = map (snd << strip_comb) lefts
       let parms0 = freesl(unions arglists)
       let parms = if parms0 <> [] then parms0 else [genvar aty]
-      let parm = end_itlist (curry mk_pair) parms
-      let ss = map (fun a -> Choice.get <| mk_gabs(parm,end_itlist (curry mk_pair) a)) arglists
+      let parm = end_itlist (curry (Choice.get << mk_pair)) parms
+      let ss = map (fun a -> Choice.get <| mk_gabs(parm,end_itlist (curry (Choice.get << mk_pair)) a)) arglists
       in let ts = map (fun a -> Choice.get <| mk_abs(f,Choice.get <| mk_gabs(parm,a))) rights
-      let clauses = mk_flist(map2 (curry mk_pair) ss ts)
+      let clauses = mk_flist(map2 (curry (Choice.get << mk_pair)) ss ts)
       let pth = ISPEC clauses RECURSION_SUPERADMISSIBLE
       let FIDDLE_CONV =
         (LAND_CONV << LAND_CONV << BINDER_CONV << RAND_CONV << LAND_CONV <<
