@@ -1054,13 +1054,14 @@ let (ASM_FOL_TAC : tactic) =
             if vheads = [] then 
                 let hops = setify(map fst cheads)
                 let getmin h = 
-                    let ns = 
-                        mapfilter (fun (k, n) -> 
-                            if k = h then Some n
-                            else None) cheads
-                    if length ns < 2 then fail()
-                    else h, end_itlist min ns
-                mapfilter (Some << getmin) hops
+                    let ns = mapfilter (fun (k, n) -> 
+                                if k = h then Some n else None) cheads
+                    if length ns < 2 then 
+                        Choice.fail()
+                    else 
+                        Choice.result (h, end_itlist min ns)
+
+                mapfilter (Choice.toOption << getmin) hops
             else 
                 map (fun t -> 
                     if is_const t && fst(Choice.get <| dest_const t) = "=" then t, 2

@@ -26,6 +26,9 @@ module NHol.quot
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+open ExtCore.Control.Collections
+
 open NHol
 open lib
 open fusion
@@ -59,20 +62,28 @@ open meson
 (*                                                                           *)
 (*             |- (?x. r = R x) <=> (dest_ty (mk_ty r) = r)                  *)
 (* ------------------------------------------------------------------------- *)
+
 /// Defines a quotient type based on given equivalence relation.
 let define_quotient_type = 
     fun tyname (absname, repname) eqv -> 
-        let ty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of eqv)))
-        let pty = Choice.get <| mk_fun_ty ty bool_ty
-        let s = mk_var("s", pty)
-        let x = mk_var("x", ty)
-        let eqvx = Choice.get <| mk_comb(eqv, x)
-        let pred = Choice.get <| mk_abs(s, Choice.get <| mk_exists(x, Choice.get <| mk_eq(s, eqvx)))
-        let th0 = BETA_CONV(Choice.get <| mk_comb(pred, eqvx))
-        let th1 = EXISTS (Choice.get <| rand(concl <| Choice.get th0), x) (REFL eqvx)
-        let th2 = EQ_MP (SYM th0) th1
-        let abs, rep = new_basic_type_definition tyname (absname, repname) th2
-        abs, CONV_RULE (LAND_CONV BETA_CONV) rep
+        choice {
+            let! tms = Choice.bind dest_type (type_of eqv)
+            let ty = hd(snd tms)
+            let! pty = mk_fun_ty ty bool_ty
+            let s = mk_var("s", pty)
+            let x = mk_var("x", ty)
+            let! eqvx = mk_comb(eqv, x)
+            let! tm1 = mk_eq(s, eqvx)
+            let! tm2 = mk_exists(x, tm1)
+            let! pred = mk_abs(s, tm2)
+            let th0 = Choice.bind BETA_CONV (mk_comb(pred, eqvx))
+            let! tm3 = Choice.bind (rand << concl) th0
+            let th1 = EXISTS (tm3, x) (REFL eqvx)
+            let th2 = EQ_MP (SYM th0) th1
+            let abs, rep = new_basic_type_definition tyname (absname, repname) th2
+            return abs, CONV_RULE (LAND_CONV BETA_CONV) rep
+        }
+        |> Choice.getOrFailure2 "define_quotient_type"
 
 (* ------------------------------------------------------------------------- *)
 (* Given a welldefinedness theorem for a curried function f, of the form:    *)
@@ -89,6 +100,7 @@ let define_quotient_type =
 (* the reflexivity and transitivity (not symmetry!) of the equivalence       *)
 (* relation. The use also gives a name for the new function.                 *)
 (* ------------------------------------------------------------------------- *)
+
 /// Lift a function on representing type to quotient type of equivalence classes.
 let lift_function = 
     let SELECT_LEMMA = 
@@ -97,119 +109,138 @@ let lift_function =
              GEN_TAC
              |> THEN <| GEN_REWRITE_TAC (LAND_CONV << BINDER_CONV) [EQ_SYM_EQ]
              |> THEN <| MATCH_ACCEPT_TAC SELECT_REFL)
-    fun tybij2 -> 
-        let tybl, tybr = Choice.get <| dest_comb(concl <| Choice.get tybij2)
-        let eqvx = Choice.get <| rand(Choice.get <| body(Choice.get <| rand(Choice.get <| rand tybl)))
-        let eqv, xtm = Choice.get <| dest_comb eqvx
-        let dmr, rtm = Choice.get <| dest_eq tybr
-        let dest, mrt = Choice.get <| dest_comb dmr
-        let mk = Choice.get <| rator mrt
-        let ety = Choice.get <| type_of mrt
+
+    fun (tybij2 : thm) -> 
+        let v =
+            choice {
+                let! tybl, tybr = Choice.bind (dest_comb << concl) tybij2
+                let! tm1 = (Choice.bind body << Choice.bind rand) (rand tybl)
+                let! eqvx = rand tm1
+                let! eqv, xtm = dest_comb eqvx
+                let! dmr, rtm = dest_eq tybr
+                let! dest, mrt = dest_comb dmr
+                let! mk = rator mrt
+                let! ety = type_of mrt
+                return (eqvx, eqv, xtm, rtm, dest, mk, ety)
+            }
+
         fun (refl_th, trans_th) fname wth -> 
-            let wtm = repeat (Choice.toOption << Choice.map snd << dest_forall) (concl <| Choice.get wth)
-            let wfvs = frees wtm
-            let hyps, con = 
-                try 
-                    (conjuncts ||>> I)(Choice.get <| dest_imp wtm)
-                with
-                | Failure _ -> [], wtm
-            let eqs, rels = partition is_eq hyps
-            let rvs = map (Choice.get << lhand) rels
-            let qvs = map (Choice.get << lhs) eqs
-            let evs = 
-                Choice.get <| variants wfvs (map (fun v -> mk_var(fst(Choice.get <| dest_var v), ety)) rvs)
-            let mems = 
-                map2 (fun rv ev -> Choice.get <| mk_comb(Choice.get <| mk_comb(dest, ev), rv)) rvs evs
-            let lcon, rcon = Choice.get <| dest_comb con
-            let u = Choice.get <| variant (evs @ wfvs) (mk_var("u", Choice.get <| type_of rcon))
-            let ucon = Choice.get <| mk_comb(lcon, u)
-            let dbod = list_mk_conj(ucon :: mems)
-            let detm = list_mk_exists(rvs, dbod)
-            let datm = Choice.get <| mk_abs(u, detm)
-            let def = 
-                if is_eq con
-                then Choice.get <| list_mk_icomb "@" [datm]
-                else Choice.get <| mk_comb(mk, datm)
-            let newargs = 
-                map (fun e -> 
-                        try 
-                            Choice.get <| lhs e
-                        with
-                        | Failure _ as ex ->
-                            match assoc (Choice.get <| lhand e) (zip rvs evs) with
-                            | Some x -> x
-                            | None ->
-                                nestedFailwith ex "find") hyps
-            let rdef = list_mk_abs(newargs, def)
-            let ldef = mk_var(fname, Choice.get <| type_of rdef)
-            let dth = new_definition(Choice.get <| mk_eq(ldef, rdef))
-            let eth = 
-                rev_itlist 
-                    (fun v th -> CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th v)) 
-                    newargs dth
-            let targs = map (fun v -> Choice.get <| mk_comb(mk, Choice.get <| mk_comb(eqv, v))) rvs
-            let dme_th = 
-                let th = INST [eqvx, rtm] tybij2
-                EQ_MP th (EXISTS (Choice.get <| lhs(concl <| Choice.get th), xtm) (REFL eqvx))
-            let ith = INST (zip targs evs) eth
-            let jth = SUBS (map (fun v -> INST [v, xtm] dme_th) rvs) ith
-            let apop, uxtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get jth))
-            let extm = Choice.get <| body uxtm
-            let evs, bod = strip_exists extm
-            let th1 = ASSUME bod
-            let th2 = 
-                if evs = []
-                then th1
-                else 
-                    let th2a, th2b = CONJ_PAIR th1
-                    let ethlist = CONJUNCTS th2b @ map REFL qvs
-                    let th2c = 
-                        end_itlist CONJ 
-                            (map 
-                                 (fun v -> 
-                                     Option.get <| find ((=)(Choice.get <| lhand v) << Choice.get << lhand << concl << Choice.get) 
-                                         ethlist) hyps)
-                    let th2d = MATCH_MP wth th2c
-                    let th2e = 
-                        try 
-                            TRANS th2d th2a
-                        with
-                        | Failure _ -> MATCH_MP trans_th (CONJ th2d th2a)
-                    itlist SIMPLE_CHOOSE evs th2e
-            let th3 = ASSUME(concl <| Choice.get th2)
-            let th4 = end_itlist CONJ (th3 :: (map (C SPEC refl_th) rvs))
-            let th5 = itlist SIMPLE_EXISTS evs (ASSUME bod)
-            let th6 = MATCH_MP (DISCH_ALL th5) th4
-            let th7 = IMP_ANTISYM_RULE (DISCH_ALL th2) (DISCH_ALL th6)
-            let th8 = TRANS jth (AP_TERM apop (ABS u th7))
-            let fconv = 
-                if is_eq con
-                then REWR_CONV SELECT_LEMMA
-                else RAND_CONV ETA_CONV
-            let th9 = CONV_RULE (RAND_CONV fconv) th8
-            eth, GSYM th9
+            choice {
+                let! (eqvx, eqv, xtm, rtm, dest, mk, ety) = v
+
+                let! tm1 = Choice.map concl wth
+                let wtm = repeat (Choice.toOption << Choice.map snd << dest_forall) tm1
+                let wfvs = frees wtm
+                let! hyps, con = 
+                    Choice.map (conjuncts ||>> I) (dest_imp wtm)
+                    |> Choice.bindError (fun _ -> Choice.result ([], wtm))
+
+                let eqs, rels = partition is_eq hyps
+                let! rvs = Choice.List.map lhand rels
+                let! qvs = Choice.List.map lhs eqs
+                let! tms1 = Choice.List.map (fun v -> dest_var v |> Choice.map (fun (tm1, _) -> mk_var(tm1, ety))) rvs
+                let! evs = variants wfvs tms1
+                let! mems = Choice.List.map2 (fun rv ev -> mk_comb(dest, ev) |> Choice.bind (fun tm1 -> mk_comb(tm1, rv))) rvs evs
+
+                let! lcon, rcon = dest_comb con
+                let! ty1 = type_of rcon
+                let! u = variant (evs @ wfvs) (mk_var("u", ty1))
+                let! ucon = mk_comb(lcon, u)
+                let dbod = list_mk_conj(ucon :: mems)
+                let detm = list_mk_exists(rvs, dbod)
+                let! datm = mk_abs(u, detm)
+                let! def = 
+                    if is_eq con then list_mk_icomb "@" [datm]
+                    else mk_comb(mk, datm)
+
+                let! newargs = 
+                    Choice.List.map (fun e -> 
+                        lhs e                            
+                        |> Choice.bindError (fun _ ->
+                            choice {
+                                let! tm1 = lhand e
+                                return! assoc tm1 (zip rvs evs)
+                                        |> Option.toChoiceWithError "find"
+                            })) hyps
+
+                let rdef = list_mk_abs(newargs, def)
+                let! ty2 = type_of rdef
+                let ldef = mk_var(fname, ty2)
+                let dth = Choice.bind new_definition (mk_eq(ldef, rdef))
+                let eth = 
+                    rev_itlist 
+                        (fun v th -> CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th v)) 
+                        newargs dth
+
+                let! targs = Choice.List.map (fun v -> mk_comb(eqv, v) |> Choice.bind (fun tm1 -> mk_comb(mk, tm1))) rvs
+                let dme_th = 
+                    choice {
+                        let th = INST [eqvx, rtm] tybij2
+                        let! tm1 = Choice.bind (lhs << concl) th
+                        return! EQ_MP th (EXISTS (tm1, xtm) (REFL eqvx))
+                    }
+
+                let ith = INST (zip targs evs) eth
+                let jth = SUBS (map (fun v -> INST [v, xtm] dme_th) rvs) ith
+                let! tm2 = Choice.bind (rand << concl) jth
+                let! apop, uxtm = dest_comb tm2
+                let! extm = body uxtm
+                let evs, bod = strip_exists extm
+                let th1 = ASSUME bod
+                let th2 = 
+                    choice {
+                        if evs = [] then 
+                            return! th1
+                        else 
+                            let th2a, th2b = CONJ_PAIR th1
+                            let ethlist = CONJUNCTS th2b @ map REFL qvs
+                            let! tms2 = Choice.List.map 
+                                         (fun v -> 
+                                            // NOTE: could two exceptions be equal here?
+                                            find (fun th -> lhand v = Choice.bind (lhand << concl) th) ethlist
+                                            |> Option.toChoiceWithError "find") hyps
+
+                            let th2c = end_itlist CONJ tms2
+                            let th2d = MATCH_MP wth th2c
+                            let th2e = 
+                                TRANS th2d th2a
+                                |> Choice.bindError (fun _ -> MATCH_MP trans_th (CONJ th2d th2a))
+                            return! itlist SIMPLE_CHOOSE evs th2e
+                    }
+
+                let th3 = Choice.bind (ASSUME << concl) th2
+                let th4 = end_itlist CONJ (th3 :: (map (C SPEC refl_th) rvs))
+                let th5 = itlist SIMPLE_EXISTS evs (ASSUME bod)
+                let th6 = MATCH_MP (DISCH_ALL th5) th4
+                let th7 = IMP_ANTISYM_RULE (DISCH_ALL th2) (DISCH_ALL th6)
+                let th8 = TRANS jth (AP_TERM apop (ABS u th7))
+                let fconv = 
+                    if is_eq con then REWR_CONV SELECT_LEMMA
+                    else RAND_CONV ETA_CONV
+                let th9 = CONV_RULE (RAND_CONV fconv) th8
+                return eth, GSYM th9
+            }
+            |> Choice.getOrFailure2 "lift_function"
 
 (* ------------------------------------------------------------------------- *)
 (* Lifts a theorem. This can be done by higher order rewriting alone.        *)
 (*                                                                           *)
-(* NB! All and only the first order Choice.get <| variables must be bound by quantifiers.  *)
+(* NB! All and only the first order variables must be bound by quantifiers.  *)
 (* ------------------------------------------------------------------------- *)
+
 /// Lifts a theorem to quotient type from representing type.
 let lift_theorem = 
     let pth = 
         prove
             ((parse_term @"(!x:Repty. R x x) /\ (!x y. R x y <=> R y x) /\ (!x y z. R x y /\ R y z ==> R x z) /\ (!a. mk(dest a) = a) /\ (!r. (?x. r = R x) <=> (dest(mk r) = r)) ==> (!x y. R x y <=> (mk(R x) = mk(R y))) /\ (!P. (!x. P(mk(R x))) <=> (!x. P x)) /\ (!P. (?x. P(mk(R x))) <=> (?x. P x)) /\ (!x:Absty. mk(R((@)(dest x))) = x)"), 
              STRIP_TAC
-             |> THEN 
-             <| SUBGOAL_THEN 
-                    (parse_term @"!x y. (mk((R:Repty->Repty->bool) x):Absty = mk(R y)) <=> (R x = R y)") 
-                    ASSUME_TAC
-             |> THENL <| [ASM_MESON_TAC []
+             |> THEN <| SUBGOAL_THEN 
+                            (parse_term @"!x y. (mk((R:Repty->Repty->bool) x):Absty = mk(R y)) <=> (R x = R y)") 
+                            ASSUME_TAC
+             |> THENL <| [ASM_MESON_TAC [];
                           ALL_TAC]
-             |> THEN 
-             <| MATCH_MP_TAC
-                    (TAUT
-                         (parse_term @"(a /\ b /\ c) /\ (b ==> a ==> d) ==> a /\ b /\ c /\ d"))
+             |> THEN <| MATCH_MP_TAC
+                            (TAUT (parse_term @"(a /\ b /\ c) /\ (b ==> a ==> d) ==> a /\ b /\ c /\ d"))
              |> THEN <| CONJ_TAC
              |> THENL <| [ASM_REWRITE_TAC []
                           |> THEN <| REWRITE_TAC [FUN_EQ_THM]
@@ -217,16 +248,16 @@ let lift_theorem =
                           ALL_TAC]
              |> THEN <| REPEAT(DISCH_THEN(fun th -> REWRITE_TAC [GSYM th]))
              |> THEN <| X_GEN_TAC(parse_term @"x:Repty")
-             |> THEN 
-             <| SUBGOAL_THEN 
-                    (parse_term @"dest(mk((R:Repty->Repty->bool) x):Absty) = R x") 
-                    SUBST1_TAC
+             |> THEN  <| SUBGOAL_THEN 
+                            (parse_term @"dest(mk((R:Repty->Repty->bool) x):Absty) = R x") 
+                            SUBST1_TAC
              |> THENL <| [ASM_MESON_TAC []
                           ALL_TAC]
              |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM ETA_AX]
              |> THEN <| FIRST_ASSUM(fun th -> GEN_REWRITE_TAC I [th])
              |> THEN <| CONV_TAC SELECT_CONV
              |> THEN <| ASM_MESON_TAC [])
+
     fun tybij (refl_th, sym_th, trans_th) -> 
         let tybij1 = GEN_ALL(fst tybij)
         let tybij2 = GEN_ALL(snd tybij)
