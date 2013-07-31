@@ -26,6 +26,9 @@ module NHol.meson
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+open ExtCore.Control.Collections
+
 open NHol
 open lib
 open fusion
@@ -51,30 +54,39 @@ open canon
 (* ------------------------------------------------------------------------- *)
 (* Some parameters controlling MESON behaviour.                              *)
 (* ------------------------------------------------------------------------- *)
+
 /// Make MESON's search algorithm work by proof depth rather than size.
 let meson_depth = ref false   (* Use depth not inference bound.            *)
+
 /// Makes MESON apply Plaisted's positive refinement.
 let meson_prefine = ref true  (* Use Plaisted's positive refinement.       *)
+
 /// Determines cut-in point for divide-and-conquer refinement in MESON.
 let meson_dcutin = ref 1      (* Min size for d-and-c optimization cut-in. *)
+
 /// Determines skew in MESON proof tree search limits.
 let meson_skew = ref 3        (* Skew proof bias (one side is <= n / skew) *)
+
 /// Makes MESON handle equations using Brand's transformation.
 let meson_brand = ref false   (* Use Brand transformation                  *)
+
 /// Limit initial case splits before MESON proper is applied.
 let meson_split_limit = ref 8 (* Limit of case splits before MESON proper  *)
+
 /// Make MESON's output more verbose and detailed.
 let meson_chatty = ref false  (* Old-style verbose MESON output            *)
 
 (* ------------------------------------------------------------------------- *)
 (* Prolog exception.                                                         *)
 (* ------------------------------------------------------------------------- *)
+
 exception Cut
 
 (* ------------------------------------------------------------------------- *)
 (* Shadow syntax for FOL terms in NNF. Functions and predicates have         *)
 (* numeric codes, and negation is done by negating the predicate code.       *)
 (* ------------------------------------------------------------------------- *)
+
 type fol_term = 
     | Fvar of int
     | Fnapp of int * fol_term list
@@ -90,62 +102,66 @@ type fol_form =
 (* ------------------------------------------------------------------------- *)
 (* Type for recording a MESON proof tree.                                    *)
 (* ------------------------------------------------------------------------- *)
+
 type fol_goal = 
     | Subgoal of fol_atom * fol_goal list * (int * thm) * int * (fol_term * int) list
 
 (* ------------------------------------------------------------------------- *)
 (* General MESON procedure, using assumptions and with settable limits.      *)
 (* ------------------------------------------------------------------------- *)
+
 /// First-order proof search with specified search limits and increment.
 let GEN_MESON_TAC = 
     let offinc = 10000
     let inferences = ref 0
+
     (* ----------------------------------------------------------------------- *)
     (* Like partition, but with short-circuiting for special situation.        *)
     (* ----------------------------------------------------------------------- *)
+
     let qpartition p m = 
         let rec qpartition l = 
-            if l == m
-            then raise Unchanged
+            if l == m then None
             else 
                 match l with
-                | [] -> raise Unchanged
+                | [] -> None
                 | (h :: t) -> 
-                    if p h
-                    then 
-                        try 
-                            let yes, no = qpartition t
-                            h :: yes, no
-                        with
-                        | Unchanged -> [h], t
-                    else 
-                        let yes, no = qpartition t
-                        yes, h :: no
-        function 
-        | l -> 
-            try 
-                qpartition l
-            with
-            | Unchanged -> [], l
+                    if p h then 
+                        match qpartition t with
+                        | Some (yes, no) ->
+                            Some (h :: yes, no)
+                        | None -> Some ([h], t)
+                    else
+                        qpartition t
+                        |> Option.map (fun (yes, no) -> yes, h :: no)
+        fun l ->
+            match qpartition l with
+            | Some result -> result
+            | None -> [], l
+
     (* ----------------------------------------------------------------------- *)
     (* Translate a term (in NNF) into the shadow syntax.                       *)
     (* ----------------------------------------------------------------------- *)
+
     let reset_vars, fol_of_var, hol_of_var = 
         let vstore = ref []
         let gstore = ref []
         let vcounter = ref 0
+
         let inc_vcounter() = 
             let n = !vcounter
             let m = n + 1
             if m >= offinc
-            then failwith "inc_vcounter: too many Choice.get <| variables"
+            then failwith "inc_vcounter: too many variables"
             else 
                 (vcounter := m
                  n)
+
         let reset_vars() = 
             vstore := []
             gstore := []
             vcounter := 0
+
         let fol_of_var v = 
             let currentvars = !vstore
             match assoc v currentvars with
@@ -154,12 +170,14 @@ let GEN_MESON_TAC =
                 let n = inc_vcounter()
                 vstore := (v, n) :: currentvars
                 n
+
         let hol_of_var v =
             match rev_assoc v !vstore with
             | Some x -> x
             | None ->
                 rev_assoc v (!gstore)
                 |> Option.getOrFailWith "find"
+
         let hol_of_bumped_var v = 
             try 
                 hol_of_var v
@@ -170,14 +188,18 @@ let GEN_MESON_TAC =
                 let gv = genvar(Choice.get <| type_of hv')
                 gstore := (gv, v) :: (!gstore)
                 gv
+
         reset_vars, fol_of_var, hol_of_bumped_var
+
     let reset_consts, fol_of_const, hol_of_const = 
         let false_tm = (parse_term @"F")
         let cstore = ref([] : (term * int) list)
         let ccounter = ref 2
+
         let reset_consts() = 
             cstore := [false_tm, 1]
             ccounter := 2
+
         let fol_of_const c = 
             let currentconsts = !cstore
             match assoc c currentconsts with
@@ -187,27 +209,29 @@ let GEN_MESON_TAC =
                 ccounter := n + 1
                 cstore := (c, n) :: currentconsts
                 n
+
         let hol_of_const c =
             rev_assoc c (!cstore)
             |> Option.getOrFailWith "find"
+
         reset_consts, fol_of_const, hol_of_const
+
     let rec fol_of_term env consts tm = 
-        if is_var tm && not(mem tm consts)
-        then Fvar(fol_of_var tm)
+        if is_var tm && not(mem tm consts) then Fvar(fol_of_var tm)
         else 
             let f, args = strip_comb tm
-            if mem f env
-            then failwith "fol_of_term: higher order"
+            if mem f env then failwith "fol_of_term: higher order"
             else 
                 let ff = fol_of_const f
                 Fnapp(ff, map (fol_of_term env consts) args)
+
     let fol_of_atom env consts tm = 
         let f, args = strip_comb tm
-        if mem f env
-        then failwith "fol_of_atom: higher order"
+        if mem f env then failwith "fol_of_atom: higher order"
         else 
             let ff = fol_of_const f
             ff, map (fol_of_term env consts) args
+
     let fol_of_literal env consts tm = 
         try 
             let tm' = Choice.get <| dest_neg tm
@@ -215,6 +239,7 @@ let GEN_MESON_TAC =
             -p, a
         with
         | Failure _ -> fol_of_atom env consts tm
+
     let rec fol_of_form env consts tm = 
         try 
             let v, bod = Choice.get <| dest_forall tm
@@ -237,62 +262,68 @@ let GEN_MESON_TAC =
                     Disj(fl, fr)
                 with
                 | Failure _ -> Atom(fol_of_literal env consts tm)
+
     (* ----------------------------------------------------------------------- *)
     (* Further translation functions for HOL formulas.                         *)
     (* ----------------------------------------------------------------------- *)
+
     let rec hol_of_term tm = 
         match tm with
         | Fvar v -> hol_of_var v
         | Fnapp(f, args) -> list_mk_comb(hol_of_const f, map hol_of_term args)
+
     let hol_of_atom(p, args) = 
         list_mk_comb(hol_of_const p, map hol_of_term args)
+
     let hol_of_literal(p, args) = 
-        if p < 0
-        then Choice.get <| mk_neg(hol_of_atom(-p, args))
+        if p < 0 then Choice.get <| mk_neg(hol_of_atom(-p, args))
         else hol_of_atom(p, args)
+
     (* ----------------------------------------------------------------------- *)
     (* Versions of shadow syntax operations with variable bumping.             *)
     (* ----------------------------------------------------------------------- *)
+
     let rec fol_free_in v tm = 
         match tm with
         | Fvar x -> x = v
         | Fnapp(_, lis) -> exists (fol_free_in v) lis
+
     let rec fol_subst theta tm = 
         match tm with
         | Fvar v -> rev_assocd v theta tm
         | Fnapp(f, args) -> 
             let args' = qmap (fol_subst theta) args
-            if args' == args
-            then tm
+            if args' == args then tm
             else Fnapp(f, args')
+
     let fol_inst theta ((p, args) as at : fol_atom) = 
         let args' = qmap (fol_subst theta) args
-        if args' == args
-        then at
+        if args' == args then at
         else p, args'
+
     let rec fol_subst_bump offset theta tm = 
         match tm with
         | Fvar v -> 
-            if v < offinc
-            then 
+            if v < offinc then 
                 let v' = v + offset
                 rev_assocd v' theta (Fvar(v'))
             else rev_assocd v theta tm
         | Fnapp(f, args) -> 
             let args' = qmap (fol_subst_bump offset theta) args
-            if args' == args
-            then tm
+            if args' == args then tm
             else Fnapp(f, args')
+
     let fol_inst_bump offset theta ((p, args) as at : fol_atom) = 
         let args' = qmap (fol_subst_bump offset theta) args
-        if args' == args
-        then at
+        if args' == args then at
         else p, args'
+
     (* ----------------------------------------------------------------------- *)
     (* Main unification function, maintaining a "graph" instantiation.         *)
-    (* We implicitly apply an offset to Choice.get <| variables in the second term, so this  *)
+    (* We implicitly apply an offset to variables in the second term, so this  *)
     (* is not symmetric between the arguments.                                 *)
     (* ----------------------------------------------------------------------- *)
+
     let rec istriv env x t = 
         match t with
         | Fvar y -> 
@@ -304,114 +335,108 @@ let GEN_MESON_TAC =
                       with
                       | Failure "find" -> false)
         | Fnapp(f, args) -> exists (istriv env x) args && failwith "cyclic"
+
     let rec fol_unify offset tm1 tm2 sofar = 
         match tm1, tm2 with
         | Fnapp(f, fargs), Fnapp(g, gargs) -> 
-            if f <> g
-            then failwith ""
+            if f <> g then failwith ""
             else itlist2 (fol_unify offset) fargs gargs sofar
         | _, Fvar(x) -> 
             (let x' = x + offset
              try 
-                 let tm2' =
-                    rev_assoc x' sofar
-                    |> Option.getOrFailWith "find"
+                 let tm2' = rev_assoc x' sofar |> Option.getOrFailWith "find"
                  fol_unify 0 tm1 tm2' sofar
              with
              | Failure "find" -> 
-                 if istriv sofar x' tm1
-                 then sofar
+                 if istriv sofar x' tm1 then sofar
                  else (tm1, x') :: sofar)
         | Fvar(x), _ -> 
             (try 
-                 let tm1' =
-                    rev_assoc x sofar
-                    |> Option.getOrFailWith "find"
+                 let tm1' = rev_assoc x sofar |> Option.getOrFailWith "find"
                  fol_unify offset tm1' tm2 sofar
              with
              | Failure "find" -> 
                  let tm2' = fol_subst_bump offset [] tm2
-                 if istriv sofar x tm2'
-                 then sofar
+                 if istriv sofar x tm2' then sofar
                  else (tm2', x) :: sofar)
+
     (* ----------------------------------------------------------------------- *)
     (* Test for equality under the pending instantiations.                     *)
     (* ----------------------------------------------------------------------- *)
+
     let rec fol_eq insts tm1 tm2 = 
-        tm1 == tm2 || match tm1, tm2 with
-                      | Fnapp(f, fargs), Fnapp(g, gargs) -> 
-                          f = g && forall2 (fol_eq insts) fargs gargs
-                      | _, Fvar(x) -> 
-                          (try 
-                              let tm2' =
-                                rev_assoc x insts
-                                |> Option.getOrFailWith "find"
-                              fol_eq insts tm1 tm2'
-                           with
-                           | Failure "find" -> 
-                              try 
-                                   istriv insts x tm1
-                              with
-                              | Failure _ -> false)
-                      | Fvar(x), _ -> 
-                          (try 
-                              let tm1' =
-                                rev_assoc x insts
-                                |> Option.getOrFailWith "find"
-                              fol_eq insts tm1' tm2
-                           with
-                           | Failure "find" -> 
-                              try 
-                                   istriv insts x tm2
-                              with
-                              | Failure _ -> false)
+        tm1 == tm2 || 
+        match tm1, tm2 with
+        | Fnapp(f, fargs), Fnapp(g, gargs) -> 
+            f = g && forall2 (fol_eq insts) fargs gargs
+        | _, Fvar(x) -> 
+            (try 
+                 let tm2' = rev_assoc x insts |> Option.getOrFailWith "find"
+                 fol_eq insts tm1 tm2'
+             with
+             | Failure "find" -> 
+                 try 
+                     istriv insts x tm1
+                 with
+                 | Failure _ -> false)
+        | Fvar(x), _ -> 
+            (try 
+                 let tm1' = rev_assoc x insts |> Option.getOrFailWith "find"
+                 fol_eq insts tm1' tm2
+             with
+             | Failure "find" -> 
+                 try 
+                     istriv insts x tm2
+                 with
+                 | Failure _ -> false)
+
     let fol_atom_eq insts (p1, args1) (p2, args2) = 
         p1 = p2 && forall2 (fol_eq insts) args1 args2
+
     (* ----------------------------------------------------------------------- *)
     (* Cacheing continuations. Very crude, but it works remarkably well.       *)
     (* ----------------------------------------------------------------------- *)
+
     let cacheconts f = 
         let memory = ref []
         fun (gg, (insts, offset, size) as input) -> 
-                if exists 
-                       (fun (_, (insts', _, size')) ->
-                               insts = insts' && (size <= size' || !meson_depth)) 
-                       (!memory)
-                then failwith "cachecont"
-                else 
-                    memory := input :: (!memory)
-                    f input
+            if exists (fun (_, (insts', _, size')) -> insts = insts' && (size <= size' || !meson_depth)) (!memory) then 
+                failwith "cachecont"
+            else 
+                memory := input :: (!memory)
+                f input
+
     (* ----------------------------------------------------------------------- *)
     (* Check ancestor list for repetition.                                     *)
     (* ----------------------------------------------------------------------- *)
+
     let checkan insts (p, a) ancestors = 
         let p' = -p
         let t' = (p', a)
         try 
-            let ours =
-                assoc p' ancestors
-                |> Option.getOrFailWith "find"
-            if exists (fun u -> fol_atom_eq insts t' (snd(fst u))) ours
-            then failwith "checkan"
+            let ours = assoc p' ancestors |> Option.getOrFailWith "find"
+            if exists (fun u -> fol_atom_eq insts t' (snd(fst u))) ours then 
+                failwith "checkan"
             else ancestors
         with
         | Failure "find" -> ancestors
+
     (* ----------------------------------------------------------------------- *)
     (* Insert new goal's negation in ancestor clause, given refinement.        *)
     (* ----------------------------------------------------------------------- *)
+
     let insertan insts (p, a) ancestors = 
         let p' = -p
         let t' = (p', a)
-        let ourancp, otheranc = 
-            remove (fun (pr, _) -> pr = p') ancestors
-            |> Option.fill ((p', []), ancestors)
+        let ourancp, otheranc = remove (fun (pr, _) -> pr = p') ancestors |> Option.fill((p', []), ancestors)
         let ouranc = snd ourancp
-        if exists (fun u -> fol_atom_eq insts t' (snd(fst u))) ouranc
-        then failwith "insertan: loop"
+        if exists (fun u -> fol_atom_eq insts t' (snd(fst u))) ouranc then failwith "insertan: loop"
         else (p', (([], t'), (0, TRUTH)) :: ouranc) :: otheranc
+
     (* ----------------------------------------------------------------------- *)
     (* Apply a multi-level "graph" instantiation.                              *)
     (* ----------------------------------------------------------------------- *)
+
     let rec fol_subst_partial insts tm = 
         match tm with
         | Fvar(v) -> 
@@ -423,10 +448,12 @@ let GEN_MESON_TAC =
              with
              | Failure "find" -> tm)
         | Fnapp(f, args) -> Fnapp(f, map (fol_subst_partial insts) args)
+
     (* ----------------------------------------------------------------------- *)
     (* Tease apart local and global instantiations.                            *)
     (* At the moment we also force a full evaluation; should eliminate this.   *)
     (* ----------------------------------------------------------------------- *)
+
     let separate_insts offset oldinsts newinsts = 
         let locins, globins = 
             qpartition (fun (_, v) -> offset <= v) oldinsts newinsts
@@ -436,9 +463,11 @@ let GEN_MESON_TAC =
         else 
             map (fun (t, x) -> fol_subst_partial newinsts t, x) locins, 
             map (fun (t, x) -> fol_subst_partial newinsts t, x) globins
+
     (* ----------------------------------------------------------------------- *)
     (* Perform basic MESON expansion.                                          *)
     (* ----------------------------------------------------------------------- *)
+
     let meson_single_expand loffset rule ((g, ancestors), (insts, offset, size)) = 
         let (hyps, conc), tag = rule
         let allins = rev_itlist2 (fol_unify loffset) (snd g) (snd conc) insts
@@ -449,9 +478,11 @@ let GEN_MESON_TAC =
         let newhyps = map mk_ihyp hyps
         inferences := !inferences + 1
         newhyps, (globin, offset + offinc, size - length hyps)
+
     (* ----------------------------------------------------------------------- *)
     (* Perform first basic expansion which allows continuation call.           *)
     (* ----------------------------------------------------------------------- *)
+
     let meson_expand_cont loffset rules state cont = 
         // NOTE: wrong use of Some, need to change this
         tryfind (fun r -> Some <| cont (snd r) (meson_single_expand loffset r state)) rules
@@ -460,6 +491,7 @@ let GEN_MESON_TAC =
     (* ----------------------------------------------------------------------- *)
     (* Try expansion and continuation call with ancestor or initial rule.      *)
     (* ----------------------------------------------------------------------- *)
+
     let meson_expand rules ((g, ancestors), ((insts, offset, size) as tup)) cont = 
         let pr = fst g
         let newancestors = insertan insts g ancestors
@@ -485,9 +517,11 @@ let GEN_MESON_TAC =
                 nestedFailwith e "meson_expand"
             | Failure _ as e ->
                 nestedFailwith e "meson_expand"
+
     (* ----------------------------------------------------------------------- *)
     (* Simple Prolog engine organizing search and backtracking.                *)
     (* ----------------------------------------------------------------------- *)
+
     let expand_goal rules = 
         let rec expand_goal depth ((g, _), (insts, offset, size) as state) cont = 
             if depth < 0
@@ -524,6 +558,7 @@ let GEN_MESON_TAC =
                                                  | Cut as e -> nestedFailwith e "expand_goal"
                                                  | Failure _ as e -> 
                                                      nestedFailwith e "expand_goal")))
+
         and expand_goals depth (gl, (insts, offset, size as tup)) cont = 
             match gl with
             | [] -> cont([], tup)
@@ -575,9 +610,11 @@ let GEN_MESON_TAC =
                     |  _ -> failwith "expand_goal: Unhandled case."
         fun g maxdep maxinf cont -> 
             expand_goal maxdep (g, ([], 2 * offinc, maxinf)) cont
+
     (* ----------------------------------------------------------------------- *)
     (* With iterative deepening of inferences or depth.                        *)
     (* ----------------------------------------------------------------------- *)
+
     let solve_goal rules incdepth min max incsize = 
         let rec solve n g = 
             if n > max
@@ -616,11 +653,13 @@ let GEN_MESON_TAC =
                 with
                 | Failure _ -> solve (n + incsize) g
         fun g -> solve min (g, [])
+
     (* ----------------------------------------------------------------------- *)
     (* Creation of tagged contrapositives from a HOL clause.                   *)
     (* This includes any possible support clauses (1 = falsity).               *)
     (* The rules are partitioned into association lists.                       *)
     (* ----------------------------------------------------------------------- *)
+
     let fol_of_hol_clauses = 
         let eqt (a1, (b1, c1)) (a2, (b2, c2)) = 
             ((a1 = a2) && (b1 = b2) && (equals_thm c1 c2))
@@ -648,16 +687,20 @@ let GEN_MESON_TAC =
                     prs
             let srules = sort (fun (p, _) (q, _) -> abs(p) <= abs(q)) prules
             srules
+
     (* ----------------------------------------------------------------------- *)
     (* Optimize set of clauses; changing literal order complicates HOL stuff.  *)
     (* ----------------------------------------------------------------------- *)
+
     let optimize_rules = 
         let optimize_clause_order cls = 
             sort (fun ((l1, _), _) ((l2, _), _) -> length l1 <= length l2) cls
         map(fun (a, b) -> a, optimize_clause_order b)
+
     (* ----------------------------------------------------------------------- *)
     (* Create a HOL contrapositive on demand, with a cache.                    *)
     (* ----------------------------------------------------------------------- *)
+
     let clear_contrapos_cache, make_hol_contrapos = 
         let DISJ_AC = AC DISJ_ACI
         let imp_CONV = REWR_CONV(TAUT(parse_term @"a \/ b <=> ~b ==> a"))
@@ -697,40 +740,46 @@ let GEN_MESON_TAC =
                     (memory := (key, fth) :: (!memory)
                      fth)
         clear_contrapos_cache, make_hol_contrapos
+
     (* ----------------------------------------------------------------------- *)
     (* Translate back the saved proof into HOL.                                *)
     (* ----------------------------------------------------------------------- *)
+
     let meson_to_hol = 
         let hol_negate tm = 
-            try 
-                Choice.get <| dest_neg tm
-            with
-            | Failure _ -> Choice.get <| mk_neg tm
+            dest_neg tm
+            |> Choice.bindError (fun _ -> mk_neg tm)
+
         let merge_inst (t, x) current = (fol_subst current t, x) :: current
+
         let finish_RULE = 
-            GEN_REWRITE_RULE I [TAUT(parse_term @"(~p ==> p) <=> p")
+            GEN_REWRITE_RULE I [TAUT(parse_term @"(~p ==> p) <=> p");
                                 TAUT(parse_term @"(p ==> ~p) <=> ~p")]
+
         let rec meson_to_hol insts (Subgoal(g, gs, (n, th), offset, locin)) = 
-            let newins = itlist merge_inst locin insts
-            let g' = fol_inst newins g
-            let hol_g = hol_of_literal g'
-            let ths = map (meson_to_hol newins) gs
-            let hth = 
-                if equals_thm th TRUTH
-                then ASSUME hol_g
-                else 
-                    let cth = make_hol_contrapos(n, th)
-                    if ths = []
-                    then cth
-                    else MATCH_MP cth (end_itlist CONJ ths)
-            let ith = PART_MATCH Choice.result hth hol_g
-            finish_RULE(DISCH (hol_negate(concl <| Choice.get ith)) ith)
+            choice {
+                let newins = itlist merge_inst locin insts
+                let g' = fol_inst newins g
+                let hol_g = hol_of_literal g'
+                let ths = map (meson_to_hol newins) gs
+                let hth = 
+                    if equals_thm th TRUTH then ASSUME hol_g
+                    else 
+                        let cth = make_hol_contrapos(n, th)
+                        if ths = [] then cth
+                        else MATCH_MP cth (end_itlist CONJ ths)
+                let ith = PART_MATCH Choice.result hth hol_g
+                let! tm1 = Choice.bind (hol_negate << concl) ith
+                return! finish_RULE (DISCH tm1 ith)
+            }
         meson_to_hol
+
     (* ----------------------------------------------------------------------- *)
     (* Create equality axioms for all the function and predicate symbols in    *)
     (* a HOL term. Not very efficient (but then neither is throwing them into  *)
     (* automated proof search!)                                                *)
     (* ----------------------------------------------------------------------- *)
+
     let create_equality_axioms = 
         let eq_thms = 
             (CONJUNCTS << prove)((parse_term @"(x:A = x) /\
@@ -740,16 +789,18 @@ let GEN_MESON_TAC =
                                                       (parse_term @"x:A = y")
                                                |> THEN <| ASM_REWRITE_TAC []
                                                |> THEN <| CONV_TAC TAUT)
+
         let imp_elim_CONV = REWR_CONV(TAUT(parse_term @"(a ==> b) <=> ~a \/ b"))
         let eq_elim_RULE = MATCH_MP(TAUT(parse_term @"(a <=> b) ==> b \/ ~a"))
         let veq_tm = Choice.get <| rator(Choice.get <| rator(concl <| Choice.get(hd eq_thms)))
+
         let create_equivalence_axioms(eq, _) = 
             let tyins = Choice.get <| type_match (Choice.get <| type_of veq_tm) (Choice.get <| type_of eq) []
             map (INST_TYPE tyins) eq_thms
+
         let rec tm_consts tm acc = 
             let fn, args = strip_comb tm
-            if args = []
-            then acc
+            if args = [] then acc
             else itlist tm_consts args (insert (fn, length args) acc)
 
         (* OPTIMIZE :   Modify the code below to use option instead of try/catch. *)
@@ -794,6 +845,7 @@ let GEN_MESON_TAC =
                                         else 
                                             insert (pred, length args) preds, 
                                             itlist tm_consts args funs
+
         let create_congruence_axiom pflag (tm, len) = 
             let atys, rty = 
                 splitlist (fun ty -> 
@@ -833,32 +885,28 @@ let GEN_MESON_TAC =
                     itlist (union' equals_thm << create_equivalence_axioms) eqs 
                         []
                 equivs @ pcongs @ fcongs
+
     (* ----------------------------------------------------------------------- *)
     (* Brand's transformation.                                                 *)
     (* ----------------------------------------------------------------------- *)
+
     let perform_brand_modification = 
         let rec subterms_irrefl lconsts tm acc = 
-            if is_var tm || is_const tm
-            then acc
+            if is_var tm || is_const tm then acc
             else 
                 let fn, args = strip_comb tm
                 itlist (subterms_refl lconsts) args acc
         and subterms_refl lconsts tm acc = 
-            if is_var tm
-            then 
-                if mem tm lconsts
-                then insert tm acc
+            if is_var tm then 
+                if mem tm lconsts then insert tm acc
                 else acc
-            elif is_const tm
-            then insert tm acc
+            elif is_const tm then insert tm acc
             else 
                 let fn, args = strip_comb tm
                 itlist (subterms_refl lconsts) args (insert tm acc)
-        let CLAUSIFY = 
-            CONV_RULE(REWR_CONV(TAUT(parse_term @"a ==> b <=> ~a \/ b")))
+        let CLAUSIFY = CONV_RULE(REWR_CONV(TAUT(parse_term @"a ==> b <=> ~a \/ b")))
         let rec BRAND tms th = 
-            if tms = []
-            then th
+            if tms = [] then th
             else 
                 let tm = hd tms
                 let gv = genvar(Choice.get <| type_of tm)
@@ -871,20 +919,18 @@ let GEN_MESON_TAC =
             let lits = disjuncts(concl <| Choice.get th)
             let atoms = 
                 map (fun t -> 
-                        try 
-                            Choice.get <| dest_neg t
-                        with
-                        | Failure _ -> t) lits
+                    try 
+                        Choice.get <| dest_neg t
+                    with
+                    | Failure _ -> t) lits
             let eqs, noneqs = 
                 partition (fun t -> 
-                        try 
-                            fst(Choice.get <| dest_const(fst(strip_comb t))) = "="
-                        with
-                        | Failure _ -> false) atoms
+                    try 
+                        fst(Choice.get <| dest_const(fst(strip_comb t))) = "="
+                    with
+                    | Failure _ -> false) atoms
             let acc = itlist (subterms_irrefl lconsts) noneqs []
-            let uts = 
-                itlist (itlist(subterms_irrefl lconsts) << snd << strip_comb) 
-                    eqs acc
+            let uts = itlist (itlist(subterms_irrefl lconsts) << snd << strip_comb) eqs acc
             let sts = sort (fun s t -> not(free_in s t)) uts
             BRAND sts th
         let BRANDE th = 
@@ -900,140 +946,132 @@ let GEN_MESON_TAC =
             let tm = concl <| Choice.get th
             try 
                 let l, r = Choice.get <| dest_disj tm
-                if is_eq l
-                then 
+                if is_eq l then 
                     let lth = ASSUME l
                     let lth1 = BRANDE lth
                     let lth2 = BRANDE(SYM lth)
                     let rth = BRAND_TRANS(ASSUME r)
-                    map (ASSOCIATE << LDISJ_CASES th lth1) rth 
-                    @ map (ASSOCIATE << LDISJ_CASES th lth2) rth
+                    map (ASSOCIATE << LDISJ_CASES th lth1) rth @ map (ASSOCIATE << LDISJ_CASES th lth2) rth
                 else 
                     let rth = BRAND_TRANS(ASSUME r)
                     map (LDISJ_CASES th (ASSUME l)) rth
             with
             | Failure _ -> 
-                if is_eq tm
-                then 
-                    [BRANDE th
+                if is_eq tm then 
+                    [BRANDE th;
                      BRANDE(SYM th)]
                 else [th]
         let find_eqs = 
-            Choice.get << 
-                find_terms(fun t -> 
-                    try 
-                        fst(Choice.get <| dest_const t) = "="
-                    with
-                    | Failure _ -> false)
+            Choice.get << find_terms(fun t -> 
+                              try 
+                                  fst(Choice.get <| dest_const t) = "="
+                              with
+                              | Failure _ -> false)
         let REFLEXATE ths = 
             let eqs = itlist (union << find_eqs << concl << Choice.get) ths []
             let tys = map (hd << snd << Choice.get << dest_type << snd << Choice.get << dest_const) eqs
             let gvs = map genvar tys
             itlist (fun v acc -> (REFL v) :: acc) gvs ths
-        fun ths ->
-            /// Tests for failure.
-            let can f x = 
-                try f x |> ignore; true
-                with Failure _ -> false
-            if exists (can(Choice.get << find_term is_eq << concl << Choice.get)) ths
-            then 
+        fun ths -> 
+            if exists (function Success th -> (Choice.isResult << find_term is_eq << concl) th
+                              | Error _ -> false) ths then 
                 let ths' = map BRAND_CONGS ths
                 let ths'' = itlist (union' equals_thm << BRAND_TRANS) ths' []
                 REFLEXATE ths''
             else ths
+
     (* ----------------------------------------------------------------------- *)
     (* Push duplicated copies of poly theorems to match existing assumptions.  *)
     (* ----------------------------------------------------------------------- *)
-    let POLY_ASSUME_TAC = 
+
+    let (POLY_ASSUME_TAC : thm list -> tactic) = 
         let rec uniq' eq = 
             fun l -> 
-                match l with
-                | x :: (y :: _ as t) -> 
-                    let t' = uniq' eq t
-                    if eq x y
-                    then t'
-                    elif t' == t
-                    then l
-                    else x :: t'
-                | _ -> l
+            match l with
+            | x :: (y :: _ as t) -> 
+                let t' = uniq' eq t
+                if eq x y then t'
+                elif t' == t then l
+                else x :: t'
+            | _ -> l
+
         let setify' le eq s = uniq' eq (sort le s)
+
         let rec grab_constants tm acc = 
-            if is_forall tm || is_exists tm
-            then grab_constants (Choice.get <| body(Choice.get <| rand tm)) acc
-            elif is_iff tm || is_imp tm || is_conj tm || is_disj tm
-            then grab_constants (Choice.get <| rand tm) (grab_constants (Choice.get <| lhand tm) acc)
-            elif is_neg tm
-            then grab_constants (Choice.get <| rand tm) acc
+            if is_forall tm || is_exists tm then grab_constants (Choice.get <| body(Choice.get <| rand tm)) acc
+            elif is_iff tm || is_imp tm || is_conj tm || is_disj tm then 
+                grab_constants (Choice.get <| rand tm) (grab_constants (Choice.get <| lhand tm) acc)
+            elif is_neg tm then grab_constants (Choice.get <| rand tm) acc
             else union (Choice.get <| find_terms is_const tm) acc
+
         let match_consts(tm1, tm2) = 
             let s1, ty1 = Choice.get <| dest_const tm1
             let s2, ty2 = Choice.get <| dest_const tm2
-            if s1 = s2
-            then Choice.get <| type_match ty1 ty2 []
+            if s1 = s2 then Choice.get <| type_match ty1 ty2 []
             else failwith "match_consts"
+
         let polymorph mconsts th = 
             let tvs = 
                 subtract (Choice.get <| type_vars_in_term(concl <| Choice.get th)) 
                     (unions(map (Choice.get << type_vars_in_term) (hyp <| Choice.get th)))
-            if tvs = []
-            then [th]
+            if tvs = [] then [th]
             else 
                 let pconsts = grab_constants (concl <| Choice.get th) []
-                let tyins = 
-                    mapfilter (Some << match_consts)
-                        (allpairs (fun x y -> x, y) pconsts mconsts)
+                let tyins = mapfilter (Some << match_consts) (allpairs (fun x y -> x, y) pconsts mconsts)
                 let ths' = 
-                    setify' (fun th th' -> dest_thm (Choice.get th) <= dest_thm (Choice.get th')) 
-                        equals_thm (mapfilter (Some << C INST_TYPE th) tyins)
-                if ths' = []
-                then 
+                    setify' (fun th th' -> dest_thm(Choice.get th) <= dest_thm(Choice.get th')) equals_thm 
+                        (mapfilter (Some << C INST_TYPE th) tyins)
+                if ths' = [] then 
                     (warn true "No useful-looking instantiations of lemma"
                      [th])
                 else ths'
+
         let rec polymorph_all mconsts ths acc = 
-            if ths = []
-            then acc
+            if ths = [] then acc
             else 
                 let ths' = polymorph mconsts (hd ths)
                 let mconsts' = itlist grab_constants (map (concl << Choice.get) ths') mconsts
                 polymorph_all mconsts' (tl ths) (union' equals_thm ths' acc)
-        fun ths (asl, w as gl) ->
-                let mconsts = itlist (grab_constants << concl << Choice.get << snd) asl []
-                let ths' = polymorph_all mconsts ths []
-                MAP_EVERY ASSUME_TAC ths' gl
+
+        fun ths (asl, w as gl) -> 
+            let mconsts = itlist (grab_constants << concl << Choice.get << snd) asl []
+            let ths' = polymorph_all mconsts ths []
+            MAP_EVERY ASSUME_TAC ths' gl
+
     (* ----------------------------------------------------------------------- *)
     (* Basic HOL MESON procedure.                                              *)
     (* ----------------------------------------------------------------------- *)
+
     let SIMPLE_MESON_REFUTE min max inc ths = 
         clear_contrapos_cache()
         inferences := 0
         let old_dcutin = !meson_dcutin
-        if !meson_depth
-        then meson_dcutin := 100001
+        if !meson_depth then meson_dcutin := 100001
         else ()
         let ths' = 
-            if !meson_brand
-            then perform_brand_modification ths
+            if !meson_brand then perform_brand_modification ths
             else ths @ create_equality_axioms(map (concl << Choice.get) ths)
         let rules = optimize_rules(fol_of_hol_clauses ths')
-        let proof, (insts, _, _) = 
-            solve_goal rules (!meson_depth) min max inc (1, [])
+        let proof, (insts, _, _) = solve_goal rules (!meson_depth) min max inc (1, [])
         meson_dcutin := old_dcutin
         meson_to_hol insts proof
+
     let CONJUNCTS_THEN' ttac cth = ttac(CONJUNCT1 cth)
                                    |> THEN <| ttac(CONJUNCT2 cth)
+
     let PURE_MESON_TAC min max inc gl = 
         reset_vars()
         reset_consts()
         (FIRST_ASSUM CONTR_TAC
-         |> ORELSE 
-         <| W(ACCEPT_TAC << SIMPLE_MESON_REFUTE min max inc << map snd << fst)) 
-            gl
+         |> ORELSE <| W(ACCEPT_TAC << SIMPLE_MESON_REFUTE min max inc << map snd << fst)) 
+                        gl
+
     let QUANT_BOOL_CONV = 
         PURE_REWRITE_CONV 
             [FORALL_BOOL_THM; EXISTS_BOOL_THM; COND_CLAUSES; NOT_CLAUSES; 
              IMP_CLAUSES; AND_CLAUSES; OR_CLAUSES; EQ_CLAUSES; FORALL_SIMP; 
              EXISTS_SIMP]
+
     let rec SPLIT_TAC n g = 
         ((FIRST_X_ASSUM(CONJUNCTS_THEN' ASSUME_TAC)
           |> THEN <| SPLIT_TAC n)
@@ -1042,6 +1080,7 @@ let GEN_MESON_TAC =
                             |> THEN <| SPLIT_TAC(n - 1)
                        else NO_TAC)
          |> ORELSE <| ALL_TAC) g
+
     fun min max step ths -> 
         REFUTE_THEN ASSUME_TAC
         |> THEN <| POLY_ASSUME_TAC(map GEN_ALL ths)
@@ -1066,7 +1105,12 @@ let GEN_MESON_TAC =
         |> THEN <| RULE_ASSUM_TAC
                     (repeat
                         (fun th -> 
-                            (Choice.toOption << Choice.map Choice.result) <| SPEC (genvar(Choice.get <| type_of(fst(Choice.get <| dest_forall(concl <| Choice.get th))))) th))
+                            choice {
+                                let! (tm1, _) = Choice.bind (dest_forall << concl) th
+                                let! ty1 = type_of tm1
+                                return SPEC (genvar ty1) th
+                            }
+                            |> Choice.toOption))
         |> THEN <| REPEAT(FIRST_X_ASSUM(CONJUNCTS_THEN' ASSUME_TAC))
         |> THEN <| RULE_ASSUM_TAC(CONV_RULE(ASSOC_CONV DISJ_ASSOC))
         |> THEN <| REPEAT(FIRST_X_ASSUM SUBST_VAR_TAC)
@@ -1075,6 +1119,7 @@ let GEN_MESON_TAC =
 (* ------------------------------------------------------------------------- *)
 (* Common cases.                                                             *)
 (* ------------------------------------------------------------------------- *)
+
 /// Automated first-order proof search tactic using assumptions of goal.
 let ASM_MESON_TAC = GEN_MESON_TAC 0 50 1
 
@@ -1083,7 +1128,8 @@ let MESON_TAC ths = POP_ASSUM_LIST(K ALL_TAC)
                     |> THEN <| ASM_MESON_TAC ths
 
 (* ------------------------------------------------------------------------- *)
-(* Also introduce a rule.                                                  *)
+(* Also introduce a rule.                                                    *)
 (* ------------------------------------------------------------------------- *)
+
 /// Attempt to prove a term by first-order proof search.
 let MESON ths tm = prove(tm, MESON_TAC ths)
