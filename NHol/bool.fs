@@ -657,7 +657,6 @@ let CONTR =
     fun tm (th : thm) -> 
         Choice.map concl th
         |> Choice.bind (fun tm' ->
-            printfn "%O <-> %O" (string_of_term f_tm) (string_of_term tm')
             if tm' <> f_tm then Choice.failwith "CONTR"
             else PROVE_HYP th (INST [tm, P] <| pth())) : thm;;
 

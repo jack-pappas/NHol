@@ -268,20 +268,24 @@ let ASM_CASES_TAC t = DISJ_CASES_TAC(SPEC t EXCLUDED_MIDDLE);;
 (* Set up a reasonable tautology checker for classical logic.                *)
 (* ------------------------------------------------------------------------- *)
 
+
 let TAUT_001 =
     let PROP_REWRITE_TAC = REWRITE_TAC []
 
     let RTAUT_001_TAC(asl, w) = 
+        // NOTE: return false in erroneous cases
         let ok t = 
-            Choice.get <| type_of t = bool_ty && Choice.isResult <| find_term is_var t && free_in t w
+            match type_of t with
+            | Success ty -> ty = bool_ty && Choice.isResult <| find_term is_var t && free_in t w
+            | Error _ -> false
 
         (PROP_REWRITE_TAC
-         |> THEN <| W
+            |> THEN <| W
                 (THEN (REWRITE_TAC []) << BOOL_CASES_TAC 
-                 << hd << sort free_in << Choice.get << find_terms ok << snd)) (asl, w)
+                    << hd << sort free_in << Choice.get << find_terms ok << snd)) (asl, w)
 
     let TAUT_001_TAC = REPEAT (GEN_TAC |> ORELSE <| CONJ_TAC)
-                       |> THEN <| REPEAT RTAUT_001_TAC
+                        |> THEN <| REPEAT RTAUT_001_TAC
 
     fun tm -> prove(tm, TAUT_001_TAC);;
 

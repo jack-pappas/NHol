@@ -27,6 +27,7 @@ open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
 open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open lib
@@ -54,7 +55,7 @@ open trivia
 (* ------------------------------------------------------------------------- *)
 
 /// Applies basic propositional simplications and some miniscoping.
-let PRESIMP_CONV = 
+let (PRESIMP_CONV : conv) = 
     GEN_REWRITE_CONV TOP_DEPTH_CONV 
         [NOT_CLAUSES; AND_CLAUSES; OR_CLAUSES; IMP_CLAUSES; EQ_CLAUSES; 
          FORALL_SIMP; EXISTS_SIMP; EXISTS_OR_THM; FORALL_AND_THM; 
@@ -67,7 +68,7 @@ let PRESIMP_CONV =
 (* ------------------------------------------------------------------------- *)
 
 /// Proves equivalence of two conjunctions containing same set of conjuncts.
-let CONJ_ACI_RULE = 
+let (CONJ_ACI_RULE : conv) = 
     let rec mk_fun th fn = 
         let tm = concl <| Choice.get th
         if is_conj tm then 
@@ -93,7 +94,7 @@ let CONJ_ACI_RULE =
         }
 
 /// Proves equivalence of two disjunctions containing same set of disjuncts.
-let DISJ_ACI_RULE = 
+let (DISJ_ACI_RULE : conv) = 
     let pth_left = UNDISCH(TAUT(parse_term @"~(a \/ b) ==> ~a"))
     let pth_right = UNDISCH(TAUT(parse_term @"~(a \/ b) ==> ~b"))
     let pth = repeat (Choice.toOption << Choice.map Choice.result << UNDISCH) (TAUT(parse_term @"~a ==> ~b ==> ~(a \/ b)"))
@@ -150,7 +151,7 @@ let DISJ_ACI_RULE =
 (* ------------------------------------------------------------------------- *)
 
 /// Puts an iterated conjunction in canonical form.
-let CONJ_CANON_CONV tm = 
+let CONJ_CANON_CONV tm : thm = 
     choice {
         let tm' = list_mk_conj(setify(conjuncts tm))
         let! tm1 = mk_eq(tm, tm')
@@ -158,7 +159,7 @@ let CONJ_CANON_CONV tm =
     }
 
 /// Puts an iterated disjunction in canonical form.
-let DISJ_CANON_CONV tm = 
+let DISJ_CANON_CONV tm : thm = 
     choice {
         let tm' = list_mk_disj(setify(disjuncts tm))
         let! tm1 = mk_eq(tm, tm')
@@ -533,7 +534,7 @@ let SKOLEM_CONV =
 (* ------------------------------------------------------------------------- *)
 
 /// Puts a term already in NNF into prenex form.
-let PRENEX_CONV = 
+let (PRENEX_CONV : conv) = 
     GEN_REWRITE_CONV REDEPTH_CONV 
         [AND_FORALL_THM; LEFT_AND_FORALL_THM; RIGHT_AND_FORALL_THM; 
          LEFT_OR_FORALL_THM; RIGHT_OR_FORALL_THM; OR_EXISTS_THM; 
@@ -691,7 +692,7 @@ let WEAK_CNF_CONV, CNF_CONV =
 (* ------------------------------------------------------------------------- *)
 
 /// Right-associates a term with respect to an associative binary operator.
-let ASSOC_CONV th = 
+let ASSOC_CONV th : conv = 
     let v =
         choice {
             let th' = SYM(SPEC_ALL th)
@@ -746,55 +747,75 @@ let SELECT_ELIM_TAC =
                      |> THEN <| REFL_TAC)
             let ptm = (parse_term @"P:A->bool")
             fun tm -> 
-                let stm, atm = Choice.get <| dest_comb tm
-                if is_const stm && fst(Choice.get <| dest_const stm) = "@" then 
-                    CONV_RULE (LAND_CONV BETA_CONV) (PINST [Choice.get <| type_of(Choice.get <| bndvar atm), aty] [atm, ptm] pth)
-                else failwith "SELECT_ELIM_THM: not a select-term"
+                choice {
+                    let! stm, atm = dest_comb tm
+                    let! (s, _) = dest_const stm
+                    if is_const stm && s = "@" then
+                        let! ty1 = Choice.bind type_of (bndvar atm)
+                        return! CONV_RULE (LAND_CONV BETA_CONV) (PINST [ty1, aty] [atm, ptm] pth)
+                    else 
+                        return! Choice.failwith "SELECT_ELIM_THM: not a select-term"
+                }
         fun tm -> 
-            PURE_REWRITE_CONV (map SELECT_ELIM_THM (Choice.get <| find_terms is_select tm)) tm
+            choice {
+                let! tms = find_terms is_select tm
+                return! PURE_REWRITE_CONV (map SELECT_ELIM_THM tms) tm
+            }
 
     let SELECT_ELIM_ICONV = 
         let SELECT_AX_THM = 
             let pth = ISPEC (parse_term @"P:A->bool") SELECT_AX
             let ptm = (parse_term @"P:A->bool")
             fun tm -> 
-                let stm, atm = Choice.get <| dest_comb tm
-                if is_const stm && fst(Choice.get <| dest_const stm) = "@"
-                then 
-                    let fvs = frees atm
-                    let th1 = PINST [Choice.get <| type_of(Choice.get <| bndvar atm), aty] [atm, ptm] pth
-                    let th2 = CONV_RULE (BINDER_CONV(BINOP_CONV BETA_CONV)) th1
-                    GENL fvs th2
-                else failwith "SELECT_AX_THM: not a select-term"
+                choice {
+                    let! stm, atm = dest_comb tm
+                    let! (s, _) = dest_const stm
+                    if is_const stm && s = "@" then 
+                        let fvs = frees atm
+                        let! ty1 = Choice.bind type_of (bndvar atm)
+                        let th1 = PINST [ty1, aty] [atm, ptm] pth
+                        let th2 = CONV_RULE (BINDER_CONV(BINOP_CONV BETA_CONV)) th1
+                        return! GENL fvs th2
+                    else 
+                        return! Choice.failwith "SELECT_AX_THM: not a select-term"
+                }
 
         let SELECT_ELIM_ICONV tm = 
-            let t = Choice.get <| find_term is_select tm
-            let th1 = SELECT_AX_THM t
-            let itm = Choice.get <| mk_imp(concl <| Choice.get th1, tm)
-            let th2 = DISCH_ALL(MP (ASSUME itm) th1)
-            let fvs = frees t
-            let fty = itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) fvs (Choice.get <| type_of t)
-            let fn = genvar fty
-            let atm = list_mk_abs(fvs, t)
-            let rawdef = Choice.get <| mk_eq(fn, atm)
-            let def = GENL fvs (SYM(RIGHT_BETAS fvs (ASSUME rawdef)))
-            let th3 = PURE_REWRITE_CONV [def] (Choice.get <| lhand(concl <| Choice.get th2))
-            let gtm = Choice.get <| mk_forall(fn, Choice.get <| rand(concl <| Choice.get th3))
-            let th4 = EQ_MP (SYM th3) (SPEC fn (ASSUME gtm))
-            let th5 = IMP_TRANS (DISCH gtm th4) th2
-            MP (INST [atm, fn] (DISCH rawdef th5)) (REFL atm)
+            choice {
+                let! t = find_term is_select tm
+                let th1 = SELECT_AX_THM t
+                let! tm1 = Choice.map concl th1
+                let! itm = mk_imp(tm1, tm)
+                let th2 = DISCH_ALL(MP (ASSUME itm) th1)
+                let fvs = frees t
+                let! ty1 = type_of t
+                // NOTE: revise due to massivie changes
+                let! fty = Choice.List.fold (fun acc x -> type_of x |> Choice.bind (fun y -> mk_fun_ty y acc)) ty1 fvs
+                let fn = genvar fty
+                let atm = list_mk_abs(fvs, t)
+                let! rawdef = mk_eq(fn, atm)
+                let def = GENL fvs (SYM(RIGHT_BETAS fvs (ASSUME rawdef)))
+                let! tm2 = Choice.bind (lhand << concl) th2
+                let th3 = PURE_REWRITE_CONV [def] tm2
+                let! tm3 = Choice.bind (rand << concl) th3
+                let! gtm = mk_forall(fn, tm3)
+                let th4 = EQ_MP (SYM th3) (SPEC fn (ASSUME gtm))
+                let th5 = IMP_TRANS (DISCH gtm th4) th2
+                return! MP (INST [atm, fn] (DISCH rawdef th5)) (REFL atm)
+            }
 
         let rec SELECT_ELIMS_ICONV tm = 
-            try 
+            choice { 
                 let th = SELECT_ELIM_ICONV tm
-                let tm' = Choice.get <| lhand(concl <| Choice.get th)
-                IMP_TRANS (SELECT_ELIMS_ICONV tm') th
-            with
-            | Failure _ -> DISCH tm (ASSUME tm)
+                let! tm' = Choice.bind (lhand << concl) th
+                return! IMP_TRANS (SELECT_ELIMS_ICONV tm') th
+            }
+            |> Choice.bindError (fun e -> DISCH tm (ASSUME tm))
+
         SELECT_ELIMS_ICONV
 
     CONV_TAC SELECT_ELIM_CONV
-    |> THEN <| W(MATCH_MP_TAC << SELECT_ELIM_ICONV << snd)
+    |> THEN <| W (MATCH_MP_TAC << SELECT_ELIM_ICONV << snd)
 
 (* ------------------------------------------------------------------------- *)
 (* Eliminate all lambda-terms except those part of quantifiers.              *)
@@ -814,30 +835,32 @@ let LAMBDA_ELIM_CONV =
         conv
 
     let rec find_lambda tm = 
-        if is_abs tm then tm
-        elif is_var tm || is_const tm then 
-            failwith "find_lambda"
-        elif is_abs tm then tm
-        elif is_forall tm || is_exists tm || is_uexists tm then 
-            find_lambda(Choice.get <| body(Choice.get <| rand tm))
-        else 
-            let l, r = Choice.get <| dest_comb tm
-            try 
-                find_lambda l
-            with
-            | Failure _ -> find_lambda r
+        choice {
+            if is_abs tm then 
+                return tm
+            elif is_var tm || is_const tm then 
+                return! Choice.failwith "find_lambda"
+            elif is_abs tm then 
+                return tm
+            elif is_forall tm || is_exists tm || is_uexists tm then
+                let! tm1 = Choice.bind body (rand tm) 
+                return! find_lambda tm1
+            else 
+                let! l, r = dest_comb tm
+                return! 
+                    find_lambda l
+                    |> Choice.bindError (fun _ -> find_lambda r)
+        }
 
     let rec ELIM_LAMBDA conv tm = 
-        try 
-            conv tm
-        with
-        | Failure _ -> 
+        conv tm        
+        |> Choice.bindError (fun _ ->
             if is_abs tm then 
                 ABS_CONV (ELIM_LAMBDA conv) tm
             elif is_var tm || is_const tm then REFL tm
             elif is_forall tm || is_exists tm || is_uexists tm then 
                 BINDER_CONV (ELIM_LAMBDA conv) tm
-            else COMB_CONV (ELIM_LAMBDA conv) tm
+            else COMB_CONV (ELIM_LAMBDA conv) tm)
 
     let APPLY_PTH = 
         let pth = 
@@ -847,24 +870,26 @@ let LAMBDA_ELIM_CONV =
         MATCH_MP pth
 
     let LAMB1_CONV tm = 
-        let atm = find_lambda tm
-        let v, bod = Choice.get <| dest_abs atm
-        let vs = frees atm
-        let vs' = vs @ [v]
-        let aatm = list_mk_abs(vs, atm)
-        let f = genvar(Choice.get <| type_of aatm)
-        let eq = Choice.get <| mk_eq(f, aatm)
-        let th1 = SYM(RIGHT_BETAS vs (ASSUME eq))
-        let th2 = ELIM_LAMBDA (GEN_REWRITE_CONV I [th1]) tm
-        let th3 = APPLY_PTH(GEN f (DISCH_ALL th2))
-        CONV_RULE (RAND_CONV(BINDER_CONV(LAND_CONV(HALF_MK_ABS_CONV vs')))) th3
+        choice {
+            let! atm = find_lambda tm
+            let! v, bod = dest_abs atm
+            let vs = frees atm
+            let vs' = vs @ [v]
+            let aatm = list_mk_abs(vs, atm)
+            let! ty1 = type_of aatm
+            let f = genvar ty1
+            let! eq = mk_eq(f, aatm)
+            let th1 = SYM(RIGHT_BETAS vs (ASSUME eq))
+            let th2 = ELIM_LAMBDA (GEN_REWRITE_CONV I [th1]) tm
+            let th3 = APPLY_PTH(GEN f (DISCH_ALL th2))
+            return! CONV_RULE (RAND_CONV(BINDER_CONV(LAND_CONV(HALF_MK_ABS_CONV vs')))) th3
+        }
 
-    let rec conv tm = 
-        try 
-            (LAMB1_CONV
-             |> THENC <| conv) tm
-        with
-        | Failure _ -> REFL tm
+    let rec conv tm =          
+        (LAMB1_CONV
+        |> THENC <| conv) tm
+        |> Choice.bindError (fun _ -> REFL tm)
+
     conv
 
 (* ------------------------------------------------------------------------- *)
@@ -899,38 +924,43 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
         |> THENC <| cnv
 
     let rec find_conditional fvs tm = 
-        match tm with
-        | Comb(s, t) -> 
-            if is_cond tm && intersect (frees(Choice.get <| lhand s)) fvs = [] then tm
-            else 
-                (try 
-                     (find_conditional fvs s)
-                 with
-                 | Failure _ -> find_conditional fvs t)
-        | Abs(x, t) -> find_conditional (x :: fvs) t
-        | _ -> failwith "find_conditional"
+        choice {
+            match tm with
+            | Comb(s, t) -> 
+                if is_cond tm && intersect (frees(Choice.get <| lhand s)) fvs = [] then 
+                    return tm
+                else 
+                    return!
+                        find_conditional fvs s
+                        |> Choice.bindError (fun _ -> find_conditional fvs t)
+            | Abs(x, t) -> 
+                return! find_conditional (x :: fvs) t
+            | _ -> 
+                return! Choice.failwith "find_conditional"
+        }
 
     let rec CONDS_ELIM_CONV dfl tm = 
-        try 
-            let t = find_conditional [] tm
-            let p = Choice.get <| lhand(Choice.get <| rator t)
+        choice { 
+            let! t = find_conditional [] tm
+            let! p = Choice.bind lhand (rator t)
             let th_new = 
-                if p = false_tm || p = true_tm then propsimp_conv tm
-                else 
-                    let asm_0 = Choice.get <| mk_eq(p, false_tm)
-                    let asm_1 = Choice.get <| mk_eq(p, true_tm)
-                    let simp_0 = Choice.get <| net_of_thm false (ASSUME asm_0) propsimps
-                    let simp_1 = Choice.get <| net_of_thm false (ASSUME asm_1) propsimps
-                    let th_0 = DISCH asm_0 (DEPTH_CONV (REWRITES_CONV simp_0) tm)
-                    let th_1 = DISCH asm_1 (DEPTH_CONV (REWRITES_CONV simp_1) tm)
-                    let th_2 = CONJ th_0 th_1
-                    let th_3 = 
-                        if dfl then match_th th_2
-                        else match_th' th_2
-                    TRANS th_3 (proptsimp_conv(Choice.get <| rand(concl <| Choice.get th_3)))
-            CONV_RULE (RAND_CONV(CONDS_ELIM_CONV dfl)) th_new
-        with
-        | Failure _ -> 
+                choice {
+                    if p = false_tm || p = true_tm then 
+                        return! propsimp_conv tm
+                    else 
+                        let! asm_0 = mk_eq(p, false_tm)
+                        let! asm_1 = mk_eq(p, true_tm)
+                        let! simp_0 = net_of_thm false (ASSUME asm_0) propsimps
+                        let! simp_1 = net_of_thm false (ASSUME asm_1) propsimps
+                        let th_0 = DISCH asm_0 (DEPTH_CONV (REWRITES_CONV simp_0) tm)
+                        let th_1 = DISCH asm_1 (DEPTH_CONV (REWRITES_CONV simp_1) tm)
+                        let th_2 = CONJ th_0 th_1
+                        let th_3 = if dfl then match_th th_2 else match_th' th_2
+                        return! TRANS th_3 (proptsimp_conv(Choice.get <| rand(concl <| Choice.get th_3)))
+                }
+            return! CONV_RULE (RAND_CONV(CONDS_ELIM_CONV dfl)) th_new
+        }
+        |> Choice.bindError (fun _ ->
             if is_neg tm then 
                 RAND_CONV (CONDS_ELIM_CONV(not dfl)) tm
             elif is_conj tm || is_disj tm then 
@@ -941,7 +971,7 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
                 BINDER_CONV (CONDS_ELIM_CONV false) tm
             elif is_exists tm || is_uexists tm then 
                 BINDER_CONV (CONDS_ELIM_CONV true) tm
-            else REFL tm
+            else REFL tm)
 
     CONDS_ELIM_CONV true, CONDS_ELIM_CONV false
 
@@ -951,7 +981,7 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
 (* ------------------------------------------------------------------------- *)
 
 /// Fix up function arities for first-order proof search.
-let ASM_FOL_TAC = 
+let (ASM_FOL_TAC : tactic) = 
     let rec get_heads lconsts tm (cheads, vheads as sofar) = 
         try 
             let v, bod = Choice.get <| dest_forall tm
@@ -982,7 +1012,8 @@ let ASM_FOL_TAC =
                         else sofar
                     itlist (get_heads lconsts) args newheads
 
-    let get_thm_heads th sofar = get_heads (freesl(hyp <| Choice.get th)) (concl <| Choice.get th) sofar
+    let get_thm_heads th sofar = 
+        Choice.attempt <| fun () -> get_heads (freesl(hyp <| Choice.get th)) (concl <| Choice.get th) sofar
 
     let APP_CONV = 
         let th = 
@@ -995,24 +1026,28 @@ let ASM_FOL_TAC =
               |> THENC <| APP_CONV) tm
 
     let rec FOL_CONV hddata tm = 
-        if is_forall tm then 
-            BINDER_CONV (FOL_CONV hddata) tm
-        elif is_conj tm || is_disj tm then 
-            BINOP_CONV (FOL_CONV hddata) tm
-        else 
-            let op, args = strip_comb tm
-            let th = rev_itlist (C(curry MK_COMB)) (map (FOL_CONV hddata) args) (REFL op)
-            let tm' = Choice.get <| rand(concl <| Choice.get th)
-            let n = 
-                // OPTIMIZE : Replace the entire 'match' statement below with:
-                //assoc op hddata
-                //|> Option.map (fun x -> length args - x)
-                //|> Option.fill 0
-                match assoc op hddata with
-                | None -> 0
-                | Some x -> length args - x
-            if n = 0 then th
-            else TRANS th (APP_N_CONV n tm')
+        choice {
+            if is_forall tm then 
+                return! BINDER_CONV (FOL_CONV hddata) tm
+            elif is_conj tm || is_disj tm then 
+                return! BINOP_CONV (FOL_CONV hddata) tm
+            else 
+                let op, args = strip_comb tm
+                let th = rev_itlist (C(curry MK_COMB)) (map (FOL_CONV hddata) args) (REFL op)
+                let! tm' = Choice.bind (rand << concl) th
+                let n = 
+                    // OPTIMIZE : Replace the entire 'match' statement below with:
+                    //assoc op hddata
+                    //|> Option.map (fun x -> length args - x)
+                    //|> Option.fill 0
+                    match assoc op hddata with
+                    | None -> 0
+                    | Some x -> length args - x
+                if n = 0 then 
+                    return! th
+                else 
+                    return! TRANS th (APP_N_CONV n tm')
+        }
 
     let GEN_FOL_CONV(cheads, vheads) = 
         let hddata = 
@@ -1033,8 +1068,10 @@ let ASM_FOL_TAC =
         FOL_CONV hddata
 
     fun (asl, w as gl) -> 
-            let headsp = itlist (get_thm_heads << snd) asl ([], [])
-            RULE_ASSUM_TAC (CONV_RULE(GEN_FOL_CONV headsp)) gl
+        choice {
+            let! headsp = Choice.List.fold (fun acc (_, th) -> get_thm_heads th acc) ([], []) asl
+            return! RULE_ASSUM_TAC (CONV_RULE(GEN_FOL_CONV headsp)) gl
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Depth conversion to apply at "atomic" formulas in "first-order" term.     *)
