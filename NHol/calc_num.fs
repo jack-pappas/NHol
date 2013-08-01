@@ -26,6 +26,8 @@ module NHol.calc_num
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -60,7 +62,7 @@ open arith
 (* ------------------------------------------------------------------------- *)
 
 /// Remove instances of the NUMERAL constant from a theorem.
-let DENUMERAL = GEN_REWRITE_RULE DEPTH_CONV [NUMERAL];;
+let DENUMERAL = GEN_REWRITE_RULE DEPTH_CONV [NUMERAL]
 
 (* ------------------------------------------------------------------------- *)
 (* Big collection of rewrites to do trivial arithmetic.                      *)
@@ -70,32 +72,40 @@ let DENUMERAL = GEN_REWRITE_RULE DEPTH_CONV [NUMERAL];;
 (* ------------------------------------------------------------------------- *)
 
 let ARITH_ZERO = 
- prove
-  ((parse_term @"(NUMERAL 0 = 0) /\
+    prove((parse_term @"(NUMERAL 0 = 0) /\
     (BIT0 _0 = _0)"),
-   REWRITE_TAC[NUMERAL; BIT0; DENUMERAL ADD_CLAUSES]);;
+          REWRITE_TAC [NUMERAL;
+                       BIT0;
+                       DENUMERAL ADD_CLAUSES])
 
 let ARITH_SUC = 
- prove
-  ((parse_term @"(!n. SUC(NUMERAL n) = NUMERAL(SUC n)) /\
+    prove((parse_term @"(!n. SUC(NUMERAL n) = NUMERAL(SUC n)) /\
     (SUC _0 = BIT1 _0) /\
     (!n. SUC (BIT0 n) = BIT1 n) /\
     (!n. SUC (BIT1 n) = BIT0 (SUC n))"),
-   REWRITE_TAC[NUMERAL; BIT0; BIT1; DENUMERAL ADD_CLAUSES]);;
+          REWRITE_TAC [NUMERAL;
+                       BIT0;
+                       BIT1;
+                       DENUMERAL ADD_CLAUSES])
 
 let ARITH_PRE = 
- prove
-  ((parse_term @"(!n. PRE(NUMERAL n) = NUMERAL(PRE n)) /\
+    prove((parse_term @"(!n. PRE(NUMERAL n) = NUMERAL(PRE n)) /\
     (PRE _0 = _0) /\
     (!n. PRE(BIT0 n) = if n = _0 then _0 else BIT1 (PRE n)) /\
     (!n. PRE(BIT1 n) = BIT0 n)"),
-   REWRITE_TAC[NUMERAL; BIT1; BIT0; DENUMERAL PRE] |>THEN<| INDUCT_TAC |>THEN<|
-   REWRITE_TAC[NUMERAL; DENUMERAL PRE; DENUMERAL ADD_CLAUSES; DENUMERAL NOT_SUC;
-               ARITH_ZERO]);;
+          REWRITE_TAC [NUMERAL;
+                       BIT1;
+                       BIT0;
+                       DENUMERAL PRE]
+          |> THEN <| INDUCT_TAC
+          |> THEN <| REWRITE_TAC [NUMERAL;
+                                  DENUMERAL PRE;
+                                  DENUMERAL ADD_CLAUSES;
+                                  DENUMERAL NOT_SUC;
+                                  ARITH_ZERO])
 
 let ARITH_ADD = 
- prove
-  ((parse_term @"(!m n. NUMERAL(m) + NUMERAL(n) = NUMERAL(m + n)) /\
+    prove((parse_term @"(!m n. NUMERAL(m) + NUMERAL(n) = NUMERAL(m + n)) /\
     (_0 + _0 = _0) /\
     (!n. _0 + BIT0 n = BIT0 n) /\
     (!n.        _0 + BIT1 n = BIT1 n) /\
@@ -105,12 +115,15 @@ let ARITH_ADD =
     (!m n. BIT0 m + BIT1 n = BIT1 (m + n)) /\
     (!m n. BIT1 m + BIT0 n = BIT1 (m + n)) /\
     (!m n. BIT1 m + BIT1 n = BIT0 (SUC(m + n)))"),
-   PURE_REWRITE_TAC[NUMERAL; BIT0; BIT1; DENUMERAL ADD_CLAUSES; SUC_INJ] |>THEN<|
-   REWRITE_TAC[ADD_AC]);;
+          PURE_REWRITE_TAC [NUMERAL;
+                            BIT0;
+                            BIT1;
+                            DENUMERAL ADD_CLAUSES;
+                            SUC_INJ]
+          |> THEN <| REWRITE_TAC [ADD_AC])
 
 let ARITH_MULT = 
- prove
-  ((parse_term @"(!m n. NUMERAL(m) * NUMERAL(n) = NUMERAL(m * n)) /\
+    prove((parse_term @"(!m n. NUMERAL(m) * NUMERAL(n) = NUMERAL(m * n)) /\
     (_0 * _0 = _0) /\
     (!n. _0 * BIT0 n = _0) /\
     (!n. _0 * BIT1 n = _0) /\
@@ -119,14 +132,17 @@ let ARITH_MULT =
     (!m n. BIT0 m * BIT0 n = BIT0 (BIT0 (m * n))) /\
     (!m n. BIT0 m * BIT1 n = BIT0 m + BIT0 (BIT0 (m * n))) /\
     (!m n. BIT1 m * BIT0 n = BIT0 n + BIT0 (BIT0 (m * n))) /\
-    (!m n. BIT1 m * BIT1 n = BIT1 m + BIT0 n + BIT0 (BIT0 (m * n)))"),
-   PURE_REWRITE_TAC[NUMERAL; BIT0; BIT1; DENUMERAL MULT_CLAUSES;
-                    DENUMERAL ADD_CLAUSES; SUC_INJ] |>THEN<|
-   REWRITE_TAC[LEFT_ADD_DISTRIB; RIGHT_ADD_DISTRIB; ADD_AC]);;
+    (!m n. BIT1 m * BIT1 n = BIT1 m + BIT0 n + BIT0 (BIT0 (m * n)))"), 
+          PURE_REWRITE_TAC [NUMERAL;
+                            BIT0;
+                            BIT1;
+                            DENUMERAL MULT_CLAUSES;
+                            DENUMERAL ADD_CLAUSES;
+                            SUC_INJ]
+          |> THEN <| REWRITE_TAC [LEFT_ADD_DISTRIB; RIGHT_ADD_DISTRIB; ADD_AC])
  
 let ARITH_EXP = 
- prove
-     ((parse_term @"(!m n. (NUMERAL m) EXP (NUMERAL n) = NUMERAL(m EXP n)) /\
+    prove((parse_term @"(!m n. (NUMERAL m) EXP (NUMERAL n) = NUMERAL(m EXP n)) /\
        (_0 EXP _0 = BIT1 _0) /\
        (!m. (BIT0 m) EXP _0 = BIT1 _0) /\
        (!m. (BIT1 m) EXP _0 = BIT1 _0) /\
@@ -138,29 +154,37 @@ let ARITH_EXP =
             BIT0 m * ((BIT0 m) EXP n) * ((BIT0 m) EXP n)) /\
        (!m n. (BIT1 m) EXP (BIT1 n) =
             BIT1 m * ((BIT1 m) EXP n) * ((BIT1 m) EXP n))"),
-      REWRITE_TAC[NUMERAL] |>THEN<| REPEAT STRIP_TAC |>THEN<|
-      TRY(GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [BIT0; BIT1]) |>THEN<|
-      REWRITE_TAC[DENUMERAL EXP; DENUMERAL MULT_CLAUSES; EXP_ADD]);;
+          REWRITE_TAC [NUMERAL]
+          |> THEN <| REPEAT STRIP_TAC
+          |> THEN <| TRY(GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [BIT0; BIT1])
+          |> THEN <| REWRITE_TAC [DENUMERAL EXP;
+                                  DENUMERAL MULT_CLAUSES;
+                                  EXP_ADD])
 
-let ARITH_EVEN =
- prove
-   ((parse_term @"(!n. EVEN(NUMERAL n) <=> EVEN n) /\
+let ARITH_EVEN = 
+    prove((parse_term @"(!n. EVEN(NUMERAL n) <=> EVEN n) /\
      (EVEN _0 <=> T) /\
      (!n. EVEN(BIT0 n) <=> T) /\
      (!n. EVEN(BIT1 n) <=> F)"),
-    REWRITE_TAC[NUMERAL; BIT1; BIT0; DENUMERAL EVEN; EVEN_ADD]);;
+          REWRITE_TAC [NUMERAL;
+                       BIT1;
+                       BIT0;
+                       DENUMERAL EVEN;
+                       EVEN_ADD])
 
-let ARITH_ODD =
- prove
-   ((parse_term @"(!n. ODD(NUMERAL n) <=> ODD n) /\
+let ARITH_ODD = 
+    prove((parse_term @"(!n. ODD(NUMERAL n) <=> ODD n) /\
      (ODD _0 <=> F) /\
      (!n. ODD(BIT0 n) <=> F) /\
      (!n. ODD(BIT1 n) <=> T)"),
-    REWRITE_TAC[NUMERAL; BIT1; BIT0; DENUMERAL ODD; ODD_ADD]);;
+          REWRITE_TAC [NUMERAL;
+                       BIT1;
+                       BIT0;
+                       DENUMERAL ODD;
+                       ODD_ADD])
 
-let ARITH_LE =
- prove
-   ((parse_term @"(!m n. NUMERAL m <= NUMERAL n <=> m <= n) /\
+let ARITH_LE = 
+    prove((parse_term @"(!m n. NUMERAL m <= NUMERAL n <=> m <= n) /\
      ((_0 <= _0) <=> T) /\
      (!n. (BIT0 n <= _0) <=> n <= _0) /\
      (!n. (BIT1 n <= _0) <=> F) /\
@@ -170,26 +194,40 @@ let ARITH_LE =
      (!m n. (BIT0 m <= BIT1 n) <=> m <= n) /\
      (!m n. (BIT1 m <= BIT0 n) <=> m < n) /\
      (!m n. (BIT1 m <= BIT1 n) <=> m <= n)"),
-    REWRITE_TAC[NUMERAL; BIT1; BIT0; DENUMERAL NOT_SUC;
-        DENUMERAL(GSYM NOT_SUC); SUC_INJ] |>THEN<|
-    REWRITE_TAC[DENUMERAL LE_0] |>THEN<| REWRITE_TAC[DENUMERAL LE; GSYM MULT_2] |>THEN<|
-    REWRITE_TAC[LE_MULT_LCANCEL; SUC_INJ;
-                DENUMERAL MULT_EQ_0; DENUMERAL NOT_SUC] |>THEN<|
-    REWRITE_TAC[DENUMERAL NOT_SUC] |>THEN<| REWRITE_TAC[LE_SUC_LT] |>THEN<|
-    REWRITE_TAC[LT_MULT_LCANCEL] |>THEN<|
-    SUBGOAL_THEN (parse_term @"2 = SUC 1") (fun th -> REWRITE_TAC[th]) |>THENL<|
-     [REWRITE_TAC[NUMERAL; BIT0; BIT1; DENUMERAL ADD_CLAUSES];
-      REWRITE_TAC[DENUMERAL NOT_SUC; NOT_SUC; EQ_MULT_LCANCEL] |>THEN<|
-      REWRITE_TAC[ONCE_REWRITE_RULE[DISJ_SYM] LE_LT] |>THEN<|
-      MAP_EVERY X_GEN_TAC [(parse_term @"m:num"); (parse_term @"n:num")] |>THEN<|
-      SUBGOAL_THEN (parse_term @"~(SUC 1 * m = SUC (SUC 1 * n))")
-        (fun th -> REWRITE_TAC[th]) |>THEN<|
-      DISCH_THEN(MP_TAC << AP_TERM (parse_term @"EVEN")) |>THEN<|
-      REWRITE_TAC[EVEN_MULT; EVEN_ADD; NUMERAL; BIT1; EVEN]]);;
+          REWRITE_TAC [NUMERAL;
+                       BIT1;
+                       BIT0;
+                       DENUMERAL NOT_SUC;
+                       DENUMERAL(GSYM NOT_SUC);
+                       SUC_INJ]
+          |> THEN <| REWRITE_TAC [DENUMERAL LE_0]
+          |> THEN <| REWRITE_TAC [DENUMERAL LE;
+                                  GSYM MULT_2]
+          |> THEN <| REWRITE_TAC [LE_MULT_LCANCEL;
+                                  SUC_INJ;
+                                  DENUMERAL MULT_EQ_0;
+                                  DENUMERAL NOT_SUC]
+          |> THEN <| REWRITE_TAC [DENUMERAL NOT_SUC]
+          |> THEN <| REWRITE_TAC [LE_SUC_LT]
+          |> THEN <| REWRITE_TAC [LT_MULT_LCANCEL]
+          |> THEN <| SUBGOAL_THEN (parse_term @"2 = SUC 1") (fun th -> REWRITE_TAC [th])
+          |> THENL <| [REWRITE_TAC [NUMERAL;
+                                    BIT0;
+                                    BIT1;
+                                    DENUMERAL ADD_CLAUSES];
+                       REWRITE_TAC [DENUMERAL NOT_SUC;
+                                    NOT_SUC;
+                                    EQ_MULT_LCANCEL]
+                       |> THEN <| REWRITE_TAC [ONCE_REWRITE_RULE [DISJ_SYM] LE_LT]
+                       |> THEN <| MAP_EVERY X_GEN_TAC [(parse_term @"m:num");
+                                                       (parse_term @"n:num")]
+                       |> THEN 
+                       <| SUBGOAL_THEN (parse_term @"~(SUC 1 * m = SUC (SUC 1 * n))") (fun th -> REWRITE_TAC [th])
+                       |> THEN <| DISCH_THEN(MP_TAC << AP_TERM(parse_term @"EVEN"))
+                       |> THEN <| REWRITE_TAC [EVEN_MULT; EVEN_ADD; NUMERAL; BIT1; EVEN]])
 
-let ARITH_LT =
- prove
-   ((parse_term @"(!m n. NUMERAL m < NUMERAL n <=> m < n) /\
+let ARITH_LT = 
+    prove((parse_term @"(!m n. NUMERAL m < NUMERAL n <=> m < n) /\
      ((_0 < _0) <=> F) /\
      (!n. (BIT0 n < _0) <=> F) /\
      (!n. (BIT1 n < _0) <=> F) /\
@@ -199,16 +237,17 @@ let ARITH_LT =
      (!m n. (BIT0 m < BIT1 n) <=> m <= n) /\
      (!m n. (BIT1 m < BIT0 n) <=> m < n) /\
      (!m n. (BIT1 m < BIT1 n) <=> m < n)"),
-    REWRITE_TAC[NUMERAL; GSYM NOT_LE; ARITH_LE] |>THEN<|
-    REWRITE_TAC[DENUMERAL LE]);;
+          REWRITE_TAC [NUMERAL;
+                       GSYM NOT_LE;
+                       ARITH_LE]
+          |> THEN <| REWRITE_TAC [DENUMERAL LE])
 
 let ARITH_GE = REWRITE_RULE[GSYM GE; GSYM GT] ARITH_LE;;
 
 let ARITH_GT = REWRITE_RULE[GSYM GE; GSYM GT] ARITH_LT;;
 
-let ARITH_EQ =
- prove
-   ((parse_term @"(!m n. (NUMERAL m = NUMERAL n) <=> (m = n)) /\
+let ARITH_EQ = 
+    prove((parse_term @"(!m n. (NUMERAL m = NUMERAL n) <=> (m = n)) /\
      ((_0 = _0) <=> T) /\
      (!n. (BIT0 n = _0) <=> (n = _0)) /\
      (!n. (BIT1 n = _0) <=> F) /\
@@ -218,12 +257,15 @@ let ARITH_EQ =
      (!m n. (BIT0 m = BIT1 n) <=> F) /\
      (!m n. (BIT1 m = BIT0 n) <=> F) /\
      (!m n. (BIT1 m = BIT1 n) <=> (m = n))"),
-    REWRITE_TAC[NUMERAL; GSYM LE_ANTISYM; ARITH_LE] |>THEN<|
-    REWRITE_TAC[LET_ANTISYM; LTE_ANTISYM; DENUMERAL LE_0]);;
+          REWRITE_TAC [NUMERAL;
+                       GSYM LE_ANTISYM;
+                       ARITH_LE]
+          |> THEN <| REWRITE_TAC [LET_ANTISYM;
+                                  LTE_ANTISYM;
+                                  DENUMERAL LE_0])
 
-let ARITH_SUB =
- prove
-   ((parse_term @"(!m n. NUMERAL m - NUMERAL n = NUMERAL(m - n)) /\
+let ARITH_SUB = 
+    prove((parse_term @"(!m n. NUMERAL m - NUMERAL n = NUMERAL(m - n)) /\
      (_0 - _0 = _0) /\
      (!n. _0 - BIT0 n = _0) /\
      (!n. _0 - BIT1 n = _0) /\
@@ -233,23 +275,27 @@ let ARITH_SUB =
      (!m n. BIT0 m - BIT1 n = PRE(BIT0 (m - n))) /\
      (!m n. BIT1 m - BIT0 n = if n <= m then BIT1 (m - n) else _0) /\
      (!m n. BIT1 m - BIT1 n = BIT0 (m - n))"),
-    REWRITE_TAC[NUMERAL; DENUMERAL SUB_0] |>THEN<| PURE_REWRITE_TAC[BIT0; BIT1] |>THEN<|
-    REWRITE_TAC[GSYM MULT_2; SUB_SUC; LEFT_SUB_DISTRIB] |>THEN<|
-    REWRITE_TAC[SUB] |>THEN<| REPEAT GEN_TAC |>THEN<| COND_CASES_TAC |>THEN<|
-    REWRITE_TAC[DENUMERAL SUB_EQ_0] |>THEN<|
-    RULE_ASSUM_TAC(REWRITE_RULE[NOT_LE]) |>THEN<|
-    ASM_REWRITE_TAC[LE_SUC_LT; LT_MULT_LCANCEL; ARITH_EQ] |>THEN<|
-    POP_ASSUM(CHOOSE_THEN SUBST1_TAC << REWRITE_RULE[LE_EXISTS]) |>THEN<|
-    REWRITE_TAC[ADD1; LEFT_ADD_DISTRIB] |>THEN<|
-    REWRITE_TAC[ADD_SUB2; GSYM ADD_ASSOC]);;
+          REWRITE_TAC [NUMERAL;
+                       DENUMERAL SUB_0]
+          |> THEN <| PURE_REWRITE_TAC [BIT0; BIT1]
+          |> THEN <| REWRITE_TAC [GSYM MULT_2;
+                                  SUB_SUC;
+                                  LEFT_SUB_DISTRIB]
+          |> THEN <| REWRITE_TAC [SUB]
+          |> THEN <| REPEAT GEN_TAC
+          |> THEN <| COND_CASES_TAC
+          |> THEN <| REWRITE_TAC [DENUMERAL SUB_EQ_0]
+          |> THEN <| RULE_ASSUM_TAC(REWRITE_RULE [NOT_LE])
+          |> THEN <| ASM_REWRITE_TAC [LE_SUC_LT; LT_MULT_LCANCEL; ARITH_EQ]
+          |> THEN <| POP_ASSUM(CHOOSE_THEN SUBST1_TAC << REWRITE_RULE [LE_EXISTS])
+          |> THEN <| REWRITE_TAC [ADD1; LEFT_ADD_DISTRIB]
+          |> THEN <| REWRITE_TAC [ADD_SUB2;
+                                  GSYM ADD_ASSOC])
 
 let ARITH = 
-  end_itlist CONJ
-    [ARITH_ZERO; ARITH_SUC; ARITH_PRE;
-     ARITH_ADD; ARITH_MULT; ARITH_EXP;
-     ARITH_EVEN; ARITH_ODD;
-     ARITH_EQ; ARITH_LE; ARITH_LT; ARITH_GE; ARITH_GT;
-     ARITH_SUB];;
+    end_itlist CONJ 
+        [ARITH_ZERO; ARITH_SUC; ARITH_PRE; ARITH_ADD; ARITH_MULT; ARITH_EXP; ARITH_EVEN; ARITH_ODD; ARITH_EQ; ARITH_LE; 
+         ARITH_LT; ARITH_GE; ARITH_GT; ARITH_SUB]
 
 (* ------------------------------------------------------------------------- *)
 (* Now more delicate conversions for situations where efficiency matters.    *)
@@ -280,150 +326,177 @@ let NUM_EQ_CONV,NUM_LE_CONV,NUM_LT_CONV,NUM_GE_CONV,NUM_GT_CONV =
 
 /// Proves whether a natural number numeral is even.
 let NUM_EVEN_CONV =
-    let tth,rths = CONJ_PAIR ARITH_EVEN in
-    GEN_REWRITE_CONV I [tth] |>THENC<| GEN_REWRITE_CONV I [rths];;
+    let tth, rths = CONJ_PAIR ARITH_EVEN
+    GEN_REWRITE_CONV I [tth] |> THENC <| GEN_REWRITE_CONV I [rths];;
 
 /// Proves whether a natural number numeral is odd.
 let NUM_ODD_CONV =
-    let tth,rths = CONJ_PAIR ARITH_ODD in
-    GEN_REWRITE_CONV I [tth] |>THENC<| GEN_REWRITE_CONV I [rths];;
+    let tth, rths = CONJ_PAIR ARITH_ODD
+    GEN_REWRITE_CONV I [tth] |> THENC <| GEN_REWRITE_CONV I [rths];;
 
 // NUM_SUC_CONV: Proves what the successor of a natural number numeral is.
 // NUM_ADD_CONV: Proves what the sum of two natural number numerals is.
 // NUM_MULT_CONV: Proves what the product of two natural number numerals is.
 // NUM_EXP_CONV: Proves what the exponential of two natural number numerals is.
 let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
-    let NUM_SUC_CONV,NUM_ADD_CONV',NUM_ADD_CONV =
-      let std_tm = Choice.get <| rand (parse_term @"2") in
-      let bit0_tm,bz_tm = Choice.get <| dest_comb std_tm in
-      let bit1_tm,zero_tm = Choice.get <| dest_comb bz_tm in
-      let n_tm = (parse_term @"n:num") 
-      let m_tm = (parse_term @"m:num") in
-      let sths = 
-          (CONJUNCTS << prove)
-            ((parse_term @"(SUC _0 = BIT1 _0) /\
-              (SUC(BIT0 n) = BIT1 n) /\
-              (SUC(BIT1 n) = BIT0(SUC n))"),
-              SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
-              REWRITE_TAC[BIT0; BIT1] |>THEN<|
-              REWRITE_TAC[ADD_CLAUSES])
-      match sths with
-      | [sth_z; sth_0; sth_1] ->
-          let aths =
-           (CONJUNCTS << prove)
-            ((parse_term @"(_0 + n = n) /\
-              (n + _0 = n) /\
-              (BIT0 m + BIT0 n = BIT0 (m + n)) /\
-              (BIT0 m + BIT1 n = BIT1 (m + n)) /\
-              (BIT1 m + BIT0 n = BIT1 (m + n)) /\
-              (BIT1 m + BIT1 n = BIT0 (SUC (m + n)))"),
-             SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
-             REWRITE_TAC[BIT0; BIT1] |>THEN<|
-             REWRITE_TAC[ADD_CLAUSES] |>THEN<| REWRITE_TAC[ADD_AC])
-          match aths with
-          | [ath_0x; ath_x0; ath_00; ath_01; ath_10; ath_11] ->
-              let cths =
-                  (CONJUNCTS << prove)
-                    ((parse_term @"(SUC(_0 + n) = SUC n) /\
-                      (SUC(n + _0) = SUC n) /\
-                      (SUC(BIT0 m + BIT0 n) = BIT1(m + n)) /\
-                      (SUC(BIT0 m + BIT1 n) = BIT0(SUC(m + n))) /\
-                      (SUC(BIT1 m + BIT0 n) = BIT0(SUC(m + n))) /\
-                      (SUC(BIT1 m + BIT1 n) = BIT1(SUC (m + n)))"),
-                     SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL)) |>THEN<|
-                     REWRITE_TAC[BIT0; BIT1] |>THEN<|
-                     REWRITE_TAC[ADD_CLAUSES] |>THEN<| REWRITE_TAC[ADD_AC])
-              match cths with
-              | [cth_0x; cth_x0; cth_00; cth_01; cth_10; cth_11] ->
-                  let pth_suc =
-                   prove
-                    ((parse_term @"SUC(NUMERAL n) = NUMERAL(SUC n)"),
-                     REWRITE_TAC[NUMERAL])
-                  let pth_add =
-                   prove
-                    ((parse_term @"NUMERAL m + NUMERAL n = NUMERAL(m + n)"),
-                     REWRITE_TAC[NUMERAL]) in
-                  let rec raw_suc_conv tm =
-                    let otm = Choice.get <| rand tm in
-                    if otm = zero_tm then sth_z else
-                    let btm,ntm = Choice.get <| dest_comb otm in
-                    if btm = bit0_tm then INST [ntm,n_tm] sth_0 else
-                    let th = INST [ntm,n_tm] sth_1 in
-                    let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
-                    TRANS th (AP_TERM ltm (raw_suc_conv rtm)) in
-                  let rec raw_add_conv tm =
-                    let atm,rtm = Choice.get <| dest_comb tm in
-                    let ltm = Choice.get <| rand atm in
-                    if ltm = zero_tm then INST [rtm,n_tm] ath_0x
-                    else if rtm = zero_tm then INST [ltm,n_tm] ath_x0 else
-                    let lbit,larg = Choice.get <| dest_comb ltm
-                    let rbit,rarg = Choice.get <| dest_comb rtm in
-                    if lbit = bit0_tm then
-                       if rbit = bit0_tm then
-                          let th = INST [larg,m_tm; rarg,n_tm] ath_00 in
-                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
-                          TRANS th (AP_TERM ltm (raw_add_conv rtm))
-                       else
-                          let th = INST [larg,m_tm; rarg,n_tm] ath_01 in
-                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
-                          TRANS th (AP_TERM ltm (raw_add_conv rtm))
-                    else
-                       if rbit = bit0_tm then
-                          let th = INST [larg,m_tm; rarg,n_tm] ath_10 in
-                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
-                          TRANS th (AP_TERM ltm (raw_add_conv rtm))
-                       else
-                          let th = INST [larg,m_tm; rarg,n_tm] ath_11 in
-                          let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
-                          TRANS th (AP_TERM ltm (raw_adc_conv rtm))
-                  and raw_adc_conv tm =
-                    let atm,rtm = Choice.get <| dest_comb(Choice.get <| rand tm) in
-                    let ltm = Choice.get <| rand atm in
-                    if ltm = zero_tm then
-                       let th = INST [rtm,n_tm] cth_0x in
-                       TRANS th (raw_suc_conv (Choice.get <| rand(concl <| Choice.get th)))
-                    else if rtm = zero_tm then
-                       let th = INST [ltm,n_tm] cth_x0 in
-                       TRANS th (raw_suc_conv (Choice.get <| rand(concl <| Choice.get th)))
-                    else
-                       let lbit,larg = Choice.get <| dest_comb ltm
-                       let rbit,rarg = Choice.get <| dest_comb rtm in
-                       if lbit = bit0_tm then
-                          if rbit = bit0_tm then
-                             let th = INST [larg,m_tm; rarg,n_tm] cth_00 in
-                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
-                             TRANS th (AP_TERM ltm (raw_add_conv rtm))
-                          else
-                             let th = INST [larg,m_tm; rarg,n_tm] cth_01 in
-                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
-                             TRANS th (AP_TERM ltm (raw_adc_conv rtm))
-                       else
-                          if rbit = bit0_tm then
-                             let th = INST [larg,m_tm; rarg,n_tm] cth_10 in
-                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
-                             TRANS th (AP_TERM ltm (raw_adc_conv rtm))
-                          else
-                             let th = INST [larg,m_tm; rarg,n_tm] cth_11 in
-                             let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
-                             TRANS th (AP_TERM ltm (raw_adc_conv rtm)) in
-                  let NUM_SUC_CONV tm =
-                    let th = INST [Choice.get <| rand(Choice.get <| rand tm),n_tm] pth_suc in
-                    let ctm = concl <| Choice.get th in
-                    if Choice.get <| lhand ctm <> tm then failwith "NUM_SUC_CONV" else
-                    let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand ctm) in
-                    TRANS th (AP_TERM ltm (raw_suc_conv rtm))
-                  let NUM_ADD_CONV tm =
-                    let atm,rtm = Choice.get <| dest_comb tm in
-                    let ltm = Choice.get <| rand atm in
-                    let th = INST [Choice.get <| rand ltm,m_tm; Choice.get <| rand rtm,n_tm] pth_add in
-                    let ctm = concl <| Choice.get th in
-                    if Choice.get <| lhand ctm <> tm then failwith "NUM_ADD_CONV" else
-                    let ltm,rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th)) in
-                    TRANS th (AP_TERM ltm (raw_add_conv rtm)) in
-                  NUM_SUC_CONV,raw_add_conv,NUM_ADD_CONV
-              | _ -> failwith "cths: Unhandled case."
-          | _ -> failwith "aths: Unhandled case."
-      | _ -> failwith "sths: Unhandled case."
+    let NUM_SUC_CONV, NUM_ADD_CONV', NUM_ADD_CONV = 
+        let std_tm = Choice.get <| rand(parse_term @"2")
+
+        let bit0_tm, bz_tm = Choice.get <| dest_comb std_tm
+        let bit1_tm, zero_tm = Choice.get <| dest_comb bz_tm
+
+        let n_tm = (parse_term @"n:num")
+        let m_tm = (parse_term @"m:num")
+
+        let sths = 
+            (CONJUNCTS << prove)((parse_term @"(SUC _0 = BIT1 _0) /\
+                  (SUC(BIT0 n) = BIT1 n) /\
+                  (SUC(BIT1 n) = BIT0(SUC n))"),
+                                 SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL))
+                                 |> THEN <| REWRITE_TAC [BIT0; BIT1]
+                                 |> THEN <| REWRITE_TAC [ADD_CLAUSES])
+
+        let unhandled_conv name tm : thm = 
+            Choice.failwith (name + ": Unhandled case.")
+
+        match sths with
+        | [sth_z; sth_0; sth_1] -> 
+            let aths = 
+                (CONJUNCTS << prove)((parse_term @"(_0 + n = n) /\
+                  (n + _0 = n) /\
+                  (BIT0 m + BIT0 n = BIT0 (m + n)) /\
+                  (BIT0 m + BIT1 n = BIT1 (m + n)) /\
+                  (BIT1 m + BIT0 n = BIT1 (m + n)) /\
+                  (BIT1 m + BIT1 n = BIT0 (SUC (m + n)))"),
+                                     SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL))
+                                     |> THEN <| REWRITE_TAC [BIT0; BIT1]
+                                     |> THEN <| REWRITE_TAC [ADD_CLAUSES]
+                                     |> THEN <| REWRITE_TAC [ADD_AC])
+            match aths with
+            | [ath_0x; ath_x0; ath_00; ath_01; ath_10; ath_11] -> 
+                let cths = 
+                    (CONJUNCTS << prove)((parse_term @"(SUC(_0 + n) = SUC n) /\
+                          (SUC(n + _0) = SUC n) /\
+                          (SUC(BIT0 m + BIT0 n) = BIT1(m + n)) /\
+                          (SUC(BIT0 m + BIT1 n) = BIT0(SUC(m + n))) /\
+                          (SUC(BIT1 m + BIT0 n) = BIT0(SUC(m + n))) /\
+                          (SUC(BIT1 m + BIT1 n) = BIT1(SUC (m + n)))"),
+                                         SUBST1_TAC(SYM(SPEC (parse_term @"_0") NUMERAL))
+                                         |> THEN <| REWRITE_TAC [BIT0; BIT1]
+                                         |> THEN <| REWRITE_TAC [ADD_CLAUSES]
+                                         |> THEN <| REWRITE_TAC [ADD_AC])
+                match cths with
+                | [cth_0x; cth_x0; cth_00; cth_01; cth_10; cth_11] -> 
+                    let pth_suc = prove((parse_term @"SUC(NUMERAL n) = NUMERAL(SUC n)"), REWRITE_TAC [NUMERAL])
+                    let pth_add = prove((parse_term @"NUMERAL m + NUMERAL n = NUMERAL(m + n)"), REWRITE_TAC [NUMERAL])
+
+                    let rec raw_suc_conv tm = 
+                        let otm = Choice.get <| rand tm
+                        if otm = zero_tm then sth_z
+                        else 
+                            let btm, ntm = Choice.get <| dest_comb otm
+                            if btm = bit0_tm then INST [ntm, n_tm] sth_0
+                            else 
+                                let th = INST [ntm, n_tm] sth_1
+                                let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th))
+                                TRANS th (AP_TERM ltm (raw_suc_conv rtm))
+
+                    let rec raw_add_conv tm = 
+                        let atm, rtm = Choice.get <| dest_comb tm
+                        let ltm = Choice.get <| rand atm
+                        if ltm = zero_tm then INST [rtm, n_tm] ath_0x
+                        else if rtm = zero_tm then INST [ltm, n_tm] ath_x0
+                        else 
+                            let lbit, larg = Choice.get <| dest_comb ltm
+                            let rbit, rarg = Choice.get <| dest_comb rtm
+                            if lbit = bit0_tm then 
+                                if rbit = bit0_tm then 
+                                    let th = 
+                                        INST [larg, m_tm;
+                                              rarg, n_tm] ath_00
+                                    let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th))
+                                    TRANS th (AP_TERM ltm (raw_add_conv rtm))
+                                else 
+                                    let th = 
+                                        INST [larg, m_tm;
+                                              rarg, n_tm] ath_01
+                                    let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th))
+                                    TRANS th (AP_TERM ltm (raw_add_conv rtm))
+                            else if rbit = bit0_tm then 
+                                let th = 
+                                    INST [larg, m_tm;
+                                          rarg, n_tm] ath_10
+                                let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th))
+                                TRANS th (AP_TERM ltm (raw_add_conv rtm))
+                            else 
+                                let th = 
+                                    INST [larg, m_tm;
+                                          rarg, n_tm] ath_11
+                                let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th))
+                                TRANS th (AP_TERM ltm (raw_adc_conv rtm))
+
+                    and raw_adc_conv tm = 
+                        let atm, rtm = Choice.get <| dest_comb(Choice.get <| rand tm)
+                        let ltm = Choice.get <| rand atm
+                        if ltm = zero_tm then 
+                            let th = INST [rtm, n_tm] cth_0x
+                            TRANS th (raw_suc_conv(Choice.get <| rand(concl <| Choice.get th)))
+                        else if rtm = zero_tm then 
+                            let th = INST [ltm, n_tm] cth_x0
+                            TRANS th (raw_suc_conv(Choice.get <| rand(concl <| Choice.get th)))
+                        else 
+                            let lbit, larg = Choice.get <| dest_comb ltm
+                            let rbit, rarg = Choice.get <| dest_comb rtm
+                            if lbit = bit0_tm then 
+                                if rbit = bit0_tm then 
+                                    let th = 
+                                        INST [larg, m_tm;
+                                              rarg, n_tm] cth_00
+                                    let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th))
+                                    TRANS th (AP_TERM ltm (raw_add_conv rtm))
+                                else 
+                                    let th = 
+                                        INST [larg, m_tm;
+                                              rarg, n_tm] cth_01
+                                    let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th))
+                                    TRANS th (AP_TERM ltm (raw_adc_conv rtm))
+                            else if rbit = bit0_tm then 
+                                let th = 
+                                    INST [larg, m_tm;
+                                          rarg, n_tm] cth_10
+                                let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th))
+                                TRANS th (AP_TERM ltm (raw_adc_conv rtm))
+                            else 
+                                let th = 
+                                    INST [larg, m_tm;
+                                          rarg, n_tm] cth_11
+                                let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th))
+                                TRANS th (AP_TERM ltm (raw_adc_conv rtm))
+
+                    let NUM_SUC_CONV tm = 
+                        let th = INST [Choice.get <| rand(Choice.get <| rand tm), n_tm] pth_suc
+                        let ctm = concl <| Choice.get th
+                        if Choice.get <| lhand ctm <> tm then failwith "NUM_SUC_CONV"
+                        else 
+                            let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand ctm)
+                            TRANS th (AP_TERM ltm (raw_suc_conv rtm))
+
+                    let NUM_ADD_CONV tm = 
+                        let atm, rtm = Choice.get <| dest_comb tm
+                        let ltm = Choice.get <| rand atm
+                        let th = 
+                            INST [Choice.get <| rand ltm, m_tm;
+                                  Choice.get <| rand rtm, n_tm] pth_add
+                        let ctm = concl <| Choice.get th
+                        if Choice.get <| lhand ctm <> tm then failwith "NUM_ADD_CONV"
+                        else 
+                            let ltm, rtm = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th))
+                            TRANS th (AP_TERM ltm (raw_add_conv rtm))
+
+                    NUM_SUC_CONV, raw_add_conv, NUM_ADD_CONV
+                | _ -> (unhandled_conv "cths", unhandled_conv "cths", unhandled_conv "cths")
+            | _ -> (unhandled_conv "aths", unhandled_conv "aths", unhandled_conv "aths")
+        | _ -> (unhandled_conv "sths", unhandled_conv "sths", unhandled_conv "sths")
 
     let NUM_MULT_CONV' =
       let p_tm  = (parse_term @"p:num")
@@ -621,6 +694,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
            let the = MP thd (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get thd)))) in
            let thf = MP the (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get the)))) in
            MP thf (NUM_ADD_CONV' (Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get thf))))
+
       and NUM_MULT_RIGHT_CONV' tm =
          (RIGHT_REWR_CONV |>THENC<|
           (RAND_CONV(RAND_CONV NUM_MULT_CONV')) |>THENC<|
@@ -693,142 +767,185 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
                     TRANS (TRANS th th') (INST [tm',x] fth)
                 with Failure _ as e ->
                     nestedFailwith e "NUM_EXP_CONV" in
+
     NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV;;
 
 /// Proves what the cutoff predecessor of a natural number numeral is.
-let NUM_PRE_CONV =
-    let tth =
-     prove
-      ((parse_term @"PRE 0 = 0"),
-       REWRITE_TAC[PRE]) in
-    let pth =
-     prove
-      ((parse_term @"(SUC m = n) ==> (PRE n = m)"),
-       DISCH_THEN(SUBST1_TAC << SYM) |>THEN<| REWRITE_TAC[PRE])
-    let m = (parse_term @"m:num") 
-    let n = (parse_term @"n:num") in
-    let suc = (parse_term @"SUC") in
-    let pre = (parse_term @"PRE") in
-    fun tm -> try let l,r = Choice.get <| dest_comb tm in
-                  if not (l = pre) then fail() else
-                  let x = Choice.get <| dest_numeral r in
-                  if x = Int 0 then tth else
-                  let tm' = Choice.get <| mk_numeral (x - Int 1) in
-                  let th1 = NUM_SUC_CONV (Choice.get <| mk_comb(suc,tm')) in
-                  MP (INST [tm',m; r,n] pth) th1
-              with Failure _ as e -> nestedFailwith e "NUM_PRE_CONV";;
+let NUM_PRE_CONV = 
+    let tth = prove((parse_term @"PRE 0 = 0"), REWRITE_TAC [PRE])
+    let pth = prove((parse_term @"(SUC m = n) ==> (PRE n = m)"), 
+                    DISCH_THEN(SUBST1_TAC << SYM)
+                    |> THEN <| REWRITE_TAC [PRE])
+
+    let m = (parse_term @"m:num")
+    let n = (parse_term @"n:num")
+    let suc = (parse_term @"SUC")
+    let pre = (parse_term @"PRE")
+
+    fun tm -> 
+        choice { 
+            let! l, r = dest_comb tm
+            if not(l = pre) then 
+                return! Choice.fail()
+            else 
+                let! x = dest_numeral r
+                if x = Int 0 then 
+                    return! tth
+                else 
+                    let! tm' = mk_numeral(x - Int 1)
+                    let! tm1 = mk_comb(suc, tm')
+                    let th1 = NUM_SUC_CONV tm1
+                    return! MP (INST [tm', m; r, n] pth) th1
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "NUM_PRE_CONV")
 
 /// Proves what the cutoff difference of two natural number numerals is.
-let NUM_SUB_CONV =
-    let pth0 =
-     prove
-      ((parse_term @"p <= n ==> (p - n = 0)"),
-       REWRITE_TAC[SUB_EQ_0])
-    let pth1 =
-     prove
-      ((parse_term @"(m + n = p) ==> (p - n = m)"),
-       DISCH_THEN(SUBST1_TAC << SYM) |>THEN<|
-       REWRITE_TAC[ADD_SUB])
-    let m = (parse_term @"m:num") 
-    let n = (parse_term @"n:num") 
+let NUM_SUB_CONV = 
+    let pth0 = prove((parse_term @"p <= n ==> (p - n = 0)"), REWRITE_TAC [SUB_EQ_0])
+    let pth1 = prove((parse_term @"(m + n = p) ==> (p - n = m)"), 
+                      DISCH_THEN(SUBST1_TAC << SYM)
+                      |> THEN <| REWRITE_TAC [ADD_SUB])
+
+    let m = (parse_term @"m:num")
+    let n = (parse_term @"n:num")
     let p = (parse_term @"p:num")
     let minus = (parse_term @"(-)")
     let plus = (parse_term @"(+)")
-    let le = (parse_term @"(<=)") in
-    fun tm -> try let l,r = Choice.get <| dest_binop minus tm in
-                  let ln = Choice.get <| dest_numeral l
-                  let rn = Choice.get <| dest_numeral r in
-                  if  ln <= rn then
-                    let pth = INST [l,p; r,n] pth0
-                    let th0 = EQT_ELIM(NUM_LE_CONV (Choice.get <| mk_binop le l r)) in
-                    MP pth th0
-                  else
-                    let kn = ln - rn in
-                    let k = Choice.get <| mk_numeral kn in
-                    let pth = INST [k,m; l,p; r,n] pth1
-                    let th0 = NUM_ADD_CONV (Choice.get <| mk_binop plus k r) in
-                    MP pth th0
-              with Failure _ as e -> nestedFailwith e "NUM_SUB_CONV";;
+    let le = (parse_term @"(<=)")
+
+    fun tm -> 
+        choice { 
+            let! l, r = dest_binop minus tm
+            let! ln = dest_numeral l
+            let! rn = dest_numeral r
+            if ln <= rn then 
+                let pth = INST [l, p; r, n] pth0
+                let! tm1 = mk_binop le l r
+                let th0 = EQT_ELIM(NUM_LE_CONV tm1)
+                return! MP pth th0
+            else 
+                let kn = ln - rn
+                let! k = mk_numeral kn
+                let pth = INST [k, m; l, p; r, n] pth1
+                let! tm1 = mk_binop plus k r
+                let th0 = NUM_ADD_CONV tm1
+                return! MP pth th0
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "NUM_SUB_CONV")
 
 // NUM_DIV_CONV: Proves what the truncated quotient of two natural number numerals is.
 // NUM_MOD_CONV: Proves what the remainder on dividing one natural number numeral by another is.
-let NUM_DIV_CONV,NUM_MOD_CONV =
-    let pth =
-     prove
-      ((parse_term @"(q * n + r = m) ==> r < n ==> (m DIV n = q) /\ (m MOD n = r)"),
-       MESON_TAC[DIVMOD_UNIQ])
-    let m = (parse_term @"m:num") 
-    let n = (parse_term @"n:num") 
-    let q = (parse_term @"q:num") 
+let NUM_DIV_CONV, NUM_MOD_CONV = 
+    let pth = 
+        prove((parse_term @"(q * n + r = m) ==> r < n ==> (m DIV n = q) /\ (m MOD n = r)"), MESON_TAC [DIVMOD_UNIQ])
+    let m = (parse_term @"m:num")
+    let n = (parse_term @"n:num")
+    let q = (parse_term @"q:num")
     let r = (parse_term @"r:num")
-    let dtm = (parse_term @"(DIV)") 
-    let mtm = (parse_term @"(MOD)") in
-    let NUM_DIVMOD_CONV x y =
-      let k = quo_num x y
-      let l = mod_num x y in
-      let th0 = INST [Choice.get <| mk_numeral x,m; Choice.get <| mk_numeral y,n;
-                      Choice.get <| mk_numeral k,q; Choice.get <| mk_numeral l,r] pth in
-      let tm0 = Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th0)) in
-      let th1 = (LAND_CONV NUM_MULT_CONV |>THENC<| NUM_ADD_CONV) tm0 in
-      let th2 = MP th0 th1 in
-      let tm2 = Choice.get <| lhand(concl <| Choice.get th2) in
-      MP th2 (EQT_ELIM(NUM_LT_CONV tm2)) in
-    (fun tm -> try let xt,yt = Choice.get <| dest_binop dtm tm in
-                   CONJUNCT1(NUM_DIVMOD_CONV (Choice.get <| dest_numeral xt) (Choice.get <| dest_numeral yt))
-               with Failure _ as e -> nestedFailwith e "NUM_DIV_CONV"),
-    (fun tm -> try let xt,yt = Choice.get <| dest_binop mtm tm in
-                   CONJUNCT2(NUM_DIVMOD_CONV (Choice.get <| dest_numeral xt) (Choice.get <| dest_numeral yt))
-               with Failure _ as e -> nestedFailwith e "NUM_MOD_CONV");;
+    let dtm = (parse_term @"(DIV)")
+    let mtm = (parse_term @"(MOD)")
+
+    let NUM_DIVMOD_CONV x y = 
+        choice {
+            let k = quo_num x y
+            let l = mod_num x y
+            let! tmx = mk_numeral x
+            let! tmy = mk_numeral y
+            let! tmk = mk_numeral k
+            let! tml = mk_numeral l
+            let th0 = INST [tmx, m; tmy, n; tmk, q; tml, r] pth
+
+            let! tm_1 = Choice.bind (lhand << concl) th0
+            let! tm0 = lhand tm_1
+            let th1 = (LAND_CONV NUM_MULT_CONV
+                       |> THENC <| NUM_ADD_CONV) tm0
+            let th2 = MP th0 th1
+            let! tm2 = Choice.bind (lhand << concl) th2
+            return! MP th2 (EQT_ELIM(NUM_LT_CONV tm2))
+        }
+    
+    (fun tm -> 
+        choice { 
+            let! xt, yt = dest_binop dtm tm
+            let! tmxt = dest_numeral xt
+            let! tmyt = dest_numeral yt
+            return! CONJUNCT1(NUM_DIVMOD_CONV tmxt tmyt)
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "NUM_DIV_CONV")), 
+    (fun tm -> 
+        choice { 
+            let! xt, yt = dest_binop mtm tm
+            let! tmxt = dest_numeral xt
+            let! tmyt = dest_numeral yt
+            return! CONJUNCT2(NUM_DIVMOD_CONV tmxt tmyt)
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "NUM_MOD_CONV"))
 
 /// Proves what the factorial of a natural number numeral is.
-let NUM_FACT_CONV =
+let NUM_FACT_CONV = 
     let suc = (parse_term @"SUC")
-    let mul = (parse_term @"(*)") in
-    let pth_0 =
-     prove
-      ((parse_term @"FACT 0 = 1"),
-       REWRITE_TAC[FACT])
-    let pth_suc =
-     prove
-      ((parse_term @"(SUC x = y) ==> (FACT x = w) ==> (y * w = z) ==> (FACT y = z)"),
-       REPEAT (DISCH_THEN(SUBST1_TAC << SYM)) |>THEN<|
-       REWRITE_TAC[FACT])
-    let w = (parse_term @"w:num") 
-    let x = (parse_term @"x:num") 
-    let y = (parse_term @"y:num") 
-    let z = (parse_term @"z:num") in
-    let mksuc n =
-      let n' = n - (Int 1) in
-      NUM_SUC_CONV (Choice.get <| mk_comb(suc,Choice.get <| mk_numeral n')) in
-    let rec NUM_FACT_CONV n =
-      if n = Int 0 then pth_0 else
-      let th0 = mksuc n in
-      let tmx = Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get th0)) in
-      let tm0 = Choice.get <| rand(concl <| Choice.get th0) in
-      let th1 = NUM_FACT_CONV (n - Int 1) in
-      let tm1 = Choice.get <| rand(concl <| Choice.get th1) in
-      let th2 = NUM_MULT_CONV (Choice.get <| mk_binop mul tm0 tm1) in
-      let tm2 = Choice.get <| rand(concl <| Choice.get th2) in
-      let pth = INST [tmx,x; tm0, y; tm1,w; tm2,z] pth_suc in
-      MP (MP (MP pth th0) th1) th2 in
-    fun tm ->
-      try let l,r = Choice.get <| dest_comb tm in
-          if fst(Choice.get <| dest_const l) = "FACT"
-          then NUM_FACT_CONV (Choice.get <| dest_numeral r)
-          else fail()
-      with Failure _ as e -> nestedFailwith e "NUM_FACT_CONV";;
+    let mul = (parse_term @"(*)")
+    let pth_0 = prove((parse_term @"FACT 0 = 1"), REWRITE_TAC [FACT])
+    let pth_suc = 
+        prove
+            ((parse_term @"(SUC x = y) ==> (FACT x = w) ==> (y * w = z) ==> (FACT y = z)"), 
+             REPEAT(DISCH_THEN(SUBST1_TAC << SYM))
+             |> THEN <| REWRITE_TAC [FACT])
+
+    let w = (parse_term @"w:num")
+    let x = (parse_term @"x:num")
+    let y = (parse_term @"y:num")
+    let z = (parse_term @"z:num")
+
+    let mksuc n = 
+        choice {
+            let n' = n - (Int 1)
+            let! tm1 = mk_numeral n'
+            let! tm2 = mk_comb(suc, tm1)
+            return! NUM_SUC_CONV tm2
+        }
+
+    let rec NUM_FACT_CONV n = 
+        choice {
+            if n = Int 0 then 
+                return! pth_0
+            else 
+                let th0 = mksuc n
+                let! tm_1 = Choice.bind (lhand << concl) th0
+                let! tmx = rand tm_1
+                let! tm0 = Choice.bind (rand << concl) th0
+                let th1 = NUM_FACT_CONV(n - Int 1)
+                let! tm1 = Choice.bind (rand << concl) th1
+                let! tm_2 = mk_binop mul tm0 tm1
+                let th2 = NUM_MULT_CONV tm_2
+                let! tm2 = Choice.bind (rand << concl) th2
+                let pth = INST [tmx, x; tm0, y; tm1, w; tm2, z] pth_suc
+                return! MP (MP (MP pth th0) th1) th2
+        }
+
+    fun tm -> 
+        choice { 
+            let! l, r = dest_comb tm
+            let! (s, _) = dest_const l
+            if s = "FACT" then 
+                let! tm1 = dest_numeral r
+                return! NUM_FACT_CONV tm1
+            else 
+                return! Choice.fail()
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "NUM_FACT_CONV")
 
 /// Proves what the maximum of two natural number numerals is.
-let NUM_MAX_CONV =
-    REWR_CONV MAX |>THENC<|
-    RATOR_CONV(RATOR_CONV(RAND_CONV NUM_LE_CONV)) |>THENC<|
-    GEN_REWRITE_CONV I [COND_CLAUSES];;
+let NUM_MAX_CONV = 
+    REWR_CONV MAX
+    |> THENC <| RATOR_CONV(RATOR_CONV(RAND_CONV NUM_LE_CONV))
+    |> THENC <| GEN_REWRITE_CONV I [COND_CLAUSES]
 
 /// Proves what the minimum of two natural number numerals is.
-let NUM_MIN_CONV =
-    REWR_CONV MIN |>THENC<|
-    RATOR_CONV(RATOR_CONV(RAND_CONV NUM_LE_CONV)) |>THENC<|
-    GEN_REWRITE_CONV I [COND_CLAUSES];;
+let NUM_MIN_CONV = 
+    REWR_CONV MIN
+    |> THENC <| RATOR_CONV(RATOR_CONV(RAND_CONV NUM_LE_CONV))
+    |> THENC <| GEN_REWRITE_CONV I [COND_CLAUSES]
 
 (* ------------------------------------------------------------------------- *)
 (* Final hack-together.                                                      *)
@@ -843,7 +960,7 @@ let NUM_REL_CONV : conv =
        (parse_term @"NUMERAL m > NUMERAL n"),NUM_GT_CONV;
        (parse_term @"NUMERAL m >= NUMERAL n"),NUM_GE_CONV;
        (parse_term @"NUMERAL m = NUMERAL n"),NUM_EQ_CONV]
-      (basic_net()) in
+      (basic_net())
     REWRITES_CONV gconv_net;;
 
 /// Performs one arithmetic or relational operation on natural number numerals by proof.
@@ -882,13 +999,19 @@ let NUM_REDUCE_TAC = CONV_TAC NUM_REDUCE_CONV;;
 (* ------------------------------------------------------------------------- *)
 
 /// Provides definitional axiom for a nonzero numeral.
-let num_CONV =
-    let SUC_tm = (parse_term @"SUC") in
-    fun tm ->
-      let n = Choice.get (dest_numeral tm) - Int 1 in
-      if n < Int 0 then failwith "num_CONV" else
-      let tm' = Choice.get <| mk_numeral n in
-      SYM(NUM_SUC_CONV (Choice.get <| mk_comb(SUC_tm,tm')));;
+let num_CONV = 
+    let SUC_tm = (parse_term @"SUC")
+    fun tm -> 
+        choice {
+            let! n1 = dest_numeral tm
+            let n = n1 - Int 1
+            if n < Int 0 then 
+                return! Choice.failwith "num_CONV"
+            else 
+                let! tm' = mk_numeral n
+                let! tm1 = mk_comb(SUC_tm, tm')
+                return! SYM(NUM_SUC_CONV tm1)
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Expands "!n. n < numeral-constant ==> P(n)" into all the cases.           *)
@@ -897,19 +1020,18 @@ let num_CONV =
 /// <summary>
 /// Expand a numerical range <c>!i. i < n ==> P[i]</c>.
 /// </summary>
-let EXPAND_CASES_CONV =
-    let pth_base =
-     prove
-      ((parse_term @"(!n. n < 0 ==> P n) <=> T"),
-       REWRITE_TAC[LT])
-    let pth_step =
-     prove
-      ((parse_term @"(!n. n < SUC k ==> P n) <=> (!n. n < k ==> P n) /\ P k"),
-       REWRITE_TAC[LT] |>THEN<| MESON_TAC[]) in
+let EXPAND_CASES_CONV = 
+    let pth_base = prove((parse_term @"(!n. n < 0 ==> P n) <=> T"), REWRITE_TAC [LT])
+    let pth_step = 
+        prove((parse_term @"(!n. n < SUC k ==> P n) <=> (!n. n < k ==> P n) /\ P k"), 
+              REWRITE_TAC [LT]
+              |> THEN <| MESON_TAC [])
+
     let base_CONV = GEN_REWRITE_CONV I [pth_base]
-    let step_CONV =
-      BINDER_CONV(LAND_CONV(RAND_CONV num_CONV)) |>THENC<|
-      GEN_REWRITE_CONV I [pth_step] in
-    let rec conv tm =
-      (base_CONV |>ORELSEC<| (step_CONV |>THENC<| LAND_CONV conv)) tm in
-    conv |>THENC<| (REWRITE_CONV[GSYM CONJ_ASSOC]);;
+    let step_CONV = BINDER_CONV(LAND_CONV(RAND_CONV num_CONV))
+                    |> THENC <| GEN_REWRITE_CONV I [pth_step]
+    let rec conv tm = (base_CONV
+                       |> ORELSEC <| (step_CONV
+                                      |> THENC <| LAND_CONV conv)) tm
+    conv
+    |> THENC <| (REWRITE_CONV [GSYM CONJ_ASSOC])
