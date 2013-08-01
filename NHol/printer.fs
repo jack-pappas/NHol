@@ -686,6 +686,7 @@ let pp_print_term =
             try
                 print_term 0 tm
             with Failure s ->
+                // NOTE: suppress all exceptions in printing
                 ()
 
 (* ------------------------------------------------------------------------- *)

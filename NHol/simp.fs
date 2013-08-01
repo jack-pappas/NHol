@@ -235,29 +235,33 @@ let mk_rewrites =
                 let fvs = subtract (subtract (frees cond) (frees eqn)) (freesl oldhyps)
                 return! itlist IMP_EXISTS_RULE fvs kth
         }
-    let rec split_rewrites oldhyps cf th sofar : thm list = 
-        let tm = concl <| Choice.get th
-        if is_forall tm then 
-            split_rewrites oldhyps cf (SPEC_ALL th) sofar
-        elif is_conj tm then 
-            split_rewrites oldhyps cf (CONJUNCT1 th) 
-                (split_rewrites oldhyps cf (CONJUNCT2 th) sofar)
-        elif is_imp tm && cf then 
-            split_rewrites oldhyps cf (UNDISCH th) sofar
-        elif is_eq tm then 
-            (if cf
-             then collect_condition oldhyps th
-             else th) :: sofar
-        elif is_neg tm then 
-            let ths = split_rewrites oldhyps cf (EQF_INTRO th) sofar
-            if is_eq (Choice.get <| rand tm)
-            then split_rewrites oldhyps cf (EQF_INTRO(GSYM th)) ths
-            else ths
-        else split_rewrites oldhyps cf (EQT_INTRO th) sofar
+    let rec split_rewrites oldhyps cf th sofar : Choice<thm list, _> = 
+        choice {
+            let! tm = Choice.map concl th
+            if is_forall tm then 
+                return! split_rewrites oldhyps cf (SPEC_ALL th) sofar
+            elif is_conj tm then
+                let! right = split_rewrites oldhyps cf (CONJUNCT2 th) sofar
+                return! split_rewrites oldhyps cf (CONJUNCT1 th) right
+            elif is_imp tm && cf then 
+                return! split_rewrites oldhyps cf (UNDISCH th) sofar
+            elif is_eq tm then 
+                return (if cf then collect_condition oldhyps th else th) :: sofar
+            elif is_neg tm then 
+                let! ths = split_rewrites oldhyps cf (EQF_INTRO th) sofar
+                let! tm1 = rand tm
+                if is_eq tm1 then 
+                    return! split_rewrites oldhyps cf (EQF_INTRO(GSYM th)) ths
+                else 
+                    return ths
+            else 
+                return! split_rewrites oldhyps cf (EQT_INTRO th) sofar
+        }
+
     fun cf (th : thm) (sofar : thm list) ->
         choice {
             let! ts = Choice.map hyp th
-            return! Choice.attempt (fun () -> split_rewrites ts cf th sofar)
+            return! split_rewrites ts cf th sofar
         }
 
 (* ------------------------------------------------------------------------- *)

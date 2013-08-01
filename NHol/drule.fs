@@ -755,7 +755,7 @@ let new_definition tm : thm =
             |> Choice.mapError (fun e -> nestedFailure e "new_definition: Not an equation")
         let lv, largs = strip_comb l
         let! rtm = 
-            // NOTE:  list_mk_abs isn't converted yet, so exceptions can leak out
+            // NOTE: list_mk_abs isn't converted yet, so exceptions can leak out
             Choice.attempt (fun () -> list_mk_abs(largs, r))
             |> Choice.mapError (fun e -> nestedFailure e "new_definition: Non-variable in LHS pattern")
 

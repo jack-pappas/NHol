@@ -585,11 +585,8 @@ let parse_type s =
 let tryParseType s =
     try
         Choice.result <| parse_type s
-    with
-    | :? Noparse ->
-        Choice.failwith "Noparse"
-    | Failure s ->
-        Choice.failwith s
+    with e ->
+        Choice.nestedFailwith e "parse_type"
 
 /// Parses a string into a HOL term.
 let parse_term s = 
@@ -602,10 +599,7 @@ let parse_term s =
 let tryParseTerm s =
     try
         Choice.result <| parse_term s
-    with
-    | :? Noparse ->
-        Choice.failwith "Noparse"
-    | Failure s ->
-        Choice.failwith s
+    with e ->
+        Choice.nestedFailwith e "parse_term"
 
 

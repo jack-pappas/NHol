@@ -139,11 +139,12 @@ let dest_binary s tm =
 let mk_binary s = 
     let c = mk_const(s, [])
     fun (l, r) -> 
-        try 
-            mk_comb(Choice.get <| mk_comb(Choice.get <| c, l), r)
-        with
-        | Failure _ as e ->
-            Choice.nestedFailwith e "mk_binary"
+        choice {
+            let! c' = c 
+            let! l' = mk_comb(c', l)
+            return! mk_comb(l', r)
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "mk_binary")
 
 (* ------------------------------------------------------------------------- *)
 (* Produces a sequence of variants, considering previous inventions.         *)
@@ -542,26 +543,36 @@ let is_list x =
 /// Converts a HOL numeral term to unlimited-precision integer.
 let dest_numeral = 
     let rec dest_num tm = 
-        if try 
-               fst(Choice.get <| dest_const tm) = "_0"
-           with
-           | Failure _ -> false
-        then num_0
-        else 
-            let l, r = Choice.get <| dest_comb tm
-            let n = num_2 * dest_num r
-            let cn = fst(Choice.get <| dest_const l)
-            if cn = "BIT0" then n
-            elif cn = "BIT1" then n + num_1
-            else fail()
+        choice {
+            let b = 
+                match dest_const tm with
+                | Success(s, _) -> s = "_0"
+                | Error _ -> false
+            if b then 
+                return num_0
+            else 
+                let! l, r = dest_comb tm
+                let! r' = dest_num r
+                let n = num_2 * r'
+                let! (cn, _) = dest_const l
+                if cn = "BIT0" then 
+                    return n
+                elif cn = "BIT1" then 
+                    return n + num_1
+                else 
+                    return! Choice.fail()
+        }
+
     fun tm -> 
-        try 
-            let l, r = Choice.get <| dest_comb tm
-            if fst(Choice.get <| dest_const l) = "NUMERAL" then Choice.result <| dest_num r
-            else Choice.fail()
-        with
-        | Failure _ as e ->
-            Choice.nestedFailwith e "dest_numeral"
+        choice { 
+            let! l, r = dest_comb tm
+            let! (s, _) = dest_const l
+            if s = "NUMERAL" then 
+                return! dest_num r
+            else 
+                return! Choice.fail()
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "dest_numeral")
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for generalized abstractions.                                      *)
@@ -599,23 +610,42 @@ let is_gabs x =
 /// Constructs a generalized abstraction.
 let mk_gabs = 
     let mk_forall(v, t) = 
-        let cop = Choice.get <| mk_const("!", [Choice.get <| type_of v, aty])
-        Choice.get <| mk_comb(cop, Choice.get <| mk_abs(v, t))
-    let list_mk_forall(vars, bod) = itlist (curry mk_forall) vars bod
+        choice {
+            let! ty1 = type_of v
+            let! cop = mk_const("!", [ty1, aty])
+            let! tm1 = mk_abs(v, t)
+            return! mk_comb(cop, tm1)
+        }
+
+    let list_mk_forall(vars, bod) = itlist (curry (Choice.get << mk_forall)) vars bod
+
     let mk_geq(t1, t2) = 
-        let p = Choice.get <| mk_const("GEQ", [Choice.get <| type_of t1, aty])
-        Choice.get <| mk_comb(Choice.get <| mk_comb(p, t1), t2)
+        choice {
+            let! ty1 = type_of t1
+            let! p = mk_const("GEQ", [ty1, aty])
+            let! tm1 = mk_comb(p, t1)
+            return! mk_comb(tm1, t2)
+        }
+
     let mk_gabs (tm1, tm2) = 
-        if is_var tm1 then Choice.get <| mk_abs(tm1, tm2)
-        else 
-            let fvs = frees tm1
-            let fty = Choice.get <| mk_fun_ty (Choice.get <| type_of tm1) (Choice.get <| type_of tm2)
-            let f = Choice.get <| variant (frees tm1 @ frees tm2) (mk_var("f", fty))
-            let bod = Choice.get <| mk_abs(f, list_mk_forall(fvs, mk_geq(Choice.get <| mk_comb(f, tm1), tm2)))
-            Choice.get <| mk_comb(Choice.get <| mk_const("GABS", [fty, aty]), bod)
-    fun (tm1, tm2) ->
-        Choice.attempt <| fun () ->
-            mk_gabs (tm1, tm2)
+        choice {
+            if is_var tm1 then 
+                return! mk_abs(tm1, tm2)
+            else 
+                let fvs = frees tm1
+                let! ty1 = type_of tm1
+                let! ty2 = type_of tm2
+                let! fty = mk_fun_ty ty1 ty2
+                let! f = variant (frees tm1 @ frees tm2) (mk_var("f", fty))
+                let! tm3 = mk_comb(f, tm1)
+                let! tm4 = mk_geq(tm3, tm2)
+                let tm5 = list_mk_forall(fvs, tm4)
+                let! tm6 = mk_const("GABS", [fty, aty])
+                let! bod = mk_abs(f, tm5)
+                return! mk_comb(tm6, bod)
+        }
+
+    fun (tm1, tm2) -> mk_gabs (tm1, tm2)
 
 
 /// Iteratively makes a generalized abstraction.

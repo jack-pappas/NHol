@@ -987,25 +987,25 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
 /// Fix up function arities for first-order proof search.
 let (ASM_FOL_TAC : tactic) = 
     let rec get_heads lconsts tm (cheads, vheads as sofar) = 
-        try 
-            let v, bod = Choice.get <| dest_forall tm
-            get_heads (subtract lconsts [v]) bod sofar
-        with
-        | Failure _ -> 
-            try 
-                let l, r = 
-                    try 
-                        Choice.get <| dest_conj tm
-                    with
-                    | Failure _ -> Choice.get <| dest_disj tm
-                get_heads lconsts l (get_heads lconsts r sofar)
-            with
-            | Failure _ -> 
-                try 
-                    let tm' = Choice.get <| dest_neg tm
-                    get_heads lconsts tm' sofar
-                with
-                | Failure _ -> 
+        choice { 
+            let! v, bod = dest_forall tm
+            return! get_heads (subtract lconsts [v]) bod sofar
+        }
+        |> Choice.bindError (fun _ ->
+            choice { 
+                let! l, r = 
+                    dest_conj tm
+                    |> Choice.bindError (fun _ -> dest_disj tm)
+
+                let! right = get_heads lconsts r sofar
+                return! get_heads lconsts l right
+            }
+            |> Choice.bindError (fun _ ->
+                choice { 
+                    let! tm' = dest_neg tm
+                    return! get_heads lconsts tm' sofar
+                }
+                |> Choice.bindError (fun _ ->
                     let hop, args = strip_comb tm
                     let len = length args
                     let newheads = 
@@ -1014,10 +1014,14 @@ let (ASM_FOL_TAC : tactic) =
                         elif len > 0 then 
                             (cheads, insert (hop, len) vheads)
                         else sofar
-                    itlist (get_heads lconsts) args newheads
+                    Choice.List.fold (fun acc x -> get_heads lconsts x acc) newheads args)))
 
     let get_thm_heads th sofar = 
-        Choice.attempt <| fun () -> get_heads (freesl(hyp <| Choice.get th)) (concl <| Choice.get th) sofar
+        choice {
+            let! tms1 = Choice.map hyp th
+            let! tm1 = Choice.map concl th
+            return! get_heads (freesl tms1) tm1 sofar
+        }
 
     let APP_CONV = 
         let th = 
