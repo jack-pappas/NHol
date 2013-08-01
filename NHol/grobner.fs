@@ -513,7 +513,7 @@ let RING_AND_IDEAL_CONV =
       | Failure _ -> 
       try
           let l,r = ring_dest_pow tm in
-          grob_pow vars (grobify_term vars l) (dest_small_numeral r)
+          grob_pow vars (grobify_term vars l) (Choice.get <| dest_small_numeral r)
       with 
       | Failure _ as e ->
             nestedFailwith e "grobify_term: unknown or invalid term" in
@@ -530,7 +530,7 @@ let RING_AND_IDEAL_CONV =
       vars,map (grobify_equation vars) cjs in
     let holify_polynomial =
       let holify_varpow (v,n) =
-        if n = 1 then v else ring_mk_pow v (mk_small_numeral n) in
+        if n = 1 then v else ring_mk_pow v (Choice.get <| mk_small_numeral n) in
       let holify_monomial vars (c,m) =
         let xps = map holify_varpow (filter (fun (_,n) -> n <> 0) (zip vars m)) in
         end_itlist ring_mk_mul (ring_mk_const c :: xps) in
@@ -774,7 +774,7 @@ let NUM_RING =
      REPEAT(FIRST_X_ASSUM (CHOOSE_THEN SUBST1_TAC << REWRITE_RULE[LE_EXISTS])) |>THEN<|
      ASM_MESON_TAC[NUM_INTEGRAL_LEMMA; ADD_SYM; MULT_SYM]) in
   let rawring =
-    RING(Choice.get << dest_numeral, mk_numeral, NUM_EQ_CONV,
+    RING(Choice.get << dest_numeral, Choice.get << mk_numeral, NUM_EQ_CONV,
          genvar bool_ty,(parse_term @"(+):num->num->num"),genvar bool_ty,
          genvar bool_ty,(parse_term @"(*):num->num->num"),genvar bool_ty,
          (parse_term @"(EXP):num->num->num"),

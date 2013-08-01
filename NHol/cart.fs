@@ -379,7 +379,7 @@ let define_finite_type =
     fun n -> 
         let ns = string n
         let ns' = "auto_define_finite_type_" + ns
-        let th0 = INST [mk_small_numeral n, n_tm] lemma_pre
+        let th0 = INST [Choice.get <| mk_small_numeral n, n_tm] lemma_pre
         let th1 = MP th0 (EQF_ELIM(NUM_EQ_CONV(Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get th0)))))
         POST_RULE(new_type_definition ns ("mk_" + ns', "dest_" + ns') th1)
 

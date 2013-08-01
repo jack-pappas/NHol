@@ -1291,7 +1291,7 @@ let prove_constructors_distinct =
     let NEGATE = 
         GEN_ALL << CONV_RULE(REWR_CONV(TAUT(parse_term @"a ==> F <=> ~a")))
     let prove_distinct ax pat = 
-        let nums = map mk_small_numeral (0 -- (length pat - 1))
+        let nums = map (Choice.get << mk_small_numeral) (0 -- (length pat - 1))
         let fn = 
             genvar(Choice.get <| mk_type("fun", [Choice.get <| type_of(hd pat); num_ty]))
         let ls = map (curry (Choice.get << mk_comb) fn) pat

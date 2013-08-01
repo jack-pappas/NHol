@@ -87,7 +87,7 @@ let dest_realintconst tm =
 let mk_realintconst = 
     let cast_tm = (parse_term @"real_of_num")
     let neg_tm = (parse_term @"(--)")
-    let mk_numconst n = Choice.get <| mk_comb(cast_tm, mk_numeral n)
+    let mk_numconst n = Choice.get <| mk_comb(cast_tm, Choice.get <| mk_numeral n)
     fun x -> 
         if x < num_0
         then Choice.get <| mk_comb(neg_tm, mk_numconst(minus_num x))
@@ -441,7 +441,7 @@ let REAL_INT_ADD_CONV =
                     let n' = Choice.get <| dest_numeral n
                     if m' <= n'
                     then 
-                        let p = mk_numeral(n' - m')
+                        let p = Choice.get <| mk_numeral(n' - m')
                         let th1 = 
                             INST [m, m_tm
                                   p, n_tm] pth2
@@ -449,7 +449,7 @@ let REAL_INT_ADD_CONV =
                         let th3 = AP_TERM (Choice.get <| rator tm) (AP_TERM amp_tm (SYM th2))
                         TRANS th3 th1
                     else 
-                        let p = mk_numeral(m' - n')
+                        let p = Choice.get <| mk_numeral(m' - n')
                         let th1 = 
                             INST [n, m_tm
                                   p, n_tm] pth3
@@ -466,7 +466,7 @@ let REAL_INT_ADD_CONV =
                 let n' = Choice.get <| dest_numeral n
                 if n' <= m'
                 then 
-                    let p = mk_numeral(m' - n')
+                    let p = Choice.get <| mk_numeral(m' - n')
                     let th1 = 
                         INST [n, m_tm
                               p, n_tm] pth4
@@ -475,7 +475,7 @@ let REAL_INT_ADD_CONV =
                     let th4 = AP_THM th3 (Choice.get <| rand tm)
                     TRANS th4 th1
                 else 
-                    let p = mk_numeral(n' - m')
+                    let p = Choice.get <| mk_numeral(n' - m')
                     let th1 = 
                         INST [m, m_tm
                               p, n_tm] pth5

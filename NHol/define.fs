@@ -945,7 +945,7 @@ let instantiate_casewise_recursion,
           let con,args = strip_comb cargs
           let bargs = filter (fun t -> Choice.get <| type_of t = ty) args
           let r' = list_mk_binop (parse_term @"(+):num->num->num")
-                    (mk_small_numeral k :: map (curry (Choice.get << mk_comb) fn) bargs)
+                    (Choice.get (mk_small_numeral k) :: map (curry (Choice.get << mk_comb) fn) bargs)
           list_mk_forall(avs,Choice.get <| mk_eq(l,r'))
         let cjs = conjuncts cbod
         let def = map2 process_clause (1--length cjs) cjs

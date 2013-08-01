@@ -713,7 +713,7 @@ let NUM_PRE_CONV =
                   if not (l = pre) then fail() else
                   let x = Choice.get <| dest_numeral r in
                   if x = Int 0 then tth else
-                  let tm' = mk_numeral (x - Int 1) in
+                  let tm' = Choice.get <| mk_numeral (x - Int 1) in
                   let th1 = NUM_SUC_CONV (Choice.get <| mk_comb(suc,tm')) in
                   MP (INST [tm',m; r,n] pth) th1
               with Failure _ as e -> nestedFailwith e "NUM_PRE_CONV";;
@@ -744,7 +744,7 @@ let NUM_SUB_CONV =
                     MP pth th0
                   else
                     let kn = ln - rn in
-                    let k = mk_numeral kn in
+                    let k = Choice.get <| mk_numeral kn in
                     let pth = INST [k,m; l,p; r,n] pth1
                     let th0 = NUM_ADD_CONV (Choice.get <| mk_binop plus k r) in
                     MP pth th0
@@ -766,8 +766,8 @@ let NUM_DIV_CONV,NUM_MOD_CONV =
     let NUM_DIVMOD_CONV x y =
       let k = quo_num x y
       let l = mod_num x y in
-      let th0 = INST [mk_numeral x,m; mk_numeral y,n;
-                      mk_numeral k,q; mk_numeral l,r] pth in
+      let th0 = INST [Choice.get <| mk_numeral x,m; Choice.get <| mk_numeral y,n;
+                      Choice.get <| mk_numeral k,q; Choice.get <| mk_numeral l,r] pth in
       let tm0 = Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th0)) in
       let th1 = (LAND_CONV NUM_MULT_CONV |>THENC<| NUM_ADD_CONV) tm0 in
       let th2 = MP th0 th1 in
@@ -799,7 +799,7 @@ let NUM_FACT_CONV =
     let z = (parse_term @"z:num") in
     let mksuc n =
       let n' = n - (Int 1) in
-      NUM_SUC_CONV (Choice.get <| mk_comb(suc,mk_numeral n')) in
+      NUM_SUC_CONV (Choice.get <| mk_comb(suc,Choice.get <| mk_numeral n')) in
     let rec NUM_FACT_CONV n =
       if n = Int 0 then pth_0 else
       let th0 = mksuc n in
@@ -887,7 +887,7 @@ let num_CONV =
     fun tm ->
       let n = Choice.get (dest_numeral tm) - Int 1 in
       if n < Int 0 then failwith "num_CONV" else
-      let tm' = mk_numeral n in
+      let tm' = Choice.get <| mk_numeral n in
       SYM(NUM_SUC_CONV (Choice.get <| mk_comb(SUC_tm,tm')));;
 
 (* ------------------------------------------------------------------------- *)
