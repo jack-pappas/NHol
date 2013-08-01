@@ -25,7 +25,9 @@ module NHol.basics
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
 open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open lib
@@ -66,19 +68,20 @@ let rec occurs_in ty bigty =
 /// and replace the topmost instances of any tyi encountered with the corresponding tyi'.
 /// In the (usual) case where all the tyi are type variables, this is the same as type_subst,
 /// but also works when they are not.
-let tysubst alist ty =
-    let rec tysubst alist ty =
+let rec tysubst alist ty =
+    choice {
         // OPTIMIZE : Use Option.fillWith from ExtCore.
         match rev_assoc ty alist with
-        | Some x -> x
+        | Some ty -> 
+            return ty
         | None ->
-            if is_vartype ty then ty
+            if is_vartype ty then 
+                return ty
             else 
-                let tycon, tyvars = Choice.get <| dest_type ty
-                Choice.get <| mk_type(tycon, map (tysubst alist) tyvars)
-
-    Choice.attempt <| fun () ->
-        tysubst alist ty
+                let! tycon, tyvars = dest_type ty
+                let! tms = Choice.List.map (tysubst alist) tyvars
+                return! mk_type(tycon, tms)
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* A bit more syntax.                                                        *)
@@ -86,17 +89,19 @@ let tysubst alist ty =
 
 /// Returns the bound variable of an abstraction.
 let bndvar tm = 
-    match dest_abs tm with
-    | Success(tm0, _) -> Choice.result tm0
-    | Error e ->
-        Choice.nestedFailwith e "bndvar: Not an abstraction"
+    choice {
+        let! (tm0, _) = dest_abs tm
+        return tm0
+    }
+    |> Choice.mapError (fun e -> nestedFailure e "bndvar: Not an abstraction")
 
 /// Returns the body of an abstraction.
 let body tm = 
-    match dest_abs tm with
-    | Success(_, tm1) -> Choice.result tm1
-    | Error e ->
-        Choice.nestedFailwith e "body: Not an abstraction"
+    choice {
+        let! (_, tm1) = dest_abs tm
+        return tm1
+    }
+    |> Choice.mapError (fun e -> nestedFailure e "body: Not an abstraction")
 
 /// Iteratively constructs combinations (function applications).
 let list_mk_comb(h, t) = rev_itlist (C(curry (Choice.get << mk_comb))) t h
@@ -144,16 +149,16 @@ let mk_binary s =
 (* Produces a sequence of variants, considering previous inventions.         *)
 (* ------------------------------------------------------------------------- *)
 
-/// Pick a list of variants of Choice.get <| variables, avoiding a list of variables and each other.
-let variants av vs =
-    let rec variants av vs = 
-        if vs = [] then []
+/// Pick a list of variants of variables, avoiding a list of variables and each other.
+let rec variants av vs =
+    choice {
+        if vs = [] then 
+            return []
         else 
-            let vh = Choice.get <| variant av (hd vs)
-            vh :: (variants (vh :: av) (tl vs))
-
-    Choice.attempt <| fun () ->
-        variants av vs
+            let! vh = variant av (hd vs)
+            let! vhs = variants (vh :: av) (tl vs)
+            return vh :: vhs
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Gets all variables (free and/or bound) in a term.                         *)
@@ -379,7 +384,7 @@ let find_terms =
 (* ------------------------------------------------------------------------- *)
 (* General syntax for binders.                                               *)
 (*                                                                           *)
-(* NB! The "Choice.get << mk_binder" function expects polytype "A", which is the domain.   *)
+(* NB! The "mk_binder" function expects polytype "A", which is the domain.   *)
 (* ------------------------------------------------------------------------- *)
 
 /// Tests if a term is a binder construct with named constant.
@@ -683,25 +688,43 @@ let make_args =
 /// Returns a path to some subterm satisfying a predicate.
 let find_path = 
     let rec find_path p tm = 
-        if p tm then []
-        elif is_abs tm then "b" :: (find_path p (Choice.get <| body tm))
-        else 
-            try 
-                "r" :: (find_path p (Choice.get <| rand tm))
-            with
-            | Failure _ -> "l" :: (find_path p (Choice.get <| rator tm))
-    fun p tm ->
-        Choice.attempt <| fun () ->
-            implode(find_path p tm)
+        choice {
+            if p tm then 
+                return []
+            elif is_abs tm then 
+                let! tm1 = body tm
+                let! bs = find_path p tm1
+                return "b" :: bs
+            else 
+                return!
+                    choice { 
+                        let! tm1 = rand tm
+                        let! rs = find_path p tm1
+                        return "r" :: rs
+                    }
+                    |> Choice.bindError (fun _ -> 
+                        choice {
+                            let! tm1 = rator tm
+                            let! ls = find_path p tm1
+                            return "l" :: ls
+                        })
+        }
+    fun p tm -> Choice.map implode (find_path p tm)
 
 /// Find the subterm of a given term indicated by a path.
 let follow_path = 
     let rec follow_path s tm = 
-        match s with
-        | [] -> tm
-        | "l" :: t -> follow_path t (Choice.get <| rator tm)
-        | "r" :: t -> follow_path t (Choice.get <| rand tm)
-        | _ :: t -> follow_path t (Choice.get <| body tm)
-    fun s tm ->
-        Choice.attempt <| fun () ->
-            follow_path (explode s) tm
+        choice {
+            match s with
+            | [] -> return tm
+            | "l" :: t -> 
+                let! tm1 = rator tm
+                return! follow_path t tm1
+            | "r" :: t -> 
+                let! tm1 = rand tm
+                return! follow_path t tm1
+            | _ :: t -> 
+                let! tm1 = body tm
+                return! follow_path t tm1
+        }
+    fun s tm -> follow_path (explode s) tm

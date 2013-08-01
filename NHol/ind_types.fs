@@ -79,7 +79,7 @@ let INJ_INVERSE2 =
    |> THEN <| EQ_TAC
    |> THEN <| STRIP_TAC
    |> THEN <| ASM_REWRITE_TAC []
-   |> THEN <| W(EXISTS_TAC << Choice.get <| rand << snd << Choice.get <| dest_exists << snd)
+   |> THEN <| W(EXISTS_TAC << Choice.get << rand << snd << Choice.get << dest_exists << snd)
    |> THEN <| REFL_TAC)
 #else
     Choice.result <| Sequent([], parse_term @"!P. (!x1 y1 x2 y2. P x1 y1 = P x2 y2 <=> x1 = x2 /\ y1 = y2)
@@ -362,7 +362,7 @@ let CONSTR_INJ =
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| POP_ASSUM(MP_TAC << REWRITE_RULE [CONSTR])
          |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP MK_REC_INJ)
-         |> THEN <| W(C SUBGOAL_THEN ASSUME_TAC << funpow 2 Choice.get <| lhand << snd)
+         |> THEN <| W(C SUBGOAL_THEN ASSUME_TAC << funpow 2 (Choice.get << lhand) << snd)
          |> THENL <| [CONJ_TAC
                       |> THEN <| MATCH_MP_TAC(CONJUNCT2 ZRECSPACE_RULES)
                       |> THEN <| REWRITE_TAC [fst recspace_tydef
@@ -391,7 +391,7 @@ let CONSTR_IND =
       |> THEN <| BETA_TAC
       |> THEN <| ASM_REWRITE_TAC [ZRECSPACE_RULES
                                   GSYM BOTTOM]
-      |> THEN <| W(C SUBGOAL_THEN ASSUME_TAC << funpow 2 Choice.get <| lhand << snd)
+      |> THEN <| W(C SUBGOAL_THEN ASSUME_TAC << funpow 2 (Choice.get << lhand) << snd)
       |> THENL <| [REPEAT GEN_TAC
                    |> THEN <| REWRITE_TAC [FORALL_AND_THM]
                    |> THEN <| REPEAT STRIP_TAC
@@ -1889,7 +1889,7 @@ let define_type s =
 (* Unwinding, and application of patterns. Add easy cases to default net.    *)
 (* ------------------------------------------------------------------------- *)
 
-// UNWIND_CONV: Eliminates existentially quantified Choice.get <| variables that are equated to something.
+// UNWIND_CONV: Eliminates existentially quantified variables that are equated to something.
 // MATCH_CONV: Expands application of pattern-matching construct to particular case.
 let UNWIND_CONV, MATCH_CONV = 
     let pth_0 = 
@@ -2039,7 +2039,7 @@ let UNWIND_CONV, MATCH_CONV =
     (CHANGED_CONV UNWIND_CONV, (MATCH_SEQPATTERN_CONV_GEN
                                 |> ORELSEC <| MATCH_ONEPATTERN_CONV_GEN))
 
-/// Eliminates universally quantified Choice.get <| variables that are equated to something.
+/// Eliminates universally quantified variables that are equated to something.
 let FORALL_UNWIND_CONV = 
     let PUSH_FORALL_CONV = 
         let econv = REWR_CONV SWAP_FORALL_THM

@@ -401,7 +401,7 @@ let ISPEC t (th : thm) : thm =
         | Success tyins ->
             SPEC t (INST_TYPE tyins th)
         | Error e ->
-            Choice.nestedFailwith e "ISPEC can't type-Choice.get <| instantiate input theorem")
+            Choice.nestedFailwith e "ISPEC can't type-instantiate input theorem")
     |> Choice.mapError (fun e -> nestedFailure e "ISPEC: type variable(s) free in assumptions")
 
 /// Specializes a theorem zero or more times, with type instantiation if necessary.

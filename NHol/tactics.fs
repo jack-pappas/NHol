@@ -217,7 +217,7 @@ let THEN, THENL =
                     let! ((mvs2, insts2), gls2, just2) = seqapply tacs goals'
                     return ((union mvs1 mvs2, compose_insts insts1 insts2), gls1 @ gls2, 
                             compose_justs (length gls1) just1 just2)
-                | Error _ -> return! Choice.failwith "seqapply: Erroneous goalstate"
+                | Error e -> return! Choice.nestedFailwith e "seqapply: Erroneous goalstate"
             | _, _ -> return! Choice.failwith "seqapply: Length mismatch"
         }
 
@@ -985,7 +985,7 @@ let (DISCH_THEN : thm_tactic -> tactic) =
 let (X_CHOOSE_THEN : term -> thm_tactical) =
     fun x ttac th -> X_CHOOSE_TAC x th |> THEN <| POP_ASSUM ttac
 
-/// Applies a tactic generated from the Choice.get <| body of existentially quantified theorem.
+/// Applies a tactic generated from the body of existentially quantified theorem.
 let (CHOOSE_THEN : thm_tactical) =
     fun ttac th -> CHOOSE_TAC th |> THEN <| POP_ASSUM ttac
 

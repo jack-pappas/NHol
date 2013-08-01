@@ -318,7 +318,7 @@ let install_parser, delete_parser, installed_parsers, try_user_parser =
 (* ------------------------------------------------------------------------- *)
 (* Initial preterm parsing. This uses binder and precedence/associativity/   *)
 (* prefix status to guide parsing and preterm construction, but treats all   *)
-(* identifiers as Choice.get <| variables.                                                 *)
+(* identifiers as variables.                                                 *)
 (*                                                                           *)
 (* PRETERM            :: APPL_PRETERM binop APPL_PRETERM                     *)
 (*                     | APPL_PRETERM                                        *)

@@ -109,7 +109,7 @@ let MP_CONV (cnv : conv) (th : thm) : thm =
     }    
 
 (* ------------------------------------------------------------------------- *)
-(* Multiple beta-reduction (we use a slight Choice.get <| variant below).                  *)
+(* Multiple beta-reduction (we use a slight variant below).                  *)
 (* ------------------------------------------------------------------------- *)
 /// Beta conversion over multiple arguments.
 let rec BETAS_CONV tm : thm = 

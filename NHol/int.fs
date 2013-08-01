@@ -66,7 +66,7 @@ open calc_rat
 #endif
 
 (* ------------------------------------------------------------------------- *)
-(* Representing predicate. The "is_int" Choice.get <| variant is useful for backwards      *)
+(* Representing predicate. The "is_int" variant is useful for backwards      *)
 (* compatibility with former definition of "is_int" constant, now removed.   *)
 (* ------------------------------------------------------------------------- *)
 let integer = new_definition(parse_term @"integer(x) <=> ?n. abs(x) = &n")
@@ -1825,7 +1825,7 @@ let num_gcd = new_definition(parse_term @"gcd(a,b) = num_of_int(gcd(&a,&b))")
 
 (* ------------------------------------------------------------------------- *)
 (* Map an assertion over N to an integer equivalent.                         *)
-(* To make this work nicely, all Choice.get <| variables of type num should be quantified. *)
+(* To make this work nicely, all variables of type num should be quantified. *)
 (* ------------------------------------------------------------------------- *)
 
 /// Maps an assertion over natural numbers to equivalent over reals.

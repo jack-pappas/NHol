@@ -282,9 +282,10 @@ module Hol_kernel =
     
     /// Produce constant term by applying an instantiation to its generic type.
     let mk_const(name, theta) = 
-        let uty = get_const_type name
-        uty
-        |> Choice.map (fun uty -> Const(name, type_subst theta uty))
+        choice {
+            let! uty = get_const_type name
+            return Const(name, type_subst theta uty)
+        }
         |> Choice.mapError (fun e -> 
             nestedFailure e "mk_const: not a constant name")
     
@@ -361,7 +362,7 @@ module Hol_kernel =
         | Abs(bv, bod) -> subtract (frees bod) [bv]
         | Comb(s, t) -> union (frees s) (frees t)
     
-    /// Returns a list of the free Choice.get <| variables in a list of terms.
+    /// Returns a list of the free variables in a list of terms.
     let freesl tml = itlist (union << frees) tml []
     
     (* ------------------------------------------------------------------------- *)
@@ -391,17 +392,24 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the set of type variables used in a term.
-    let type_vars_in_term tm = 
-        let rec type_vars_in_term tm = 
+    let rec type_vars_in_term tm =
+        choice {
             match tm with
-            | Var(_, ty) -> tyvars ty
-            | Const(_, ty) -> tyvars ty
-            | Comb(s, t) -> union (type_vars_in_term s) (type_vars_in_term t)
-            | Abs(Var(_, ty), t) -> union (tyvars ty) (type_vars_in_term t)
-            | _ -> failwith "type_vars_in_term: not a type variable"
-
-        Choice.attempt <| fun () ->
-            type_vars_in_term tm
+            | Var(_, ty) -> 
+                return tyvars ty
+            | Const(_, ty) -> 
+                return tyvars ty
+            | Comb(s, t) -> 
+                let! l = type_vars_in_term s
+                let! r = type_vars_in_term t
+                return union l r
+            | Abs(Var(_, ty), t) -> 
+                let l = tyvars ty
+                let! r = type_vars_in_term t
+                return union l r
+            | _ -> 
+                return! Choice.failwith "type_vars_in_term: not a type variable"
+        }
 
     (* ------------------------------------------------------------------------- *)
     (* For name-carrying syntax, we need this early.                             *)
@@ -424,7 +432,7 @@ module Hol_kernel =
     (* Substitution primitive (substitution for variables only!)                 *)
     (* ------------------------------------------------------------------------- *)
 
-    /// Substitute terms for Choice.get <| variables inside a term.
+    /// Substitute terms for variables inside a term.
     let vsubst = 
         let vsubst ilist tm = 
             let rec vsubst ilist tm = 
@@ -670,27 +678,34 @@ module Hol_kernel =
     /// Proves equality of combinations constructed from equal functions and operands.
     let MK_COMB(thm1 : thm, thm2 : thm) : thm =
         let MK_COMB(Sequent(asl1, c1), Sequent(asl2, c2)) = 
-            match (c1, c2) with
-            | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) ->
-                match type_of l1, type_of l2 with
-                | Success ty1, Success ty2 -> 
+            choice {
+                match (c1, c2) with
+                | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) ->
+                    let! ty1 = type_of l1
+                    let! ty2 = type_of l2
                     match ty1 with
                     | Tyapp("fun", [ty; _]) when compare ty ty2 = 0 -> 
-                        safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2))
-                        |> Choice.map (fun tm -> Sequent(term_union asl1 asl2, tm))
-                    | _ -> Choice.failwith "MK_COMB: types do not agree"
-                | _ -> Choice.failwith "MK_COMB: not both equations"
-            | _ -> Choice.failwith "MK_COMB: not both equations"
+                        let! tm = safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2))
+                        return Sequent(term_union asl1 asl2, tm)
+                    | _ -> 
+                        return! Choice.failwith "MK_COMB: types do not agree"
+                | _ -> 
+                    return! Choice.failwith "MK_COMB: not both equations"
+            }
+            |> Choice.mapError (fun e -> nestedFailure e "MK_COMB: not both equations")
         Choice.bind2 (curry MK_COMB) thm1 thm2
     
     /// Abstracts both sides of an equation.
     let ABS v (thm : thm) : thm =
         let ABS v (Sequent(asl, c)) = 
-            match (v, c) with
-            | Var(_, _), Comb(Comb(Const("=", _), l), r) when not(exists (vfree_in v) asl) ->
-                safe_mk_eq (Abs(v, l)) (Abs(v, r))
-                |> Choice.map (fun tm -> Sequent(asl, tm))
-            | _ -> Choice.failwith "ABS"
+            choice {
+                match (v, c) with
+                | Var(_, _), Comb(Comb(Const("=", _), l), r) when not(exists (vfree_in v) asl) ->
+                    let! tm = safe_mk_eq (Abs(v, l)) (Abs(v, r))
+                    return Sequent(asl, tm)
+                | _ -> 
+                    return! Choice.failwith "ABS"
+            }
         Choice.bind (ABS v) thm
     
     (* ------------------------------------------------------------------------- *)
