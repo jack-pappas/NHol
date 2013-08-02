@@ -501,14 +501,8 @@ let rec remove p l =
 
 /// Chops a list into two parts at a specified point.
 // OPTIMIZE : Make this an alias for List.take.
-let rec chop_list n l = 
-    if n = 0 then [], l
-    else 
-        try 
-            let m, l' = chop_list (n - 1) (tl l)
-            (hd l) :: m, l'
-        with
-        | Failure _ -> failwith "chop_list"
+let chop_list n l = 
+    List.take n l
 
 /// Returns position of given element in list.
 // OPTIMIZE : Make this an alias for List.findIndex.
@@ -989,7 +983,7 @@ let applyd =
         match l with
         | (a, b) :: t -> 
             let c = compare x a
-            if c = 0 then b
+            if c = 0 then Some b
             elif c > 0 then apply_listd t d x
             else d x
         | [] -> d x
@@ -1005,17 +999,16 @@ let applyd =
         look f
 
 /// Applies a finite partial function, failing on undefined points.
-let apply f = applyd f (fun x -> failwith "apply")
+let apply f = applyd f (fun x -> None)
+
 /// Applies a finite partial function, with a default for undefined points.
-let tryapplyd f a d = applyd f (fun x -> d) a
+let tryapplyd f a d = 
+    // NOTE: this will not fail because there is no case returning None
+    Option.get <| applyd f (fun x -> Some d) a
 
 /// Tests if a finite partial function is defined on a certain domain value.
 let defined f x = 
-    try 
-        apply f x |> ignore
-        true
-    with
-    | Failure _ -> false
+    Option.isSome <| apply f x
 
 (* ------------------------------------------------------------------------- *)
 (* Undefinition.                                                             *)

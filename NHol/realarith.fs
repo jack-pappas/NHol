@@ -611,7 +611,7 @@ let REAL_LINEAR_PROVER =
     let one_tm = (parse_term @"&1")
     let contradictory p (e, _) = 
         (is_undefined e && not(p num_0)) 
-        || (dom e = [one_tm] && not(p(apply e one_tm)))
+        || (dom e = [one_tm] && not(p(Option.get <| apply e one_tm)))
     let rec linear_ineqs vars (les, lts) = 
         try 
             Option.get <| find (contradictory(fun x -> x >/ num_0)) lts
