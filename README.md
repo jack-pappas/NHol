@@ -19,4 +19,4 @@ For more information see the [License file](LICENSE.txt).
 
 ## Personal Notes
 
- - [Eric's Notes] (https://github.com/jack-pappas/NHol/wiki/Eric's-Notes)
+ - [Eric's Notes] (https://github.com/jack-pappas/NHol/wiki/Eric's-Notes-Page-1)
