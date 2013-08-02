@@ -136,12 +136,14 @@ module Choice =
         | Choice2Of2 error ->
             binding error
 
-    let bindEither (resultBinding : 'T -> Choice<'U, _>) (errorBinding : 'Error -> Choice<_, 'Failure>) value =
-        match value with
-        | Choice1Of2 result ->
-            resultBinding result
-        | Choice2Of2 error ->
-            errorBinding error
+    module List =
+        let rec reduceBack (binding : 'T -> 'T -> Choice<'T, exn>) values =
+            match values with
+            | [] -> failwith "The input list shouldn't be empty"
+            | [v] -> Choice.result v
+            | v::vs -> 
+                reduceBack binding vs
+                |> Choice.bind (binding v) 
 
 (* ------------------------------------------------------------------------- *)
 (* Functions needed for OCaml compatibility. These augment or supercede      *)
