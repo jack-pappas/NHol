@@ -26,6 +26,9 @@ module NHol.grobner
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+open ExtCore.Control.Collections
+
 open NHol
 open lib
 open fusion
@@ -93,7 +96,7 @@ let RING_AND_IDEAL_CONV =
   (* Arithmetic on canonical polynomials.                                    *)
   (* ----------------------------------------------------------------------- *)
   
-  let grob_neg = map (fun (c,m) -> (minus_num c,m))
+  let grob_neg = map (fun (c, m) -> (minus_num c, m))
   
   let rec grob_add l1 l2 = 
       match (l1, l2) with
@@ -110,7 +113,7 @@ let RING_AND_IDEAL_CONV =
   
   let grob_sub l1 l2 = grob_add l1 (grob_neg l2)
   
-  let grob_mmul (c1,m1) (c2,m2) = (c1*c2,map2 (+) m1 m2)
+  let grob_mmul (c1, m1) (c2, m2) = (c1 * c2, map2 (+) m1 m2)
   
   let rec grob_cmul cm pol = map (grob_mmul cm) pol
   
@@ -120,78 +123,105 @@ let RING_AND_IDEAL_CONV =
       | (h1 :: t1) -> grob_add (grob_cmul h1 l2) (grob_mul t1 l2)
   
   let grob_inv l = 
+    choice {
       match l with
       | [c, vs] when forall (fun x -> x = 0) vs -> 
-          if c = num_0 then failwith "grob_inv: division by zero"
-          else [num_1 / c, vs]
-      | _ -> failwith "grob_inv: non-constant divisor polynomial"
+          if c = num_0 then 
+              return! Choice.failwith "grob_inv: division by zero"
+          else 
+              return [num_1 / c, vs]
+      | _ -> 
+           return! Choice.failwith "grob_inv: non-constant divisor polynomial"
+    }
   
   let grob_div l1 l2 = 
+    choice {
       match l2 with
       | [c, l] when forall (fun x -> x = 0) l -> 
-          if c = num_0 then failwith "grob_div: division by zero"
-          else grob_cmul (num_1 / c, l) l1
-      | _ -> failwith "grob_div: non-constant divisor polynomial"
+          if c = num_0 then 
+              return! Choice.failwith "grob_div: division by zero"
+          else 
+            return grob_cmul (num_1 / c, l) l1
+      | _ -> 
+          return! Choice.failwith "grob_div: non-constant divisor polynomial"
+    }
   
   let rec grob_pow vars l n = 
-      if n < 0 then failwith "grob_pow: negative power"
-      else if n = 0 then [num_1, map (fun v -> 0) vars]
-      else grob_mul l (grob_pow vars l (n - 1))
+    choice {
+      if n < 0 then 
+          return! Choice.failwith "grob_pow: negative power"
+      else if n = 0 then 
+          return [num_1, map (fun v -> 0) vars]
+      else
+          let! r = grob_pow vars l (n - 1)
+          return grob_mul l r
+    }
   
   (* ----------------------------------------------------------------------- *)
   (* Monomial division operation.                                            *)
   (* ----------------------------------------------------------------------- *)
   
   let mdiv (c1, m1) (c2, m2) = 
-      (c1 / c2, 
-       map2 (fun n1 n2 -> 
-           if n1 < n2 then failwith "mdiv"
-           else n1 - n2) m1 m2)
+    choice {
+        let! ns = Choice.List.map2 (fun n1 n2 -> 
+           if n1 < n2 then Choice.failwith "mdiv"
+           else Choice.result (n1 - n2)) m1 m2
+        return (c1 / c2, ns)
+    }
   
   (* ----------------------------------------------------------------------- *)
   (* Lowest common multiple of two monomials.                                *)
   (* ----------------------------------------------------------------------- *)
   
-  let mlcm (c1,m1) (c2,m2) = (num_1,map2 max m1 m2)
+  let mlcm (c1, m1) (c2, m2) = (num_1, map2 max m1 m2)
   
   (* ----------------------------------------------------------------------- *)
   (* Reduce monomial cm by polynomial pol, returning replacement for cm.     *)
   (* ----------------------------------------------------------------------- *)
   
   let reduce1 cm (pol, hpol) = 
+    choice {
       match pol with
-      | [] -> failwith "reduce1"
+      | [] -> 
+          return! Choice.failwith "reduce1"
       | cm1 :: cms -> 
-          try 
-              let (c, m) = mdiv cm cm1
-              (grob_cmul (minus_num c, m) cms, Mmul((minus_num c, m), hpol))
-          with
-          | Failure _ as e -> nestedFailwith e "reduce1"
+          return!
+              choice { 
+                  let! (c, m) = mdiv cm cm1
+                  return (grob_cmul (minus_num c, m) cms, Mmul((minus_num c, m), hpol))
+              }
+              |> Choice.mapError (fun e -> nestedFailure e "reduce1")
+    }
   
   (* ----------------------------------------------------------------------- *)
   (* Try this for all polynomials in a basis.                                *)
   (* ----------------------------------------------------------------------- *)
   
-  let reduceb cm basis = 
-    // NOTE: wrong use of Some, need to change this
-    tryfind (fun p -> Some <| reduce1 cm p) basis
-    |> Option.getOrFailWith "tryfind"
+  let reduceb cm basis =
+      tryfind (fun p -> Choice.toOption <| reduce1 cm p) basis 
+      |> Option.toChoiceWithError "tryfind"
   
   (* ----------------------------------------------------------------------- *)
   (* Reduction of a polynomial (always picking largest monomial possible).   *)
   (* ----------------------------------------------------------------------- *)
   
   let rec reduce basis (pol, hist) = 
+    choice {
       match pol with
-      | [] -> (pol, hist)
+      | [] -> 
+        return (pol, hist)
       | cm :: ptl -> 
-          try 
-              let q, hnew = reduceb cm basis
-              reduce basis (grob_add q ptl, Add(hnew, hist))
-          with
-          | Failure _ -> 
-              let q, hist' = reduce basis (ptl, hist)
-              cm :: q, hist'
+        return!
+          choice { 
+              let! q, hnew = reduceb cm basis
+              return! reduce basis (grob_add q ptl, Add(hnew, hist))
+          }
+          |> Choice.bindError (fun _ -> 
+              choice {
+                  let! q, hist' = reduce basis (ptl, hist)
+                  return cm :: q, hist'
+              })
+    }
   
   (* ----------------------------------------------------------------------- *)
   (* Check for orthogonality w.r.t. LCM.                                     *)
@@ -205,13 +235,21 @@ let RING_AND_IDEAL_CONV =
   (* ----------------------------------------------------------------------- *)
   
   let spoly cm ph1 ph2 = 
+    choice {
       match (ph1, ph2) with
-      | ([], h), p -> ([], h)
-      | p, ([], h) -> ([], h)
+      | ([], h), p -> 
+        return ([], h)
+      | p, ([], h) -> 
+        return ([], h)
       | (cm1 :: ptl1, his1), (cm2 :: ptl2, his2) -> 
-          (grob_sub (grob_cmul (mdiv cm cm1) ptl1) (grob_cmul (mdiv cm cm2) ptl2), 
-           Add(Mmul(mdiv cm cm1, his1), Mmul(mdiv (minus_num(fst cm), snd cm) cm2, his2)))
-  
+        let! n1 = mdiv cm cm1
+        let! n2 = mdiv cm cm2
+        let! n3 = mdiv (minus_num(fst cm), snd cm) cm2
+        return
+          (grob_sub (grob_cmul n1 ptl1) (grob_cmul n2 ptl2), 
+           Add(Mmul(n1, his1), Mmul(n3, his2)))
+    }
+
   (* ----------------------------------------------------------------------- *)
   (* Make a polynomial monic.                                                *)
   (* ----------------------------------------------------------------------- *)
@@ -239,8 +277,9 @@ let RING_AND_IDEAL_CONV =
       | (c1, m1) :: o1, (c2, m2) :: o2 -> 
          c1 < c2 || c1 = c2 && (m1 < m2 || m1 = m2 && poly_lt o1 o2)
   
-  let align ((p,hp),(q,hq)) =
-    if poly_lt p q then ((p,hp),(q,hq)) else ((q,hq),(p,hp))
+  let align((p, hp), (q, hq)) = 
+      if poly_lt p q then ((p, hp), (q, hq))
+      else ((q, hq), (p, hp))
   
   let poly_eq p1 p2 =
     forall2 (fun (c1,m1) (c2,m2) -> c1 = c2 && m1 = m2) p1 p2
@@ -253,16 +292,9 @@ let RING_AND_IDEAL_CONV =
   (* ----------------------------------------------------------------------- *)
   
   let criterion2 basis (lcm, ((p1, h1), (p2, h2))) opairs = 
-      /// Tests for failure.
-      let can f x = 
-          try 
-              f x |> ignore
-              true
-          with
-          | Failure _ -> false
       exists 
           (fun g -> 
-          not(poly_eq (fst g) p1) && not(poly_eq (fst g) p2) && can (mdiv lcm) (hd(fst g)) 
+          not(poly_eq (fst g) p1) && not(poly_eq (fst g) p2) && Choice.isResult <| (mdiv lcm) (hd(fst g)) 
           && not(memx (align(g, (p1, h1))) (map snd opairs)) && not(memx (align(g, (p2, h2))) (map snd opairs))) basis
   
   (* ----------------------------------------------------------------------- *)
@@ -277,52 +309,72 @@ let RING_AND_IDEAL_CONV =
   (* ----------------------------------------------------------------------- *)
   
   let rec grobner_basis basis pairs = 
+    choice {
       Format.print_string(string(length basis) + " basis elements and " + string(length pairs) + " critical pairs")
       Format.print_newline()
       match pairs with
-      | [] -> basis
+      | [] -> 
+          return basis
       | (l, (p1, p2)) :: opairs -> 
-          let (sp, hist as sph) = monic(reduce basis (spoly l p1 p2))
-          if sp = [] || criterion2 basis (l, (p1, p2)) opairs then grobner_basis basis opairs
-          else if constant_poly sp then grobner_basis (sph :: basis) []
+          let! ns1 = spoly l p1 p2
+          let! ns2 = reduce basis ns1
+          let (sp, hist as sph) = monic ns2
+          if sp = [] || criterion2 basis (l, (p1, p2)) opairs then 
+              return! grobner_basis basis opairs
+          else if constant_poly sp then 
+              return! grobner_basis (sph :: basis) []
           else 
               let rawcps = map (fun p -> mlcm (hd(fst p)) (hd sp), align(p, sph)) basis
               let newcps = filter (fun (l, (p, q)) -> not(orthogonal l (fst p) (fst q))) rawcps
-              grobner_basis (sph :: basis) (merge forder opairs (mergesort forder newcps))
+              return! grobner_basis (sph :: basis) (merge forder opairs (mergesort forder newcps))
+    }
   
   (* ----------------------------------------------------------------------- *)
   (* Interreduce initial polynomials.                                        *)
   (* ----------------------------------------------------------------------- *)
   
   let rec grobner_interreduce rpols ipols = 
+    choice {
       match ipols with
-      | [] -> map monic (rev rpols)
+      | [] -> 
+          return map monic (rev rpols)
       | p :: ps -> 
-          let p' = reduce (rpols @ ps) p
-          if fst p' = [] then grobner_interreduce rpols ps
-          else grobner_interreduce (p' :: rpols) ps
+          let! p' = reduce (rpols @ ps) p
+          if fst p' = [] then 
+              return! grobner_interreduce rpols ps
+          else 
+              return! grobner_interreduce (p' :: rpols) ps
+    }
   
   (* ----------------------------------------------------------------------- *)
   (* Overall function.                                                       *)
   (* ----------------------------------------------------------------------- *)
   
   let grobner pols = 
+    choice {
       let npols = map2 (fun p n -> p, Start n) pols (0 -- (length pols - 1))
       let phists = filter (fun (p, _) -> p <> []) npols
-      let bas = grobner_interreduce [] (map monic phists)
+      let! bas = grobner_interreduce [] (map monic phists)
       let prs0 = allpairs (fun x y -> x, y) bas bas
       let prs1 = filter (fun ((x, _), (y, _)) -> poly_lt x y) prs0
       let prs2 = map (fun (p, q) -> mlcm (hd(fst p)) (hd(fst q)), (p, q)) prs1
       let prs3 = filter (fun (l, (p, q)) -> not(orthogonal l (fst p) (fst q))) prs2
-      grobner_basis bas (mergesort forder prs3)
+      return! grobner_basis bas (mergesort forder prs3)
+    }
   
   (* ----------------------------------------------------------------------- *)
   (* Get proof of contradiction from Grobner basis.                          *)
   (* ----------------------------------------------------------------------- *)
   
   let grobner_refute pols = 
-      let gb = grobner pols
-      snd(Option.get <| find (fun (p, h) -> length p = 1 && forall ((=) 0) (snd(hd p))) gb)
+    choice {
+      let! gb = grobner pols
+      let! (_, history) = 
+        find (fun (p, h) -> length p = 1 && forall ((=) 0) (snd(hd p))) gb
+        |> Option.toChoiceWithError "find"
+
+      return history
+    }
   
   (* ----------------------------------------------------------------------- *)
   (* Turn proof into a certificate as sum of multipliers.                    *)
@@ -352,39 +404,58 @@ let RING_AND_IDEAL_CONV =
   (* ----------------------------------------------------------------------- *)
   
   let grobner_weak vars pols = 
-      let cert = resolve_proof vars (grobner_refute pols)
+    choice {
+      let! history = grobner_refute pols
+      let cert = resolve_proof vars history
       let l = itlist (itlist(lcm_num << denominator << fst) << snd) cert (num_1)
-      l, map (fun (i, p) -> i, map (fun (d, m) -> (l * d, m)) p) cert
+      return l, map (fun (i, p) -> i, map (fun (d, m) -> (l * d, m)) p) cert
+    }
   
   (* ----------------------------------------------------------------------- *)
   (* Prove polynomial is in ideal generated by others, using Grobner basis.  *)
   (* ----------------------------------------------------------------------- *)
   
   let grobner_ideal vars pols pol = 
-      let pol', h = reduce (grobner pols) (grob_neg pol, Start(-1))
-      if pol' <> [] then failwith "grobner_ideal: not in the ideal"
-      else resolve_proof vars h
+    choice {
+      let! ns = grobner pols
+      let! pol', h = reduce ns (grob_neg pol, Start(-1))
+      if pol' <> [] then 
+          return! Choice.failwith "grobner_ideal: not in the ideal"
+      else 
+          return resolve_proof vars h
+    }
   
   (* ----------------------------------------------------------------------- *)
   (* Produce Strong Nullstellensatz certificate for a power of pol.          *)
   (* ----------------------------------------------------------------------- *)
   
   let grobner_strong vars pols pol = 
-      if pol = [] then 1, num_1, []
-      else 
-          let vars' = (concl <| Choice.get TRUTH) :: vars
+    choice {
+      if pol = [] then 
+          return 1, num_1, []
+      else
+          let! var = Choice.map concl TRUTH
+          let vars' = var :: vars
           let grob_z = [num_1, 1 :: (map (fun x -> 0) vars)]
           let grob_1 = [num_1, (map (fun x -> 0) vars')]
           let augment = map(fun (c, m) -> (c, 0 :: m))
           let pols' = map augment pols
           let pol' = augment pol
           let allpols = (grob_sub (grob_mul grob_z pol') grob_1) :: pols'
-          let l, cert = grobner_weak vars' allpols
+          let! l, cert = grobner_weak vars' allpols
           let d = itlist (itlist(max << hd << snd) << snd) cert 0
-          let transform_monomial(c, m) = grob_cmul (c, tl m) (grob_pow vars pol (d - hd m))
-          let transform_polynomial q = itlist (grob_add << transform_monomial) q []
+          let transform_monomial(c, m) = 
+                choice {
+                    let! ns = grob_pow vars pol (d - hd m)
+                    return grob_cmul (c, tl m) ns
+                }
+
+          let transform_polynomial q = itlist (grob_add << Choice.get << transform_monomial) q []
+
           let cert' = map (fun (c, q) -> c - 1, transform_polynomial q) (filter (fun (k, _) -> k <> 0) cert)
-          d, l, cert'
+
+          return d, l, cert'
+    }
     
   (* ----------------------------------------------------------------------- *)
   (* Overall parametrized universal procedure for (semi)rings.               *)
@@ -403,7 +474,6 @@ let RING_AND_IDEAL_CONV =
                 (!n a b c d. ~(n = n0)
                              ==> (a = b) /\ ~(c = d)
                                  ==> ~(add a (mul n c) = add b (mul n d)))"),
-       REPEAT GEN_TAC |>THEN<), 
             REPEAT GEN_TAC
             |> THEN <| STRIP_TAC
             |> THEN <| ASM_REWRITE_TAC [GSYM DE_MORGAN_THM]
@@ -427,137 +497,208 @@ let RING_AND_IDEAL_CONV =
       | _ -> rfn tm
   
   fun (ring_dest_const,ring_mk_const,RING_EQ_CONV, ring_neg_tm,ring_add_tm,ring_sub_tm, ring_inv_tm,ring_mul_tm,ring_div_tm,ring_pow_tm, RING_INTEGRAL,RABINOWITSCH_THM,RING_NORMALIZE_CONV) ->
+    let rabinowitsch_conv tm =
+        choice {
+            let! th = RABINOWITSCH_THM
+            if is_iff(snd(strip_forall(concl th))) then 
+                return! GEN_REWRITE_CONV ONCE_DEPTH_CONV [RABINOWITSCH_THM] tm
+            else 
+                return! ALL_CONV tm
+        }
+
     let INITIAL_CONV = 
         TOP_DEPTH_CONV BETA_CONV
         |> THENC <| PRESIMP_CONV
         |> THENC <| CONDS_ELIM_CONV
         |> THENC <| NNF_CONV
-        |> THENC <| (if is_iff(snd(strip_forall(concl <| Choice.get RABINOWITSCH_THM))) then 
-                         GEN_REWRITE_CONV ONCE_DEPTH_CONV [RABINOWITSCH_THM]
-                     else ALL_CONV)
+        |> THENC <| rabinowitsch_conv
         |> THENC 
         <| GEN_REWRITE_CONV REDEPTH_CONV 
                [AND_FORALL_THM; LEFT_AND_FORALL_THM; RIGHT_AND_FORALL_THM; LEFT_OR_FORALL_THM; RIGHT_OR_FORALL_THM; 
                 OR_EXISTS_THM; LEFT_OR_EXISTS_THM; RIGHT_OR_EXISTS_THM; LEFT_AND_EXISTS_THM; RIGHT_AND_EXISTS_THM]
     
     let ring_dest_neg t = 
-        let l, r = Choice.get <| dest_comb t
-        if l = ring_neg_tm then r
-        else failwith "ring_dest_neg"
+      choice {
+        let! l, r = dest_comb t
+        if l = ring_neg_tm then 
+            return r
+        else 
+            return! Choice.failwith "ring_dest_neg"
+      }
     
     let ring_dest_inv t = 
-        let l, r = Choice.get <| dest_comb t
-        if l = ring_inv_tm then r
-        else failwith "ring_dest_inv"
+      choice {
+        let! l, r = dest_comb t
+        if l = ring_inv_tm then 
+            return r
+        else 
+            return! Choice.failwith "ring_dest_inv"
+      }
     
-    let ring_dest_add = Choice.get << dest_binop ring_add_tm
-    let ring_mk_add = fun x -> Choice.get << mk_binop ring_add_tm x
-    let ring_dest_sub = Choice.get << dest_binop ring_sub_tm
-    let ring_dest_mul = Choice.get << dest_binop ring_mul_tm
-    let ring_mk_mul = fun x -> Choice.get << mk_binop ring_mul_tm x
-    let ring_dest_div = Choice.get << dest_binop ring_div_tm
-    let ring_dest_pow = Choice.get << dest_binop ring_pow_tm
-    let ring_mk_pow = fun x -> Choice.get << mk_binop ring_pow_tm x
+    let ring_dest_add = dest_binop ring_add_tm
+    let ring_mk_add = mk_binop ring_add_tm
+    let ring_dest_sub = dest_binop ring_sub_tm
+    let ring_dest_mul = dest_binop ring_mul_tm
+    let ring_mk_mul = mk_binop ring_mul_tm
+    let ring_dest_div = dest_binop ring_div_tm
+    let ring_dest_pow = dest_binop ring_pow_tm
+    let ring_mk_pow = mk_binop ring_pow_tm
 
     let rec grobvars tm acc = 
-        /// Tests for failure.
-        let can f x = 
-            try 
-                f x |> ignore
-                true
-            with
-            | Failure _ -> false
-        if can ring_dest_const tm then acc
-        else if can ring_dest_neg tm then grobvars (Choice.get <| rand tm) acc
-        else if can ring_dest_pow tm && is_numeral(Choice.get <| rand tm) then grobvars (Choice.get <| lhand tm) acc
-        else if can ring_dest_add tm || can ring_dest_sub tm || can ring_dest_mul tm then 
-            grobvars (Choice.get <| lhand tm) (grobvars (Choice.get <| rand tm) acc)
-        else if can ring_dest_inv tm then 
-            let gvs = grobvars (Choice.get <| rand tm) []
-            if gvs = [] then acc
-            else tm :: acc
-        else if can ring_dest_div tm then 
-            let lvs = grobvars (Choice.get <| lhand tm) acc
-            let gvs = grobvars (Choice.get <| rand tm) []
-            if gvs = [] then lvs
-            else tm :: acc
-        else tm :: acc
+      choice {
+        if Choice.isResult <| ring_dest_const tm then 
+            return acc
+        else if Choice.isResult <| ring_dest_neg tm then
+            let! tm1 = rand tm
+            return! grobvars tm1 acc
+        else
+            let! tm1 = rand tm
+            if Choice.isResult <| ring_dest_pow tm && is_numeral tm1 then 
+                let! tm2 = lhand tm
+                return! grobvars tm2 acc
+            else if Choice.isResult <| ring_dest_add tm || Choice.isResult <| ring_dest_sub tm || Choice.isResult <| ring_dest_mul tm then 
+                let! tm2 = lhand tm
+                let! ns = grobvars tm1 acc
+                return! grobvars tm2 ns
+            else if Choice.isResult <| ring_dest_inv tm then 
+                let! gvs = grobvars tm1 []
+                if gvs = [] then 
+                    return acc
+                else 
+                    return tm :: acc
+            else if Choice.isResult <| ring_dest_div tm then 
+                let! tm2 = lhand tm
+                let! lvs = grobvars tm2 acc
+                let! gvs = grobvars tm1 []
+                if gvs = [] then 
+                    return lvs
+                else 
+                    return tm :: acc
+            else 
+                return tm :: acc
+      }
   
     let rec grobify_term vars tm = 
-        try 
-            if not(mem tm vars) then failwith ""
+        choice { 
+            if not(mem tm vars) then 
+                return! Choice.failwith ""
             else 
-                [num_1, 
-                 map (fun i -> 
-                     if i = tm then 1
-                     else 0) vars]
-        with
-        | Failure _ -> 
-            try 
-                let x = ring_dest_const tm
-                if x = num_0 then []
-                else [x, map (fun v -> 0) vars]
-            with
-            | Failure _ -> 
-                try 
-                    grob_neg(grobify_term vars (ring_dest_neg tm))
-                with
-                | Failure _ -> 
-                    try 
-                        grob_inv(grobify_term vars (ring_dest_inv tm))
-                    with
-                    | Failure _ -> 
-                        try 
-                            let l, r = ring_dest_add tm
-                            grob_add (grobify_term vars l) (grobify_term vars r)
-                        with
-                        | Failure _ -> 
-                            try 
-                                let l, r = ring_dest_sub tm
-                                grob_sub (grobify_term vars l) (grobify_term vars r)
-                            with
-                            | Failure _ -> 
-                                try 
-                                    let l, r = ring_dest_mul tm
-                                    grob_mul (grobify_term vars l) (grobify_term vars r)
-                                with
-                                | Failure _ -> 
-                                    try 
-                                        let l, r = ring_dest_div tm
-                                        grob_div (grobify_term vars l) (grobify_term vars r)
-                                    with
-                                    | Failure _ -> 
-                                        try 
-                                            let l, r = ring_dest_pow tm
-                                            grob_pow vars (grobify_term vars l) (Choice.get <| dest_small_numeral r)
-                                        with
-                                        | Failure _ as e -> nestedFailwith e "grobify_term: unknown or invalid term"
+                return [num_1, map (fun i -> 
+                                 if i = tm then 1
+                                 else 0) vars]
+        }
+        |> Choice.bindError (fun _ ->
+            choice { 
+                let! x = ring_dest_const tm
+                if x = num_0 then 
+                    return []
+                else 
+                    return [x, map (fun v -> 0) vars]
+            }
+            |> Choice.bindError (fun _ ->
+                choice { 
+                    let! ns1 = ring_dest_neg tm
+                    let! ns2 = grobify_term vars ns1
+                    return grob_neg ns2
+                }
+                |> Choice.bindError (fun _ ->
+                    choice { 
+                        let! ns1 = ring_dest_neg tm
+                        let! ns2 = grobify_term vars ns1
+                        return! grob_inv ns2
+                    }
+                    |> Choice.bindError (fun _ ->
+                        choice { 
+                            let! l, r = ring_dest_add tm
+                            let! ns1 = grobify_term vars l
+                            let! ns2 = grobify_term vars r
+                            return grob_add ns1 ns2
+                        }
+                        |> Choice.bindError (fun _ ->
+                            choice { 
+                                let! l, r = ring_dest_sub tm
+                                let! ns1 = grobify_term vars l
+                                let! ns2 = grobify_term vars r
+                                return grob_sub ns1 ns2
+                            }
+                            |> Choice.bindError (fun _ ->
+                                choice { 
+                                    let! l, r = ring_dest_mul tm
+                                    let! ns1 = grobify_term vars l
+                                    let! ns2 = grobify_term vars r
+                                    return grob_mul ns1 ns2
+                                }
+                                |> Choice.bindError (fun _ ->
+                                    choice { 
+                                        let! l, r = ring_dest_div tm
+                                        let! ns1 = grobify_term vars l
+                                        let! ns2 = grobify_term vars r
+                                        return! grob_div ns1 ns2
+                                    }
+                                    |> Choice.bindError (fun _ ->
+                                        choice { 
+                                            let! l, r = ring_dest_pow tm
+                                            let! ns1 = grobify_term vars l
+                                            let! n2 = dest_small_numeral r
+                                            return! grob_pow vars ns1 n2
+                                        }
+                                        |> Choice.mapError (fun e ->
+                                            nestedFailure e "grobify_term: unknown or invalid term")))))))))
   
     let grobify_equation vars tm = 
-        let l, r = Choice.get <| dest_eq tm
-        grob_sub (grobify_term vars l) (grobify_term vars r)
-    
+      choice {
+        let! l, r = dest_eq tm
+        let! l' = grobify_term vars l
+        let! r' = grobify_term vars r
+        return grob_sub l' r'
+      }
+
     let grobify_equations tm = 
+      choice {
         let cjs = conjuncts tm
-        let rawvars = itlist (fun eq a -> grobvars (Choice.get <| lhand eq) (grobvars (Choice.get <| rand eq) a)) cjs []
+        let rawvars = itlist (fun eq a -> Choice.get <| grobvars (Choice.get <| lhand eq) (Choice.get <| grobvars (Choice.get <| rand eq) a)) cjs []
         let vars = sort (fun x y -> x < y) (setify rawvars)
-        vars, map (grobify_equation vars) cjs
+        let! cjs' = Choice.List.map (grobify_equation vars) cjs
+        return vars, cjs'
+      }
     
     let holify_polynomial = 
         let holify_varpow(v, n) = 
-            if n = 1 then v
-            else ring_mk_pow v (Choice.get <| mk_small_numeral n)
+          choice {
+            if n = 1 then 
+                return v
+            else 
+                let! n' = mk_small_numeral n
+                return! ring_mk_pow v n'
+          }
+
         let holify_monomial vars (c, m) = 
-            let xps = map holify_varpow (filter (fun (_, n) -> n <> 0) (zip vars m))
-            end_itlist ring_mk_mul (ring_mk_const c :: xps)
+          choice {
+            let! xps = Choice.List.map holify_varpow (filter (fun (_, n) -> n <> 0) (zip vars m))
+            return end_itlist (fun x -> Choice.get << ring_mk_mul x) (ring_mk_const c :: xps)
+          }
+
         let holify_polynomial vars p = 
-            if p = [] then ring_mk_const(num_0)
-            else end_itlist ring_mk_add (map (holify_monomial vars) p)
+          choice {
+            if p = [] then 
+                return ring_mk_const(num_0)
+            else
+                let! ns = Choice.List.map (holify_monomial vars) p 
+                return end_itlist (fun x -> Choice.get << ring_mk_add x) ns
+          }
+
         holify_polynomial
     
     let (pth_idom, pth_ine) = CONJ_PAIR(MATCH_MP pth_step RING_INTEGRAL)
+
     let IDOM_RULE = CONV_RULE(REWR_CONV pth_idom)
-    let PROVE_NZ n = EQF_ELIM(RING_EQ_CONV(Choice.get <| mk_eq(ring_mk_const n, ring_mk_const(num_0))))
+
+    let PROVE_NZ n = 
+        choice {
+            let! tm = mk_eq(ring_mk_const n, ring_mk_const(num_0))
+            return! EQF_ELIM(RING_EQ_CONV tm)
+        }
+    
     let NOT_EQ_01 = PROVE_NZ(num_1)
     let INE_RULE n = MATCH_MP(MATCH_MP pth_ine (PROVE_NZ n))
     let MK_ADD th1 th2 = MK_COMB(AP_TERM ring_add_tm th1, th2)
@@ -566,38 +707,60 @@ let RING_AND_IDEAL_CONV =
         let x, th1 = SPEC_VAR(CONJUNCT1(CONJUNCT2 RING_INTEGRAL))
         let y, th2 = SPEC_VAR th1
         let z, th3 = SPEC_VAR th2
+
         let SUB_EQ_RULE = 
-            GEN_REWRITE_RULE I [SYM(INST [Choice.get <| mk_comb(ring_neg_tm, Choice.get z), Choice.get x] th3)]
+            fun th ->
+                choice {
+                    let! z = z
+                    let! tm = mk_comb(ring_neg_tm, z)
+                    let! x = x
+                    return! GEN_REWRITE_RULE I [SYM(INST [tm, x] th3)] th
+                }
+
         let initpols = map (CONV_RULE(BINOP_CONV RING_NORMALIZE_CONV) << SUB_EQ_RULE) eths
         let ADD_RULE th1 th2 = CONV_RULE (BINOP_CONV RING_NORMALIZE_CONV) (MK_COMB(AP_TERM ring_add_tm th1, th2))
+
         let MUL_RULE vars m th = 
-            CONV_RULE (BINOP_CONV RING_NORMALIZE_CONV) 
-                (AP_TERM (Choice.get <| mk_comb(ring_mul_tm, holify_polynomial vars [m])) th)
+            choice {
+                let! n = holify_polynomial vars [m]
+                let! tm = mk_comb(ring_mul_tm, n)
+                return! CONV_RULE (BINOP_CONV RING_NORMALIZE_CONV) (AP_TERM tm th)
+            }
+
         let execache = ref []
+
         let memoize prf x = 
             (execache := (prf, x) :: (!execache))
             x
+        
         let rec assoceq a l = 
+          choice {
             match l with
-            | [] -> failwith "assoceq"
+            | [] -> 
+                return! Choice.failwith "assoceq"
             | (x, y) :: t -> 
-                if x == a then y
-                else assoceq a t
+                if x == a then 
+                    return y
+                else 
+                    return! assoceq a t
+          }
+
         let rec run_proof vars prf = 
-            try 
-                assoceq prf (!execache)
-            with
-            | Failure _ -> 
+            assoceq prf (!execache)
+            |> Choice.fill ( 
                 (match prf with
                  | Start m -> el m initpols
                  | Add(p1, p2) -> memoize prf (ADD_RULE (run_proof vars p1) (run_proof vars p2))
-                 | Mmul(m, p2) -> memoize prf (MUL_RULE vars m (run_proof vars p2)))
+                 | Mmul(m, p2) -> memoize prf (MUL_RULE vars m (run_proof vars p2))))
+
         let th = run_proof vars prf
         execache := []
         CONV_RULE RING_EQ_CONV th
   
     let REFUTE tm = 
-        if tm = false_tm then ASSUME tm
+      choice {
+        if tm = false_tm then 
+            return! ASSUME tm
         else 
             let nths0, eths0 = partition (is_neg << concl << Choice.get) (CONJUNCTS(ASSUME tm))
             let nths = filter (is_eq << Choice.get << rand << concl << Choice.get) nths0
@@ -605,35 +768,40 @@ let RING_AND_IDEAL_CONV =
             if eths = [] then 
                 let th1 = end_itlist (fun th1 th2 -> IDOM_RULE(CONJ th1 th2)) nths
                 let th2 = CONV_RULE (RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) th1
-                let l, r = Choice.get <| dest_eq(Choice.get <| rand(concl <| Choice.get th2))
-                EQ_MP (EQF_INTRO th2) (REFL l)
+                let! l, r = dest_eq(Choice.get <| rand(concl <| Choice.get th2))
+                return! EQ_MP (EQF_INTRO th2) (REFL l)
             else if nths = [] && not(is_var ring_neg_tm) then 
-                let vars, pols = grobify_equations(list_mk_conj(map (concl << Choice.get) eths))
-                execute_proof vars eths (grobner_refute pols)
+                let! vars, pols = grobify_equations(list_mk_conj(map (concl << Choice.get) eths))
+                let! ns = grobner_refute pols
+                return! execute_proof vars eths ns
             else 
-                let vars, l, cert, noteqth = 
+                let! vars, l, cert, noteqth = 
+                  choice {
                     if nths = [] then 
-                        let vars, pols = grobify_equations(list_mk_conj(map (concl << Choice.get) eths))
-                        let l, cert = grobner_weak vars pols
-                        vars, l, cert, NOT_EQ_01
+                        let! vars, pols = grobify_equations(list_mk_conj(map (concl << Choice.get) eths))
+                        let! l, cert = grobner_weak vars pols
+                        return vars, l, cert, NOT_EQ_01
                     else 
                         let nth = end_itlist (fun th1 th2 -> IDOM_RULE(CONJ th1 th2)) nths
                         match grobify_equations
                                   (list_mk_conj
                                        ((Choice.get <| rand(concl <| Choice.get nth)) :: map (concl << Choice.get) eths)) with
-                        | vars, pol :: pols -> 
-                            let deg, l, cert = grobner_strong vars pols pol
+                        | Success (vars, pol :: pols) -> 
+                            let! deg, l, cert = grobner_strong vars pols pol
                             let th1 = CONV_RULE (RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) nth
                             let th2 = funpow deg (IDOM_RULE << CONJ th1) NOT_EQ_01
-                            vars, l, cert, th2
-                        | _ -> failwith "REFUTE: Unhandled case."
+                            return vars, l, cert, th2
+                        | _ -> 
+                            return! Choice.failwith "REFUTE: Unhandled case."
+                  }
+
                 Format.print_string("Translating certificate to HOL inferences")
                 Format.print_newline()
                 let cert_pos = map (fun (i, p) -> i, filter (fun (c, m) -> c > num_0) p) cert
                 let cert_neg = 
                     map (fun (i, p) -> i, map (fun (c, m) -> minus_num c, m) (filter (fun (c, m) -> c < num_0) p)) cert
-                let herts_pos = map (fun (i, p) -> i, holify_polynomial vars p) cert_pos
-                let herts_neg = map (fun (i, p) -> i, holify_polynomial vars p) cert_neg
+                let herts_pos = map (fun (i, p) -> i, Choice.get <| holify_polynomial vars p) cert_pos
+                let herts_neg = map (fun (i, p) -> i, Choice.get <| holify_polynomial vars p) cert_neg
                 let thm_fn pols = 
                     if pols = [] then REFL(ring_mk_const num_0)
                     else 
@@ -643,30 +811,36 @@ let RING_AND_IDEAL_CONV =
                 let th2 = thm_fn herts_neg
                 let th3 = CONJ (MK_ADD (SYM th1) th2) noteqth
                 let th4 = CONV_RULE (RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) (INE_RULE l th3)
-                let l, r = Choice.get <| dest_eq(Choice.get <| rand(concl <| Choice.get th4))
-                EQ_MP (EQF_INTRO th4) (REFL l)
-  
+                let! l, r = dest_eq(Choice.get <| rand(concl <| Choice.get th4))
+                return! EQ_MP (EQF_INTRO th4) (REFL l)
+      }
+
     let RING tm = 
+      choice {
         let avs = frees tm
         let tm' = list_mk_forall(avs, tm)
-        let th1 = INITIAL_CONV(Choice.get <| mk_neg tm')
-        let evs, bod = strip_exists(Choice.get <| rand(concl <| Choice.get th1))
-        if is_forall bod then failwith "RING: non-universal formula"
+        let! tm0 = mk_neg tm'
+        let th1 = INITIAL_CONV tm0
+        let! tm1 = Choice.bind (rand << concl) th1
+        let evs, bod = strip_exists tm1
+        if is_forall bod then 
+            return! Choice.failwith "RING: non-universal formula"
         else 
             let th1a = WEAK_DNF_CONV bod
-            let boda = Choice.get <| rand(concl <| Choice.get th1a)
+            let! boda = Choice.bind (rand << concl) th1a
             let th2a = refute_disj REFUTE boda
             let th2b = TRANS th1a (EQF_INTRO(NOT_INTRO(DISCH boda th2a)))
             let th2 = UNDISCH(NOT_ELIM(EQF_ELIM th2b))
             let th3 = itlist SIMPLE_CHOOSE evs th2
-            SPECL avs (MATCH_MP (FINAL_RULE(DISCH_ALL th3)) th1)
-    
+            return! SPECL avs (MATCH_MP (FINAL_RULE(DISCH_ALL th3)) th1)
+      }
+
     let ideal tms tm = 
-        let rawvars = itlist grobvars (tm :: tms) []
+        let rawvars = itlist (fun x -> Choice.get << grobvars x) (tm :: tms) []
         let vars = sort (fun x y -> x < y) (setify rawvars)
-        let pols = map (grobify_term vars) tms
-        let pol = grobify_term vars tm
-        let cert = grobner_ideal vars pols pol
+        let pols = map (Choice.get << grobify_term vars) tms
+        let pol = Choice.get <| grobify_term vars tm
+        let cert = Choice.get <| grobner_ideal vars pols pol
         map (fun n -> 
             let p = assocd n cert []
             holify_polynomial vars p) (0 -- (length pols - 1))
@@ -825,7 +999,7 @@ let NUM_RING =
 
     let rawring = 
         RING
-            (Choice.get << dest_numeral, Choice.get << mk_numeral, NUM_EQ_CONV, genvar bool_ty, 
+            (dest_numeral, Choice.get << mk_numeral, NUM_EQ_CONV, genvar bool_ty, 
              (parse_term @"(+):num->num->num"), genvar bool_ty, genvar bool_ty, (parse_term @"(*):num->num->num"), 
              genvar bool_ty, (parse_term @"(EXP):num->num->num"), NUM_INTEGRAL, TRUTH, NUM_NORMALIZE_CONV)
     let initconv = NUM_SIMPLIFY_CONV

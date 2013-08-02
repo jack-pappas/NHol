@@ -693,7 +693,7 @@ let REAL_RING,real_ideal_cofactors =
    let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
    let real_ty = (parse_type @"real") in
    let ``pure``,ideal =
-     RING_AND_IDEAL_CONV (rat_of_term,term_of_rat,REAL_RAT_EQ_CONV,
+     RING_AND_IDEAL_CONV (Choice.result << rat_of_term,term_of_rat,REAL_RAT_EQ_CONV,
           (parse_term @"(--):real->real"),(parse_term @"(+):real->real->real"),(parse_term @"(-):real->real->real"),
           (parse_term @"(inv):real->real"),(parse_term @"(*):real->real->real"),(parse_term @"(/):real->real->real"),
           (parse_term @"(pow):real->num->real"),
@@ -703,7 +703,7 @@ let REAL_RING,real_ideal_cofactors =
      EQ_MP (SYM th) (``pure``(Choice.get <| rand(concl <| Choice.get th)))),
    (fun tms tm -> 
      if forall (fun t -> Choice.get <| type_of t = real_ty) (tm::tms)
-     then ideal tms tm
+     then List.map Choice.get (ideal tms tm)
      else failwith "real_ideal_cofactors: not all terms have type :real")
 
 (* ------------------------------------------------------------------------- *)

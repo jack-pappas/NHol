@@ -1372,7 +1372,7 @@ let INT_RING, int_ideal_cofactors =
     let int_ty = (parse_type @"int")
     let ``pure``, ideal = 
         RING_AND_IDEAL_CONV
-            (dest_intconst, mk_intconst, INT_EQ_CONV, 
+            (Choice.result << dest_intconst, mk_intconst, INT_EQ_CONV, 
              (parse_term @"(--):int->int"), (parse_term @"(+):int->int->int"), 
              (parse_term @"(-):int->int->int"), genvar bool_ty, 
              (parse_term @"(*):int->int->int"), genvar bool_ty, 
@@ -1380,7 +1380,7 @@ let INT_RING, int_ideal_cofactors =
              INT_POLY_CONV)
     ``pure``, (fun tms tm -> 
         if forall (fun t -> Choice.get <| type_of t = int_ty) (tm :: tms)
-        then ideal tms tm
+        then List.map Choice.get (ideal tms tm)
         else failwith "int_ideal_cofactors: not all terms have type :int");;
 
 (* ------------------------------------------------------------------------- *)
