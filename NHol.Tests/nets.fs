@@ -47,6 +47,7 @@ let ``{enter} insert a new element into a net``() =
     let actual = enter [] (aTerm,MY_CONV) empty_net
 
     actual
+    |> evaluate
     |> should equal expected
 
 //[<Test>]

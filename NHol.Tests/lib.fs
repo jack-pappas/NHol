@@ -528,6 +528,7 @@ let ``{map2} fails if the two lists are of different lengths``() =
 let ``{check p x} returns {x} if the application {p x} yields {true}``() =
 
     check ((=) 1) 1
+    |> evaluate
     |> should equal 1
 
 [<Test>]
@@ -896,6 +897,7 @@ let ``{mapfilter} fails if an exception not of the form {System.Exception _} is 
 let ``{find p [x1;_;xn]} returns the first {xi} in the list such that {p xi} is {true}``() =
     
     find (fun x -> x > 3) [1;2;3;4;5]
+    |> Option.get
     |> should equal 4
 
 [<Test>]
