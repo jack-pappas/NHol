@@ -157,18 +157,25 @@ let SEMIRING_NORMALIZERS_CONV =
     let true_tm = Choice.map concl TRUTH
 
     fun sth rth (is_semiring_constant, SEMIRING_ADD_CONV, SEMIRING_MUL_CONV, SEMIRING_POW_CONV) -> 
-        let pthm_01, pthm_02, pthm_03, pthm_04, pthm_05, pthm_06, pthm_07, pthm_08, pthm_09, pthm_10, pthm_11, pthm_12, pthm_13, pthm_14, pthm_15, pthm_16, pthm_17, pthm_18, pthm_19, pthm_20, pthm_21, pthm_22, pthm_23, pthm_24, pthm_25, pthm_26, pthm_27, pthm_28, pthm_29, pthm_30, pthm_31, pthm_32, pthm_33, pthm_34, pthm_35, pthm_36, pthm_37, pthm_38 =
+      choice {
+        let! pthm_01, pthm_02, pthm_03, pthm_04, pthm_05, pthm_06, pthm_07, pthm_08, pthm_09, pthm_10, pthm_11, pthm_12, pthm_13, pthm_14, pthm_15, pthm_16, pthm_17, pthm_18, pthm_19, pthm_20, pthm_21, pthm_22, pthm_23, pthm_24, pthm_25, pthm_26, pthm_27, pthm_28, pthm_29, pthm_30, pthm_31, pthm_32, pthm_33, pthm_34, pthm_35, pthm_36, pthm_37, pthm_38 =
+          choice {  
             let pthFuncs = CONJUNCTS(MATCH_MP SEMIRING_PTHS sth)
             match pthFuncs with
             | [pthm_01; pthm_02; pthm_03; pthm_04; pthm_05; pthm_06; pthm_07; pthm_08; pthm_09; pthm_10; pthm_11; pthm_12; pthm_13; pthm_14; pthm_15; pthm_16; pthm_17; pthm_18; pthm_19; pthm_20; pthm_21; pthm_22; pthm_23; pthm_24; pthm_25; pthm_26; pthm_27; pthm_28; pthm_29; pthm_30; pthm_31; pthm_32; pthm_33; pthm_34; pthm_35; pthm_36; pthm_37; pthm_38] ->
-                pthm_01, pthm_02, pthm_03, pthm_04, pthm_05, pthm_06, pthm_07, pthm_08, pthm_09, pthm_10, pthm_11, pthm_12, pthm_13, pthm_14, pthm_15, pthm_16, pthm_17, pthm_18, pthm_19, pthm_20, pthm_21, pthm_22, pthm_23, pthm_24, pthm_25, pthm_26, pthm_27, pthm_28, pthm_29, pthm_30, pthm_31, pthm_32, pthm_33, pthm_34, pthm_35, pthm_36, pthm_37, pthm_38
-            | _ -> failwith "pthFuncs: Unhandled case."
-        let add_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl <| Choice.get pthm_07)))
-        let mul_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl <| Choice.get pthm_13)))
-        let pow_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| rand(concl <| Choice.get pthm_32)))
-        let zero_tm = Choice.get <| rand(concl <| Choice.get pthm_06)
-        let one_tm = Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get pthm_14))
-        let ty = Choice.get <| type_of(Choice.get <| rand(concl <| Choice.get pthm_01))
+                return pthm_01, pthm_02, pthm_03, pthm_04, pthm_05, pthm_06, pthm_07, pthm_08, pthm_09, pthm_10, pthm_11, pthm_12, pthm_13, pthm_14, pthm_15, pthm_16, pthm_17, pthm_18, pthm_19, pthm_20, pthm_21, pthm_22, pthm_23, pthm_24, pthm_25, pthm_26, pthm_27, pthm_28, pthm_29, pthm_30, pthm_31, pthm_32, pthm_33, pthm_34, pthm_35, pthm_36, pthm_37, pthm_38
+            | _ -> 
+                return! Choice.failwith "pthFuncs: Unhandled case."
+          }
+
+        let! add_tm = (Choice.bind rator << Choice.bind rator << Choice.bind lhand << Choice.map concl) pthm_07
+        let! mul_tm = (Choice.bind rator << Choice.bind rator << Choice.bind lhand << Choice.map concl)  pthm_13
+        let! pow_tm = (Choice.bind rator << Choice.bind rator << Choice.bind rand << Choice.map concl)  pthm_32
+        let! zero_tm = Choice.bind (rand << concl) pthm_06
+        let! tm1 = Choice.bind (lhand << concl) pthm_14
+        let! one_tm = rand tm1
+        let! tm2 = Choice.bind (rand << concl) pthm_01
+        let! ty = type_of tm2
         let p_tm = (parse_term @"p:num")
         let q_tm = (parse_term @"q:num")
         let zeron_tm = (parse_term @"0")
@@ -185,29 +192,42 @@ let SEMIRING_NORMALIZERS_CONV =
         let x_tm = mk_var("x", ty)
         let y_tm = mk_var("y", ty)
         let z_tm = mk_var("z", ty)
-        let dest_add = Choice.get << dest_binop add_tm
-        let dest_mul = Choice.get << dest_binop mul_tm
+        let dest_add = dest_binop add_tm
+        let dest_mul = dest_binop mul_tm
+
         let dest_pow tm = 
-            let l, r = Choice.get <| dest_binop pow_tm tm
-            if is_numeral r
-            then l, r
-            else failwith "dest_pow"
+            choice {
+                let! l, r = dest_binop pow_tm tm
+                if is_numeral r then 
+                    return l, r
+                else 
+                    return! Choice.failwith "dest_pow"
+            }
+
         let is_add = is_binop add_tm
         let is_mul = is_binop mul_tm
-        let nthm_1, nthm_2, sub_tm, neg_tm, dest_sub, is_sub = 
-            if concl (Choice.get rth) = (Choice.get <| true_tm)
-            then 
-                rth, rth, Choice.get <| true_tm, Choice.get <| true_tm, (fun t -> t, t), K false
-            else 
-                let nthm_1 = SPEC x_tm (CONJUNCT1 rth)
-                let nthm_2 = SPECL [x_tm; y_tm] (CONJUNCT2 rth)
-                let sub_tm = Choice.get <| rator(Choice.get <| rator(Choice.get <| lhand(concl <| Choice.get nthm_2)))
-                let neg_tm = Choice.get <| rator(Choice.get <| lhand(concl <| Choice.get nthm_1))
-                let dest_sub = Choice.get << dest_binop sub_tm
-                let is_sub = is_binop sub_tm
-                (nthm_1, nthm_2, sub_tm, neg_tm, dest_sub, is_sub)
 
-        fun variable_order -> 
+        let! nthm_1, nthm_2, sub_tm, neg_tm, dest_sub, is_sub = 
+            choice {
+                let! true_tm = true_tm
+                let! rtm = Choice.map concl rth
+                if rtm = true_tm then 
+                    return rth, rth, true_tm, true_tm, (fun t -> t, t), K false
+                else 
+                    let nthm_1 = SPEC x_tm (CONJUNCT1 rth)
+                    let nthm_2 = SPECL [x_tm; y_tm] (CONJUNCT2 rth)
+                    let! tm1 = (Choice.bind rator << Choice.bind lhand << Choice.map concl) nthm_2
+                    let! sub_tm = rator tm1
+                    let! tm2 = Choice.bind (lhand << concl) nthm_1
+                    let! neg_tm = rator tm2
+                    let dest_sub = Choice.get << dest_binop sub_tm
+                    let is_sub = is_binop sub_tm
+                    return (nthm_1, nthm_2, sub_tm, neg_tm, dest_sub, is_sub)
+            }
+        
+        // It's weird to return a function value like this
+        return
+          fun variable_order -> 
 
             (* ------------------------------------------------------------------------- *)
             (* Conversion for "x^n * x^m", with either x^n = x and/or x^m = x possible.  *)
@@ -216,53 +236,62 @@ let SEMIRING_NORMALIZERS_CONV =
             (* ------------------------------------------------------------------------- *)
 
             let POWVAR_MUL_CONV tm = 
-                let l, r = dest_mul tm
-                if is_semiring_constant l && is_semiring_constant r
-                then SEMIRING_MUL_CONV tm
-                else 
-                    try 
-                        let lx, ln = dest_pow l
-                        try 
-                            let rx, rn = dest_pow r
-                            let th1 = 
-                                INST [lx, x_tm; ln, p_tm; rn, q_tm] pthm_29
-                            let tm1, tm2 = 
-                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                            TRANS th1 
-                                (AP_TERM tm1 (NUM_ADD_CONV tm2))
-                        with
-                        | Failure _ -> 
-                            let th1 = 
-                                INST [lx, x_tm; ln, q_tm] pthm_31
-                            let tm1, tm2 = 
-                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                            TRANS th1 
-                                (AP_TERM tm1 (NUM_SUC_CONV tm2))
-                    with
-                    | Failure _ -> 
-                        try 
-                            let rx, rn = dest_pow r
-                            let th1 = 
-                                INST [rx, x_tm; rn, q_tm] pthm_30
-                            let tm1, tm2 = 
-                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                            TRANS th1 
-                                (AP_TERM tm1 (NUM_SUC_CONV tm2))
-                        with
-                        | Failure _ -> INST [l, x_tm] pthm_32
+                choice {
+                    let! l, r = dest_mul tm
+                    if is_semiring_constant l && is_semiring_constant r then 
+                        return! SEMIRING_MUL_CONV tm
+                    else
+                      return! 
+                        choice { 
+                            let! lx, ln = dest_pow l
+                            return!
+                                choice { 
+                                    let! rx, rn = dest_pow r
+                                    let th1 = 
+                                        INST [lx, x_tm;
+                                              ln, p_tm;
+                                              rn, q_tm] pthm_29
+                                    let! tm1' = Choice.bind (rand << concl) th1
+                                    let! tm1, tm2 = dest_comb tm1'
+                                    return! TRANS th1 (AP_TERM tm1 (NUM_ADD_CONV tm2))
+                                }
+                                |> Choice.bindError (fun _ -> 
+                                    choice {
+                                        let th1 = 
+                                            INST [lx, x_tm;
+                                                  ln, q_tm] pthm_31
+                                        let! tm1' = Choice.bind (rand << concl) th1
+                                        let! tm1, tm2 = dest_comb tm1'
+                                        return! TRANS th1 (AP_TERM tm1 (NUM_SUC_CONV tm2))
+                                    })
+                        }
+                        |> Choice.bindError (fun _ -> 
+                            choice { 
+                                let! rx, rn = dest_pow r
+                                let th1 = 
+                                    INST [rx, x_tm;
+                                          rn, q_tm] pthm_30
+                                let! tm1' = Choice.bind (rand << concl) th1
+                                let! tm1, tm2 = dest_comb tm1'
+                                return! TRANS th1 (AP_TERM tm1 (NUM_SUC_CONV tm2))
+                            }
+                            |> Choice.bindError (fun _ -> INST [l, x_tm] pthm_32))
+                }
 
             (* ------------------------------------------------------------------------- *)
             (* Remove "1 * m" from a monomial, and just leave m.                         *)
             (* ------------------------------------------------------------------------- *)
 
             let MONOMIAL_DEONE th = 
-                try 
-                    let l, r = dest_mul(Choice.get <| rand(concl <| Choice.get th))
-                    if l = one_tm
-                    then TRANS th (INST [r, x_tm] pthm_01)
-                    else th
-                with
-                | Failure _ -> th
+                choice { 
+                    let! tm1 = Choice.bind (rand << concl) th
+                    let! l, r = dest_mul tm1
+                    if l = one_tm then 
+                        return! TRANS th (INST [r, x_tm] pthm_01)
+                    else 
+                        return! th
+                }
+                |> Choice.bindError (fun _ -> th)
 
             (* ------------------------------------------------------------------------- *)
             (* Conversion for "(monomial)^n", where n is a numeral.                      *)
@@ -270,46 +299,54 @@ let SEMIRING_NORMALIZERS_CONV =
 
             let MONOMIAL_POW_CONV = 
                 let rec MONOMIAL_POW tm bod ntm = 
-                    if not(is_comb bod)
-                    then REFL tm
-                    elif is_semiring_constant bod
-                    then SEMIRING_POW_CONV tm
-                    else 
-                        let lop, r = Choice.get <| dest_comb bod
-                        if not(is_comb lop)
-                        then REFL tm
+                    choice {
+                        if not(is_comb bod) then 
+                            return! REFL tm
+                        elif is_semiring_constant bod then 
+                            return! SEMIRING_POW_CONV tm
                         else 
-                            let op, l = Choice.get <| dest_comb lop
-                            if op = pow_tm && is_numeral r
-                            then 
-                                let th1 = 
-                                    INST [l, x_tm; r, p_tm; ntm, q_tm] pthm_34
-                                let l, r = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                TRANS th1 
-                                    (AP_TERM l (NUM_MULT_CONV r))
-                            elif op = mul_tm
-                            then 
-                                let th1 = 
-                                    INST [l, x_tm; r, y_tm; ntm, q_tm] pthm_33
-                                let xy, z = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                let x, y = Choice.get <| dest_comb xy
-                                let thl = MONOMIAL_POW y l ntm
-                                let thr = MONOMIAL_POW z r ntm
-                                TRANS th1 
-                                    (MK_COMB(AP_TERM x thl, thr))
-                            else REFL tm
+                            let! lop, r = dest_comb bod
+                            if not(is_comb lop) then 
+                                return! REFL tm
+                            else 
+                                let! op, l = dest_comb lop
+                                if op = pow_tm && is_numeral r then 
+                                    let th1 = 
+                                        INST [l, x_tm;
+                                              r, p_tm;
+                                              ntm, q_tm] pthm_34
+                                    let! tm1 = Choice.bind (rand << concl) th1
+                                    let! l, r = dest_comb tm1
+                                    return! TRANS th1 (AP_TERM l (NUM_MULT_CONV r))
+                                elif op = mul_tm then 
+                                    let th1 = 
+                                        INST [l, x_tm;
+                                              r, y_tm;
+                                              ntm, q_tm] pthm_33
+                                    let! tm1 = Choice.bind (rand << concl) th1
+                                    let! xy, z = dest_comb tm1
+                                    let! x, y = dest_comb xy
+                                    let thl = MONOMIAL_POW y l ntm
+                                    let thr = MONOMIAL_POW z r ntm
+                                    return! TRANS th1 (MK_COMB(AP_TERM x thl, thr))
+                                else 
+                                    return! REFL tm
+                    }
+
                 fun tm -> 
-                    let lop, r = Choice.get <| dest_comb tm
-                    let op, l = Choice.get <| dest_comb lop
-                    if op <> pow_tm || not(is_numeral r)
-                    then failwith "MONOMIAL_POW_CONV"
-                    elif r = zeron_tm
-                    then INST [l, x_tm] pthm_35
-                    elif r = onen_tm
-                    then INST [l, x_tm] pthm_36
-                    else MONOMIAL_DEONE(MONOMIAL_POW tm l r)
+                    choice {
+                        let! lop, r = dest_comb tm
+                        let! op, l = dest_comb lop
+                    
+                        if op <> pow_tm || not(is_numeral r) then 
+                            return! Choice.failwith "MONOMIAL_POW_CONV"
+                        elif r = zeron_tm then 
+                            return! INST [l, x_tm] pthm_35
+                        elif r = onen_tm then 
+                            return! INST [l, x_tm] pthm_36
+                        else 
+                            return! MONOMIAL_DEONE(MONOMIAL_POW tm l r)
+                    }
 
             (* ------------------------------------------------------------------------- *)
             (* Multiplication of canonical monomials.                                    *)
@@ -317,142 +354,144 @@ let SEMIRING_NORMALIZERS_CONV =
 
             let MONOMIAL_MUL_CONV = 
                 let powvar tm = 
-                    if is_semiring_constant tm
-                    then one_tm
-                    else 
-                        try 
-                            let lop, r = Choice.get <| dest_comb tm
-                            let op, l = Choice.get <| dest_comb lop
-                            if op = pow_tm && is_numeral r
-                            then l
-                            else failwith ""
-                        with
-                        | Failure _ -> tm
+                    choice {
+                        if is_semiring_constant tm then 
+                            return one_tm
+                        else
+                            return!  
+                                choice { 
+                                    let! lop, r = dest_comb tm
+                                    let! op, l = dest_comb lop
+                                    if op = pow_tm && is_numeral r then 
+                                        return l
+                                    else 
+                                        return! Choice.failwith ""
+                                }
+                                |> Choice.bindError (fun _ -> Choice.result tm)
+                    }
+
                 let vorder x y = 
-                    if x = y
-                    then 0
-                    elif x = one_tm
-                    then -1
-                    elif y = one_tm
-                    then 1
-                    elif variable_order x y
-                    then -1
+                    if x = y then 0
+                    elif x = one_tm then -1
+                    elif y = one_tm then 1
+                    elif variable_order x y then -1
                     else 1
+
                 let rec MONOMIAL_MUL tm l r = 
-                    try 
-                        let lx, ly = dest_mul l
-                        let vl = powvar lx
-                        try 
-                            let rx, ry = dest_mul r
-                            let vr = powvar rx
+                    choice { 
+                      let! lx, ly = dest_mul l
+                      let! vl = powvar lx
+                      return!
+                        choice { 
+                            let! rx, ry = dest_mul r
+                            let! vr = powvar rx
                             let ord = vorder vl vr
-                            if ord = 0
-                            then 
+                            if ord = 0 then 
                                 let th1 = 
-                                    INST [lx, lx_tm; ly, ly_tm; rx, rx_tm; ry, ry_tm] pthm_15
-                                let tm1, tm2 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                let tm3, tm4 = Choice.get <| dest_comb tm1
-                                let th2 = 
-                                    AP_THM 
-                                        (AP_TERM tm3 
-                                                (POWVAR_MUL_CONV tm4)) 
-                                        tm2
+                                    INST [lx, lx_tm;
+                                          ly, ly_tm;
+                                          rx, rx_tm;
+                                          ry, ry_tm] pthm_15
+                                let! tm1' = Choice.bind (rand << concl) th1
+                                let! tm1, tm2 = dest_comb tm1'
+                                let! tm3, tm4 = dest_comb tm1
+                                let th2 = AP_THM (AP_TERM tm3 (POWVAR_MUL_CONV tm4)) tm2
                                 let th3 = TRANS th1 th2
-                                let tm5, tm6 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th3))
-                                let tm7, tm8 = Choice.get <| dest_comb tm6
-                                let th4 = 
-                                    MONOMIAL_MUL tm6 (Choice.get <| rand tm7) tm8
-                                TRANS th3 (AP_TERM tm5 th4)
+                                let! tm2' = Choice.bind (rand << concl) th3
+                                let! tm5, tm6 = dest_comb tm2'
+                                let! tm7, tm8 = dest_comb tm6
+                                let! tm3' = rand tm7
+                                let th4 = MONOMIAL_MUL tm6 tm3' tm8
+                                return! TRANS th3 (AP_TERM tm5 th4)
                             else 
                                 let th0 = 
-                                    if ord < 0
-                                    then pthm_16
+                                    if ord < 0 then pthm_16
                                     else pthm_17
                                 let th1 = 
-                                    INST [lx, lx_tm; ly, ly_tm; rx, rx_tm; ry, ry_tm] th0
-                                let tm1, tm2 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                let tm3, tm4 = Choice.get <| dest_comb tm2
-                                TRANS th1 
-                                    (AP_TERM tm1 
-                                            (MONOMIAL_MUL tm2 
-                                                (Choice.get <| rand tm3) tm4))
-                        with
-                        | Failure _ -> 
-                            let vr = powvar r
-                            let ord = vorder vl vr
-                            if ord = 0
-                            then 
-                                let th1 = 
-                                    INST [lx, lx_tm; ly, ly_tm; r, rx_tm] pthm_18
-                                let tm1, tm2 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                let tm3, tm4 = Choice.get <| dest_comb tm1
-                                let th2 = 
-                                    AP_THM 
-                                        (AP_TERM tm3 
-                                                (POWVAR_MUL_CONV tm4)) 
-                                        tm2
-                                TRANS th1 th2
-                            elif ord < 0
-                            then 
-                                let th1 = 
-                                    INST [lx, lx_tm; ly, ly_tm; r, rx_tm] pthm_19
-                                let tm1, tm2 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                let tm3, tm4 = Choice.get <| dest_comb tm2
-                                TRANS th1 
-                                    (AP_TERM tm1 
-                                            (MONOMIAL_MUL tm2 
-                                                (Choice.get <| rand tm3) tm4))
-                            else 
-                                INST [l, lx_tm; r, rx_tm] pthm_20
-                    with
-                    | Failure _ -> 
+                                    INST [lx, lx_tm;
+                                          ly, ly_tm;
+                                          rx, rx_tm;
+                                          ry, ry_tm] th0
+                                let! tm1' = Choice.bind (rand << concl) th1
+                                let! tm1, tm2 = dest_comb tm1'
+                                let! tm3, tm4 = dest_comb tm2
+                                let! tm2' = rand tm3
+                                return! TRANS th1 (AP_TERM tm1 (MONOMIAL_MUL tm2 tm2' tm4))
+                        }
+                        |> Choice.bindError (fun _ -> 
+                            choice {
+                                let! vr = powvar r
+                                let ord = vorder vl vr
+                                if ord = 0 then 
+                                    let th1 = 
+                                        INST [lx, lx_tm;
+                                              ly, ly_tm;
+                                              r, rx_tm] pthm_18
+                                    let! tm1' = Choice.bind (rand << concl) th1
+                                    let! tm1, tm2 = dest_comb tm1'
+                                    let! tm3, tm4 = dest_comb tm1
+                                    let th2 = AP_THM (AP_TERM tm3 (POWVAR_MUL_CONV tm4)) tm2
+                                    return! TRANS th1 th2
+                                elif ord < 0 then 
+                                    let th1 = 
+                                        INST [lx, lx_tm;
+                                              ly, ly_tm;
+                                              r, rx_tm] pthm_19
+                                    let! tm1' = Choice.bind (rand << concl) th1
+                                    let! tm1, tm2 = dest_comb tm1'
+                                    let! tm3, tm4 = dest_comb tm2
+                                    let! tm2' = rand tm3
+                                    return! TRANS th1 (AP_TERM tm1 (MONOMIAL_MUL tm2 tm2' tm4))
+                                else 
+                                    return! INST [l, lx_tm; r, rx_tm] pthm_20})
+                    }
+                    |> Choice.bindError (fun _ -> 
                         let vl = powvar l
-                        try 
-                            let rx, ry = dest_mul r
-                            let vr = powvar rx
+                        choice { 
+                            let! vl = vl
+                            let! rx, ry = dest_mul r
+                            let! vr = powvar rx
                             let ord = vorder vl vr
-                            if ord = 0
-                            then 
+                            if ord = 0 then 
                                 let th1 = 
-                                    INST [l, lx_tm; rx, rx_tm; ry, ry_tm] pthm_21
-                                let tm1, tm2 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                let tm3, tm4 = Choice.get <| dest_comb tm1
-                                TRANS th1 
-                                    (AP_THM 
-                                            (AP_TERM tm3 
-                                                (POWVAR_MUL_CONV tm4)) 
-                                            tm2)
-                            elif ord > 0
-                            then 
+                                    INST [l, lx_tm;
+                                          rx, rx_tm;
+                                          ry, ry_tm] pthm_21
+                                let! tm1' = Choice.bind (rand << concl) th1
+                                let! tm1, tm2 = dest_comb tm1'
+                                let! tm3, tm4 = dest_comb tm1
+                                return! TRANS th1 (AP_THM (AP_TERM tm3 (POWVAR_MUL_CONV tm4)) tm2)
+                            elif ord > 0 then 
                                 let th1 = 
-                                    INST [l, lx_tm; rx, rx_tm; ry, ry_tm] pthm_22
-                                let tm1, tm2 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                let tm3, tm4 = Choice.get <| dest_comb tm2
-                                TRANS th1 
-                                    (AP_TERM tm1 
-                                            (MONOMIAL_MUL tm2 
-                                                (Choice.get <| rand tm3) tm4))
-                            else REFL tm
-                        with
-                        | Failure _ -> 
-                            let vr = powvar r
-                            let ord = vorder vl vr
-                            if ord = 0
-                            then POWVAR_MUL_CONV tm
-                            elif ord > 0
-                            then 
-                                INST [l, lx_tm; r, rx_tm] pthm_20
-                            else REFL tm
+                                    INST [l, lx_tm;
+                                          rx, rx_tm;
+                                          ry, ry_tm] pthm_22
+                                let! tm1' = Choice.bind (rand << concl) th1
+                                let! tm1, tm2 = dest_comb tm1'
+                                let! tm3, tm4 = dest_comb tm2
+                                let! tm2' = rand tm3
+                                return! TRANS th1 (AP_TERM tm1 (MONOMIAL_MUL tm2 tm2' tm4))
+                            else 
+                                return! REFL tm
+                        }
+                        |> Choice.bindError (fun _ -> 
+                            choice {
+                                let! vl = vl
+                                let! vr = powvar r
+                                let ord = vorder vl vr
+                                if ord = 0 then 
+                                    return! POWVAR_MUL_CONV tm
+                                elif ord > 0 then 
+                                    return! INST [l, lx_tm; r, rx_tm] pthm_20
+                                else 
+                                    return! REFL tm
+                            }))
+
                 fun tm -> 
-                    let l, r = dest_mul tm
-                    MONOMIAL_DEONE(MONOMIAL_MUL tm l r)
+                    choice {
+                        let! l, r = dest_mul tm
+                        return! MONOMIAL_DEONE(MONOMIAL_MUL tm l r)
+                    }
 
             (* ------------------------------------------------------------------------- *)
             (* Multiplication by monomial of a polynomial.                               *)
@@ -460,20 +499,23 @@ let SEMIRING_NORMALIZERS_CONV =
 
             let POLYNOMIAL_MONOMIAL_MUL_CONV = 
                 let rec PMM_CONV tm = 
-                    let l, r = dest_mul tm
-                    try 
-                        let y, z = dest_add r
+                    let lr = dest_mul tm
+                    choice { 
+                        let! l, r = lr
+                        let! y, z = dest_add r
                         let th1 = 
                             INST [l, x_tm; y, y_tm; z, z_tm] pthm_37
-                        let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                        let tm3, tm4 = Choice.get <| dest_comb tm1
-                        let th2 = 
-                            MK_COMB
-                                (AP_TERM tm3 (MONOMIAL_MUL_CONV tm4), 
-                                    PMM_CONV tm2)
-                        TRANS th1 th2
-                    with
-                    | Failure _ -> MONOMIAL_MUL_CONV tm
+                        let! tm1' = Choice.bind (rand << concl) th1
+                        let! tm1, tm2 = dest_comb tm1'
+                        let! tm3, tm4 = dest_comb tm1
+                        let th2 = MK_COMB (AP_TERM tm3 (MONOMIAL_MUL_CONV tm4), PMM_CONV tm2)
+                        return! TRANS th1 th2
+                    }
+                    |> Choice.bindError (fun _ -> 
+                        choice {
+                            let! l, r = lr
+                            return! MONOMIAL_MUL_CONV tm
+                        })
                 PMM_CONV
 
             (* ------------------------------------------------------------------------- *)
@@ -481,55 +523,63 @@ let SEMIRING_NORMALIZERS_CONV =
             (* ------------------------------------------------------------------------- *)
 
             let MONOMIAL_ADD_CONV tm = 
-                let l, r = dest_add tm
-                if is_semiring_constant l && is_semiring_constant r
-                then SEMIRING_ADD_CONV tm
-                else 
-                    let th1 = 
-                        if is_mul l && is_semiring_constant(Choice.get <| lhand l)
-                        then 
-                            if is_mul r 
-                                && is_semiring_constant(Choice.get <| lhand r)
-                            then 
-                                INST [Choice.get <| lhand l, a_tm;
-                                        Choice.get <| lhand r, b_tm;
-                                        Choice.get <| rand r, m_tm] pthm_02
-                            else 
-                                INST [Choice.get <| lhand l, a_tm;
-                                        r, m_tm] pthm_03
-                        elif is_mul r 
-                                && is_semiring_constant(Choice.get <| lhand r)
-                        then 
-                            INST [Choice.get <| lhand r, a_tm;
-                                    l, m_tm] pthm_04
-                        else INST [r, m_tm] pthm_05
-                    let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                    let tm3, tm4 = Choice.get <| dest_comb tm1
-                    let th2 = AP_TERM tm3 (SEMIRING_ADD_CONV tm4)
-                    let th3 = TRANS th1 (AP_THM th2 tm2)
-                    let tm5 = Choice.get <| rand(concl <| Choice.get th3)
-                    if Choice.get <| lhand tm5 = zero_tm
-                    then TRANS th3 (INST [Choice.get <| rand tm5, m_tm] pthm_06)
-                    else MONOMIAL_DEONE th3
+                choice {
+                    let! l, r = dest_add tm
+                    if is_semiring_constant l && is_semiring_constant r then 
+                        return! SEMIRING_ADD_CONV tm
+                    else 
+                        let th1 = 
+                            choice {
+                                let! l' = lhand l
+                                if is_mul l && is_semiring_constant l' then 
+                                    let! r' = lhand r
+                                    if is_mul r && is_semiring_constant r' then
+                                        let! tm1 = rand r
+                                        return! INST [l', a_tm; r', b_tm; tm1, m_tm] pthm_02
+                                    else 
+                                        return! INST [l', a_tm; r, m_tm] pthm_03
+                                else
+                                    let! r' = lhand r
+                                    if is_mul r && is_semiring_constant r' then 
+                                        return! INST [r', a_tm; l, m_tm] pthm_04
+                                    else 
+                                        return! INST [r, m_tm] pthm_05
+                            }
+
+                        let! tm1' = Choice.bind (rand << concl) th1
+                        let! tm1, tm2 = dest_comb tm1'
+                        let! tm3, tm4 = dest_comb tm1
+                        let th2 = AP_TERM tm3 (SEMIRING_ADD_CONV tm4)
+                        let th3 = TRANS th1 (AP_THM th2 tm2)
+                        let! tm5 = Choice.bind (rand << concl) th3
+                        let! tm2' = lhand tm5
+                        if tm2' = zero_tm then 
+                            let! tm3' = rand tm5
+                            return! TRANS th3 (INST [tm3', m_tm] pthm_06)
+                        else 
+                            return! MONOMIAL_DEONE th3
+                }
 
             (* ------------------------------------------------------------------------- *)
             (* Ordering on monomials.                                                    *)
             (* ------------------------------------------------------------------------- *)
 
             let powervars tm = 
-                let ptms = striplist (Some << dest_mul) tm
-                if is_semiring_constant(hd ptms)
-                then tl ptms
-                else ptms
+                let ptms = striplist (Choice.toOption << dest_mul) tm
+                
+                if is_semiring_constant(hd ptms) then 
+                    tl ptms
+                else 
+                    ptms
+
             let dest_varpow tm = 
                 try 
-                    let x, n = dest_pow tm
+                    let x, n = Choice.get <| dest_pow tm
                     (x, Choice.get <| dest_numeral n)
                 with
                 | Failure _ -> 
-                    (tm, (if is_semiring_constant tm
-                            then num_0
-                            else num_1))
+                    (tm, if is_semiring_constant tm then num_0 else num_1)
+
             let morder = 
                 let rec lexorder l1 l2 = 
                     match (l1, l2) with
@@ -537,24 +587,20 @@ let SEMIRING_NORMALIZERS_CONV =
                     | vps, [] -> -1
                     | [], vps -> 1
                     | ((x1, n1) :: vs1), ((x2, n2) :: vs2) -> 
-                        if variable_order x1 x2
-                        then 1
-                        elif variable_order x2 x1
-                        then -1
-                        elif n1 < n2
-                        then -1
-                        elif n2 < n1
-                        then 1
+                        if variable_order x1 x2 then 1
+                        elif variable_order x2 x1 then -1
+                        elif n1 < n2 then -1
+                        elif n2 < n1 then 1
                         else lexorder vs1 vs2
+
                 fun tm1 tm2 -> 
                     let vdegs1 = map dest_varpow (powervars tm1)
                     let vdegs2 = map dest_varpow (powervars tm2)
                     let deg1 = itlist ((+) << snd) vdegs1 num_0
                     let deg2 = itlist ((+) << snd) vdegs2 num_0
-                    if deg1 < deg2
-                    then -1
-                    elif deg1 > deg2
-                    then 1
+                    
+                    if deg1 < deg2 then -1
+                    elif deg1 > deg2 then 1
                     else lexorder vdegs1 vdegs2
 
             (* ------------------------------------------------------------------------- *)
@@ -563,114 +609,112 @@ let SEMIRING_NORMALIZERS_CONV =
 
             let POLYNOMIAL_ADD_CONV = 
                 let DEZERO_RULE th = 
-                    let tm = Choice.get <| rand(concl <| Choice.get th)
-                    if not(is_add tm)
-                    then th
-                    else 
-                        let lop, r = Choice.get <| dest_comb tm
-                        let l = Choice.get <| rand lop
-                        if l = zero_tm
-                        then TRANS th (INST [r, a_tm] pthm_07)
-                        elif r = zero_tm
-                        then TRANS th (INST [l, a_tm] pthm_08)
-                        else th
+                    choice {
+                        let! tm = Choice.bind (rand << concl) th
+                        if not(is_add tm) then 
+                            return! th
+                        else 
+                            let! lop, r = dest_comb tm
+                            let! l = rand lop
+                            if l = zero_tm then 
+                                return! TRANS th (INST [r, a_tm] pthm_07)
+                            elif r = zero_tm then 
+                                return! TRANS th (INST [l, a_tm] pthm_08)
+                            else 
+                                return! th
+                    }
+
                 let rec PADD tm = 
-                    let l, r = dest_add tm
-                    if l = zero_tm
-                    then INST [r, a_tm] pthm_07
-                    elif r = zero_tm
-                    then INST [l, a_tm] pthm_08
-                    elif is_add l
-                    then 
-                        let a, b = dest_add l
-                        if is_add r
-                        then 
-                            let c, d = dest_add r
-                            let ord = morder a c
-                            if ord = 0
-                            then 
+                    choice {
+                        let! l, r = dest_add tm
+                        if l = zero_tm then 
+                            return! INST [r, a_tm] pthm_07
+                        elif r = zero_tm then 
+                            return! INST [l, a_tm] pthm_08
+                        elif is_add l then 
+                            let! a, b = dest_add l
+                            if is_add r then 
+                                let! c, d = dest_add r
+                                let ord = morder a c
+                                if ord = 0 then 
+                                    let th1 = 
+                                        INST [a, a_tm;
+                                              b, b_tm;
+                                              c, c_tm;
+                                              d, d_tm] pthm_23
+                                    let! tm1' = Choice.bind (rand << concl) th1
+                                    let! tm1, tm2 = dest_comb tm1'
+                                    let! tm3, tm4 = dest_comb tm1
+                                    let th2 = AP_TERM tm3 (MONOMIAL_ADD_CONV tm4)
+                                    return! DEZERO_RULE(TRANS th1 (MK_COMB(th2, PADD tm2)))
+                                else 
+                                    let th1 = 
+                                        if ord > 0 then 
+                                            INST [a, a_tm;
+                                                  b, b_tm;
+                                                  r, c_tm] pthm_24
+                                        else 
+                                            INST [l, a_tm;
+                                                  c, c_tm;
+                                                  d, d_tm] pthm_25
+                                    let! tm1' = Choice.bind (rand << concl) th1
+                                    let! tm1, tm2 = dest_comb tm1'
+                                    return! DEZERO_RULE(TRANS th1 (AP_TERM tm1 (PADD tm2)))
+                            else 
+                                let ord = morder a r
+                                if ord = 0 then 
+                                    let th1 = 
+                                        INST [a, a_tm;
+                                              b, b_tm;
+                                              r, c_tm] pthm_26
+                                    let! tm1' = Choice.bind (rand << concl) th1
+                                    let! tm1, tm2 = dest_comb tm1'
+                                    let! tm3, tm4 = dest_comb tm1
+                                    let th2 = AP_THM (AP_TERM tm3 (MONOMIAL_ADD_CONV tm4)) tm2
+                                    return! DEZERO_RULE(TRANS th1 th2)
+                                elif ord > 0 then 
+                                    let th1 = 
+                                        INST [a, a_tm;
+                                              b, b_tm;
+                                              r, c_tm] pthm_24
+                                    let! tm1' = Choice.bind (rand << concl) th1
+                                    let! tm1, tm2 = dest_comb tm1'
+                                    return! DEZERO_RULE(TRANS th1 (AP_TERM tm1 (PADD tm2)))
+                                else 
+                                    return! DEZERO_RULE(INST [l, a_tm; r, c_tm] pthm_27)
+                        elif is_add r then 
+                            let! c, d = dest_add r
+                            let ord = morder l c
+                            if ord = 0 then 
                                 let th1 = 
-                                    INST [a, a_tm; b, b_tm; c, c_tm; d, d_tm] pthm_23
-                                let tm1, tm2 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                let tm3, tm4 = Choice.get <| dest_comb tm1
-                                let th2 = 
-                                    AP_TERM tm3 
-                                        (MONOMIAL_ADD_CONV tm4)
-                                DEZERO_RULE
-                                    (TRANS th1 
-                                            (MK_COMB(th2, PADD tm2)))
+                                    INST [l, a_tm;
+                                          c, c_tm;
+                                          d, d_tm] pthm_28
+                                let! tm1' = Choice.bind (rand << concl) th1
+                                let! tm1, tm2 = dest_comb tm1'
+                                let! tm3, tm4 = dest_comb tm1
+                                let th2 = AP_THM (AP_TERM tm3 (MONOMIAL_ADD_CONV tm4)) tm2
+                                return! DEZERO_RULE(TRANS th1 th2)
+                            elif ord > 0 then 
+                                return! REFL tm
                             else 
                                 let th1 = 
-                                    if ord > 0
-                                    then 
-                                        INST [a, a_tm; b, b_tm; r, c_tm] pthm_24
-                                    else 
-                                        INST [l, a_tm; c, c_tm; d, d_tm] pthm_25
-                                let tm1, tm2 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                DEZERO_RULE
-                                    (TRANS th1 
-                                            (AP_TERM tm1 (PADD tm2)))
+                                    INST [l, a_tm;
+                                          c, c_tm;
+                                          d, d_tm] pthm_25
+                                let! tm1' = Choice.bind (rand << concl) th1
+                                let! tm1, tm2 = dest_comb tm1'
+                                return! DEZERO_RULE(TRANS th1 (AP_TERM tm1 (PADD tm2)))
                         else 
-                            let ord = morder a r
-                            if ord = 0
-                            then 
-                                let th1 = 
-                                    INST [a, a_tm; b, b_tm; r, c_tm] pthm_26
-                                let tm1, tm2 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                let tm3, tm4 = Choice.get <| dest_comb tm1
-                                let th2 = 
-                                    AP_THM 
-                                        (AP_TERM tm3 
-                                                (MONOMIAL_ADD_CONV tm4)) 
-                                        tm2
-                                DEZERO_RULE(TRANS th1 th2)
-                            elif ord > 0
-                            then 
-                                let th1 = 
-                                    INST [a, a_tm; b, b_tm; r, c_tm] pthm_24
-                                let tm1, tm2 = 
-                                    Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                                DEZERO_RULE
-                                    (TRANS th1 
-                                            (AP_TERM tm1 (PADD tm2)))
+                            let ord = morder l r
+                            if ord = 0 then 
+                                return! MONOMIAL_ADD_CONV tm
+                            elif ord > 0 then 
+                                return! DEZERO_RULE(REFL tm)
                             else 
-                                DEZERO_RULE(INST [l, a_tm; r, c_tm] pthm_27)
-                    elif is_add r
-                    then 
-                        let c, d = dest_add r
-                        let ord = morder l c
-                        if ord = 0
-                        then 
-                            let th1 = 
-                                INST [l, a_tm; c, c_tm; d, d_tm] pthm_28
-                            let tm1, tm2 = 
-                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                            let tm3, tm4 = Choice.get <| dest_comb tm1
-                            let th2 = 
-                                AP_THM 
-                                    (AP_TERM tm3 
-                                            (MONOMIAL_ADD_CONV tm4)) 
-                                    tm2
-                            DEZERO_RULE(TRANS th1 th2)
-                        elif ord > 0
-                        then REFL tm
-                        else 
-                            let th1 = INST [l, a_tm; c, c_tm; d, d_tm] pthm_25
-                            let tm1, tm2 = 
-                                Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                            DEZERO_RULE
-                                (TRANS th1 (AP_TERM tm1 (PADD tm2)))
-                    else 
-                        let ord = morder l r
-                        if ord = 0
-                        then MONOMIAL_ADD_CONV tm
-                        elif ord > 0
-                        then DEZERO_RULE(REFL tm)
-                        else 
-                            DEZERO_RULE(INST [l, a_tm; r, c_tm] pthm_27)
+                                return! DEZERO_RULE(INST [l, a_tm; r, c_tm] pthm_27)
+                    }
+
                 PADD
 
             (* ------------------------------------------------------------------------- *)
@@ -679,38 +723,45 @@ let SEMIRING_NORMALIZERS_CONV =
 
             let POLYNOMIAL_MUL_CONV = 
                 let rec PMUL tm = 
-                    let l, r = dest_mul tm
-                    if not(is_add l)
-                    then POLYNOMIAL_MONOMIAL_MUL_CONV tm
-                    elif not(is_add r)
-                    then 
-                        let th1 = INST [l, a_tm; r, b_tm] pthm_09
-                        TRANS th1 
-                            (POLYNOMIAL_MONOMIAL_MUL_CONV
-                                    (Choice.get <| rand(concl <| Choice.get th1)))
-                    else 
-                        let a, b = dest_add l
-                        let th1 = 
-                            INST [a, a_tm; b, b_tm; r, c_tm] pthm_10
-                        let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                        let tm3, tm4 = Choice.get <| dest_comb tm1
-                        let th2 = 
-                            AP_TERM tm3 
-                                (POLYNOMIAL_MONOMIAL_MUL_CONV tm4)
-                        let th3 = TRANS th1 (MK_COMB(th2, PMUL tm2))
-                        TRANS th3 
-                            (POLYNOMIAL_ADD_CONV(Choice.get <| rand(concl <| Choice.get th3)))
+                    choice {
+                        let! l, r = dest_mul tm
+                        if not(is_add l) then 
+                            return! POLYNOMIAL_MONOMIAL_MUL_CONV tm
+                        elif not(is_add r) then 
+                            let th1 = 
+                                INST [l, a_tm;
+                                      r, b_tm] pthm_09
+                            let! tm1' = Choice.bind (rand << concl) th1
+                            return! TRANS th1 (POLYNOMIAL_MONOMIAL_MUL_CONV tm1')
+                        else 
+                            let! a, b = dest_add l
+                            let th1 = 
+                                INST [a, a_tm;
+                                      b, b_tm;
+                                      r, c_tm] pthm_10
+                            let! tm1' = Choice.bind (rand << concl) th1
+                            let! tm1, tm2 = dest_comb tm1'
+                            let! tm3, tm4 = dest_comb tm1
+                            let th2 = AP_TERM tm3 (POLYNOMIAL_MONOMIAL_MUL_CONV tm4)
+                            let th3 = TRANS th1 (MK_COMB(th2, PMUL tm2))
+                            let! tm2' = Choice.bind (rand << concl) th3
+                            return! TRANS th3 (POLYNOMIAL_ADD_CONV tm2')
+                    }
+
                 fun tm -> 
-                    let l, r = dest_mul tm
-                    if l = zero_tm
-                    then INST [r, a_tm] pthm_11
-                    elif r = zero_tm
-                    then INST [l, a_tm] pthm_12
-                    elif l = one_tm
-                    then INST [r, a_tm] pthm_13
-                    elif r = one_tm
-                    then INST [l, a_tm] pthm_14
-                    else PMUL tm
+                    choice {
+                        let! l, r = dest_mul tm
+                        if l = zero_tm then 
+                            return! INST [r, a_tm] pthm_11
+                        elif r = zero_tm then 
+                            return! INST [l, a_tm] pthm_12
+                        elif l = one_tm then 
+                            return! INST [r, a_tm] pthm_13
+                        elif r = one_tm then 
+                            return! INST [l, a_tm] pthm_14
+                        else 
+                            return! PMUL tm
+                    }
 
             (* ------------------------------------------------------------------------- *)
             (* Power of polynomial (optimized for the monomial and trivial cases).       *)
@@ -718,24 +769,36 @@ let SEMIRING_NORMALIZERS_CONV =
 
             let POLYNOMIAL_POW_CONV = 
                 let rec PPOW tm = 
-                    let l, n = dest_pow tm
-                    if n = zeron_tm
-                    then INST [l, x_tm] pthm_35
-                    elif n = onen_tm
-                    then INST [l, x_tm] pthm_36
-                    else 
-                        let th1 = num_CONV n
-                        let th2 = 
-                            INST [l, x_tm; Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th1)), q_tm] pthm_38
-                        let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th2))
-                        let th3 = TRANS th2 (AP_TERM tm1 (PPOW tm2))
-                        let th4 = TRANS (AP_TERM (Choice.get <| rator tm) th1) th3
-                        TRANS th4 
-                            (POLYNOMIAL_MUL_CONV(Choice.get <| rand(concl <| Choice.get th4)))
+                    choice {
+                        let! l, n = dest_pow tm
+                    
+                        if n = zeron_tm then 
+                            return! INST [l, x_tm] pthm_35
+                        elif n = onen_tm then 
+                            return! INST [l, x_tm] pthm_36
+                        else 
+                            let th1 = num_CONV n
+                            let! tm1' = Choice.bind (rand << concl) th1
+                            let! tm2' = rand tm1'
+                            let th2 = 
+                                INST [l, x_tm;
+                                      tm2', q_tm] pthm_38
+                            let! tm3' = Choice.bind (rand << concl) th2
+                            let! tm1, tm2 = dest_comb tm3'
+                            let th3 = TRANS th2 (AP_TERM tm1 (PPOW tm2))
+                            let! tm4' = rator tm
+                            let th4 = TRANS (AP_TERM tm4' th1) th3
+                            let! tm5' = Choice.bind (rand << concl) th4
+                            return! TRANS th4 (POLYNOMIAL_MUL_CONV tm5')
+                    }
                 fun tm -> 
-                    if is_add(Choice.get <| lhand tm)
-                    then PPOW tm
-                    else MONOMIAL_POW_CONV tm
+                    choice {
+                        let! tm1 = lhand tm
+                        if is_add tm1 then 
+                            return! PPOW tm
+                        else 
+                            return! MONOMIAL_POW_CONV tm
+                    }
 
             (* ------------------------------------------------------------------------- *)
             (* Negation.                                                                 *)
@@ -743,14 +806,16 @@ let SEMIRING_NORMALIZERS_CONV =
 
             let POLYNOMIAL_NEG_CONV = 
                 fun tm -> 
-                    let l, r = Choice.get <| dest_comb tm
-                    if l <> neg_tm
-                    then failwith "POLYNOMIAL_NEG_CONV"
-                    else 
-                        let th1 = INST [r, x_tm] nthm_1
-                        TRANS th1 
-                            (POLYNOMIAL_MONOMIAL_MUL_CONV
-                                    (Choice.get <| rand(concl <| Choice.get th1)))
+                    choice {
+                        let! l, r = dest_comb tm
+                        if l <> neg_tm
+                        then 
+                            return! failwith "POLYNOMIAL_NEG_CONV"
+                        else 
+                            let th1 = INST [r, x_tm] nthm_1
+                            let! tm1' = Choice.bind (rand << concl) th1
+                            return! TRANS th1 (POLYNOMIAL_MONOMIAL_MUL_CONV tm1')
+                    }
 
             (* ------------------------------------------------------------------------- *)
             (* Subtraction.                                                              *)
@@ -758,62 +823,61 @@ let SEMIRING_NORMALIZERS_CONV =
 
             let POLYNOMIAL_SUB_CONV = 
                 fun tm -> 
-                    let l, r = dest_sub tm
-                    let th1 = INST [l, x_tm; r, y_tm] nthm_2
-                    let tm1, tm2 = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th1))
-                    let th2 = 
-                        AP_TERM tm1 
-                            (POLYNOMIAL_MONOMIAL_MUL_CONV tm2)
-                    TRANS th1 
-                        (TRANS th2 
-                                (POLYNOMIAL_ADD_CONV(Choice.get <| rand(concl <| Choice.get th2))))
+                    choice {
+                        let l, r = dest_sub tm
+                    
+                        let th1 = 
+                            INST [l, x_tm;
+                                  r, y_tm] nthm_2
+                        let! tm1' = Choice.bind (rand << concl) th1
+                        let! tm1, tm2 = dest_comb tm1'
+                        let th2 = AP_TERM tm1 (POLYNOMIAL_MONOMIAL_MUL_CONV tm2)
+                        let! tm2' = Choice.bind (rand << concl) th2
+                        return! TRANS th1 (TRANS th2 (POLYNOMIAL_ADD_CONV tm2'))
+                    }
 
             (* ------------------------------------------------------------------------- *)
             (* Conversion from HOL term.                                                 *)
             (* ------------------------------------------------------------------------- *)
 
             let rec POLYNOMIAL_CONV tm = 
-                if not(is_comb tm) || is_semiring_constant tm
-                then REFL tm
-                else 
-                    let lop, r = Choice.get <| dest_comb tm
-                    if lop = neg_tm
-                    then 
-                        let th1 = AP_TERM lop (POLYNOMIAL_CONV r)
-                        TRANS th1 
-                            (POLYNOMIAL_NEG_CONV(Choice.get <| rand(concl <| Choice.get th1)))
-                    elif not(is_comb lop)
-                    then REFL tm
+                choice {
+                    if not(is_comb tm) || is_semiring_constant tm then 
+                        return! REFL tm
                     else 
-                        let op, l = Choice.get <| dest_comb lop
-                        if op = pow_tm && is_numeral r
-                        then 
-                            let th1 = 
-                                AP_THM 
-                                    (AP_TERM op (POLYNOMIAL_CONV l)) 
-                                    r
-                            TRANS th1 
-                                (POLYNOMIAL_POW_CONV
-                                        (Choice.get <| rand(concl <| Choice.get th1)))
-                        elif op = add_tm || op = mul_tm 
-                                || op = sub_tm
-                        then 
-                            let th1 = 
-                                MK_COMB
-                                    (AP_TERM op (POLYNOMIAL_CONV l), 
-                                        POLYNOMIAL_CONV r)
-                            let fn = 
-                                if op = add_tm
-                                then POLYNOMIAL_ADD_CONV
-                                elif op = mul_tm
-                                then POLYNOMIAL_MUL_CONV
-                                else POLYNOMIAL_SUB_CONV
-                            TRANS th1 (fn(Choice.get <| rand(concl <| Choice.get th1)))
-                        else REFL tm
+                        let! lop, r = dest_comb tm
+                        if lop = neg_tm then 
+                            let th1 = AP_TERM lop (POLYNOMIAL_CONV r)
+                            let! tm1' = Choice.bind (rand << concl) th1
+                            return! TRANS th1 (POLYNOMIAL_NEG_CONV tm1')
+                        elif not(is_comb lop) then 
+                            return! REFL tm
+                        else 
+                            let! op, l = dest_comb lop
+                            if op = pow_tm && is_numeral r then 
+                                let th1 = AP_THM (AP_TERM op (POLYNOMIAL_CONV l)) r
+                                let! tm1' = Choice.bind (rand << concl) th1
+                                return! TRANS th1 (POLYNOMIAL_POW_CONV tm1')
+                            elif op = add_tm || op = mul_tm || op = sub_tm then 
+                                let th1 = MK_COMB(AP_TERM op (POLYNOMIAL_CONV l), POLYNOMIAL_CONV r)
+                                let fn = 
+                                    if op = add_tm then POLYNOMIAL_ADD_CONV
+                                    elif op = mul_tm then POLYNOMIAL_MUL_CONV
+                                    else POLYNOMIAL_SUB_CONV
+                                let! tm1' = Choice.bind (rand << concl) th1
+                                return! TRANS th1 (fn tm1')
+                            else 
+                                return! REFL tm
+                }
 
             POLYNOMIAL_NEG_CONV, POLYNOMIAL_ADD_CONV, 
             POLYNOMIAL_SUB_CONV, POLYNOMIAL_MUL_CONV, 
             POLYNOMIAL_POW_CONV, POLYNOMIAL_CONV
+      }
+      // NOTE: we fill up this by 6 erroneous theorems
+      |> Choice.fill (            
+            let errorFunc = fun _ -> Choice.failwith "SEMIRING_NORMALIZERS_CONV"
+            fun _ -> errorFunc, errorFunc, errorFunc, errorFunc, errorFunc, errorFunc)
 
 (* ------------------------------------------------------------------------- *)
 (* Instantiate it to the natural numbers.                                    *)
