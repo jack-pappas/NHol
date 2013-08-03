@@ -123,15 +123,15 @@ let rec BETAS_CONV tm : thm =
 (* ------------------------------------------------------------------------- *)
 
 /// Apply a higher-order instantiation to a term.
-let instantiate : instantiation -> term -> _ = 
+let instantiate : instantiation -> term -> Choice<term, exn> = 
     let betas n tm = 
         let args, lam = funpow n (fun (l, t) -> (Choice.get <| rand t) :: l, Choice.get <| rator t) ([], tm)
         rev_itlist (fun a l -> 
                 let v, b = Choice.get <| dest_abs l
                 Choice.get <| vsubst [a, v] b) args lam
     let rec ho_betas bcs pat tm = 
-        if is_var pat || is_const pat
-        then fail()
+        if is_var pat || is_const pat then
+            fail()
         else 
             try 
                 let bv, bod = Choice.get <| dest_abs tm
@@ -161,34 +161,32 @@ let instantiate : instantiation -> term -> _ =
                     | Failure _ -> 
                         let rth = ho_betas bcs rpat rtm
                         Choice.get <| mk_comb(ltm, rth)
-    fun (bcs, tmin, tyin) tm -> 
-        Choice.attempt (fun () ->
+    fun (bcs, tmin, tyin) tm ->
+        Choice.attempt <| fun () ->
             let itm = 
-                if tyin = []
-                then tm
+                if tyin = [] then tm
                 else Choice.get <| inst tyin tm
-            if tmin = []
-            then itm
+            if tmin = [] then itm
             else 
                 let ttm = Choice.get <| vsubst tmin itm
-                if bcs = []
-                then ttm
+                if bcs = [] then ttm
                 else 
                     try 
                         ho_betas bcs itm ttm
                     with
-                    | Failure _ -> ttm)
+                    | Failure _ -> ttm
 
 /// Apply a higher-order instantiation to conclusion of a theorem.
 let INSTANTIATE : instantiation -> thm -> thm = 
     let rec BETAS_CONV n tm = 
-        if n = 1
-        then TRY_CONV BETA_CONV tm
-        else THENC (RATOR_CONV(BETAS_CONV(n - 1))) (TRY_CONV BETA_CONV) tm
+        if n = 1 then
+            TRY_CONV BETA_CONV tm
+        else
+            THENC (RATOR_CONV(BETAS_CONV(n - 1))) (TRY_CONV BETA_CONV) tm
 
     let rec HO_BETAS bcs pat tm = 
-        if is_var pat || is_const pat
-        then Choice.failwith ""
+        if is_var pat || is_const pat then
+            Choice.fail ()
         else 
             choice {
                 let! bv, bod = dest_abs tm
@@ -203,7 +201,7 @@ let INSTANTIATE : instantiation -> thm -> thm =
                     |> Choice.bind (fun n ->
                         if length args = n
                         then BETAS_CONV n tm
-                        else Choice.failwith "")
+                        else Choice.fail ())
                 v |> Choice.bindError (fun _ -> 
                     choice {
                         let! lpat, rpat = dest_comb pat
@@ -221,11 +219,9 @@ let INSTANTIATE : instantiation -> thm -> thm =
 
     fun (bcs, tmin, tyin) th -> 
         let ith = 
-            if tyin = []
-            then th
+            if tyin = [] then th
             else INST_TYPE tyin th
-        if tmin = []
-        then ith
+        if tmin = [] then ith
         else
             choice { 
                 let tth = INST tmin ith
@@ -261,7 +257,8 @@ let INSTANTIATE_ALL : instantiation -> thm -> thm =
                                 let tvs' = Choice.get <| type_vars_in_term tm
                                 not(intersect tvs tvs' = [])) hyps
                 let tmrel, tmirrel = 
-                    if tmin = [] then [], tyiirel
+                    if tmin = [] then
+                        [], tyiirel
                     else 
                         let vs = itlist (union << frees << snd) tmin []
                         partition (fun tm -> 
@@ -285,116 +282,122 @@ let INSTANTIATE_ALL : instantiation -> thm -> thm =
 (* ------------------------------------------------------------------------- *)
 
 /// Match one term against another.
-let term_match : term list -> term -> term -> _ = 
-    let safe_inserta ((y, x) as n) l = 
-        try 
-            let z =
-                rev_assoc x l
-                |> Option.getOrFailWith "find"
-            if aconv y z
-            then l
+let term_match : term list -> term -> term -> Choice<_, exn> = 
+    let safe_inserta ((y : term, x : 'a) as n) (l : (term * 'a) list) = 
+        match rev_assoc x l with
+        | Some z ->
+            if aconv y z then l
             else failwith "safe_inserta"
-        with
-        | Failure "find" -> n :: l
-    let safe_insert ((y, x) as n) l = 
-        try 
-            let z =
-                rev_assoc x l
-                |> Option.getOrFailWith "find"
-            if compare y z = 0
-            then l
+        | None ->
+            n :: l
+
+    let safe_insert ((y, x) as n) l =
+        match rev_assoc x l with
+        | Some z ->
+            if compare y z = 0 then l
             else failwith "safe_insert"
-        with
-        | Failure "find" -> n :: l
+        | None ->
+            n :: l
+
     let mk_dummy = 
         let name = fst(Choice.get <| dest_var(genvar aty))
         fun ty -> mk_var(name, ty)
+
     let rec term_pmatch lconsts env vtm ctm ((insts, homs) as sofar) = 
         match (vtm, ctm) with
-        | Var(_, _), _ -> 
-            try 
-                let ctm' =
-                    rev_assoc vtm env
-                    |> Option.getOrFailWith "find"
-                if compare ctm' ctm = 0
-                then sofar
+        | Var(_, _), _ ->
+            match rev_assoc vtm env with
+            | Some ctm' ->
+                if compare ctm' ctm = 0 then sofar
                 else failwith "term_pmatch"
-            with
-            | Failure "find" -> 
-                if mem vtm lconsts
-                then 
-                    if compare ctm vtm = 0
-                    then sofar
-                    else 
+            | None ->
+                if mem vtm lconsts then
+                    if compare ctm vtm = 0 then sofar
+                    else
                         failwith "term_pmatch: can't instantiate local constant"
-                else safe_inserta (ctm, vtm) insts, homs
+                else
+                    safe_inserta (ctm, vtm) insts, homs
+
         | Const(vname, vty), Const(cname, cty) -> 
-            if compare vname cname = 0
-            then 
-                if compare vty cty = 0
-                then sofar
+            if compare vname cname = 0 then 
+                if compare vty cty = 0 then sofar
                 else safe_insert (mk_dummy cty, mk_dummy vty) insts, homs
-            else failwith "term_pmatch"
+            else
+                failwith "term_pmatch"
+
         | Abs(vv, vbod), Abs(cv, cbod) -> 
-            let sofar' = 
-                safe_insert 
-                    (mk_dummy(snd(Choice.get <| dest_var cv)), mk_dummy(snd(Choice.get <| dest_var vv))) 
-                    insts, homs
+            let sofar' =
+                // CLEAN : Rename this value to something reasonable.
+                let dest_var_cv = Choice.get <| dest_var cv
+                let dest_var_vv = Choice.get <| dest_var vv
+                let foo1 = safe_insert (mk_dummy(snd dest_var_cv), mk_dummy(snd dest_var_vv)) insts
+                foo1, homs
             term_pmatch lconsts ((cv, vv) :: env) vbod cbod sofar'
+
         | _ -> 
             let vhop = repeat (Choice.toOption << rator) vtm
             if is_var vhop && not(mem vhop lconsts) 
-               && (Option.isNone <| rev_assoc vhop env)
-            then 
+               && (Option.isNone <| rev_assoc vhop env) then
                 let vty = Choice.get <| type_of vtm
                 let cty = Choice.get <| type_of ctm
                 let insts' = 
-                    if compare vty cty = 0
-                    then insts
+                    if compare vty cty = 0 then insts
                     else safe_insert (mk_dummy cty, mk_dummy vty) insts
-                (insts', (env, ctm, vtm) :: homs)
+                insts', (env, ctm, vtm) :: homs
             else 
                 let lv, rv = Choice.get <| dest_comb vtm
                 let lc, rc = Choice.get <| dest_comb ctm
                 let sofar' = term_pmatch lconsts env lv lc sofar
                 term_pmatch lconsts env rv rc sofar'
-    let get_type_insts insts = 
-        itlist (fun (t, x) -> Choice.get << type_match (snd(Choice.get <| dest_var x)) (Choice.get <| type_of t)) insts
+
+    let get_type_insts insts =
+        insts
+        |> itlist (fun (t, x) sofar ->
+            choice {
+            let! dest_var_x = dest_var x
+            let! type_of_t = type_of t
+            return! type_match (snd dest_var_x) type_of_t sofar
+            }
+            |> Choice.get)
+
     let separate_insts insts = 
         let realinsts, patterns = partition (is_var << snd) insts
         let betacounts = 
-            if patterns = []
-            then []
-            else 
-                itlist (fun (_, p) sof -> 
-                        let hop, args = strip_comb p
-                        try 
-                            safe_insert (length args, hop) sof
-                        with
-                        | Failure _ -> 
-                            (warn true 
-                                 "Inconsistent patterning in higher order match"
-                             sof)) patterns []
+            if patterns = [] then []
+            else
+                (patterns, [])
+                ||> itlist (fun (_, p) sof -> 
+                    let hop, args = strip_comb p
+                    try 
+                        safe_insert (length args, hop) sof
+                    with
+                    | Failure _ -> 
+                        warn true "Inconsistent patterning in higher order match"
+                        sof)
         let tyins = get_type_insts realinsts []
-        betacounts, mapfilter (fun (t, x) -> 
-                            let x' = 
-                                let xn, xty = Choice.get <| dest_var x
-                                mk_var(xn, type_subst tyins xty)
-                            if compare t x' = 0
-                            then None
-                            else Some(t, x')) realinsts, tyins
+        // CLEAN : Rename this value to something sensible.
+        let foo1 =
+            realinsts
+            |> mapfilter (fun (t, x) -> 
+                let x' =
+                    let xn, xty = Choice.get <| dest_var x
+                    mk_var(xn, type_subst tyins xty)
+                if compare t x' = 0 then None
+                else Some(t, x'))
+        betacounts, foo1, tyins
+
     let rec term_homatch lconsts tyins (insts, homs) = 
-        if homs = []
-        then insts
+        if homs = [] then insts
         else 
             let (env, ctm, vtm) = hd homs
-            if is_var vtm
-            then 
-                if compare ctm vtm = 0
-                then term_homatch lconsts tyins (insts, tl homs)
+            if is_var vtm then
+                if compare ctm vtm = 0 then
+                    term_homatch lconsts tyins (insts, tl homs)
                 else 
-                    let newtyins = 
-                        safe_insert (Choice.get <| type_of ctm, snd(Choice.get <| dest_var vtm)) tyins
+                    let newtyins =
+                        let type_of_ctm = Choice.get <| type_of ctm
+                        let dest_var_vtm = Choice.get <| dest_var vtm
+                        safe_insert (type_of_ctm, snd dest_var_vtm) tyins
                     let newinsts = (ctm, vtm) :: insts
                     term_homatch lconsts newtyins (newinsts, tl homs)
             else 
@@ -410,24 +413,20 @@ let term_match : term list -> term -> term -> _ =
                                     match rev_assoc a insts with
                                     | Some x -> x
                                     | None -> 
-                                         if mem a lconsts
-                                         then a
+                                         if mem a lconsts then a
                                          else fail()), inst_fn a) afvs
                     let pats0 = map inst_fn vargs
                     let pats = map (Choice.get << vsubst tmins) pats0
                     let vhop' = inst_fn vhop
                     let ni = 
                         let chop, cargs = strip_comb ctm
-                        if compare cargs pats = 0
-                        then 
-                            if compare chop vhop = 0
-                            then insts
+                        if compare cargs pats = 0 then 
+                            if compare chop vhop = 0 then insts
                             else safe_inserta (chop, vhop) insts
                         else 
                             let ginsts = 
                                 map (fun p -> 
-                                        (if is_var p
-                                         then p
+                                        (if is_var p then p
                                          else genvar(Choice.get <| type_of p)), p) pats
                             let ctm' = Choice.get <| subst ginsts ctm
                             let gvs = map fst ginsts
@@ -445,55 +444,50 @@ let term_match : term list -> term -> term -> _ =
                             (insts, (env, lc, lv) :: (tl homs))
                     let tyins' = get_type_insts (fst pinsts_homs') []
                     term_homatch lconsts tyins' pinsts_homs'
-    fun lconsts vtm ctm -> 
-        Choice.attempt (fun () ->
+    fun lconsts vtm ctm ->
+        Choice.attempt <| fun () ->
             let pinsts_homs = term_pmatch lconsts [] vtm ctm ([], [])
             let tyins = get_type_insts (fst pinsts_homs) []
             let insts = term_homatch lconsts tyins pinsts_homs
-            separate_insts insts)
+            separate_insts insts
 
 (* ------------------------------------------------------------------------- *)
 (* First order unification (no type instantiation -- yet).                   *)
 (* ------------------------------------------------------------------------- *)
 
 /// Unify two terms.
-let term_unify : term list -> term -> term -> _ = 
+let term_unify : term list -> term -> term -> Choice<_, exn> = 
     let augment1 sofar (s, x) = 
         let s' = Choice.get <| subst sofar s
-        if vfree_in x s && not(s = x)
-        then failwith "augment_insts"
+        if vfree_in x s && not(s = x) then
+            failwith "augment_insts"
         else (s', x)
-    let raw_augment_insts p insts = p :: (map (augment1 [p]) insts)
-    let augment_insts (t, v) insts = 
+
+    let raw_augment_insts p insts =
+        p :: (map (augment1 [p]) insts)
+
+    let augment_insts (t, v) insts =
         let t' = Choice.get <| vsubst insts t
-        if t' = v
-        then insts
-        elif vfree_in v t'
-        then failwith "augment_insts"
+        if t' = v then insts
+        elif vfree_in v t' then
+            failwith "augment_insts"
         else raw_augment_insts (t', v) insts
+
     let rec unify vars tm1 tm2 sofar = 
-        if tm1 = tm2
-        then sofar
-        elif is_var tm1 && mem tm1 vars
-        then 
-            try 
-                let tm1' =
-                    rev_assoc tm1 sofar
-                    |> Option.getOrFailWith "find"
+        if tm1 = tm2 then sofar
+        elif is_var tm1 && mem tm1 vars then
+            match rev_assoc tm1 sofar with
+            | Some tm1' ->
                 unify vars tm1' tm2 sofar
-            with
-            | Failure "find" -> augment_insts (tm2, tm1) sofar
-        elif is_var tm2 && mem tm2 vars
-        then 
-            try 
-                let tm2' =
-                    rev_assoc tm2 sofar
-                    |> Option.getOrFailWith "find"
+            | None ->
+                augment_insts (tm2, tm1) sofar
+        elif is_var tm2 && mem tm2 vars then
+            match rev_assoc tm2 sofar with
+            | Some tm2' ->
                 unify vars tm1 tm2' sofar
-            with
-            | Failure "find" -> augment_insts (tm1, tm2) sofar
-        elif is_abs tm1
-        then 
+            | None ->
+                augment_insts (tm1, tm2) sofar
+        elif is_abs tm1 then 
             let tm1' = Choice.get <| body tm1
             let tm2' = Choice.get <| subst [Choice.get <| bndvar tm1, Choice.get <| bndvar tm2] (Choice.get <| body tm2)
             unify vars tm1' tm2' sofar
@@ -501,8 +495,10 @@ let term_unify : term list -> term -> term -> _ =
             let l1, r1 = Choice.get <| dest_comb tm1
             let l2, r2 = Choice.get <| dest_comb tm2
             unify vars l1 l2 (unify vars r1 r2 sofar)
+
     fun vars tm1 tm2 -> 
-        Choice.attempt (fun () -> [], unify vars tm1 tm2 [], [])
+        Choice.attempt <| fun () ->
+            [], unify vars tm1 tm2 [], []
 
 (* ------------------------------------------------------------------------- *)
 (* Modify bound variable names at depth. (Not very efficient...)             *)
