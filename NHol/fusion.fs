@@ -103,9 +103,10 @@ module Hol_kernel =
     /// Declares a new type or type constructor.
     let new_type(name, arity) =
         if Choice.isResult <| get_type_arity name then 
-            Choice.failwith("new_type: type " + name + " has already been declared")
-        else 
-            Choice.result (the_type_constants := (name, arity) :: (!the_type_constants))
+            Choice.failwith ("new_type: type " + name + " has already been declared")
+        else
+            the_type_constants := (name, arity) :: (!the_type_constants)
+            Choice.result ()
     
     (* ------------------------------------------------------------------------- *)
     (* Basic type constructors.                                                  *)
@@ -232,18 +233,27 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the type of a term.
-    let type_of tm = 
-        let rec type_of tm = 
+    // OPTIMIZE : Use ChoiceCont from ExtCore here to recurse in bounded stack space.
+    let type_of tm : Choice<hol_type, exn> =
+        let rec type_of tm =
+            choice {
             match tm with
-            | Var(_, ty) -> ty
-            | Const(_, ty) -> ty
-            | Comb(s, _) -> hd(tl(snd(Choice.get <| dest_type(type_of s))))
-            | Abs(Var(_, ty), t) -> 
-                Tyapp("fun", [ty; type_of t])
-            | _ -> failwith "type_of: not a type of a term"
+            | Var(_, ty) ->
+                return ty
+            | Const(_, ty) ->
+                return ty
+            | Comb(s, _) ->
+                let! type_of_s = type_of s
+                let! dest_type_of_s = dest_type type_of_s
+                return hd (tl (snd dest_type_of_s))
+            | Abs(Var(_, ty), t) ->
+                let! type_of_t = type_of t
+                return Tyapp("fun", [ty; type_of_t])
+            | _ ->
+                return! Choice.failwith "type_of: not a type of a term"
+            }
 
-        Choice.attempt <| fun () ->
-            type_of tm
+        type_of tm
     
     (* ------------------------------------------------------------------------- *)
     (* Primitive discriminators.                                                 *)
@@ -432,93 +442,208 @@ module Hol_kernel =
     (* Substitution primitive (substitution for variables only!)                 *)
     (* ------------------------------------------------------------------------- *)
 
+    // CLEAN : Change the name of the 'ilist' parameter here to 'theta' if it makes sense,
+    // or change the the 'theta' parameter in the vsubst function to 'ilist' -- either way,
+    // the code would be more readable if they had the same name.
+    let rec private vsubstRec ilist tm : Choice<term, exn> =
+        choice {
+        match tm with
+        | Const(_, _) ->
+            return tm
+        | Var(_, _) ->
+            return rev_assocd tm ilist tm
+        | Comb(s, t) -> 
+            let! s' = vsubstRec ilist s
+            let! t' = vsubstRec ilist t
+            if s' == s && t' == t then
+                return tm
+            else
+                return Comb(s', t')
+        | Abs(v, s) -> 
+            let ilist' = filter (fun (t, x) -> x <> v) ilist
+            if ilist' = [] then
+                return tm
+            else 
+                let! s' = vsubstRec ilist' s
+                if s' == s then
+                    return tm
+                elif exists (fun (t, x) -> vfree_in v t && vfree_in x s) ilist' then 
+                    let! v' = variant [s'] v
+                    // CLEAN : Replace the name of this value with something sensible.
+                    let! foo1 = vsubstRec ((v', v) :: ilist') s
+                    return Abs(v', foo1)
+                else
+                    return Abs(v, s')
+        }
+
+    // CLEAN : Replace the name of this function with something more descriptive.
+    let private checkTermAndVarTypesMatch theta =
+        theta
+        |> forall (fun (t, x) ->
+            match type_of t, dest_var x with
+            | Success r1, Success r2 ->
+                r1 = snd r2
+            | _ -> false)
+
     /// Substitute terms for variables inside a term.
-    let vsubst = 
-        let vsubst ilist tm = 
-            let rec vsubst ilist tm = 
-                match tm with
-                | Var(_, _) -> rev_assocd tm ilist tm
-                | Const(_, _) -> tm
-                | Comb(s, t) -> 
-                    let s' = vsubst ilist s
-                    let t' = vsubst ilist t
-                    if s' == s && t' == t then tm
-                    else Comb(s', t')
-                | Abs(v, s) -> 
-                    let ilist' = filter (fun (t, x) -> x <> v) ilist
-                    if ilist' = [] then tm
-                    else 
-                        let s' = vsubst ilist' s
-                        if s' == s then tm
-                        elif exists (fun (t, x) -> vfree_in v t && vfree_in x s) ilist' then 
-                            let v' = Choice.get <| variant [s'] v
-                            Abs(v', vsubst ((v', v) :: ilist') s)
-                        else Abs(v, s')
-
-            Choice.attempt <| fun () ->
-                vsubst ilist tm
-
-        fun theta ->
-            if theta = [] then Choice.result
-            elif forall (fun (t, x) -> 
-                    match type_of t, dest_var x with
-                    | Success r1, Success r2 -> r1 = snd r2
-                    | _ -> false) theta then vsubst theta
-            else fun tm -> Choice.failwith "vsubst: Bad substitution list"
+    // CLEAN : Unless it offers a _specific_ performance benefit, it would simplify the code if we
+    // added an extra parameter 'tm : term' to this function instead of returning a closure.
+    let vsubst theta =
+        if theta = [] then
+            Choice.result
+        elif checkTermAndVarTypesMatch theta then
+            vsubstRec theta
+        else
+            fun (_ : term) ->
+                Choice.failwith "vsubst: Bad substitution list"
     
     (* ------------------------------------------------------------------------- *)
     (* Type instantiation primitive.                                             *)
     (* ------------------------------------------------------------------------- *)
 
-    exception Clash of term
+    (* NOTE :   The original hol-light code defined an exception "Clash of term" for use
+                by the 'inst' function below. Instead of using exceptions, the F# code below
+                uses Choice<_,_,_> values; in this future, this should be modified to use
+                nested Choice<_,_> values instead (so Clash would be (Choice1Of2 << Choice2Of2)
+                so we can make better use of workflows. *)
+
+    let rec private instRec env tyin tm : Choice<term, term, exn> =
+        // These helper functions simplify some of the code below.
+        let inline result x = Choice1Of3 x
+        let inline clash x = Choice2Of3 x
+        let inline error x = Choice3Of3 x
+        let inline (|Result|Clash|Err|) value =
+            match value with
+            | Choice1Of3 tm -> Result tm
+            | Choice2Of3 tm -> Clash tm
+            | Choice3Of3 ex -> Err ex
+
+        match tm with
+        | Var(n, ty) ->
+            let tm' =
+                let ty' = type_subst tyin ty
+                if ty' == ty then tm
+                else Var(n, ty')
+            if compare (rev_assocd tm' env tm) tm = 0 then
+                result tm'
+            else
+                clash tm'
+        | Const(c, ty) -> 
+            let ty' = type_subst tyin ty
+            if ty' == ty then
+                result tm
+            else
+                result <| Const(c, ty')
+        | Comb(f, x) ->
+            match instRec env tyin f with
+            | Err ex ->
+                error ex
+            | Clash tm ->
+                clash tm
+            | Result f' ->
+                match instRec env tyin x with
+                | Err ex ->
+                    error ex
+                | Clash tm ->
+                    clash tm
+                | Result x' ->
+                    if f' == f && x' == x then
+                        result tm
+                    else
+                        result <| Comb(f', x')
+            
+        | Abs(y, t) ->
+            match instRec [] tyin y with
+            | Err ex ->
+                error ex
+            | Clash tm ->
+                clash tm
+            | Result y' ->
+                let env' = (y, y') :: env
+                match instRec env' tyin t with
+                | Err ex ->
+                    error ex
+                | Clash w' ->
+                    if w' <> y' then
+                        // At this point, we assume the clash cannot be fixed and return an error.
+                        // TODO : Provide a better error message; perhaps include the clashing terms.
+                        error <| exn "instRec: clash"
+                    else
+                        let ifrees =
+                            // Original code: map (instRec [] tyin) (frees t)
+                            // This is similar to Choice.List.map in ExtCore, except it uses Choice<_,_,_>.
+                            (Choice1Of3 [], frees t)
+                            ||> List.fold (fun state tm ->
+                                match state with
+                                | Err ex ->
+                                    error ex
+                                | Clash tm ->
+                                    clash tm
+                                | Result lst ->
+                                    match instRec [] tyin tm with
+                                    | Err ex ->
+                                        error ex
+                                    | Clash tm ->
+                                        clash tm
+                                    | Result tm ->
+                                        result (tm :: lst))
+                            |> function
+                                | Err ex ->
+                                    error ex
+                                | Clash tm ->
+                                    clash tm
+                                | Result lst ->
+                                    result (List.rev lst)
+
+                        match ifrees with
+                        | Err ex ->
+                            error ex
+                        | Clash tm ->
+                            clash tm
+                        | Result ifrees ->
+                            match variant ifrees y' with
+                            | Error ex ->
+                                error ex
+                            | Success y'' ->
+                                match dest_var y'' with
+                                | Error ex ->
+                                    error ex
+                                | Success dest_y'' ->
+                                    match dest_var y with
+                                    | Error ex ->
+                                        error ex
+                                    | Success dest_var_y ->
+                                        let z = Var(fst dest_y'', snd dest_var_y)
+                                        match vsubst [z, y] t with
+                                        | Error ex ->
+                                            error ex
+                                        | Success vsubst_zy_t ->
+                                            instRec env tyin (Abs(z, vsubst_zy_t))
+                | Result t' ->
+                    if y' == y && t' == t then
+                        result tm
+                    else
+                        result <| Abs(y', t')
+
+    let private instImpl env tyin tm =
+        match instRec env tyin tm with
+        | Choice1Of3 result ->
+            Choice.result result
+        | Choice2Of3 clashTerm ->
+            // This handles the "Clash" case.
+            // TODO : Improve this error message; include the clashing term.
+            // NOTE : This case probably shouldn't ever be matched -- 'instRec' attempts to handle
+            // clashes, and finally returns an error (Choice3Of3) if a clash can't be handled.
+            Choice.failwith "instImpl: Clash"
+        | Choice3Of3 ex ->
+            Choice.error ex
     
     /// Instantiate type variables in a term.
-    let inst = 
-        let inst env tyin tm =
-            let rec inst env tyin tm = 
-                match tm with
-                | Var(n, ty) -> 
-                    let ty' = type_subst tyin ty
-                    let tm' = 
-                        if ty' == ty then tm
-                        else Var(n, ty')
-                    if compare (rev_assocd tm' env tm) tm = 0 then tm'
-                    else raise(Clash tm')
-                | Const(c, ty) -> 
-                    let ty' = type_subst tyin ty
-                    if ty' == ty then tm
-                    else Const(c, ty')
-                | Comb(f, x) -> 
-                    let f' = inst env tyin f
-                    let x' = inst env tyin x
-                    if f' == f && x' == x then tm
-                    else Comb(f', x')
-                | Abs(y, t) -> 
-                    let y' = inst [] tyin y
-                    let env' = (y, y') :: env
-                    try 
-                        let t' = inst env' tyin t
-                        if y' == y && t' == t then tm
-                        else Abs(y', t')
-                    with
-                    | Clash(w') as ex -> 
-                        if w' <> y' then raise ex
-                        else 
-                            let ifrees = map (inst [] tyin) (frees t)
-                            let y'' = Choice.get <| variant ifrees y'
-                            let z = Var(fst(Choice.get <| dest_var y''), snd(Choice.get <| dest_var y))
-                            inst env tyin (Abs(z, Choice.get <| vsubst [z, y] t))
-            try
-                Choice.result <| inst env tyin tm
-            with 
-            | :? Clash as ex ->
-                Choice2Of2 (ex :> exn)
-            | Failure s ->
-                Choice.failwith s
-
-        fun tyin -> 
-            if tyin = [] then Choice.result
-            else inst [] tyin
+    // CLEAN : Unless it offers a _specific_ performance benefit, it would simplify the code if we
+    // added an extra parameter 'tm : term' to this function instead of returning a closure.
+    let inst tyin = 
+        if tyin = [] then Choice.result
+        else instImpl [] tyin
     
     (* ------------------------------------------------------------------------- *)
     (* A few bits of general derived syntax.                                     *)
@@ -739,11 +864,14 @@ module Hol_kernel =
     
     /// Equality version of the Modus Ponens rule.
     let EQ_MP (thm1 : thm) (thm2 : thm) : thm =
-        let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) = 
+        let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) =
+            choice {
             match eq with
             | Comb(Comb(Const("=", _), l), r) when alphaorder l c = 0 -> 
-                Choice.result <| Sequent(term_union asl1 asl2, r)
-            | _ -> Choice.failwith "EQ_MP"
+                return Sequent(term_union asl1 asl2, r)
+            | _ ->
+                return! Choice.failwith "EQ_MP"
+            }
         Choice.bind2 EQ_MP thm1 thm2
     
     /// Deduces logical equivalence from deduction in both directions.
@@ -762,12 +890,12 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Instantiates types in a theorem.
-    let INST_TYPE theta (thm : thm) : thm =
+    let INST_TYPE (theta : (hol_type * hol_type) list) (thm : thm) : thm =
         // TODO: revise this
         let INST_TYPE theta (Sequent(asl, c)) : thm =
             Choice.attempt <| fun () ->
-                let inst_fn = Choice.get << inst theta
-                Sequent(term_image inst_fn asl, inst_fn c)
+                let inst_fun : term -> term = Choice.get << inst theta
+                Sequent(term_image inst_fun asl, inst_fun c)
         Choice.bind (INST_TYPE theta) thm
     
     /// Instantiates free variables in a theorem.
@@ -775,7 +903,7 @@ module Hol_kernel =
         // TODO: revise this
         let INST theta (Sequent(asl, c)) : thm =
             Choice.attempt <| fun () ->
-                let inst_fun = Choice.get << vsubst theta
+                let inst_fun : term -> term = Choice.get << vsubst theta
                 Sequent(term_image inst_fun asl, inst_fun c)
         Choice.bind (INST theta) thm
     
