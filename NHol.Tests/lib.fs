@@ -1686,13 +1686,13 @@ let ``{undefined} is the "empty" finite partial function that is nowhere defined
 [<Test>]
 let ``{applyd f g x} returns {f x} is {f} is defined on {x}``() = 
 
-    applyd (1 |=> 2) (fun x -> x) 1 // note that |=> is defined later in Lib module
+    applyd (1 |=> 2) (fun x -> Some x) 1 // note that |=> is defined later in Lib module
     |> should equal 2
 
 [<Test>]
 let ``{applyd f g x} returns {g x} is {f} is undefined on {x}``() = 
 
-    applyd undefined (fun x -> x) 1
+    applyd undefined (fun x -> Some x) 1
     |> should equal 1
 
 (* apply tests *)

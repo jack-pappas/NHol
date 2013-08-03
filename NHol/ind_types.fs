@@ -26,6 +26,9 @@ module NHol.ind_types
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+open ExtCore.Control.Collections
+
 open NHol
 open lib
 open fusion
@@ -538,10 +541,12 @@ let define_type_raw_001 =
     (* ----------------------------------------------------------------------- *)
 
     let SCRUB_EQUATION eq (th, insts) = 
-        (*HA*)
-        let eq' = itlist (fun x -> Choice.get << subst x) (map (fun t -> [t]) insts) eq
-        let l, r = Choice.get <| dest_eq eq'
-        (MP (INST [r, l] (DISCH eq' th)) (REFL r), (r, l) :: insts)
+        choice {
+            (*HA*)
+            let! eq' = Choice.List.fold (fun acc x -> subst x acc) eq (map (fun t -> [t]) insts)
+            let! l, r = dest_eq eq'
+            return (MP (INST [r, l] (DISCH eq' th)) (REFL r), (r, l) :: insts)
+        }
 
     (* ----------------------------------------------------------------------- *)
     (* Proves existence of model (inductively); use pseudo-constructors.       *)
@@ -554,6 +559,7 @@ let define_type_raw_001 =
         let t_tm = (parse_term @"T")
         let n_tm = (parse_term @"n:num")
         let beps_tm = (parse_term @"@x:bool. T")
+
         let rec munion s1 s2 = 
             if s1 = []
             then s2
@@ -564,89 +570,121 @@ let define_type_raw_001 =
                 | Some (_, s2') ->
                     h1 :: (munion s1' s2')
                 | None -> h1 :: (munion s1' s2)
+
         fun def -> 
-            let newtys, rights = unzip def
-            let tyargls = itlist ((@) << map snd) rights []
-            let alltys = itlist (munion << C subtract newtys) tyargls []
-            let epstms = map (fun ty -> Choice.get <| mk_select(mk_var("v", ty), t_tm)) alltys
-            let pty = 
-                try 
-                    end_itlist (fun ty1 ty2 -> Choice.get <| mk_type("prod", [ty1; ty2])) 
-                        alltys
-                with
-                | Failure _ -> bool_ty
-            let recty = Choice.get <| mk_type("recspace", [pty])
-            let constr = Choice.get <| mk_const("CONSTR", [pty, aty])
-            let fcons = Choice.get <| mk_const("FCONS", [recty, aty])
-            let bot = Choice.get <| mk_const("BOTTOM", [pty, aty])
-            let bottail = Choice.get <| mk_abs(n_tm, bot)
-            let mk_constructor n (cname, cargs) = 
-                let ttys = 
-                    map (fun ty -> 
-                            if mem ty newtys
-                            then recty
-                            else ty) cargs
-                let args = Choice.get <| make_args "a" [] ttys
-                let rargs, iargs = partition (fun t -> Choice.get <| type_of t = recty) args
-                let rec mk_injector epstms alltys iargs = 
-                    if alltys = []
-                    then []
-                    else 
-                        let ty = hd alltys
-                        try 
-                            let a, iargs' =  Option.get <| remove (fun t -> Choice.get <| type_of t = ty) iargs
-                            a :: (mk_injector (tl epstms) (tl alltys) iargs')
-                        with
-                        | Failure _ -> 
-                            (hd epstms) 
-                            :: (mk_injector (tl epstms) (tl alltys) iargs)
-                let iarg = 
-                    try 
-                        end_itlist (curry (Choice.get << mk_pair))
-                            (mk_injector epstms alltys iargs)
-                    with
-                    | Failure _ -> beps_tm
-                let rarg = itlist (fun x -> Choice.get << mk_binop fcons x) rargs bottail
-                let conty = itlist (fun ty -> Choice.get << mk_fun_ty ty) (map (Choice.get << type_of) args) recty
-                let condef = 
-                    list_mk_comb(constr, [sucivate n
-                                          iarg; rarg])
-                Choice.get <| mk_eq(mk_var(cname, conty), list_mk_abs(args, condef))
-            let rec mk_constructors n rights = 
-                if rights = []
-                then []
-                else 
-                    (mk_constructor n (hd rights)) 
-                    :: (mk_constructors (n + 1) (tl rights))
-            let condefs = mk_constructors 0 (itlist (@) rights [])
-            let conths = map ASSUME condefs
-            let predty = Choice.get <| mk_fun_ty recty bool_ty
-            let edefs = 
-                itlist (fun (x, l) acc -> map (fun t -> x, t) l @ acc) def []
-            let idefs = 
-                map2 (fun (r, (_, atys)) def -> (r, atys), def) edefs condefs
-            let mk_rule((r, a), condef) = 
-                let left, right = Choice.get <| dest_eq condef
-                let args, bod = strip_abs right
-                let lapp = list_mk_comb(left, args)
-                let conds = 
-                    itlist2 (fun arg argty sofar -> 
-                            if mem argty newtys
-                            then 
-                                (Choice.get <| mk_comb(mk_var(Choice.get <| dest_vartype argty, predty), arg)) :: sofar
-                            else sofar) args a []
-                let conc = Choice.get <| mk_comb(mk_var(Choice.get <| dest_vartype r, predty), lapp)
-                let rule = 
-                    if conds = []
-                    then conc
-                    else Choice.get <| mk_imp(list_mk_conj conds, conc)
-                list_mk_forall(args, rule)
-            let rules = list_mk_conj(map mk_rule idefs)
-            let th0 = derive_nonschematic_inductive_relations rules
-            let th1 = prove_monotonicity_hyps th0
-            let th2a, th2bc = CONJ_PAIR th1
-            let th2b = CONJUNCT1 th2bc
-            conths, th2a, th2b
+            choice {
+                let newtys, rights = unzip def
+                let tyargls = itlist ((@) << map snd) rights []
+                let alltys = itlist (munion << C subtract newtys) tyargls []
+                let! epstms = Choice.List.map (fun ty -> mk_select(mk_var("v", ty), t_tm)) alltys
+
+                let pty = 
+                    // NOTE: review the order of arguments
+                    Choice.List.reduceBack (fun ty1 ty2 -> mk_type("prod", [ty1; ty2])) alltys
+                    |> Choice.fill bool_ty
+
+                let! recty = mk_type("recspace", [pty])
+                let! constr = mk_const("CONSTR", [pty, aty])
+                let! fcons = mk_const("FCONS", [recty, aty])
+                let! bot = mk_const("BOTTOM", [pty, aty])
+                let! bottail = mk_abs(n_tm, bot)
+
+                let mk_constructor n (cname, cargs) = 
+                    choice {
+                        let ttys = 
+                            map (fun ty -> 
+                                if mem ty newtys then recty
+                                else ty) cargs
+
+                        let! args = make_args "a" [] ttys
+                        let rargs, iargs = partition (fun t -> Choice.get <| type_of t = recty) args
+
+                        let rec mk_injector epstms alltys iargs = 
+                            choice {
+                                if alltys = [] then 
+                                    return []
+                                else 
+                                    let ty = hd alltys
+                                    return! 
+                                        choice { 
+                                            let! a, iargs' = 
+                                                remove (fun t -> Choice.get <| type_of t = ty) iargs
+                                                |> Option.toChoiceWithError "remove"
+                                            let! tms = (mk_injector (tl epstms) (tl alltys) iargs')
+                                            return a :: tms
+                                        }
+                                        |> Choice.bindError (fun _ -> 
+                                                choice {
+                                                    let! tms = (mk_injector (tl epstms) (tl alltys) iargs)
+                                                    return (hd epstms) :: tms
+                                                })
+                            }
+
+                        let! iarg = 
+                            choice { 
+                                let! tms = mk_injector epstms alltys iargs
+                                return end_itlist (curry (Choice.get << mk_pair)) tms
+                            }
+                            |> Choice.bindError (fun _ -> Choice.result beps_tm)
+
+                        let! rarg = Choice.List.fold (fun acc x -> mk_binop fcons x acc) bottail rargs
+                        let! tms = Choice.List.map type_of args
+                        let! conty = Choice.List.fold (fun acc ty -> mk_fun_ty ty acc) recty tms 
+
+                        let condef = 
+                            list_mk_comb(constr, [sucivate n; 
+                                                  iarg; 
+                                                  rarg])
+
+                        return! mk_eq(mk_var(cname, conty), list_mk_abs(args, condef))
+                    }
+
+                let rec mk_constructors n rights = 
+                    choice {
+                        if rights = [] then 
+                            return []
+                        else 
+                            let! tms = mk_constructors (n + 1) (tl rights)
+                            let! tm = mk_constructor n (hd rights)
+                            return tm :: tms
+                    }
+
+                let! condefs = mk_constructors 0 (itlist (@) rights [])
+                let conths = map ASSUME condefs
+                let! predty = mk_fun_ty recty bool_ty
+
+                let edefs = itlist (fun (x, l) acc -> map (fun t -> x, t) l @ acc) def []
+                let idefs = map2 (fun (r, (_, atys)) def -> (r, atys), def) edefs condefs
+
+                let mk_rule((r, a), condef) = 
+                    choice {
+                        let! left, right = dest_eq condef
+                        let args, bod = strip_abs right
+                        let lapp = list_mk_comb(left, args)
+                    
+                        let conds = 
+                            itlist2 (fun arg argty sofar -> 
+                                if mem argty newtys then (Choice.get <| mk_comb(mk_var(Choice.get <| dest_vartype argty, predty), arg)) :: sofar
+                                else sofar) args a []
+                    
+                        let! tm1 = dest_vartype r
+                        let! conc = mk_comb(mk_var(tm1, predty), lapp)
+                    
+                        let! rule = 
+                            if conds = [] then Choice.result conc
+                            else mk_imp(list_mk_conj conds, conc)
+                    
+                        return list_mk_forall(args, rule)
+                    }
+
+                let! tms1 = Choice.List.map mk_rule idefs
+                let rules = list_mk_conj tms1
+                let th0 = derive_nonschematic_inductive_relations rules
+                let th1 = prove_monotonicity_hyps th0
+                let th2a, th2bc = CONJ_PAIR th1
+                let th2b = CONJUNCT1 th2bc
+                return conths, th2a, th2b
+            }
 
     (* ----------------------------------------------------------------------- *)
     (* Shows that the predicates defined by the rules are all nonempty.        *)
@@ -654,37 +692,31 @@ let define_type_raw_001 =
     (* ----------------------------------------------------------------------- *)
 
     let prove_model_inhabitation rth = 
-        let srules = map SPEC_ALL (CONJUNCTS rth)
-        let imps, bases = partition (is_imp << concl << Choice.get) srules
-        let concs = map (concl << Choice.get) bases @ map (Choice.get << rand << concl << Choice.get) imps
-        let preds = setify(map (repeat (Choice.toOption << rator)) concs)
-        let rec exhaust_inhabitations ths sofar = 
-            let dunnit = setify(map (fst << strip_comb << concl << Choice.get) sofar)
-            let useful = 
-                filter 
-                    (fun th -> not(mem (fst(strip_comb(Choice.get <| rand(concl <| Choice.get th)))) dunnit)) 
-                    ths
-            if useful = []
-            then sofar
-            else 
-                let follow_horn thm = 
-                    let preds = 
-                        map (fst << strip_comb) (conjuncts(Choice.get <| lhand(concl <| Choice.get thm)))
-                    let asms = 
-                        map 
-                            (fun p -> 
-                                Option.get <| find (fun th -> fst(strip_comb(concl <| Choice.get th)) = p) 
-                                    sofar) preds
-                    MATCH_MP thm (end_itlist CONJ asms)
-                let newth = 
-                    tryfind (Some << follow_horn) useful
-                    |> Option.getOrFailWith "tryfind"
-                exhaust_inhabitations ths (newth :: sofar)
-        let ithms = exhaust_inhabitations imps bases
-        let exths = 
-            map (fun p -> Option.get <| find (fun th -> fst(strip_comb(concl <| Choice.get th)) = p) ithms) 
-                preds
-        exths
+        choice {
+            let srules = map SPEC_ALL (CONJUNCTS rth)
+            let imps, bases = partition (is_imp << concl << Choice.get) srules
+            let concs = map (concl << Choice.get) bases @ map (Choice.get << rand << concl << Choice.get) imps
+            let preds = setify(map (repeat(Choice.toOption << rator)) concs)
+        
+            let rec exhaust_inhabitations ths sofar = 
+                let dunnit = setify(map (fst << strip_comb << concl << Choice.get) sofar)
+                let useful = filter (fun th -> not(mem (fst(strip_comb(Choice.get <| rand(concl <| Choice.get th)))) dunnit)) ths
+                if useful = [] then sofar
+                else 
+                    let follow_horn thm = 
+                        let preds = map (fst << strip_comb) (conjuncts(Choice.get <| lhand(concl <| Choice.get thm)))
+                        let asms = 
+                            map (fun p -> Option.get <| find (fun th -> fst(strip_comb(concl <| Choice.get th)) = p) sofar) preds
+                        MATCH_MP thm (end_itlist CONJ asms)
+                    let newth = tryfind (Choice.toOption << Choice.map Choice.result << follow_horn) useful |> Option.getOrFailWith "tryfind"
+                    exhaust_inhabitations ths (newth :: sofar)
+        
+            let ithms = exhaust_inhabitations imps bases
+            let exths = map (fun p -> Option.get <| find (fun th -> fst(strip_comb(concl <| Choice.get th)) = p) ithms) preds
+        
+            return exths
+        }
+
     (* ----------------------------------------------------------------------- *)
     (* Makes a type definition for one of the defined subsets.                 *)
     (* ----------------------------------------------------------------------- *)
@@ -695,7 +727,7 @@ let define_type_raw_001 =
         let th1 = ASSUME(Option.get <| find (fun eq -> Choice.get <| lhand eq = epred) (hyp <| Choice.get exth))
         let th2 = TRANS th1 (SUBS_CONV cdefs (Choice.get <| rand(concl <| Choice.get th1)))
         let th3 = EQ_MP (AP_THM th2 (Choice.get <| rand extm)) exth
-        let th4, _ = itlist SCRUB_EQUATION (hyp <| Choice.get th3) (th3, [])
+        let th4, _ = Choice.get <| Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (th3, []) (hyp <| Choice.get th3)
         let mkname = "_mk_" + ename
         let destname = "_dest_" + ename
         let bij1, bij2 = new_basic_type_definition ename (mkname, destname) th4
@@ -872,9 +904,9 @@ let define_type_raw_001 =
         let th4 = GENL preds th3
         let pasms = filter (C mem (map fst consindex) << Choice.get << lhand) (hyp <| Choice.get th4)
         let th5 = itlist DISCH pasms th4
-        let th6, _ = itlist SCRUB_EQUATION (hyp <| Choice.get th5) (th5, [])
+        let th6, _ = Choice.get <| Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (th5, []) (hyp <| Choice.get th5)
         let th7 = UNDISCH_ALL th6
-        fst(itlist SCRUB_EQUATION (hyp <| Choice.get th7) (th7, []))
+        fst(Choice.get <| Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (th7, []) (hyp <| Choice.get th7))
 
     (* ----------------------------------------------------------------------- *)
     (* Create the recursive functions and eliminate pseudo-constructors.       *)
@@ -925,9 +957,9 @@ let define_type_raw_001 =
         let pasms = filter (C mem (map fst consindex) << Choice.get << lhand) (hyp <| Choice.get fxth5)
         let fxth6 = itlist DISCH pasms fxth5
         let fxth7, _ = 
-            itlist SCRUB_EQUATION (itlist (union << hyp << Choice.get) conthms []) (fxth6, [])
+            Choice.get <| Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (fxth6, []) (itlist (union << hyp << Choice.get) conthms []) 
         let fxth8 = UNDISCH_ALL fxth7
-        fst(itlist SCRUB_EQUATION (subtract (hyp <| Choice.get fxth8) eqs) (fxth8, []))
+        fst(Choice.get <| Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (fxth8, []) (subtract (hyp <| Choice.get fxth8) eqs) )
 
     (* ----------------------------------------------------------------------- *)
     (* Create a function for recursion clause.                                 *)
@@ -1037,8 +1069,8 @@ let define_type_raw_001 =
         (* ----------------------------------------------------------------------- *)
         (* Basic function: returns induction and recursion separately. No parser.  *)
         (* ----------------------------------------------------------------------- *)
-        let defs, rth, ith = justify_inductive_type_model def
-        let neths = prove_model_inhabitation rth
+        let defs, rth, ith = Choice.get <| justify_inductive_type_model def
+        let neths = Choice.get <| prove_model_inhabitation rth
         let tybijpairs = map (define_inductive_type defs) neths
         let preds = map (repeat (Choice.toOption << rator) << concl <<Choice.get) neths
         let mkdests = 
@@ -1103,6 +1135,7 @@ let sum_INDUCT, sum_RECURSION =
 
 let OUTL = 
     new_recursive_definition sum_RECURSION (parse_term @"OUTL (INL x :A+B) = x")
+
 let OUTR = 
     new_recursive_definition sum_RECURSION (parse_term @"OUTR (INR y :A+B) = y");;
 
@@ -1114,7 +1147,6 @@ let OUTR =
 (*     the type constructor ":sum", used internally, must have been defined. *)
 (* ------------------------------------------------------------------------- *)
 
-// CAUTION: change to bypass value restrictions
 let define_type_raw_002 = 
     let generalize_recursion_theorem = 
         let ELIM_OUTCOMBS = GEN_REWRITE_RULE TOP_DEPTH_CONV [OUTL; OUTR]
@@ -1402,6 +1434,7 @@ let basic_rectype_net = ref empty_net
 
 /// Internal theorem list of distinctness theorems.
 let distinctness_store = ref ["bool", TAUT(parse_term @"(T <=> F) <=> F")]
+
 /// Internal theorem list of injectivity theorems.
 let injectivity_store = ref []
 

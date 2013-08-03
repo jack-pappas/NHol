@@ -438,9 +438,9 @@ let dest_binop op tm =
 
 /// The call 'mk_binop op l r' returns the term '(op l) r'.
 let mk_binop op tm1 = 
-    let f = mk_comb(op, tm1)
+    let tm1' = mk_comb(op, tm1)
     fun tm2 ->
-        f  |> Choice.bind (fun f -> mk_comb(f, tm2)) 
+        Choice.bind (fun f -> mk_comb(f, tm2)) tm1'
 
 /// Makes an iterative application of a binary operator.
 let list_mk_binop op = end_itlist(fun x -> Choice.get << mk_binop op x)

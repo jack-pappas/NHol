@@ -1380,7 +1380,7 @@ let INT_RING, int_ideal_cofactors =
              INT_POLY_CONV)
     ``pure``, (fun tms tm -> 
         if forall (fun t -> Choice.get <| type_of t = int_ty) (tm :: tms)
-        then List.map Choice.get (ideal tms tm)
+        then Choice.get <| ideal tms tm
         else failwith "int_ideal_cofactors: not all terms have type :int");;
 
 (* ------------------------------------------------------------------------- *)

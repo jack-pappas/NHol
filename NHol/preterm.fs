@@ -319,16 +319,21 @@ let type_of_pretype, term_of_preterm, retypecheck =
     (* Unravel unifications and apply them to a type.                          *)
     (* ----------------------------------------------------------------------- *)
 
-    let solve env pty = 
-        let rec solve env pty = 
+    let rec solve env pty = 
+        choice { 
             match pty with
-            | Ptycon(f, args) -> Ptycon(f, map (solve env) args)
+            | Ptycon(f, args) -> 
+                let! tys = Choice.List.map (solve env) args
+                return Ptycon(f, tys)
             | Stv(i) -> 
-                if defined env i then solve env (apply env i)
-                else pty
-            | _ -> pty
-        // NOTE: we remove this when apply function is converted to not throw exceptions
-        Choice.attempt (fun () -> solve env pty)
+                if defined env i then
+                    let! pty = apply env i |> Option.toChoiceWithError "apply" 
+                    return! solve env pty
+                else 
+                    return pty
+            | _ -> 
+                return pty
+        }
 
     (* ----------------------------------------------------------------------- *)
     (* Functions for display of preterms and pretypes, by converting them      *)
@@ -415,7 +420,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
 
     let rec istrivial ptm env x = 
         function 
-        | Stv y as t -> y = x || defined env y && istrivial ptm env x (apply env y)
+        | Stv y as t -> y = x || defined env y && istrivial ptm env x (Option.get <| apply env y)
         | Ptycon(f, args) as t when exists (istrivial ptm env x) args -> failwith(Choice.get <| string_of_ty_error env ptm)
         | (Ptycon _ | Utv _) -> false
 
@@ -429,7 +434,7 @@ let type_of_pretype, term_of_preterm, retypecheck =
                     if f = g && length fargs = length gargs then unify env (map2 (fun x y -> x, y, ptm) fargs gargs @ oth)
                     else failwith(Choice.get <| string_of_ty_error env ptm)
                 | (Stv x, t, ptm) :: oth -> 
-                    if defined env x then unify env ((apply env x, t, ptm) :: oth)
+                    if defined env x then unify env ((Option.get <| apply env x, t, ptm) :: oth)
                     else 
                         unify (if istrivial ptm env x t then env
                                else (x |-> t) env) oth

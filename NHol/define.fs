@@ -842,7 +842,7 @@ let instantiate_casewise_recursion,
       let parm = end_itlist (curry (Choice.get << mk_pair)) parms
       let ss = map (fun a -> Choice.get <| mk_gabs(parm,end_itlist (curry (Choice.get << mk_pair)) a)) arglists
       in let ts = map (fun a -> Choice.get <| mk_abs(f,Choice.get <| mk_gabs(parm,a))) rights
-      let clauses = mk_flist(map2 (curry (Choice.get << mk_pair)) ss ts)
+      let clauses = Choice.get <| mk_flist(map2 (curry (Choice.get << mk_pair)) ss ts)
       let pth = ISPEC clauses RECURSION_SUPERADMISSIBLE
       let FIDDLE_CONV =
         (LAND_CONV << LAND_CONV << BINDER_CONV << RAND_CONV << LAND_CONV <<

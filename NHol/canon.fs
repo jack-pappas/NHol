@@ -69,27 +69,40 @@ let (PRESIMP_CONV : conv) =
 
 /// Proves equivalence of two conjunctions containing same set of conjuncts.
 let (CONJ_ACI_RULE : conv) = 
+
     let rec mk_fun th fn = 
-        let tm = concl <| Choice.get th
+      choice {
+        let! tm = Choice.map concl th
         if is_conj tm then 
             let th1, th2 = CONJ_PAIR th
-            mk_fun th1 (mk_fun th2 fn)
-        else (tm |-> th) fn
+            let! fn' = mk_fun th2 fn
+            return! mk_fun th1 fn'
+        else
+            // NOTE: add this to fall back to thm0
+            let! th = th 
+            return (tm |-> th) fn
+      }
 
     and use_fun fn tm = 
+      choice {
         if is_conj tm then 
-            let l, r = Choice.get <| dest_conj tm
-            CONJ (use_fun fn l) (use_fun fn r)
-        else apply fn tm
+            let! l, r = dest_conj tm
+            return! CONJ (use_fun fn l) (use_fun fn r)
+        else 
+            return! apply fn tm
+                    |> Option.toChoiceWithError "apply"
+      }
 
     fun fm -> 
         choice {
             let! p, p' = dest_eq fm
             if p = p' then 
                 return! REFL p
-            else 
-                let th = use_fun (mk_fun (ASSUME p) undefined) p'
-                let th' = use_fun (mk_fun (ASSUME p') undefined) p
+            else
+                let! fn = mk_fun (ASSUME p) undefined
+                let th = use_fun fn p'
+                let! fn' = mk_fun (ASSUME p') undefined
+                let th' = use_fun fn' p
                 return! IMP_ANTISYM_RULE (DISCH_ALL th) (DISCH_ALL th')
         }
 
@@ -120,17 +133,25 @@ let (DISJ_ACI_RULE : conv) =
         }
 
     let rec mk_fun th fn = 
-        let tm = Choice.get <| rand(concl <| Choice.get th)
+      choice {
+        let! tm = Choice.bind (rand << concl) th
         if is_disj tm then 
             let th1, th2 = NOT_DISJ_PAIR th
-            mk_fun th1 (mk_fun th2 fn)
-        else (tm |-> th) fn
+            let! fn' = mk_fun th2 fn
+            return! mk_fun th1 fn'
+        else
+            let! th = th 
+            return (tm |-> th) fn
+      }
 
     and use_fun fn tm = 
+      choice {
         if is_disj tm then 
-            let l, r = Choice.get <| dest_disj tm
-            NOT_DISJ (use_fun fn l) (use_fun fn r)
-        else apply fn tm
+            let! l, r = dest_disj tm
+            return! NOT_DISJ (use_fun fn l) (use_fun fn r)
+        else 
+            return! apply fn tm |> Option.toChoiceWithError "apply"
+      }
 
     fun fm -> 
         choice {
@@ -140,8 +161,10 @@ let (DISJ_ACI_RULE : conv) =
             else 
                 let! neg_p = mk_neg p
                 let! neg_p' = mk_neg p'
-                let th = use_fun (mk_fun (ASSUME neg_p) undefined) p'
-                let th' = use_fun (mk_fun (ASSUME neg_p') undefined) p
+                let! fn = mk_fun (ASSUME neg_p) undefined
+                let th = use_fun fn p'
+                let! fn' = mk_fun (ASSUME neg_p') undefined
+                let th' = use_fun fn' p
                 let th1 = IMP_ANTISYM_RULE (DISCH_ALL th) (DISCH_ALL th')
                 return! PROVE_HYP th1 (INST [p, a_tm; p', b_tm] pth_neg)
         }

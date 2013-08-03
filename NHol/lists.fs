@@ -26,6 +26,9 @@ module NHol.lists
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+open ExtCore.Control.Collections
+
 open NHol
 open lib
 open fusion
@@ -62,6 +65,7 @@ open ind_types
 (* ------------------------------------------------------------------------- *)
 (* Standard tactic for list induction using MATCH_MP_TAC list_INDUCT         *)
 (* ------------------------------------------------------------------------- *)
+
 /// Performs tactical proof by structural induction on lists.
 let LIST_INDUCT_TAC = 
     let list_INDUCT = 
@@ -78,37 +82,63 @@ let LIST_INDUCT_TAC =
 (* ------------------------------------------------------------------------- *)
 (* Basic definitions.                                                        *)
 (* ------------------------------------------------------------------------- *)
+
 let HD = 
     new_recursive_definition list_RECURSION (parse_term @"HD(CONS (h:A) t) = h")
 
 let TL = 
     new_recursive_definition list_RECURSION (parse_term @"TL(CONS (h:A) t) = t")
-let APPEND = new_recursive_definition list_RECURSION (parse_term @"(!l:(A)list. APPEND [] l = l) /\
+
+let APPEND = 
+    new_recursive_definition list_RECURSION (parse_term @"(!l:(A)list. APPEND [] l = l) /\
    (!h t l. APPEND (CONS h t) l = CONS h (APPEND t l))")
-let REVERSE = new_recursive_definition list_RECURSION (parse_term @"(REVERSE [] = []) /\
+
+let REVERSE = 
+    new_recursive_definition list_RECURSION (parse_term @"(REVERSE [] = []) /\
    (REVERSE (CONS (x:A) l) = APPEND (REVERSE l) [x])")
-let LENGTH = new_recursive_definition list_RECURSION (parse_term @"(LENGTH [] = 0) /\
+
+let LENGTH = 
+    new_recursive_definition list_RECURSION (parse_term @"(LENGTH [] = 0) /\
    (!h:A. !t. LENGTH (CONS h t) = SUC (LENGTH t))")
-let MAP = new_recursive_definition list_RECURSION (parse_term @"(!f:A->B. MAP f NIL = NIL) /\
+
+let MAP = 
+    new_recursive_definition list_RECURSION (parse_term @"(!f:A->B. MAP f NIL = NIL) /\
    (!f h t. MAP f (CONS h t) = CONS (f h) (MAP f t))")
+
 let LAST = 
     new_recursive_definition list_RECURSION 
         (parse_term @"LAST (CONS (h:A) t) = if t = [] then h else LAST t")
-let BUTLAST = new_recursive_definition list_RECURSION (parse_term @"(BUTLAST [] = []) /\
+
+let BUTLAST = 
+    new_recursive_definition list_RECURSION (parse_term @"(BUTLAST [] = []) /\
   (BUTLAST (CONS h t) = if t = [] then [] else CONS h (BUTLAST t))")
-let REPLICATE = new_recursive_definition num_RECURSION (parse_term @"(REPLICATE 0 x = []) /\
+
+let REPLICATE = 
+    new_recursive_definition num_RECURSION (parse_term @"(REPLICATE 0 x = []) /\
    (REPLICATE (SUC n) x = CONS x (REPLICATE n x))")
-let NULL = new_recursive_definition list_RECURSION (parse_term @"(NULL [] = T) /\
+
+let NULL = 
+    new_recursive_definition list_RECURSION (parse_term @"(NULL [] = T) /\
    (NULL (CONS h t) = F)")
-let ALL = new_recursive_definition list_RECURSION (parse_term @"(ALL P [] = T) /\
+
+let ALL = 
+    new_recursive_definition list_RECURSION (parse_term @"(ALL P [] = T) /\
    (ALL P (CONS h t) <=> P h /\ ALL P t)")
-let EX = new_recursive_definition list_RECURSION (parse_term @"(EX P [] = F) /\
+
+let EX = 
+    new_recursive_definition list_RECURSION (parse_term @"(EX P [] = F) /\
    (EX P (CONS h t) <=> P h \/ EX P t)")
-let ITLIST = new_recursive_definition list_RECURSION (parse_term @"(ITLIST f [] b = b) /\
+
+let ITLIST = 
+    new_recursive_definition list_RECURSION (parse_term @"(ITLIST f [] b = b) /\
    (ITLIST f (CONS h t) b = f h (ITLIST f t b))")
-let MEM = new_recursive_definition list_RECURSION (parse_term @"(MEM x [] <=> F) /\
+
+let MEM = 
+    new_recursive_definition list_RECURSION (parse_term @"(MEM x [] <=> F) /\
    (MEM x (CONS h t) <=> (x = h) \/ MEM x t)")
-let ALL2_DEF = new_recursive_definition list_RECURSION (parse_term @"(ALL2 P [] l2 <=> (l2 = [])) /\
+
+let ALL2_DEF = 
+    new_recursive_definition list_RECURSION (parse_term @"(ALL2 P [] l2 <=> (l2 = [])) /\
    (ALL2 P (CONS h1 t1) l2 <=>
         if l2 = [] then F
         else P h1 (HD l2) /\ ALL2 P t1 (TL l2))");;
@@ -122,29 +152,42 @@ let ALL2 =
          REWRITE_TAC [distinctness "list"
                       ALL2_DEF; HD; TL])
 
-let MAP2_DEF = new_recursive_definition list_RECURSION (parse_term @"(MAP2 f [] l = []) /\
+let MAP2_DEF = 
+    new_recursive_definition list_RECURSION (parse_term @"(MAP2 f [] l = []) /\
    (MAP2 f (CONS h1 t1) l = CONS (f h1 (HD l)) (MAP2 f t1 (TL l)))")
+
 let MAP2 = 
     prove
         ((parse_term @"(MAP2 f [] [] = []) /\
    (MAP2 f (CONS h1 t1) (CONS h2 t2) = CONS (f h1 h2) (MAP2 f t1 t2))"), 
          REWRITE_TAC [MAP2_DEF; HD; TL])
-let EL = new_recursive_definition num_RECURSION (parse_term @"(EL 0 l = HD l) /\
+
+let EL = 
+    new_recursive_definition num_RECURSION (parse_term @"(EL 0 l = HD l) /\
    (EL (SUC n) l = EL n (TL l))")
-let FILTER = new_recursive_definition list_RECURSION (parse_term @"(FILTER P [] = []) /\
+
+let FILTER = 
+    new_recursive_definition list_RECURSION (parse_term @"(FILTER P [] = []) /\
    (FILTER P (CONS h t) = if P h then CONS h (FILTER P t) else FILTER P t)")
+
 let ASSOC = 
     new_recursive_definition list_RECURSION 
         (parse_term @"ASSOC a (CONS h t) = if FST h = a then SND h else ASSOC a t")
-let ITLIST2_DEF = new_recursive_definition list_RECURSION (parse_term @"(ITLIST2 f [] l2 b = b) /\
+
+let ITLIST2_DEF = 
+    new_recursive_definition list_RECURSION (parse_term @"(ITLIST2 f [] l2 b = b) /\
    (ITLIST2 f (CONS h1 t1) l2 b = f h1 (HD l2) (ITLIST2 f t1 (TL l2) b))")
+
 let ITLIST2 = 
     prove
         ((parse_term @"(ITLIST2 f [] [] b = b) /\
    (ITLIST2 f (CONS h1 t1) (CONS h2 t2) b = f h1 h2 (ITLIST2 f t1 t2 b))"), 
          REWRITE_TAC [ITLIST2_DEF; HD; TL])
-let ZIP_DEF = new_recursive_definition list_RECURSION (parse_term @"(ZIP [] l2 = []) /\
+
+let ZIP_DEF = 
+    new_recursive_definition list_RECURSION (parse_term @"(ZIP [] l2 = []) /\
    (ZIP (CONS h1 t1) l2 = CONS (h1,HD l2) (ZIP t1 (TL l2)))")
+
 let ZIP = 
     prove
         ((parse_term @"(ZIP [] [] = []) /\
@@ -154,6 +197,7 @@ let ZIP =
 (* ------------------------------------------------------------------------- *)
 (* Various trivial theorems.                                                 *)
 (* ------------------------------------------------------------------------- *)
+
 let NOT_CONS_NIL = 
     prove
         ((parse_term @"!(h:A) t. ~(CONS h t = [])"), 
@@ -164,26 +208,31 @@ let LAST_CLAUSES =
         ((parse_term @"(LAST [h:A] = h) /\
    (LAST (CONS h (CONS k t)) = LAST (CONS k t))"), 
          REWRITE_TAC [LAST; NOT_CONS_NIL])
+
 let APPEND_NIL = 
     prove
         ((parse_term @"!l:A list. APPEND l [] = l"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [APPEND])
+
 let APPEND_ASSOC = 
     prove
         ((parse_term @"!(l:A list) m n. APPEND l (APPEND m n) = APPEND (APPEND l m) n"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [APPEND])
+
 let REVERSE_APPEND = 
     prove
         ((parse_term @"!(l:A list) m. REVERSE (APPEND l m) = APPEND (REVERSE m) (REVERSE l)"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [APPEND; REVERSE; APPEND_NIL; APPEND_ASSOC])
+
 let REVERSE_REVERSE = 
     prove
         ((parse_term @"!l:A list. REVERSE(REVERSE l) = l"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [REVERSE; REVERSE_APPEND; APPEND])
+
 let CONS_11 = 
     prove
         ((parse_term @"!(h1:A) h2 t1 t2. (CONS h1 t1 = CONS h2 t2) <=> (h1 = h2) /\ (t1 = t2)"), 
@@ -214,6 +263,7 @@ let LENGTH_MAP =
         ((parse_term @"!l. !f:A->B. LENGTH (MAP f l) = LENGTH l"), 
          LIST_INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [MAP; LENGTH])
+
 let LENGTH_EQ_NIL = 
     prove
         ((parse_term @"!l:A list. (LENGTH l = 0) <=> (l = [])"), 
@@ -513,10 +563,9 @@ let MEM_EXISTS_EL =
                                      MEM
                                      CONJUNCT1 LT]
          |> THEN <| GEN_TAC
-         |> THEN 
-         <| GEN_REWRITE_TAC RAND_CONV 
-                [MESON [num_CASES] 
-                     (parse_term @"(?i. P i) <=> P 0 \/ (?i. P(SUC i))")]
+         |> THEN <| GEN_REWRITE_TAC RAND_CONV 
+                        [MESON [num_CASES] 
+                             (parse_term @"(?i. P i) <=> P 0 \/ (?i. P(SUC i))")]
          |> THEN <| REWRITE_TAC [LT_SUC; LT_0; EL; HD; TL])
 
 let ALL_EL = 
@@ -581,9 +630,7 @@ let INJECTIVE_MAP =
            |> THENL <| [MAP_EVERY X_GEN_TAC [(parse_term @"x:A")
                                              (parse_term @"y:A")]
                         |> THEN <| DISCH_TAC
-                        |> THEN 
-                        <| FIRST_X_ASSUM(MP_TAC << SPECL [(parse_term @"[x:A]")
-                                                          (parse_term @"[y:A]")])
+                        |> THEN <| FIRST_X_ASSUM(MP_TAC << SPECL [(parse_term @"[x:A]"); (parse_term @"[y:A]")])
                         |> THEN <| ASM_REWRITE_TAC [MAP; CONS_11]
                         REPEAT LIST_INDUCT_TAC
                         |> THEN <| ASM_SIMP_TAC [MAP; NOT_CONS_NIL; CONS_11]
@@ -596,12 +643,10 @@ let SURJECTIVE_MAP =
          |> THEN <| EQ_TAC
          |> THEN <| DISCH_TAC
          |> THENL <| [X_GEN_TAC(parse_term @"y:B")
-                      |> THEN 
-                      <| FIRST_X_ASSUM(MP_TAC << SPEC(parse_term @"[y:B]"))
+                      |> THEN <| FIRST_X_ASSUM(MP_TAC << SPEC(parse_term @"[y:B]"))
                       |> THEN <| REWRITE_TAC [LEFT_IMP_EXISTS_THM]
                       |> THEN <| LIST_INDUCT_TAC
-                      |> THEN 
-                      <| REWRITE_TAC [MAP; CONS_11; NOT_CONS_NIL; MAP_EQ_NIL]
+                      |> THEN <| REWRITE_TAC [MAP; CONS_11; NOT_CONS_NIL; MAP_EQ_NIL]
                       MATCH_MP_TAC list_INDUCT]
          |> THEN <| ASM_MESON_TAC [MAP])
 
@@ -639,12 +684,12 @@ let EL_APPEND =
                               INDUCT_TAC
                               |> THEN <| REWRITE_TAC [EL]
                               |> THEN <| LIST_INDUCT_TAC
-                              |> THEN <| REWRITE_TAC [HD
-                                                      APPEND
-                                                      LENGTH
-                                                      SUB_0
-                                                      EL
-                                                      LT_0
+                              |> THEN <| REWRITE_TAC [HD;
+                                                      APPEND;
+                                                      LENGTH;
+                                                      SUB_0;
+                                                      EL;
+                                                      LT_0;
                                                       CONJUNCT1 LT]
                               |> THEN <| ASM_REWRITE_TAC [TL; LT_SUC; SUB_SUC])
 
@@ -672,6 +717,7 @@ let HD_APPEND =
         ((parse_term @"!l m:A list. HD(APPEND l m) = if l = [] then HD m else HD l"), 
          LIST_INDUCT_TAC
          |> THEN <| REWRITE_TAC [HD; APPEND; NOT_CONS_NIL])
+
 let CONS_HD_TL = 
     prove
         ((parse_term @"!l. ~(l = []) ==> l = CONS (HD l) (TL l)"), 
@@ -734,34 +780,38 @@ let MEM_APPEND_DECOMPOSE =
 (* ------------------------------------------------------------------------- *)
 /// Constructs a CONS pair.
 let mk_cons h t = 
-    try 
-        let cons = Choice.get <| mk_const("CONS", [Choice.get <| type_of h, aty])
-        Choice.get <| mk_comb(Choice.get <| mk_comb(cons, h), t)
-    with
-    | Failure _ as e -> nestedFailwith e "mk_cons"
+    choice { 
+        let! ty = type_of h
+        let! cons = mk_const("CONS", [ty, aty])
+        let! tm1 = mk_comb(cons, h)
+        return! mk_comb(tm1, t)
+    }
+    |> Choice.mapError (fun e -> nestedFailure e "mk_cons")
 
 /// Constructs object-level list from list of terms.
 let mk_list(tms, ty) = 
-    try 
-        let nil = Choice.get <| mk_const("NIL", [ty, aty])
-        if tms = []
-        then nil
+    choice { 
+        let! nil = mk_const("NIL", [ty, aty])
+        if tms = [] then 
+            return nil
         else 
-            let cons = Choice.get <| mk_const("CONS", [ty, aty])
-            itlist (fun x -> Choice.get << mk_binop cons x) tms nil
-    with
-    | Failure _ as e -> nestedFailwith e "mk_list"
+            let! cons = mk_const("CONS", [ty, aty])
+            return! Choice.List.fold (fun acc x -> mk_binop cons x acc) nil tms
+    }
+    |> Choice.mapError (fun e -> nestedFailure e "mk_list")
 
 /// Constructs object-level list from nonempty list of terms.
 let mk_flist tms = 
-    try 
-        mk_list(tms, Choice.get <| type_of(hd tms))
-    with
-    | Failure _ as e -> nestedFailwith e "mk_flist"
+    choice { 
+        let! ty = type_of(hd tms)
+        return! mk_list(tms, ty)
+    }
+    |> Choice.mapError (fun e -> nestedFailure e "mk_flist")
 
 (* ------------------------------------------------------------------------- *)
 (* Extra monotonicity theorems for inductive definitions.                    *)
 (* ------------------------------------------------------------------------- *)
+
 let MONO_ALL = 
     prove
         ((parse_term @"(!x:A. P x ==> Q x) ==> ALL P l ==> ALL Q l"), 
@@ -789,13 +839,19 @@ monotonicity_theorems := [MONO_ALL; MONO_ALL2] @ !monotonicity_theorems
 (* ------------------------------------------------------------------------- *)
 (* Apply a conversion down a list.                                           *)
 (* ------------------------------------------------------------------------- *)
+
 /// Apply a conversion to each element of a list.
 let rec LIST_CONV conv tm = 
-    if is_cons tm
-    then COMB2_CONV (RAND_CONV conv) (LIST_CONV conv) tm
-    elif fst(Choice.get <| dest_const tm) = "NIL"
-    then REFL tm
-    else failwith "LIST_CONV"
+    choice {
+        if is_cons tm then 
+            return! COMB2_CONV (RAND_CONV conv) (LIST_CONV conv) tm
+        else 
+            let! (s, _) = dest_const tm
+            if s = "NIL" then 
+                return! REFL tm
+            else 
+                return! Choice.failwith "LIST_CONV"
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Type of characters, like the HOL88 "ascii" type.                          *)
