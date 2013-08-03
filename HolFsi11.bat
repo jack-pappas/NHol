@@ -1,4 +1,5 @@
-:: Tell system location of fsi.exe
+:: F# Interactive version 11.x
+
 set path="C:\Program Files (x86)\Microsoft SDKs\F#\3.0\Framework\v4.0"
 
 fsi^
