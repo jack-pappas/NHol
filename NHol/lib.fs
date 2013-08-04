@@ -40,6 +40,9 @@ open ExtCore.Control.Collections
 
 #endif
 
+//
+type Protected<'T> = Choice<'T, exn>
+
 // The exception fired by failwith is used as a control flow.
 // KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
 // Using exception as a control flow should be eliminated in the future.
