@@ -582,7 +582,7 @@ let parse_type s =
     if l = [] then Choice.get <| type_of_pretype pty
     else failwith "Unparsed input following type"
 
-let tryParseType s =
+let tryParseType s : Protected<_> =
     try
         Choice.result <| parse_type s
     with e ->
@@ -596,7 +596,7 @@ let parse_term s =
     if l = [] then (Choice.get << term_of_preterm << (Choice.get << retypecheck [])) ptm
     else failwith "Unparsed input following term"
 
-let tryParseTerm s =
+let tryParseTerm s : Protected<_> =
     try
         Choice.result <| parse_term s
     with e ->

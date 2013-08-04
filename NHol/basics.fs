@@ -167,7 +167,7 @@ let rec variants av vs : Protected<term list> =
 (* ------------------------------------------------------------------------- *)
 
 /// Determines the variables used, free or bound, in a given term.
-let variables = 
+let variables : term -> Protected<term list> = 
     let rec vars(acc, tm) =
         choice {
         if is_var tm then

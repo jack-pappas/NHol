@@ -190,7 +190,7 @@ let SELECT_UNIQUE =
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM ETA_AX]
          |> THEN <| ASM_REWRITE_TAC [SELECT_REFL]);;
 
-extend_basic_rewrites [SELECT_REFL] |> ignore
+extend_basic_rewrites [SELECT_REFL] |> ExtCore.Choice.bindOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Now we can derive type definitions from existence; check benignity.       *)

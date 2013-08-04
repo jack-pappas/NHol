@@ -265,7 +265,7 @@ let pp_print_type, pp_print_qtype =
 // install_user_printer: Install a user-defined printing function into the HOL Light term printer.
 // delete_user_printer: Remove user-defined printer from the HOL Light term printing.
 // try_user_printer: Try user-defined printers on a term.
-let install_user_printer, delete_user_printer, try_user_printer = 
+let install_user_printer, delete_user_printer, (try_user_printer : term -> Protected<unit>) = 
     let user_printers = ref([] : (string * (term -> unit)) list)
     (fun pr ->
         user_printers := pr :: !user_printers), 

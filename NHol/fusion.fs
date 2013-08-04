@@ -89,7 +89,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the arity of a type constructor.
-    let get_type_arity s =
+    let get_type_arity s : Protected<int> =
         match assoc s !the_type_constants with
         | Some result ->
             Choice.result result
@@ -101,7 +101,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Declares a new type or type constructor.
-    let new_type(name, arity) =
+    let new_type(name, arity) : Protected<unit> =
         if Choice.isResult <| get_type_arity name then
             let msg = sprintf "new_type: type %s has already been declared" name
             Choice.failwith msg
@@ -133,17 +133,19 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Breaks apart a type (other than a variable type).
-    let dest_type = function 
-        | (Tyapp(s, ty)) ->
+    let dest_type ty : Protected<string * hol_type list> =
+        match ty with
+        | Tyapp(s, ty) ->
             Choice.result (s, ty)
-        | (Tyvar _) ->
+        | Tyvar _ ->
             Choice.failwith "dest_type: type variable not a constructor"
     
     /// Breaks a type variable down to its name.
-    let dest_vartype = function 
-        | (Tyvar s) ->
+    let dest_vartype ty : Protected<string> =
+        match ty with
+        | Tyvar s ->
             Choice.result s
-        | (Tyapp(_, _)) ->
+        | Tyapp(_, _) ->
             Choice.failwith "dest_vartype: type constructor not a variable"
             
     (* ------------------------------------------------------------------------- *)
@@ -161,9 +163,12 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns a list of the type variables in a type.
-    let rec tyvars = function 
-        | (Tyapp(_, args)) -> itlist (union << tyvars) args []
-        | (Tyvar v as tv) -> [tv]
+    let rec tyvars ty =
+        match ty with
+        | Tyapp(_, args) ->
+            itlist (union << tyvars) args []
+        | Tyvar v as tv ->
+            [tv]
     
     (* ------------------------------------------------------------------------- *)
     (* Substitute types for type variables.                                      *)
@@ -637,7 +642,7 @@ module Hol_kernel =
                     else
                         result <| Abs(y', t')
 
-    let private instImpl env tyin tm =
+    let private instImpl env tyin tm : Protected<_> =
         match instRec env tyin tm with
         | Choice1Of3 result ->
             Choice.result result

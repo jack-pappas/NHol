@@ -87,7 +87,7 @@ let remove_interface sym =
     the_interface := ``interface``
 
 /// Remove a specific overload/interface mapping for an identifier.
-let reduce_interface(sym, tm) = 
+let reduce_interface(sym, tm) : Protected<_> = 
     let namty = 
         dest_const tm
         |> Choice.bindError (fun _ -> dest_var tm)
@@ -99,7 +99,7 @@ let reduce_interface(sym, tm) =
         Choice.error ex
 
 /// Map identifier to specific underlying constant.
-let override_interface(sym, tm) =
+let override_interface(sym, tm) : Protected<_> =
     let namty =
         dest_const tm
         |> Choice.bindError (fun _ -> dest_var tm)
@@ -113,7 +113,7 @@ let override_interface(sym, tm) =
         Choice.error ex
 
 /// Overload a symbol so it may denote a particular underlying constant.
-let overload_interface(sym, tm) =
+let overload_interface(sym, tm) : Protected<_> =
     let gty =
         match assoc sym !the_overload_skeletons with
         | Some x ->

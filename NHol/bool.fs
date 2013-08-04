@@ -73,7 +73,7 @@ let is_iff tm =
     | _ -> false
 
 /// Term destructor for logical equivalence.
-let dest_iff tm = 
+let dest_iff tm : Protected<_> = 
     match tm with
     | Comb(Comb(Const("=", Tyapp("fun", [Tyapp("bool", []); _])), l), r) -> 
         Choice.result (l, r)
@@ -81,7 +81,7 @@ let dest_iff tm =
         Choice.failwith "dest_iff"
 
 /// Constructs a logical equivalence (Boolean equation).
-let mk_iff = 
+let mk_iff : term * term -> Protected<_> =
     let eq_tm = parse_term @"(<=>)"
     fun (l, r) -> 
         mk_comb(eq_tm, l)
@@ -608,7 +608,7 @@ let F_DEF = new_basic_definition <| parse_term @"F = !p:bool. p"
 let NOT_DEF = new_basic_definition <| parse_term @"(~) = \p. p ==> F"
 
 /// Constructs a logical negation.
-let mk_neg = 
+let mk_neg : term -> Protected<_> = 
     let neg_tm = parse_term @"(~)"
     fun tm -> 
         mk_comb(neg_tm, tm)
