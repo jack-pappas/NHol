@@ -104,18 +104,20 @@ let MK_EXISTS =
 /// Removes antecedent of implication theorem by solving it with a conversion.
 let MP_CONV (cnv : conv) (th : thm) : thm = 
     choice {
-        let! l, r = Choice.bind (dest_imp << concl) th
-        let ath = cnv l
-        return!
-            MP th (EQT_ELIM ath)
-            |> Choice.bindError (fun _ -> MP th ath)
+    let! th = th
+    let! l, r = dest_imp <| concl th
+    let ath = cnv l
+    return!
+        let th = Choice.result th in
+        MP th (EQT_ELIM ath)
+        |> Choice.bindError (fun _ -> MP th ath)
     }    
 
 (* ------------------------------------------------------------------------- *)
 (* Multiple beta-reduction (we use a slight variant below).                  *)
 (* ------------------------------------------------------------------------- *)
 /// Beta conversion over multiple arguments.
-let rec BETAS_CONV tm : thm = 
+let rec BETAS_CONV tm : thm =
     match tm with
     | Comb(Abs(_, _), _) ->
         BETA_CONV tm
@@ -130,59 +132,90 @@ let rec BETAS_CONV tm : thm =
 
 /// Apply a higher-order instantiation to a term.
 let instantiate : instantiation -> term -> Choice<term, exn> = 
-    let betas n tm = 
-        ([], tm)
-        |> funpow n (fun (l, t) ->
-            let rand_t = Choice.get <| rand t
-            let rator_t = Choice.get <| rator t
-            rand_t :: l, rator_t)
-        ||> rev_itlist (fun a l ->
-            let v, b = Choice.get <| dest_abs l
-            Choice.get <| vsubst [a, v] b)
+    let betas n tm =
+        choice {
+        // CLEAN : Rename this value to something sensible.
+        let! foo1 =
+            ([], tm)
+            |> Choice.funpow n (fun (l, t) ->
+                choice {
+                let! rand_t = rand t
+                let! rator_t = rator t
+                return rand_t :: l, rator_t
+                })
+        
+        return
+            foo1
+            // TODO : Modify this to use Choice.List.fold.
+            ||> rev_itlist (fun a l ->
+                choice {
+                let! v, b = dest_abs l
+                return! vsubst [a, v] b
+                }
+                |> Choice.get)
+        }
 
-    let rec ho_betas bcs pat tm = 
+    let rec ho_betas bcs pat tm =
         if is_var pat || is_const pat then
-            fail()
-        else 
-            try 
-                let bv, bod = Choice.get <| dest_abs tm
-                let body_pat = Choice.get <| body pat
-                Choice.get <| mk_abs(bv, ho_betas bcs body_pat bod)
-            with
-            | Failure _ -> 
+            Choice.fail ()
+        else
+            choice {
+            let! bv, bod = dest_abs tm
+            let! body_pat = body pat
+            // CLEAN : Rename this value to something sensible.
+            let! foo1 = ho_betas bcs body_pat bod
+            return! mk_abs(bv, foo1)
+            }
+            |> Choice.bindError (fun _ ->
                 let hop, args = strip_comb pat
                 match rev_assoc hop bcs with
                 | Some n when length args = n ->
                     betas n tm
                 | _ ->
-                    let lpat, rpat = Choice.get <| dest_comb pat
-                    let ltm, rtm = Choice.get <| dest_comb tm
-                    try 
-                        let lth = ho_betas bcs lpat ltm
-                        try 
-                            let rth = ho_betas bcs rpat rtm
-                            Choice.get <| mk_comb(lth, rth)
-                        with
-                        | Failure _ -> Choice.get <| mk_comb(lth, rtm)
-                    with
-                    | Failure _ -> 
-                        let rth = ho_betas bcs rpat rtm
-                        Choice.get <| mk_comb(ltm, rth)
+                    // CLEAN : This should be reworked to simplify the code.
+                    match dest_comb pat with
+                    | Error error ->
+                        Choice.error error
+                    | Success (lpat, rpat) ->
+                        match dest_comb tm with
+                        | Error error ->
+                            Choice.error error
+                        | Success (ltm, rtm) ->
+                            match ho_betas bcs lpat ltm with
+                            | Success lth ->
+                                match ho_betas bcs rpat rtm with
+                                | Success rth ->
+                                    mk_comb(lth, rth)
+                                | Error _ ->
+                                    mk_comb(lth, rtm)
+                            | Error _ ->
+                                match ho_betas bcs rpat rtm with
+                                | Success rth ->
+                                    mk_comb(ltm, rth)
+                                | Error error ->
+                                    Choice.error error)
 
     fun (bcs, tmin, tyin) tm ->
-        Choice.attempt <| fun () ->
-            let itm = 
-                if tyin = [] then tm
-                else Choice.get <| inst tyin tm
-            if tmin = [] then itm
-            else 
-                let ttm = Choice.get <| vsubst tmin itm
-                if bcs = [] then ttm
-                else 
-                    try 
-                        ho_betas bcs itm ttm
-                    with
-                    | Failure _ -> ttm
+        choice {
+        let! itm =
+            choice {
+            if List.isEmpty tyin then
+                return tm
+            else
+                return! inst tyin tm }
+
+        if List.isEmpty tmin then
+            return itm
+        else
+            let! ttm = vsubst tmin itm
+            if List.isEmpty bcs then
+                return ttm
+            else
+                return!
+                    ho_betas bcs itm ttm
+                    |> Choice.bindError (fun _ ->
+                        Choice.result ttm)
+        }
 
 /// Apply a higher-order instantiation to conclusion of a theorem.
 let INSTANTIATE : instantiation -> thm -> thm = 
@@ -192,7 +225,7 @@ let INSTANTIATE : instantiation -> thm -> thm =
         else
             THENC (RATOR_CONV(BETAS_CONV(n - 1))) (TRY_CONV BETA_CONV) tm
 
-    let rec HO_BETAS bcs pat tm = 
+    let rec HO_BETAS bcs pat tm =
         if is_var pat || is_const pat then
             Choice.fail ()
         else 
@@ -203,82 +236,110 @@ let INSTANTIATE : instantiation -> thm -> thm =
             }
             |> Choice.bindError (fun _ ->
                 let hop, args = strip_comb pat
-                let v = 
-                    rev_assoc hop bcs
-                    |> Option.toChoiceWithError "find"
-                    |> Choice.bind (fun n ->
-                        if length args = n
-                        then BETAS_CONV n tm
-                        else Choice.fail ())
-                v |> Choice.bindError (fun _ -> 
+                rev_assoc hop bcs
+                |> Option.toChoiceWithError "find"
+                |> Choice.bind (fun n ->
+                    if length args = n then
+                        BETAS_CONV n tm
+                    else
+                        Choice.fail ())
+                |> Choice.bindError (fun _ ->
                     choice {
                         let! lpat, rpat = dest_comb pat
                         let! ltm, rtm = dest_comb tm
                         
-                        let lth = HO_BETAS bcs lpat ltm
-                        let v' = 
-                            let rth = HO_BETAS bcs rpat rtm
+                        let! lth = HO_BETAS bcs lpat ltm
+                        let! rth = HO_BETAS bcs rpat rtm
+                        return!
+                            let lth = Choice.result lth in
+                            let rth = Choice.result rth in
                             MK_COMB(lth, rth)
-                        return! v' |> Choice.bindError (fun _ -> AP_THM lth rtm)
-                                   |> Choice.bindError (fun _ -> 
-                                        let rth = HO_BETAS bcs rpat rtm
-                                        AP_TERM ltm rth)
+                            |> Choice.bindError (fun _ ->
+                                AP_THM lth rtm)
+                            |> Choice.bindError (fun _ ->
+                                choice {
+                                let! rth = HO_BETAS bcs rpat rtm
+                                return! AP_TERM ltm (Choice.result rth)
+                                })
                     }))
 
-    fun (bcs, tmin, tyin) th -> 
-        let ith = 
-            if tyin = [] then th
-            else INST_TYPE tyin th
-        if tmin = [] then ith
+    fun (bcs, tmin, tyin) th ->
+        choice {
+        let! th = th
+        let! ith =
+            choice {
+            if List.isEmpty tyin then
+                return th
+            else
+                return! INST_TYPE tyin (Choice.result th) }
+
+        if List.isEmpty tmin then
+            return ith
         else
-            choice { 
-                let tth = INST tmin ith
-                let! tl1 = Choice.map hyp tth
-                let! tl2 = Choice.map hyp th
-                if tl1 = tl2 then 
-                    if bcs = [] then 
-                        return! tth
-                    else 
-                        let! itm = Choice.map concl ith
-                        let! ttm = Choice.map concl tth
-                        let v = 
-                            let eth = HO_BETAS bcs itm ttm
-                            EQ_MP eth tth
-                        return! v |> Choice.bindError (fun _ -> tth)
-                else 
-                    return! Choice.failwith "INSTANTIATE: term or type var free in assumptions"
-            }
+            let! tth = INST tmin (Choice.result ith)
+            let tl1 = hyp tth
+            let tl2 = hyp th
+
+            if tl1 = tl2 then
+                if List.isEmpty bcs then
+                    return tth
+                else
+                    let itm = concl ith
+                    let ttm = concl tth
+                    let! eth = HO_BETAS bcs itm ttm
+                    return!
+                        let eth = Choice.result eth in
+                        let tth = Choice.result tth in
+                        EQ_MP eth tth
+                        |> Choice.bindError (fun _ -> tth)
+            else 
+                return! Choice.failwith "INSTANTIATE: term or type var free in assumptions"
+        }
 
 /// Apply a higher-order instantiation to assumptions and conclusion of a theorem.
-let INSTANTIATE_ALL : instantiation -> thm -> thm = 
+let INSTANTIATE_ALL : instantiation -> thm -> thm =
     let inst ((_, tmin, tyin) as i) th =
-        if tmin = [] && tyin = [] then th
-        else 
-            let hyps = hyp <| Choice.get th
-            if hyps = [] then INSTANTIATE i th
-            else 
-                let tyrel, tyiirel = 
-                    if tyin = [] then [], hyps
-                    else 
+        choice {
+        let! th = th
+        if List.isEmpty tmin && List.isEmpty tyin then
+            return th
+        else
+            let hyps = hyp th
+            if List.isEmpty hyps then
+                return! INSTANTIATE i (Choice.result th)
+            else
+                let! tyrel, tyiirel =
+                    if List.isEmpty tyin then
+                        Choice.result ([], hyps)
+                    else
                         let tvs = itlist (union << tyvars << snd) tyin []
-                        partition (fun tm -> 
-                                let tvs' = Choice.get <| type_vars_in_term tm
-                                not(intersect tvs tvs' = [])) hyps
-                let tmrel, tmirrel = 
-                    if tmin = [] then
+                        hyps
+                        // TODO : Modify this to use Choice.List.partition.
+                        |> Choice.List.partition (fun tm ->
+                            choice {
+                            let! tvs' = type_vars_in_term tm
+                            return not(intersect tvs tvs' = [])
+                            })
+                
+                let tmrel, tmirrel =
+                    if List.isEmpty tmin then
                         [], tyiirel
-                    else 
+                    else
                         let vs = itlist (union << frees << snd) tmin []
-                        partition (fun tm -> 
-                                let vs' = frees tm
-                                not(intersect vs vs' = [])) tyiirel
+                        tyiirel
+                        |> partition (fun tm ->
+                            let vs' = frees tm
+                            not(intersect vs vs' = []))
+                
                 let rhyps = union tyrel tmrel
-                let th1 = rev_itlist DISCH rhyps th
-                let th2 = INSTANTIATE i th1
-                funpow (length rhyps) UNDISCH th2
-    fun i th ->
-        Choice.attemptNested <| fun () ->
-            inst i th
+                let! th1 =
+                    // TODO : Modify this to use Choice.List.fold/foldBack.
+                    rev_itlist DISCH rhyps (Choice.result th)
+                let! th2 = INSTANTIATE i (Choice.result th1)
+                return! funpow (length rhyps) UNDISCH (Choice.result th2)
+        }
+    
+    inst
 
 (* ------------------------------------------------------------------------- *)
 (* Higher order matching of terms.                                           *)
@@ -452,6 +513,7 @@ let term_match : term list -> term -> term -> Choice<_, exn> =
                             (insts, (env, lc, lv) :: (tl homs))
                     let tyins' = get_type_insts (fst pinsts_homs') []
                     term_homatch lconsts tyins' pinsts_homs'
+
     fun lconsts vtm ctm ->
         Choice.attempt <| fun () ->
             let pinsts_homs = term_pmatch lconsts [] vtm ctm ([], [])
@@ -513,7 +575,7 @@ let term_unify : term list -> term -> term -> Choice<_, exn> =
 (* ------------------------------------------------------------------------- *)
 
 /// Modify bound variable according to renaming scheme.
-let deep_alpha : (string * string) list -> term -> term = 
+let deep_alpha : (string * string) list -> term -> Protected<term> = 
     let tryalpha v tm =
         match alpha v tm with
         | Success x -> x
@@ -560,9 +622,7 @@ let deep_alpha : (string * string) list -> term -> term =
             |> Choice.bindError (fun _ ->
                 Choice.result tm))
     
-    fun env tm ->
-        deep_alpha env tm
-        |> ExtCore.Choice.bindOrRaise
+    deep_alpha
 
 (* ------------------------------------------------------------------------- *)
 (* Instantiate theorem by matching part of it to a term.                     *)
@@ -607,7 +667,7 @@ let PART_MATCH, GEN_PART_MATCH =
             choice {      
                 let! (sth, bod, pbod, lconsts) = v
                 let bvms = match_bvs tm pbod []
-                let abod = deep_alpha bvms bod
+                let! abod = deep_alpha bvms bod
                 let ath = EQ_MP (ALPHA bod abod) sth
                 let! tm1 = partfn abod
                 let! insts = term_match lconsts tm1 tm
@@ -642,7 +702,7 @@ let PART_MATCH, GEN_PART_MATCH =
             choice {
                 let! (sth, bod, pbod, lconsts, fvs) = v
                 let bvms = match_bvs tm pbod []
-                let abod = deep_alpha bvms bod
+                let! abod = deep_alpha bvms bod
                 let ath = EQ_MP (ALPHA bod abod) sth
                 let! tm1 = partfn abod
                 let! insts = term_match lconsts tm1 tm
