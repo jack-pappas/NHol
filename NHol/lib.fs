@@ -187,6 +187,17 @@ module Choice =
         | Choice2Of2 error ->
             binding error
 
+    /// Iterates a function a fixed number of times.
+    /// The iteration will be short-circuited if/when the function returns an error.
+    let rec funpow n f x =
+        choice {
+        if n < 1 then
+            return x
+        else
+            let! next_x = f x
+            return! funpow (n - 1) f next_x
+        }
+
 
 (* ------------------------------------------------------------------------- *)
 (* Functions needed for OCaml compatibility. These augment or supercede      *)
