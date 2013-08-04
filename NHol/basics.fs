@@ -181,7 +181,8 @@ let variables =
             let! l' = vars(acc, l)
             return! vars(l', r)
         }
-    fun tm -> vars([], tm)
+    fun tm ->
+        vars([], tm)
 
 (* ------------------------------------------------------------------------- *)
 (* General substitution (for any free expression).                           *)
@@ -189,35 +190,51 @@ let variables =
 
 /// Substitute terms for other terms inside a term.
 let subst = 
-    let rec ssubst ilist tm = 
-        if ilist = [] then tm
+    let rec ssubst ilist tm =
+        choice {
+        if ilist = [] then
+            return tm
         else 
             match find ((aconv tm) << snd) ilist with
-            | Some(tm', _) -> tm'
+            | Some(tm', _) ->
+                return tm'
             | None ->
                 match tm with
                 | Comb(f, x) -> 
-                    let f' = ssubst ilist f
-                    let x' = ssubst ilist x
-                    if f' == f && x' == x then tm
-                    else Choice.get <| mk_comb(f', x')
-                | Abs(v, bod) -> 
-                    let ilist' = filter (not << (vfree_in v) << snd) ilist
-                    Choice.get <| mk_abs(v, ssubst ilist' bod)
-                | _ -> tm
+                    let! f' = ssubst ilist f
+                    let! x' = ssubst ilist x
+                    if f' == f && x' == x then
+                        return tm
+                    else
+                        return! mk_comb(f', x')
+                | Abs(v, bod) ->
+                    // CLEAN : Rename this value to something sensible.
+                    let! foo1 =
+                        let ilist' = filter (not << (vfree_in v) << snd) ilist
+                        ssubst ilist' bod
+                    return! mk_abs(v, foo1)
+                | _ ->
+                    return tm
+        }
+
     let subst ilist =
         let theta = filter (fun (s, t) -> compare s t <> 0) ilist
-        if theta = [] then (fun tm -> tm)
+        if theta = [] then Choice.result
         else 
             let ts, xs = unzip theta
-            fun tm -> 
-                let gs = Choice.get <| variants (Choice.get <| variables tm) (map (genvar << Choice.get << type_of) xs)
-                let tm' = ssubst (zip gs xs) tm
-                if tm' == tm then tm
-                else Choice.get <| vsubst (zip ts gs) tm'
-    fun ilist tm ->
-        Choice.attempt <| fun () ->
-            subst ilist tm
+            fun tm ->
+                choice {
+                let! variables_tm = variables tm
+                // CLEAN : Rename this value to something sensible.
+                // TODO : This should be reworked to use Choice.List.map.
+                let foo1 = map (genvar << Choice.get << type_of) xs
+                let! gs = variants variables_tm foo1
+                let! tm' = ssubst (zip gs xs) tm
+                if tm' == tm then return tm
+                else return! vsubst (zip ts gs) tm'
+                }
+
+    subst
 
 (* ------------------------------------------------------------------------- *)
 (* Alpha conversion term operation.                                          *)
@@ -244,27 +261,26 @@ let alpha v tm =
 (* ------------------------------------------------------------------------- *)
 
 /// Computes a type instantiation to match one type to another.
-let type_match vty cty sofar = 
-    let rec type_match vty cty sofar = 
-        if is_vartype vty then
-            match rev_assoc vty sofar with
-            | Some x ->
-                if x = cty then
-                    Choice.result sofar
-                else Choice.failwith "type_match"
-            | None ->
-                Choice.result <| (cty, vty) :: sofar
-        else 
-            let vop, vargs = Choice.get <| dest_type vty
-            let cop, cargs = Choice.get <| dest_type cty
-            if vop = cop then
-                // TODO : Change to use Choice.List.foldBack2 from ExtCore.
-                itlist2 (fun x y z -> Choice.get <| type_match x y z) vargs cargs sofar
-                |> Choice.result
-            else Choice.failwith "type_match"
-
-    Choice.attemptNested <| fun () ->
-        type_match vty cty sofar
+let rec type_match vty cty sofar =
+    choice {
+    if is_vartype vty then
+        match rev_assoc vty sofar with
+        | Some x ->
+            if x = cty then
+                return sofar
+            else
+                return! Choice.failwith "type_match"
+        | None ->
+            return (cty, vty) :: sofar
+    else 
+        let! vop, vargs = dest_type vty
+        let! cop, cargs = dest_type cty
+        if vop = cop then
+            // TODO : Change to use Choice.List.foldBack2 from ExtCore.
+            return itlist2 (fun x y z -> Choice.get <| type_match x y z) vargs cargs sofar
+        else
+            return! Choice.failwith "type_match"
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Conventional matching version of mk_const (but with a sanity test).       *)
@@ -277,8 +293,10 @@ let mk_mconst(c, ty) =
         let! mat = type_match uty ty []
         let! con = mk_const(c, mat)
         let! tc = type_of con
-        if tc = ty then return con
-        else return! Choice.fail()
+        if tc = ty then
+            return con
+        else
+            return! Choice.fail()
     }
     |> Choice.mapError (fun e ->
         nestedFailure e "mk_const: generic type cannot be instantiated")
@@ -288,7 +306,7 @@ let mk_mconst(c, ty) =
 (* ------------------------------------------------------------------------- *)
 
 /// Makes a combination, instantiating types in rator if necessary.
-let mk_icomb(tm1, tm2) = 
+let mk_icomb(tm1, tm2) =
     choice {
         let! ty1 = type_of tm1
         let! (s, ty1') = dest_type ty1
@@ -298,7 +316,8 @@ let mk_icomb(tm1, tm2) =
             let! tyins = type_match ty ty2 []
             let! tm1' = inst tyins tm1
             return mk_comb(tm1', tm2)
-        | _ -> return! Choice.failwith "mk_icomb: Unhandled case."
+        | _ ->
+            return! Choice.failwith "mk_icomb: Unhandled case."
     }
 
 (* ------------------------------------------------------------------------- *)
@@ -306,7 +325,7 @@ let mk_icomb(tm1, tm2) =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies constant to list of arguments, instantiating constant type as needed.
-let list_mk_icomb cname args = 
+let list_mk_icomb cname args : Choice<term, exn> = 
     let list_mk_icomb cname args = 
         let atys, _ = nsplit (Choice.get << dest_fun_ty) args (Choice.get <| get_const_type cname)
         let tyin = itlist2 (fun g a -> Choice.get << type_match g (Choice.get <| type_of a)) atys args []
@@ -347,13 +366,13 @@ let rec free_in tm1 tm2 =
 (* Searching for terms.                                                      *)
 (* ------------------------------------------------------------------------- *)
 
-/// Searches a term for a subterm that satises a given predicate.
+/// Searches a term for a subterm that satisfies a given predicate.
 let rec find_term p tm =
     choice {
     if p tm then return tm
     elif is_abs tm then
-        // TODO : Change this to use the workflow instead of Choice.bind.
-        return! Choice.bind (find_term p) (body tm)
+        let! bod = body tm
+        return! find_term p bod
     elif is_comb tm then
         let! l, r = dest_comb tm
         return!
@@ -495,7 +514,7 @@ let dest_disj = dest_binary "\\/"
 let disjuncts = striplist (Choice.toOption << dest_disj)
 
 /// Tests a term to see if it is a logical negation.
-let is_neg tm = 
+let is_neg tm =
     let v = rator tm |> Choice.bind dest_const
     match v with
     | Success("~", _) -> true
@@ -707,8 +726,10 @@ let make_args =
             return v :: vs
         }
     fun s avoid tys ->
-        if length tys = 1 then 
-            variant avoid (mk_var(s, hd tys)) |> Choice.map (fun x -> [x])
+        if length tys = 1 then
+            mk_var(s, hd tys)
+            |> variant avoid
+            |> Choice.map List.singleton
         else margs 0 s avoid tys
 
 (* ------------------------------------------------------------------------- *)
@@ -739,22 +760,26 @@ let find_path =
                             return "l" :: ls
                         })
         }
-    fun p tm -> Choice.map implode (find_path p tm)
+
+    fun p tm ->
+        Choice.map implode (find_path p tm)
 
 /// Find the subterm of a given term indicated by a path.
-let follow_path = 
-    let rec follow_path s tm = 
+let follow_path =
+    let rec follow_path s tm =
         choice {
             match s with
             | [] -> return tm
-            | "l" :: t -> 
+            | "l" :: t ->
                 let! tm1 = rator tm
                 return! follow_path t tm1
-            | "r" :: t -> 
+            | "r" :: t ->
                 let! tm1 = rand tm
                 return! follow_path t tm1
-            | _ :: t -> 
+            | _ :: t ->
                 let! tm1 = body tm
                 return! follow_path t tm1
         }
-    fun s tm -> follow_path (explode s) tm
+
+    fun s tm ->
+        follow_path (explode s) tm
