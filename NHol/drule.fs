@@ -351,7 +351,7 @@ let INSTANTIATE_ALL : instantiation -> thm -> thm =
 (* ------------------------------------------------------------------------- *)
 
 /// Match one term against another.
-let term_match : term list -> term -> term -> Choice<_, exn> = 
+let term_match : term list -> term -> term -> Protected<_> = 
     let safe_inserta ((y : term, x : 'a) as n) (l : (term * 'a) list) = 
         match rev_assoc x l with
         | Some z ->

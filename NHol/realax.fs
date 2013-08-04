@@ -2132,13 +2132,14 @@ let NADD_INV_WELLDEF =
 let hreal_tybij = 
     define_quotient_type "hreal" ("mk_hreal", "dest_hreal") (parse_term @"(===)")
 
-do_list (ignore << overload_interface)
-                           ["+", (parse_term @"hreal_add:hreal->hreal->hreal")
-                            "*", (parse_term @"hreal_mul:hreal->hreal->hreal")
-                            "<=", (parse_term @"hreal_le:hreal->hreal->bool")]
+do_list (ExtCore.Choice.bindOrRaise << overload_interface)
+    ["+", (parse_term @"hreal_add:hreal->hreal->hreal");
+     "*", (parse_term @"hreal_mul:hreal->hreal->hreal");
+     "<=", (parse_term @"hreal_le:hreal->hreal->bool")]
 
-do_list override_interface ["&", (parse_term @"hreal_of_num:num->hreal")
-                            "inv", (parse_term @"hreal_inv:hreal->hreal")]
+do_list (ExtCore.Choice.bindOrRaise << override_interface)
+    ["&", (parse_term @"hreal_of_num:num->hreal");
+     "inv", (parse_term @"hreal_inv:hreal->hreal")]
 
 let hreal_of_num, hreal_of_num_th = 
     lift_function (snd hreal_tybij) (NADD_EQ_REFL, NADD_EQ_TRANS) "hreal_of_num" 
@@ -2918,7 +2919,7 @@ let REAL_COMPLETE_SOMEPOS =
                      HREAL_COMPLETE)
          |> THEN <| BETA_TAC
          |> THEN 
-         <| W(C SUBGOAL_THEN MP_TAC << funpow 2 (fst << Choice.get << dest_imp) << snd)
+         <| W(C SUBGOAL_THEN MP_TAC << Choice.get << Choice.funpow 2 ((Choice.map fst) << dest_imp) << snd)
          |> THENL 
          <| [CONJ_TAC
              |> THENL <| [EXISTS_TAC(parse_term @"(h:real->hreal) x")
@@ -3116,13 +3117,16 @@ let REAL_COMPLETE =
                          <| REWRITE_TAC 
                                 [ONCE_REWRITE_RULE [REAL_ADD_SYM] REAL_ADD_LID]]]]])
 
-do_list reduce_interface ["+", (parse_term @"hreal_add:hreal->hreal->hreal")
-                          "*", (parse_term @"hreal_mul:hreal->hreal->hreal")
-                          "<=", (parse_term @"hreal_le:hreal->hreal->bool")
-                          "inv", (parse_term @"hreal_inv:hreal->hreal")]
-do_list remove_interface ["**"
-                          "++"
-                          "<<="
-                          "==="
-                          "fn"
-                          "afn"]
+do_list (ExtCore.Choice.bindOrRaise << reduce_interface)
+    ["+", (parse_term @"hreal_add:hreal->hreal->hreal");
+     "*", (parse_term @"hreal_mul:hreal->hreal->hreal");
+     "<=", (parse_term @"hreal_le:hreal->hreal->bool");
+     "inv", (parse_term @"hreal_inv:hreal->hreal")]
+
+do_list remove_interface
+    ["**";
+     "++";
+     "<<=";
+     "===";
+     "fn";
+     "afn"]
