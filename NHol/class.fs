@@ -131,7 +131,7 @@ let EXISTS_THM =
 (* ------------------------------------------------------------------------- *)
 
 /// Introduces an epsilon term in place of an existential quantifier.
-let (SELECT_RULE : thm -> thm) = 
+let (SELECT_RULE : Protected<thm0> -> Protected<thm0>) = 
     let P = (parse_term @"P:A->bool")
     let pth = 
         prove
@@ -197,7 +197,7 @@ extend_basic_rewrites [SELECT_REFL] |> ignore
 (* ------------------------------------------------------------------------- *)
 
 /// List of type definitions made so far.
-let the_type_definitions = ref([] : ((string * string * string) * (thm * thm)) list)
+let the_type_definitions = ref([] : ((string * string * string) * (Protected<thm0> * Protected<thm0>)) list)
 
 /// Introduces a new type in bijection with a nonempty subset of an existing type.
 let new_type_definition tyname (absname, repname) th = 
@@ -318,7 +318,7 @@ extend_basic_rewrites [CONJUNCT1 NOT_CLAUSES] |> ignore
 (* ------------------------------------------------------------------------- *)
 
 /// Implements the classical contradiction rule.
-let (CCONTR : term -> thm -> thm) = 
+let (CCONTR : term -> Protected<thm0> -> Protected<thm0>) = 
     let P = (parse_term @"P:bool")
     let pth = TAUT_001(parse_term @"(~P ==> F) ==> P")
     fun tm th -> 

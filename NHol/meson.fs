@@ -104,7 +104,7 @@ type fol_form =
 (* ------------------------------------------------------------------------- *)
 
 type fol_goal = 
-    | Subgoal of fol_atom * fol_goal list * (int * thm) * int * (fol_term * int) list
+    | Subgoal of fol_atom * fol_goal list * (int * Protected<thm0>) * int * (fol_term * int) list
 
 (* ------------------------------------------------------------------------- *)
 (* General MESON procedure, using assumptions and with settable limits.      *)
@@ -1037,7 +1037,7 @@ let GEN_MESON_TAC =
     (* Push duplicated copies of poly theorems to match existing assumptions.  *)
     (* ----------------------------------------------------------------------- *)
 
-    let (POLY_ASSUME_TAC : thm list -> tactic) = 
+    let (POLY_ASSUME_TAC : Protected<thm0> list -> tactic) = 
         let rec uniq' eq = 
             fun l -> 
             match l with
@@ -1128,7 +1128,7 @@ let GEN_MESON_TAC =
     (* Basic HOL MESON procedure.                                              *)
     (* ----------------------------------------------------------------------- *)
 
-    let SIMPLE_MESON_REFUTE min max inc ths : thm = 
+    let SIMPLE_MESON_REFUTE min max inc ths : Protected<thm0> = 
         choice {
             clear_contrapos_cache()
             inferences := 0

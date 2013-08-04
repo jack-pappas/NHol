@@ -110,7 +110,7 @@ let lift_function =
              |> THEN <| GEN_REWRITE_TAC (LAND_CONV << BINDER_CONV) [EQ_SYM_EQ]
              |> THEN <| MATCH_ACCEPT_TAC SELECT_REFL)
 
-    fun (tybij2 : thm) -> 
+    fun (tybij2 : Protected<thm0>) -> 
         let v =
             choice {
                 let! tybl, tybr = Choice.bind (dest_comb << concl) tybij2

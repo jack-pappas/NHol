@@ -291,7 +291,7 @@ let SUB_CONV conv tm =
         REFL tm
 
 /// Applies a conversion to both arguments of a binary operator.
-let BINOP_CONV conv tm : thm =
+let BINOP_CONV conv tm : Protected<thm0> =
     choice {
     let! lop, r = dest_comb tm
     let! op, l = dest_comb lop
@@ -308,7 +308,7 @@ let BINOP_CONV conv tm : thm =
 (* version to avoid a great deal of rebuilding of terms.                     *)
 (* ------------------------------------------------------------------------- *)
 
-let rec private THENQC (conv1 : conv) (conv2 : conv) tm : thm = 
+let rec private THENQC (conv1 : conv) (conv2 : conv) tm : Protected<thm0> = 
     let v = 
         let th1 = conv1 tm
         choice { 
@@ -320,7 +320,7 @@ let rec private THENQC (conv1 : conv) (conv2 : conv) tm : thm =
     v
     |> Choice.bindError (fun _ -> conv2 tm)
 
-and private THENCQC (conv1 : conv) (conv2 : conv) tm : thm =
+and private THENCQC (conv1 : conv) (conv2 : conv) tm : Protected<thm0> =
     let th1 = conv1 tm
     choice { 
         let! tm = Choice.bind (rand << concl) th1
@@ -329,7 +329,7 @@ and private THENCQC (conv1 : conv) (conv2 : conv) tm : thm =
     }
     |> Choice.bindError (fun _ -> th1)
 
-and private COMB_QCONV conv tm : thm = 
+and private COMB_QCONV conv tm : Protected<thm0> = 
     dest_comb tm
     |> Choice.bind (fun (l, r) ->
         let v = 

@@ -710,17 +710,15 @@ let RING_AND_IDEAL_CONV =
     let MK_ADD th1 th2 = MK_COMB(AP_TERM ring_add_tm th1, th2)
     
     let execute_proof vars eths prf = 
-        let x, th1 = SPEC_VAR(CONJUNCT1(CONJUNCT2 RING_INTEGRAL))
-        let y, th2 = SPEC_VAR th1
-        let z, th3 = SPEC_VAR th2
+        let x, th1 = SPEC_VAR(CONJUNCT1(CONJUNCT2 RING_INTEGRAL)) |> ExtCore.Choice.bindOrRaise
+        let y, th2 = SPEC_VAR (Choice.result th1) |> ExtCore.Choice.bindOrRaise
+        let z, th3 = SPEC_VAR (Choice.result th2) |> ExtCore.Choice.bindOrRaise
 
         let SUB_EQ_RULE = 
             fun th ->
                 choice {
-                    let! z = z
                     let! tm = mk_comb(ring_neg_tm, z)
-                    let! x = x
-                    return! GEN_REWRITE_RULE I [SYM(INST [tm, x] th3)] th
+                    return! GEN_REWRITE_RULE I [SYM(INST [tm, x] (Choice.result th3))] th
                 }
 
         let initpols = map (CONV_RULE(BINOP_CONV RING_NORMALIZE_CONV) << SUB_EQ_RULE) eths

@@ -59,7 +59,7 @@ parse_as_infix("/\\", (8, "right"))
 (* ------------------------------------------------------------------------- *)
 
 parse_as_infix("<=>", (2, "right"))
-override_interface("<=>", parse_term @"(=):bool->bool->bool")
+override_interface("<=>", parse_term @"(=):bool->bool->bool") |> ExtCore.Choice.bindOrRaise
 parse_as_infix("=", (12, "right"))
 
 (* ------------------------------------------------------------------------- *)
@@ -92,7 +92,7 @@ let mk_iff =
 (* ------------------------------------------------------------------------- *)
 
 /// Instantiate types and terms in a theorem.
-let PINST tyin tmin : thm -> thm = 
+let PINST tyin tmin : Protected<thm0> -> Protected<thm0> = 
     let iterm_fn = INST(map (I ||>> (Choice.get << inst tyin)) tmin)
     let itype_fn = INST_TYPE tyin
     fun th -> 
@@ -107,7 +107,7 @@ let PINST tyin tmin : thm -> thm =
 (* ------------------------------------------------------------------------- *)
 
 /// Eliminates a provable assumption from a theorem.
-let PROVE_HYP (ath : thm) (bth : thm) : thm = 
+let PROVE_HYP (ath : Protected<thm0>) (bth : Protected<thm0>) : Protected<thm0> = 
     choice {
         let! t = Choice.map concl ath
         let! ts = Choice.map hyp bth
@@ -121,12 +121,13 @@ let PROVE_HYP (ath : thm) (bth : thm) : thm =
 (* Rules for T                                                               *)
 (* ------------------------------------------------------------------------- *)
 
-let T_DEF : thm = new_basic_definition <| parse_term @"T = ((\p:bool. p) = (\p:bool. p))"
+let T_DEF : Protected<thm0> =
+    new_basic_definition <| parse_term @"T = ((\p:bool. p) = (\p:bool. p))"
 
-let TRUTH : thm = EQ_MP (SYM T_DEF) (REFL(parse_term @"\p:bool. p"))
+let TRUTH : Protected<thm0> = EQ_MP (SYM T_DEF) (REFL(parse_term @"\p:bool. p"))
 
 /// Eliminates equality with T.
-let EQT_ELIM (th : thm) : thm = 
+let EQT_ELIM (th : Protected<thm0>) : Protected<thm0> = 
     EQ_MP (SYM th) TRUTH
     |> Choice.mapError (fun e -> nestedFailure e "EQT_ELIM")
 
@@ -137,10 +138,10 @@ let EQT_INTRO =
         let th1 = DEDUCT_ANTISYM_RULE (ASSUME t) TRUTH
         let th2 = th1 |> Choice.map concl |> Choice.bind (fun tm -> EQT_ELIM(ASSUME tm))
         DEDUCT_ANTISYM_RULE th2 th1
-    fun (th : thm) -> 
+    fun (th : Protected<thm0>) -> 
         th
         |> Choice.bind (fun th' ->
-            EQ_MP (INST [concl th', t] pth) th) : thm
+            EQ_MP (INST [concl th', t] pth) th) : Protected<thm0>
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for /\                                                              *)
@@ -166,7 +167,7 @@ let CONJ =
         let th2 = ABS f th1
         let th3 = BETA_RULE(AP_THM (AP_THM AND_DEF p) q)
         EQ_MP (SYM th3) th2
-    fun (th1 : thm) (th2 : thm) -> 
+    fun (th1 : Protected<thm0>) (th2 : Protected<thm0>) -> 
         let th =
             (th1, th2)
             ||> Choice.bind2 (fun th1 th2 ->
@@ -182,13 +183,13 @@ let CONJUNCT1 =
         let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
         let th3 = EQ_MP th2 (ASSUME <| parse_term @"P /\ Q")
         EQT_ELIM(BETA_RULE(AP_THM th3 <| parse_term @"\(p:bool) (q:bool). p"))
-    fun (th : thm) ->
+    fun (th : Protected<thm0>) ->
         choice {
             let! tm = Choice.map concl th
             let! l, r = dest_conj tm
             return! PROVE_HYP th (INST [l, P; r, Q] pth)
         }
-        |> Choice.mapError (fun e -> nestedFailure e "CONJUNCT1") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "CONJUNCT1") : Protected<thm0>
 
 /// Extracts right conjunct of theorem.
 let CONJUNCT2 = 
@@ -199,13 +200,13 @@ let CONJUNCT2 =
         let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
         let th3 = EQ_MP th2 (ASSUME <| parse_term @"P /\ Q")
         EQT_ELIM(BETA_RULE(AP_THM th3 <| parse_term @"\(p:bool) (q:bool). q"))
-    fun (th : thm) -> 
+    fun (th : Protected<thm0>) -> 
         choice {
             let! tm = Choice.map concl th
             let! l, r = dest_conj tm
             return! PROVE_HYP th (INST [l, P; r, Q] pth)
         }
-        |> Choice.mapError (fun e -> nestedFailure e "CONJUNCT2") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "CONJUNCT2") : Protected<thm0>
 
 /// Extracts both conjuncts of a conjunction.
 let CONJ_PAIR th = 
@@ -235,7 +236,7 @@ let MP =
         let th1 = BETA_RULE(AP_THM (AP_THM IMP_DEF p) q)
         let th2 = EQ_MP th1 (ASSUME <| parse_term @"p ==> q")
         CONJUNCT2(EQ_MP (SYM th2) (ASSUME <| parse_term @"p:bool"))
-    fun (ith : thm) (th : thm) -> 
+    fun (ith : Protected<thm0>) (th : Protected<thm0>) -> 
         choice {
             let! tm = Choice.map concl ith
             let! ant, con = dest_imp tm
@@ -244,7 +245,7 @@ let MP =
                 return! PROVE_HYP th (PROVE_HYP ith (INST [ant, p; con, q] <| pth()))
             else 
                 return! Choice.failwith "MP: theorems do not agree"
-        } : thm
+        } : Protected<thm0>
 
 /// Discharges an assumption.
 let DISCH = 
@@ -260,10 +261,10 @@ let DISCH =
             let! tm = Choice.map concl th
             let th4 = INST [a, p; tm, q] <| pth()
             return! EQ_MP th4 th3
-        } : thm
+        } : Protected<thm0>
 
 /// Discharges all hypotheses of a theorem.
-let rec DISCH_ALL (th : thm) : thm = 
+let rec DISCH_ALL (th : Protected<thm0>) : Protected<thm0> = 
     choice {
         let! th' = th
         match hyp th' with
@@ -274,7 +275,7 @@ let rec DISCH_ALL (th : thm) : thm =
     }
 
 /// Undischarges the antecedent of an implicative theorem.
-let UNDISCH (th : thm) : thm =
+let UNDISCH (th : Protected<thm0>) : Protected<thm0> =
     choice {
     let! th = th
     // TODO : Rename these values to something sensible.
@@ -286,7 +287,7 @@ let UNDISCH (th : thm) : thm =
     |> Choice.mapError (fun e -> nestedFailure e "UNDISCH")
 
 /// Iteratively undischarges antecedents in a chain of implications.
-let rec UNDISCH_ALL (th : thm) : thm = 
+let rec UNDISCH_ALL (th : Protected<thm0>) : Protected<thm0> = 
     Choice.map concl th
     |> Choice.bind (fun tm ->
         if is_imp tm then UNDISCH_ALL(UNDISCH th)
@@ -296,7 +297,7 @@ let rec UNDISCH_ALL (th : thm) : thm =
 let IMP_ANTISYM_RULE th1 th2 = DEDUCT_ANTISYM_RULE (UNDISCH th2) (UNDISCH th1)
 
 /// Adds an assumption to a theorem.
-let ADD_ASSUM tm th : thm = MP (DISCH tm th) (ASSUME tm)
+let ADD_ASSUM tm th : Protected<thm0> = MP (DISCH tm th) (ASSUME tm)
 
 /// Derives forward and backward implication from equality of boolean terms.
 let EQ_IMP_RULE = 
@@ -304,7 +305,7 @@ let EQ_IMP_RULE =
     let pq = dest_iff peq
     let pth1 p = DISCH peq (DISCH p (EQ_MP (ASSUME peq) (ASSUME p)))
     let pth2 q = DISCH peq (DISCH q (EQ_MP (SYM(ASSUME peq)) (ASSUME q)))
-    fun (th : thm) -> 
+    fun (th : Protected<thm0>) -> 
         // TODO: revise this
         match pq with
         | Success(p, q) ->
@@ -321,7 +322,7 @@ let IMP_TRANS =
     let p_imp_q = dest_imp pq
     let r = rand qr
     let pth p = itlist DISCH [pq; qr; p] (MP (ASSUME qr) (MP (ASSUME pq) (ASSUME p)))
-    fun (th1 : thm) (th2 : thm) -> 
+    fun (th1 : Protected<thm0>) (th2 : Protected<thm0>) -> 
         choice {
             let! (p, q) = p_imp_q
             let! r = r
@@ -333,7 +334,7 @@ let IMP_TRANS =
                 return! Choice.failwith "IMP_TRANS"
             else 
                 return! MP (MP (INST [x, p; y, q; z, r] <| pth p) th1) th2
-        } : thm
+        } : Protected<thm0>
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for !                                                               *)
@@ -356,7 +357,7 @@ let SPEC =
         let th2 = AP_THM(CONV_RULE BETA_CONV th1) <| parse_term @"x:A"
         let th3 = CONV_RULE (RAND_CONV BETA_CONV) th2
         DISCH_ALL(EQT_ELIM th3)
-    fun tm (th : thm) ->
+    fun tm (th : Protected<thm0>) ->
         choice {
             let! tm' = Choice.map concl th
             let! abs = rand tm'
@@ -364,30 +365,40 @@ let SPEC =
             let! db = dest_var ba
             return! CONV_RULE BETA_CONV (MP (PINST [snd db, aty] [abs, P; tm, x] <| pth()) th)
         }
-        |> Choice.mapError (fun e -> nestedFailure e "SPEC") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "SPEC") : Protected<thm0>
 
 /// Specializes zero or more variables in the conclusion of a theorem.
-let SPECL tms th : thm = 
+let SPECL tms th : Protected<thm0> = 
     rev_itlist SPEC tms th
     |> Choice.mapError (fun e -> nestedFailure e "SPEC")
 
 /// Specializes the conclusion of a theorem, returning the chosen variant.
-let SPEC_VAR (th : thm) : _ * thm = 
-    let bv = 
-        let ts = Choice.map thm_frees th
-        let t = Choice.bind (Choice.bind bndvar << rand << concl) th
-        (ts, t) ||> Choice.bind2 variant
-    bv, Choice.bind (fun bv -> SPEC bv th) bv
+let SPEC_VAR (th : Protected<thm0>) : Protected<term * thm0> =
+    choice {
+    let! th = th
+    let ts = thm_frees th
+    let tm = concl th
+    let! rand_tm = rand tm
+    let! t = bndvar rand_tm
+    let! bv = variant ts t
+    let! spec_bv = SPEC bv (Choice.result th)
+    return bv, spec_bv
+    }
 
 /// Specializes the conclusion of a theorem with its own quantified variables.
-let rec SPEC_ALL (th : thm) : thm = 
-    Choice.map concl th
-    |> Choice.bind (fun tm ->
-        if is_forall tm then SPEC_ALL(snd(SPEC_VAR th))
-        else th)
+let rec SPEC_ALL (th : Protected<thm0>) : Protected<thm0> = 
+    choice {
+    let! th = th
+    let tm = concl th
+    if is_forall tm then
+        let! _, spec_var_th = SPEC_VAR (Choice.result th)
+        return! SPEC_ALL (Choice.result spec_var_th)
+    else
+        return th
+    }
 
 /// Specializes a theorem, with type instantiation if necessary.
-let ISPEC t (th : thm) : thm = 
+let ISPEC t (th : Protected<thm0>) : Protected<thm0> = 
     Choice.bind (dest_forall << concl) th
     |> Choice.mapError (fun e -> nestedFailure e "ISPEC: input theorem not universally quantified")
     |> Choice.bind (fun (x, _) ->
@@ -405,7 +416,7 @@ let ISPEC t (th : thm) : thm =
     |> Choice.mapError (fun e -> nestedFailure e "ISPEC: type variable(s) free in assumptions")
 
 /// Specializes a theorem zero or more times, with type instantiation if necessary.
-let ISPECL tms (th : thm) : thm = 
+let ISPECL tms (th : Protected<thm0>) : Protected<thm0> = 
         if tms = [] then th
         else 
             let avs = fst(chop_list (length tms) (fst(strip_forall(concl <| Choice.get th))))
@@ -431,13 +442,13 @@ let GEN =
             let! phi = Choice.bind (lhand << concl) th'
             let rth = INST [phi, ptm] qth
             return! EQ_MP rth th'
-        } : thm
+        } : Protected<thm0>
 
 /// Generalizes zero or more variables in the conclusion of a theorem.
 let GENL = itlist GEN
 
 /// Generalizes the conclusion of a theorem over its own free variables.
-let GEN_ALL (th : thm) : thm = 
+let GEN_ALL (th : Protected<thm0>) : Protected<thm0> = 
     Choice.map dest_thm th
     |> Choice.bind (fun (asl, c) ->
         let vars = subtract (frees c) (freesl asl)
@@ -460,23 +471,23 @@ let EXISTS =
     let P = parse_term @"P:A->bool"
     let x = parse_term @"x:A"
     let pth() = 
-        let (th1 : thm) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM EXISTS_DEF P)
-        let (th2 : thm) = SPEC (parse_term @"x:A") (ASSUME <| parse_term @"!x:A. P x ==> Q")
-        let (th3 : thm) = DISCH (parse_term @"!x:A. P x ==> Q") (MP th2 (ASSUME <| parse_term @"(P:A->bool) x"))
+        let (th1 : Protected<thm0>) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM EXISTS_DEF P)
+        let (th2 : Protected<thm0>) = SPEC (parse_term @"x:A") (ASSUME <| parse_term @"!x:A. P x ==> Q")
+        let (th3 : Protected<thm0>) = DISCH (parse_term @"!x:A. P x ==> Q") (MP th2 (ASSUME <| parse_term @"(P:A->bool) x"))
         EQ_MP (SYM th1) (GEN (parse_term @"Q:bool") th3)
 
-    fun (etm, stm) (th : thm) -> 
+    fun (etm, stm) (th : Protected<thm0>) -> 
         choice {
             let! qf, abs = dest_comb etm
             let bth = Choice.bind BETA_CONV (mk_comb(abs, stm))
             let! sty = type_of stm
-            let cth : thm = PINST [sty, aty] [abs, P; stm, x] <| pth()
+            let cth : Protected<thm0> = PINST [sty, aty] [abs, P; stm, x] <| pth()
             return! PROVE_HYP (EQ_MP (SYM bth) th) cth
         }
-        |> Choice.mapError (fun e -> nestedFailure e "EXISTS") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "EXISTS") : Protected<thm0>
 
 /// Introduces an existential quantifier over a variable in a theorem.
-let SIMPLE_EXISTS v (th : thm) : thm = 
+let SIMPLE_EXISTS v (th : Protected<thm0>) : Protected<thm0> = 
     choice {
         let! tm = Choice.map concl th
         let! tm' = mk_exists(v, tm)
@@ -488,10 +499,10 @@ let CHOOSE =
     let P = parse_term @"P:A->bool"
     let Q = parse_term @"Q:bool"
     let pth() = 
-        let (th1 : thm) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM EXISTS_DEF P)
-        let (th2 : thm) = SPEC (parse_term @"Q:bool") (UNDISCH(fst(EQ_IMP_RULE th1)))
+        let (th1 : Protected<thm0>) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM EXISTS_DEF P)
+        let (th2 : Protected<thm0>) = SPEC (parse_term @"Q:bool") (UNDISCH(fst(EQ_IMP_RULE th1)))
         DISCH_ALL(DISCH (parse_term @"(?) (P:A->bool)") (UNDISCH th2))
-    fun (v, th1 : thm) (th2 : thm) -> 
+    fun (v, th1 : Protected<thm0>) (th2 : Protected<thm0>) -> 
         choice {
             let! abs = Choice.bind (rand << concl) th1
             let! bv, bod = dest_abs abs
@@ -505,10 +516,10 @@ let CHOOSE =
                 PINST [ty, aty] [abs, P; tm2, Q] <| pth()
             return! MP (MP th5 th4) th1
         }
-        |> Choice.mapError (fun e -> nestedFailure e "CHOOSE") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "CHOOSE") : Protected<thm0>
 
 /// Existentially quantifies a hypothesis of a theorem.
-let SIMPLE_CHOOSE v (th : thm) : thm = 
+let SIMPLE_CHOOSE v (th : Protected<thm0>) : Protected<thm0> = 
     choice {
         let! ts = Choice.map hyp th
         let! t = mk_exists(v, hd ts)
@@ -532,30 +543,30 @@ let DISJ1 =
     let P = parse_term @"P:bool"
     let Q = parse_term @"Q:bool"
     let pth() = 
-        let (th1 : thm) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term @"P:bool")
-        let (th2 : thm) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
-        let (th3 : thm) = MP (ASSUME <| parse_term @"P ==> t") (ASSUME <| parse_term @"P:bool")
-        let (th4 : thm) = GEN (parse_term @"t:bool") (DISCH (parse_term @"P ==> t") (DISCH (parse_term @"Q ==> t") th3))
+        let (th1 : Protected<thm0>) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term @"P:bool")
+        let (th2 : Protected<thm0>) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
+        let (th3 : Protected<thm0>) = MP (ASSUME <| parse_term @"P ==> t") (ASSUME <| parse_term @"P:bool")
+        let (th4 : Protected<thm0>) = GEN (parse_term @"t:bool") (DISCH (parse_term @"P ==> t") (DISCH (parse_term @"Q ==> t") th3))
         EQ_MP (SYM th2) th4
-    fun (th : thm) tm -> 
+    fun (th : Protected<thm0>) tm -> 
         Choice.map concl th
         |> Choice.bind (fun tm' -> PROVE_HYP th (INST [tm', P; tm, Q] <| pth()))
-        |> Choice.mapError (fun e -> nestedFailure e "DISJ1") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "DISJ1") : Protected<thm0>
 
 /// Introduces a left disjunct into the conclusion of a theorem.
 let DISJ2 = 
     let P = parse_term @"P:bool"
     let Q = parse_term @"Q:bool"
     let pth() = 
-        let (th1 : thm) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term @"P:bool")
-        let (th2 : thm) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
-        let (th3 : thm) = MP (ASSUME <| parse_term @"Q ==> t") (ASSUME <| parse_term @"Q:bool")
-        let (th4 : thm) = GEN (parse_term @"t:bool") (DISCH (parse_term @"P ==> t") (DISCH (parse_term @"Q ==> t") th3))
+        let (th1 : Protected<thm0>) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term @"P:bool")
+        let (th2 : Protected<thm0>) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
+        let (th3 : Protected<thm0>) = MP (ASSUME <| parse_term @"Q ==> t") (ASSUME <| parse_term @"Q:bool")
+        let (th4 : Protected<thm0>) = GEN (parse_term @"t:bool") (DISCH (parse_term @"P ==> t") (DISCH (parse_term @"Q ==> t") th3))
         EQ_MP (SYM th2) th4
-    fun tm (th : thm) -> 
+    fun tm (th : Protected<thm0>) -> 
         Choice.map concl th
         |> Choice.bind (fun tm' -> PROVE_HYP th (INST [tm, P; tm', Q] <| pth()))
-        |> Choice.mapError (fun e -> nestedFailure e "DISJ2") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "DISJ2") : Protected<thm0>
 
 /// Eliminates disjunction by cases.
 let DISJ_CASES = 
@@ -563,11 +574,11 @@ let DISJ_CASES =
     let Q = parse_term @"Q:bool"
     let R = parse_term @"R:bool"
     let pth() = 
-        let (th1 : thm) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term @"P:bool")
-        let (th2 : thm) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
-        let (th3 : thm) = SPEC (parse_term @"R:bool") (EQ_MP th2 (ASSUME <| parse_term @"P \/ Q"))
+        let (th1 : Protected<thm0>) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM OR_DEF <| parse_term @"P:bool")
+        let (th2 : Protected<thm0>) = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
+        let (th3 : Protected<thm0>) = SPEC (parse_term @"R:bool") (EQ_MP th2 (ASSUME <| parse_term @"P \/ Q"))
         UNDISCH(UNDISCH th3)
-    fun (th0 : thm) (th1 : thm) (th2 : thm) -> 
+    fun (th0 : Protected<thm0>) (th1 : Protected<thm0>) (th2 : Protected<thm0>) -> 
         choice {
             let! c1 = Choice.map concl th1
             let! c2 = Choice.map concl th2
@@ -578,10 +589,10 @@ let DISJ_CASES =
                 let th = INST [l, P; r, Q; c1, R] <| pth()
                 return! PROVE_HYP (DISCH r th2) (PROVE_HYP (DISCH l th1) (PROVE_HYP th0 th))                        
         }
-        |> Choice.mapError (fun e -> nestedFailure e "DISJ_CASES") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "DISJ_CASES") : Protected<thm0>
 
 /// Disjoins hypotheses of two theorems with same conclusion.
-let SIMPLE_DISJ_CASES (th1 : thm) (th2 : thm) : thm = 
+let SIMPLE_DISJ_CASES (th1 : Protected<thm0>) (th2 : Protected<thm0>) : Protected<thm0> = 
     choice {
         let! tl1 = Choice.map hyp th1
         let! tl2 = Choice.map hyp th2
@@ -609,10 +620,10 @@ let mk_neg =
 let NOT_ELIM = 
     let P = parse_term @"P:bool"
     let pth() = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM NOT_DEF P)
-    fun (th : thm) -> 
+    fun (th : Protected<thm0>) -> 
         Choice.bind (rand << concl) th
         |> Choice.bind (fun tm -> EQ_MP (INST [tm, P] <| pth()) th)
-        |> Choice.mapError (fun e -> nestedFailure e "NOT_ELIM") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "NOT_ELIM") : Protected<thm0>
 
 /// <summary>
 /// Transforms <c>|- t ==> F</c> into <c>|- ~t</c>.
@@ -620,10 +631,10 @@ let NOT_ELIM =
 let NOT_INTRO = 
     let P = parse_term @"P:bool"
     let pth() = SYM(CONV_RULE (RAND_CONV BETA_CONV) (AP_THM NOT_DEF P))
-    fun (th : thm) -> 
+    fun (th : Protected<thm0>) -> 
         Choice.bind (Choice.bind rand << rator << concl) th
         |> Choice.bind (fun tm -> EQ_MP (INST [tm, P] <| pth()) th)
-        |> Choice.mapError (fun e -> nestedFailure e "NOT_INTRO") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "NOT_INTRO") : Protected<thm0>
 
 /// Converts negation to equality with F.
 let EQF_INTRO = 
@@ -632,10 +643,10 @@ let EQF_INTRO =
         let th1 = NOT_ELIM(ASSUME <| parse_term @"~ P")
         let th2 = DISCH (parse_term @"F") (SPEC P (EQ_MP F_DEF (ASSUME <| parse_term @"F")))
         DISCH_ALL(IMP_ANTISYM_RULE th1 th2)
-    fun (th : thm) -> 
+    fun (th : Protected<thm0>) -> 
         Choice.bind (rand << concl) th
         |> Choice.bind (fun tm -> MP (INST [tm, P] <| pth()) th)
-        |> Choice.mapError (fun e -> nestedFailure e "EQF_INTRO") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "EQF_INTRO") : Protected<thm0>
 
 /// Replaces equality with F by negation.
 let EQF_ELIM = 
@@ -644,27 +655,28 @@ let EQF_ELIM =
         let th1 = EQ_MP (ASSUME <| parse_term @"P = F") (ASSUME <| parse_term @"P:bool")
         let th2 = DISCH P (SPEC (parse_term @"F") (EQ_MP F_DEF th1))
         DISCH_ALL(NOT_INTRO th2)
-    fun (th : thm) -> 
+    fun (th : Protected<thm0>) -> 
         Choice.bind (Choice.bind rand << rator << concl) th
         |> Choice.bind (fun tm -> MP (INST [tm, P] <| pth()) th)
-        |> Choice.mapError (fun e -> nestedFailure e "EQF_ELIM") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "EQF_ELIM") : Protected<thm0>
 
 /// Implements the intuitionistic contradiction rule.
 let CONTR = 
     let P = parse_term @"P:bool"
     let f_tm = parse_term @"F"
     let pth() = SPEC P (EQ_MP F_DEF (ASSUME <| parse_term @"F"))
-    fun tm (th : thm) -> 
+    fun tm (th : Protected<thm0>) -> 
         Choice.map concl th
         |> Choice.bind (fun tm' ->
             if tm' <> f_tm then Choice.failwith "CONTR"
-            else PROVE_HYP th (INST [tm, P] <| pth())) : thm;;
+            else PROVE_HYP th (INST [tm, P] <| pth())) : Protected<thm0>
 
 (* ------------------------------------------------------------------------- *)
 (* Rules for unique existence.                                               *)
 (* ------------------------------------------------------------------------- *)
 
-let EXISTS_UNIQUE_DEF = new_basic_definition <| parse_term @"(?!) = \P:A->bool. ((?) P) /\ (!x y. P x /\ P y ==> x = y)"
+let EXISTS_UNIQUE_DEF =
+    new_basic_definition <| parse_term @"(?!) = \P:A->bool. ((?) P) /\ (!x y. P x /\ P y ==> x = y)"
 
 /// Term constructor for unique existence.
 let mk_uexists = mk_binder "?!"
@@ -676,11 +688,11 @@ let EXISTENCE =
         let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM EXISTS_UNIQUE_DEF P)
         let th2 = UNDISCH(fst(EQ_IMP_RULE th1))
         DISCH_ALL(CONJUNCT1 th2)
-    fun (th : thm) -> 
+    fun (th : Protected<thm0>) -> 
         choice {
             let! abs = Choice.bind (rand << concl) th
             let! tm = bndvar abs
             let! (_, ty) = dest_var tm
             return! MP (PINST [ty, aty] [abs, P] <| pth()) th
         }
-        |> Choice.mapError (fun e -> nestedFailure e "EXISTENCE") : thm
+        |> Choice.mapError (fun e -> nestedFailure e "EXISTENCE") : Protected<thm0>

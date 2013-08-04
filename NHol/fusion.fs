@@ -64,7 +64,7 @@ module Hol_kernel =
             | Sequent(tlist, t) -> 
                 "Sequent (" + tlist.ToString() + ", " + t.ToString() + ")"
 
-    type thm = Protected<thm0>
+    //type thm = Protected<thm0>
     
     (* ------------------------------------------------------------------------- *)
     (* List of current type constants with their arities.                        *)
@@ -904,7 +904,7 @@ module Hol_kernel =
     /// Instantiates types in a theorem.
     let INST_TYPE (theta : (hol_type * hol_type) list) (thm : Protected<thm0>) : Protected<thm0> =
         // TODO: revise this
-        let INST_TYPE theta (Sequent(asl, c)) : thm =
+        let INST_TYPE theta (Sequent(asl, c)) : Protected<thm0> =
             Choice.attempt <| fun () ->
                 let inst_fun : term -> term = Choice.get << inst theta
                 Sequent(term_image inst_fun asl, inst_fun c)
@@ -913,7 +913,7 @@ module Hol_kernel =
     /// Instantiates free variables in a theorem.
     let INST theta (thm : Protected<thm0>) : Protected<thm0> =
         // TODO: revise this
-        let INST theta (Sequent(asl, c)) : thm =
+        let INST theta (Sequent(asl, c)) : Protected<thm0> =
             Choice.attempt <| fun () ->
                 let inst_fun : term -> term = Choice.get << vsubst theta
                 Sequent(term_image inst_fun asl, inst_fun c)

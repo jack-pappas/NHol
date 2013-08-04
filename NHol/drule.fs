@@ -78,31 +78,31 @@ let MK_DISJ =
 /// Universally quantifies both sides of equational theorem.
 let MK_FORALL = 
     let atm = mk_const("!", [])
-    fun v (th : thm) -> 
+    fun v (th : Protected<thm0>) -> 
         choice {
             let! tm = atm
             let! ty = type_of v
             let! tm' = inst [ty, aty] tm
             return! AP_TERM tm' (ABS v th)
-        } : thm
+        } : Protected<thm0>
 
 /// Existentially quantifies both sides of equational theorem.
 let MK_EXISTS = 
     let atm = mk_const("?", [])
-    fun v (th : thm) -> 
+    fun v (th : Protected<thm0>) -> 
         choice {
             let! tm = atm
             let! ty = type_of v
             let! tm' = inst [ty, aty] tm
             return! AP_TERM tm' (ABS v th)
-        } : thm
+        } : Protected<thm0>
 
 (* ------------------------------------------------------------------------- *)
 (* Eliminate the antecedent of a theorem using a conversion/proof rule.      *)
 (* ------------------------------------------------------------------------- *)
 
 /// Removes antecedent of implication theorem by solving it with a conversion.
-let MP_CONV (cnv : conv) (th : thm) : thm = 
+let MP_CONV (cnv : conv) (th : Protected<thm0>) : Protected<thm0> = 
     choice {
     let! th = th
     let! l, r = dest_imp <| concl th
@@ -117,7 +117,7 @@ let MP_CONV (cnv : conv) (th : thm) : thm =
 (* Multiple beta-reduction (we use a slight variant below).                  *)
 (* ------------------------------------------------------------------------- *)
 /// Beta conversion over multiple arguments.
-let rec BETAS_CONV tm : thm =
+let rec BETAS_CONV tm : Protected<thm0> =
     match tm with
     | Comb(Abs(_, _), _) ->
         BETA_CONV tm
@@ -131,7 +131,7 @@ let rec BETAS_CONV tm : thm =
 (* ------------------------------------------------------------------------- *)
 
 /// Apply a higher-order instantiation to a term.
-let instantiate : instantiation -> term -> Choice<term, exn> = 
+let instantiate : instantiation -> term -> Protected<term> = 
     let betas n tm =
         choice {
         // CLEAN : Rename this value to something sensible.
@@ -218,7 +218,7 @@ let instantiate : instantiation -> term -> Choice<term, exn> =
         }
 
 /// Apply a higher-order instantiation to conclusion of a theorem.
-let INSTANTIATE : instantiation -> thm -> thm = 
+let INSTANTIATE : instantiation -> Protected<thm0> -> Protected<thm0> = 
     let rec BETAS_CONV n tm = 
         if n = 1 then
             TRY_CONV BETA_CONV tm
@@ -297,7 +297,7 @@ let INSTANTIATE : instantiation -> thm -> thm =
         }
 
 /// Apply a higher-order instantiation to assumptions and conclusion of a theorem.
-let INSTANTIATE_ALL : instantiation -> thm -> thm =
+let INSTANTIATE_ALL : instantiation -> Protected<thm0> -> Protected<thm0> =
     let inst ((_, tmin, tyin) as i) th =
         choice {
         let! th = th
@@ -526,7 +526,7 @@ let term_match : term list -> term -> term -> Protected<_> =
 (* ------------------------------------------------------------------------- *)
 
 /// Unify two terms.
-let term_unify : term list -> term -> term -> Choice<_, exn> = 
+let term_unify : term list -> term -> term -> Protected<_> = 
     let augment1 sofar (s, x) = 
         let s' = Choice.get <| subst sofar s
         if vfree_in x s && not(s = x) then
@@ -631,7 +631,7 @@ let deep_alpha : (string * string) list -> term -> Protected<term> =
 
 // PART_MATCH: Instantiates a theorem by matching part of it to a term.
 // GEN_PART_MATCH: Instantiates a theorem by matching part of it to a term.
-let PART_MATCH, GEN_PART_MATCH = 
+let (PART_MATCH : (term -> Protected<_>) -> _ -> _ -> Protected<_>), (GEN_PART_MATCH : (term -> Protected<_>) -> _ -> _ -> Protected<_>) = 
     let rec match_bvs t1 t2 acc = 
         try 
             let v1, b1 = Choice.get <| dest_abs t1
@@ -651,7 +651,7 @@ let PART_MATCH, GEN_PART_MATCH =
                 match_bvs l1 l2 (match_bvs r1 r2 acc)
             with
             | Failure _ -> acc
-    let PART_MATCH partfn (th : thm) =
+    let PART_MATCH partfn (th : Protected<thm0>) =
         let v = 
             choice {
                 let sth = SPEC_ALL th
@@ -686,40 +686,46 @@ let PART_MATCH, GEN_PART_MATCH =
                             |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
             }
 
-    let GEN_PART_MATCH partfn (th : thm) = 
+    let GEN_PART_MATCH partfn (th : Protected<thm0>) = 
         let v =
             choice {
-                let sth = SPEC_ALL th
-                let! bod = Choice.map concl sth
-                let! pbod = partfn bod
-                let! tm0 = Choice.map concl th
-                let! tl = Choice.map hyp th
-                let lconsts = intersect (frees tm0) (freesl tl)
-                let fvs = subtract (subtract (frees bod) (frees pbod)) lconsts
-                return (sth, bod, pbod, lconsts, fvs)
+            let sth = SPEC_ALL th
+            let! bod = Choice.map concl sth
+            let! pbod = partfn bod
+            let! tm0 = Choice.map concl th
+            let! tl = Choice.map hyp th
+            let lconsts = intersect (frees tm0) (freesl tl)
+            let fvs = subtract (subtract (frees bod) (frees pbod)) lconsts
+            return (sth, bod, pbod, lconsts, fvs)
             }
         fun tm ->
             choice {
-                let! (sth, bod, pbod, lconsts, fvs) = v
-                let bvms = match_bvs tm pbod []
-                let! abod = deep_alpha bvms bod
-                let ath = EQ_MP (ALPHA bod abod) sth
-                let! tm1 = partfn abod
-                let! insts = term_match lconsts tm1 tm
-                let eth = INSTANTIATE insts (GENL fvs ath)
-                let fth = itlist (fun v th -> snd(SPEC_VAR th)) fvs eth
-                let! fth' = fth
-                let! ath' = ath
-                if hyp fth' <> hyp ath' then 
-                    return! Choice.failwith "PART_MATCH: instantiated hyps"
+            let! (sth, bod, pbod, lconsts, fvs) = v
+            let bvms = match_bvs tm pbod []
+            let! abod = deep_alpha bvms bod
+            let! ath = EQ_MP (ALPHA bod abod) sth
+            let! tm1 = partfn abod
+            let! insts = term_match lconsts tm1 tm
+            let! eth = INSTANTIATE insts (GENL fvs (Choice.result ath))
+            let fth =
+                (fvs, eth)
+                ||> itlist (fun v th ->
+                    choice {
+                    let th = Choice.result th
+                    let! result = SPEC_VAR th
+                    return snd result
+                    } |> Choice.get)
+            if hyp fth <> hyp ath then
+                return! Choice.failwith "PART_MATCH: instantiated hyps"
+            else 
+                let! tm' = partfn <| concl fth
+                if compare tm' tm = 0 then 
+                    return fth
                 else 
-                    let! tm' = Choice.bind (partfn << concl) fth
-                    if compare tm' tm = 0 then 
-                        return! fth
-                    else 
-                        return!
-                            SUBS [ALPHA tm' tm] fth
-                            |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
+                    return!
+                        let fth = Choice.result fth in
+                        SUBS [ALPHA tm' tm] fth
+                        |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
             }
     PART_MATCH, GEN_PART_MATCH
 
@@ -728,7 +734,7 @@ let PART_MATCH, GEN_PART_MATCH =
 (* ------------------------------------------------------------------------- *)
 
 /// Modus Ponens inference rule with automatic matching.
-let MATCH_MP (ith : thm) : thm -> thm = 
+let MATCH_MP (ith : Protected<thm0>) : Protected<thm0> -> Protected<thm0> = 
     let sth = 
         choice {
             let! tm = Choice.map concl ith
@@ -744,10 +750,10 @@ let MATCH_MP (ith : thm) : thm -> thm =
         }
         |> Choice.mapError (fun e -> nestedFailure e "MATCH_MP: Not an implication")
 
-    let match_fun : term -> thm =
+    let match_fun : term -> Protected<thm0> =
         PART_MATCH (Choice.map fst << dest_imp) sth
 
-    fun (th : thm) ->
+    fun (th : Protected<thm0>) ->
         choice {
         let! th' = th
         // CLEAN : Rename this value to something reasonable.
@@ -793,7 +799,7 @@ let HIGHER_REWRITE_CONV =
                         RAND_CONV(free_beta v r)
         free_beta
 
-    let GINST th =
+    let GINST (th : Protected<thm0>) =
         let fvs =
             let th' = Choice.get th
             subtract (frees <| concl th') (freesl <| hyp th')
@@ -836,14 +842,14 @@ let HIGHER_REWRITE_CONV =
 
     fun ths top tm ->
         (Choice.attemptNested <| fun () ->
-            higher_rewrite_conv ths top tm) : thm
+            higher_rewrite_conv ths top tm) : Protected<thm0>
 
 (* ------------------------------------------------------------------------- *)
 (* Derived principle of definition justifying |- c x1 .. xn = t[x1,..,xn]    *)
 (* ------------------------------------------------------------------------- *)
 
 /// Declare a new constant and a definitional axiom.
-let new_definition tm : thm = 
+let new_definition tm : Protected<thm0> = 
     choice { 
         let avs, bod = strip_forall tm
         let! l, r = 

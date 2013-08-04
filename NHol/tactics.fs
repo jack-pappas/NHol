@@ -60,10 +60,10 @@ let null_meta = (([] : term list), null_inst)
 (* A goal has labelled assumptions, and the hyps are now thms.               *)
 (* ------------------------------------------------------------------------- *)
 
-type goal = (string * thm) list * term
+type goal = (string * Protected<thm0>) list * term
 
 /// NOTE: Redefine equals_thm
-let equals_thm (th : thm) (th' : thm) =
+let equals_thm (th : Protected<thm0>) (th' : Protected<thm0>) =
     match th, th' with
     | Success th, Success th' ->
         equals_thm th th'
@@ -83,7 +83,7 @@ let equals_goal ((a, w) : goal) ((a', w') : goal) =
 (*   f(@) [A1@ |- g1@; ...; An@ |- gn@] = A@ |- g@                           *)
 (* ------------------------------------------------------------------------- *)
 
-type justification = instantiation -> thm list -> thm
+type justification = instantiation -> Protected<thm0> list -> Protected<thm0>
 
 (* ------------------------------------------------------------------------- *)
 (* The goalstate stores the subgoals, justification, current instantiation,  *)
@@ -119,7 +119,7 @@ type refinement = goalstate -> goalstate
 
 type tactic = goal -> goalstate
 
-type thm_tactic = thm -> tactic
+type thm_tactic = Protected<thm0> -> tactic
 
 type thm_tactical = thm_tactic -> thm_tactic
 
@@ -364,7 +364,7 @@ let (LABEL_TAC : string -> thm_tactic) =
         match l with
         | [a] -> a
         | _ -> Choice.failwith "LABEL_TAC.fun1: Unhandled case."
-    fun s thm ((asl : (string * thm) list), (w : term)) ->
+    fun s thm ((asl : (string * Protected<thm0>) list), (w : term)) ->
         Choice.result <| 
             (null_meta, [(s, thm) :: asl, w], (fun i thml -> PROVE_HYP (INSTANTIATE_ALL i thm) (fun1 thml)))
 
@@ -391,11 +391,11 @@ let (POP_ASSUM : thm_tactic -> tactic) =
         | _ -> Choice.failwith "POP_ASSUM: No assumption to pop"
 
 /// Applies a tactic generated from the goal's assumption list.
-let (ASSUM_LIST : (thm list -> tactic) -> tactic) = 
+let (ASSUM_LIST : (Protected<thm0> list -> tactic) -> tactic) = 
     fun aslfun (asl, w) -> aslfun (map snd asl) (asl, w)
 
 /// Generates a tactic from the assumptions, discards the assumptions and applies the tactic.
-let (POP_ASSUM_LIST : (thm list -> tactic) -> tactic) = 
+let (POP_ASSUM_LIST : (Protected<thm0> list -> tactic) -> tactic) = 
     fun asltac (asl, w) -> asltac (map snd asl) ([], w)
 
 /// Sequentially applies all tactics given by mapping a function over the assumptions of a goal.
@@ -409,7 +409,7 @@ let (FIRST_ASSUM : thm_tactic -> tactic) =
         |> Option.toChoiceWithError "tryfind"
 
 /// Maps an inference rule over the assumptions of a goal.
-let (RULE_ASSUM_TAC : (thm -> thm) -> tactic) = 
+let (RULE_ASSUM_TAC : (Protected<thm0> -> Protected<thm0>) -> tactic) = 
     fun rule (asl,w) ->
         (POP_ASSUM_LIST(K ALL_TAC) 
          |> THEN <| MAP_EVERY (fun (s,th) -> LABEL_TAC s (rule th)) (rev asl)) (asl, w)
@@ -446,7 +446,7 @@ let (REMOVE_THEN : string -> thm_tactic -> tactic) =
 (* ------------------------------------------------------------------------- *)
 
 /// Augments a tactic's theorem list with the assumptions.
-let ASM : (thm list -> tactic) -> thm list -> tactic = 
+let ASM : (Protected<thm0> list -> tactic) -> Protected<thm0> list -> tactic = 
     fun tltac ths (asl, w as g) -> tltac (map snd asl @ ths) g
 
 /// Augments a tactic's theorem list with named assumptions.
@@ -610,7 +610,7 @@ let BETA_TAC =
 (* ------------------------------------------------------------------------- *)
 
 /// Use an equation to substitute "safely" in goal.
-let SUBST_VAR_TAC (th : thm) g : goalstate = 
+let SUBST_VAR_TAC (th : Protected<thm0>) g : goalstate = 
     choice { 
         let! asm, eq = Choice.map dest_thm th
         let! l, r = dest_eq eq
@@ -756,7 +756,7 @@ let X_GEN_TAC x' : tactic =
             }
 
 /// Assumes a theorem, with existentially quantified variable replaced by a given witness.
-let X_CHOOSE_TAC x' (xth : thm) : tactic =
+let X_CHOOSE_TAC x' (xth : Protected<thm0>) : tactic =
     let xth' =
         choice {
             let! xtm = Choice.map concl xth
@@ -1149,7 +1149,7 @@ let META_EXISTS_TAC : tactic =
         }
 
 /// Replaces universally quantified variable in theorem with metavariable.
-let META_SPEC_TAC : term -> thm -> tactic = 
+let META_SPEC_TAC : term -> Protected<thm0> -> tactic = 
     fun t thm (asl, w) -> 
         choice {
             let fun1 l =
@@ -1340,7 +1340,7 @@ let (mk_goalstate : goal -> goalstate) =
         }
 
 /// Attempts to prove a goal using a given tactic.
-let (TAC_PROOF : goal * tactic -> thm) = 
+let (TAC_PROOF : goal * tactic -> Protected<thm0>) = 
     fun (g, tac) -> 
         choice {
             let gstate = mk_goalstate g
@@ -1360,7 +1360,7 @@ let (TAC_PROOF : goal * tactic -> thm) =
         }
 
 /// Attempts to prove a boolean term using the supplied tactic.
-let prove(t, tac) : thm =
+let prove(t, tac) : Protected<thm0> =
     choice {
     let! th = TAC_PROOF(([], t), tac)
     let t' = concl th

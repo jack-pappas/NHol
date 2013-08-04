@@ -140,7 +140,7 @@ let term_order =
 (* ------------------------------------------------------------------------- *)
 
 /// Insert a theorem into a net as a (conditional) rewrite.
-let net_of_thm rep (th : thm) net = 
+let net_of_thm rep (th : Protected<thm0>) net = 
     choice {
         let! tm = Choice.map concl th
         let! lconsts = Choice.map (freesl << hyp) th
@@ -189,7 +189,7 @@ let net_of_conv tm conv sofar = enter [] (tm, (2, conv)) sofar
 (* ------------------------------------------------------------------------- *)
 
 /// Add a congruence rule to a net.
-let net_of_cong (th : thm) sofar = 
+let net_of_cong (th : Protected<thm0>) sofar = 
     choice {
         let! tm = Choice.map concl th
         let conc, n = repeat (fun (tm, m) -> 
@@ -235,7 +235,7 @@ let mk_rewrites =
                 let fvs = subtract (subtract (frees cond) (frees eqn)) (freesl oldhyps)
                 return! itlist IMP_EXISTS_RULE fvs kth
         }
-    let rec split_rewrites oldhyps cf th sofar : Choice<thm list, _> = 
+    let rec split_rewrites oldhyps cf th sofar : Choice<Protected<thm0> list, _> = 
         choice {
             let! tm = Choice.map concl th
             if is_forall tm then 
@@ -258,7 +258,7 @@ let mk_rewrites =
                 return! split_rewrites oldhyps cf (EQT_INTRO th) sofar
         }
 
-    fun cf (th : thm) (sofar : thm list) ->
+    fun cf (th : Protected<thm0>) (sofar : Protected<thm0> list) ->
         choice {
             let! ts = Choice.map hyp th
             return! split_rewrites ts cf th sofar
@@ -289,7 +289,7 @@ let REWRITES_CONV (net : net<int * (term -> Choice<'T, exn>)>) tm =
 (* ------------------------------------------------------------------------- *)
 
 type prover = 
-    | Prover of conv * (thm list -> prover)
+    | Prover of conv * (Protected<thm0> list -> prover)
 
 /// Construct a prover from applicator and state augmentation function.
 let mk_prover applicator augmentor = 
@@ -316,20 +316,20 @@ let apply_prover (Prover(conv, _)) tm = conv tm
 (* ------------------------------------------------------------------------- *)
 
 type simpset = 
-    | Simpset of gconv net * (strategy -> strategy) * prover list * (thm -> thm list -> Choice<thm list, exn>)
+    | Simpset of gconv net * (strategy -> strategy) * prover list * (Protected<thm0> -> Protected<thm0> list -> Choice<Protected<thm0> list, exn>)
 
 (* Rewrites & congruences *)
 (* Prover for conditions  *)
 (* Subprovers for prover  *)
 (* Rewrite maker          *)
-and strategy = simpset -> int -> term -> thm
+and strategy = simpset -> int -> term -> Protected<thm0>
 
 (* ------------------------------------------------------------------------- *)
 (* Very simple prover: recursively simplify then try provers.                *)
 (* ------------------------------------------------------------------------- *)
 
 /// The basic prover use function used in the simplifier.
-let basic_prover (strat : strategy) (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+let basic_prover (strat : strategy) (Simpset(net, prover, provers, rewmaker) as ss) lev tm : Protected<thm0> = 
     let sth = 
         strat ss lev tm
         |> Choice.bindError (fun _ -> REFL tm)
@@ -506,14 +506,14 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                     return! Choice.failwith "GEN_SUB_CONV"
             })
 
-    let rec ONCE_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+    let rec ONCE_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : Protected<thm0> = 
         choice {
             let! pconvs = lookup tm net
             return! IMP_REWRITES_CONV ONCE_DEPTH_SQCONV ss lev pconvs tm
                     |> Choice.bindError (fun _ -> GEN_SUB_CONV ONCE_DEPTH_SQCONV ss lev pconvs tm)
         }
 
-    let rec DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+    let rec DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : Protected<thm0> = 
         choice {
             let! pconvs = lookup tm net
             let v = 
@@ -527,7 +527,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             return! v |> Choice.bindError (fun _ -> IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs tm)
         }
 
-    let rec REDEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+    let rec REDEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : Protected<thm0> = 
         choice {
             let! pconvs = lookup tm net
             let th = 
@@ -549,7 +549,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             return! v |> Choice.bindError (fun _ -> th)
         }
 
-    let rec TOP_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+    let rec TOP_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : Protected<thm0> = 
         choice {
             let! pconvs = lookup tm net
             let th1 = 
@@ -564,7 +564,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             return! v |> Choice.bindError (fun _ -> th1)
         }
 
-    let rec TOP_SWEEP_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : thm = 
+    let rec TOP_SWEEP_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : Protected<thm0> = 
         choice {
             let! pconvs = lookup tm net
             let v = 
@@ -595,7 +595,7 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
 // basic_convs: List the current default conversions used in rewriting and simplification.
 // basic_net: Returns the term net used to optimize access to default rewrites and conversions.
 let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, extend_basic_convs, basic_convs, basic_net = 
-    let rewrites = ref([] : thm list)
+    let rewrites = ref([] : Protected<thm0> list)
     let conversions = ref ([] : (string * (term * conv)) list)
     let conv_net = ref(empty_net : gconv net)
 
@@ -643,7 +643,7 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
 // extend_basic_congs: Extends the set of congruence rules used by the simplifier.
 // basic_congs: Lists the congruence rules used by the simplifier.
 let set_basic_congs, extend_basic_congs, basic_congs = 
-    let congs = ref([] : thm list)
+    let congs = ref([] : Protected<thm0> list)
     (fun thl -> congs := thl),
     (fun thl -> congs := union' equals_thm thl (!congs)),
     (fun () -> !congs)
@@ -707,27 +707,27 @@ let ONCE_REWRITE_RULE thl =
     CONV_RULE (ONCE_REWRITE_CONV thl)
 
 /// Rewrites a theorem including the theorem's assumptions as rewrites.
-let PURE_ASM_REWRITE_RULE thl (th : thm) = 
+let PURE_ASM_REWRITE_RULE thl (th : Protected<thm0>) = 
     choice {
         let! tms = Choice.map hyp th
         return! PURE_REWRITE_RULE ((map ASSUME tms) @ thl) th
     }
 
 /// Rewrites a theorem including built-in rewrites and the theorem's assumptions.
-let ASM_REWRITE_RULE thl (th : thm) = 
+let ASM_REWRITE_RULE thl (th : Protected<thm0>) = 
     choice {
         let! tms = Choice.map hyp th
         return! REWRITE_RULE ((map ASSUME tms) @ thl) th
     }
 
 /// Rewrites a theorem once, including the theorem's assumptions as rewrites.
-let PURE_ONCE_ASM_REWRITE_RULE thl (th : thm) =
+let PURE_ONCE_ASM_REWRITE_RULE thl (th : Protected<thm0>) =
     choice {
         let! tms = Choice.map hyp th 
         return! PURE_ONCE_REWRITE_RULE ((map ASSUME tms) @ thl) th
     }
 
-let ONCE_ASM_REWRITE_RULE thl (th : thm) = 
+let ONCE_ASM_REWRITE_RULE thl (th : Protected<thm0>) = 
     choice {
         let! tms = Choice.map hyp th 
         return! ONCE_REWRITE_RULE ((map ASSUME tms) @ thl) th
@@ -754,19 +754,19 @@ let ONCE_REWRITE_TAC thl =
     CONV_TAC (ONCE_REWRITE_CONV thl)
 
 /// Rewrites a goal including the goal's assumptions as rewrites.
-let (PURE_ASM_REWRITE_TAC : thm list -> tactic) = 
+let (PURE_ASM_REWRITE_TAC : Protected<thm0> list -> tactic) = 
     ASM PURE_REWRITE_TAC
 
 /// Rewrites a goal including built-in rewrites and the goal's assumptions.
-let (ASM_REWRITE_TAC : thm list -> tactic) = 
+let (ASM_REWRITE_TAC : Protected<thm0> list -> tactic) = 
     ASM REWRITE_TAC
 
 /// Rewrites a goal once, including the goal's assumptions as rewrites.
-let (PURE_ONCE_ASM_REWRITE_TAC : thm list -> tactic) = 
+let (PURE_ONCE_ASM_REWRITE_TAC : Protected<thm0> list -> tactic) = 
     ASM PURE_ONCE_REWRITE_TAC
 
 /// Rewrites a goal once including built-in rewrites and the goal's assumptions.
-let (ONCE_ASM_REWRITE_TAC : thm list -> tactic) = 
+let (ONCE_ASM_REWRITE_TAC : Protected<thm0> list -> tactic) = 
     ASM ONCE_REWRITE_TAC
 
 (* ------------------------------------------------------------------------- *)

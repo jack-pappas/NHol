@@ -49,7 +49,7 @@ open tactics
 (* ------------------------------------------------------------------------- *)
 
 /// Unify free variables in theorem and metavariables in goal to accept theorem.
-let UNIFY_ACCEPT_TAC mvs (th : thm) : tactic =
+let UNIFY_ACCEPT_TAC mvs (th : Protected<thm0>) : tactic =
     fun (asl, w) ->
         choice {
         let! th' = th
@@ -68,7 +68,7 @@ let ITAUT_TAC =
         ttac(CONJUNCT1 cth)
         |> THEN <| ttac(CONJUNCT2 cth)
 
-    let IMPLICATE t : thm =
+    let IMPLICATE t : Protected<thm0> =
         choice {
         let! t' = dest_neg t
         let th1 = AP_THM NOT_DEF t'
