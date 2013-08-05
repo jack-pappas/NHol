@@ -91,7 +91,7 @@ type justification = instantiation -> Protected<thm0> list -> Protected<thm0>
 (* ------------------------------------------------------------------------- *)
 
 type goalstate0 = (term list * instantiation) * goal list * justification
-type goalstate = Choice<goalstate0, exn>
+type goalstate = Protected<goalstate0>
 
 (* ------------------------------------------------------------------------- *)
 (* A goalstack is just a list of goalstates. Could go for more...            *)
@@ -447,7 +447,8 @@ let (REMOVE_THEN : string -> thm_tactic -> tactic) =
 
 /// Augments a tactic's theorem list with the assumptions.
 let ASM : (Protected<thm0> list -> tactic) -> Protected<thm0> list -> tactic = 
-    fun tltac ths (asl, w as g) -> tltac (map snd asl @ ths) g
+    fun tltac ths (asl, w as g) ->
+        tltac (map snd asl @ ths) g
 
 /// Augments a tactic's theorem list with named assumptions.
 let HYP = 
@@ -718,7 +719,7 @@ let (SPEC_TAC : term * term -> tactic) =
         }
         |> Choice.mapError (fun e -> nestedFailure e "SPEC_TAC: Failure.")
 
-let private tactic_type_compatibility_check pfx e g =
+let private tactic_type_compatibility_check pfx e g : Protected<_> =
     choice {
     let! et = type_of e
     let! gt = type_of g
