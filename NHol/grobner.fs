@@ -766,7 +766,7 @@ let RING_AND_IDEAL_CONV =
         if tm = false_tm then 
             return! ASSUME tm
         else 
-            let nths0, eths0 = partition (is_neg << concl << Choice.get) (CONJUNCTS(ASSUME tm))
+            let! nths0, eths0 = Choice.List.partition (Choice.map (is_neg << concl)) (CONJUNCTS(ASSUME tm))
             let! nths = Choice.List.filter (Choice.map is_eq << Choice.bind rand << Choice.map concl) nths0
             let! eths = Choice.List.filter (Choice.map (is_eq << concl)) eths0
             if eths = [] then 

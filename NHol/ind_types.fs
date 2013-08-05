@@ -597,7 +597,7 @@ let define_type_raw_001 =
                                 else ty) cargs
 
                         let! args = make_args "a" [] ttys
-                        let rargs, iargs = partition (fun t -> Choice.get <| type_of t = recty) args
+                        let! rargs, iargs = Choice.List.partition (fun t -> type_of t |> Choice.map (fun ty -> ty = recty)) args
 
                         let rec mk_injector epstms alltys iargs = 
                             choice {
@@ -694,25 +694,46 @@ let define_type_raw_001 =
     let prove_model_inhabitation rth = 
         choice {
             let srules = map SPEC_ALL (CONJUNCTS rth)
-            let imps, bases = partition (is_imp << concl << Choice.get) srules
-            let concs = map (concl << Choice.get) bases @ map (Choice.get << rand << concl << Choice.get) imps
+            let! imps, bases = Choice.List.partition (Choice.map (is_imp << concl)) srules
+            let! concs1 = Choice.List.map (Choice.map concl) bases
+            let! concs2 = Choice.List.map (Choice.bind rand << Choice.map concl) imps
+            let concs = concs1 @ concs2
             let preds = setify(map (repeat(Choice.toOption << rator)) concs)
         
             let rec exhaust_inhabitations ths sofar = 
-                let dunnit = setify(map (fst << strip_comb << concl << Choice.get) sofar)
-                let useful = filter (fun th -> not(mem (fst(strip_comb(Choice.get <| rand(concl <| Choice.get th)))) dunnit)) ths
-                if useful = [] then sofar
-                else 
-                    let follow_horn thm = 
-                        let preds = map (fst << strip_comb) (conjuncts(Choice.get <| lhand(concl <| Choice.get thm)))
-                        let asms = 
-                            map (fun p -> Option.get <| find (fun th -> fst(strip_comb(concl <| Choice.get th)) = p) sofar) preds
-                        MATCH_MP thm (end_itlist CONJ asms)
-                    let newth = tryfind (Choice.toOption << Choice.map Choice.result << follow_horn) useful |> Option.getOrFailWith "tryfind"
-                    exhaust_inhabitations ths (newth :: sofar)
+                choice {
+                    let! ss = Choice.List.map (Choice.map (fst << strip_comb << concl)) sofar
+                    let dunnit = setify ss
+                    let! useful = Choice.List.filter (fun th -> 
+                                        Choice.bind (rand << concl) th |> Choice.map (fun tm -> not(mem (fst(strip_comb tm)) dunnit))) ths
+                    if useful = [] then 
+                        return sofar
+                    else 
+                        let follow_horn thm = 
+                            choice {
+                                let! tm = Choice.bind (lhand << concl) thm
+                                let preds = map (fst << strip_comb) (conjuncts tm)
+                                let! asms = 
+                                    Choice.List.map (fun p -> 
+                                        Choice.List.find (fun th -> 
+                                                    choice {
+                                                        let! th = th
+                                                        return fst(strip_comb(concl th)) = p
+                                                    }) sofar) preds
+                                return! MATCH_MP thm (end_itlist CONJ asms)
+                            }
+                        let! newth = tryfind (Choice.toOption << Choice.map Choice.result << follow_horn) useful 
+                                     |> Option.toChoiceWithError "tryfind"
+                        return! exhaust_inhabitations ths (newth :: sofar)
+                }
         
-            let ithms = exhaust_inhabitations imps bases
-            let exths = map (fun p -> Option.get <| find (fun th -> fst(strip_comb(concl <| Choice.get th)) = p) ithms) preds
+            let! ithms = exhaust_inhabitations imps bases
+            let! exths = Choice.List.map (fun p -> 
+                            Choice.List.find (fun th -> 
+                                        choice {
+                                            let! th = th
+                                            return fst(strip_comb(concl th)) = p
+                                        }) ithms) preds
         
             return exths
         }

@@ -314,7 +314,6 @@ let INSTANTIATE_ALL : instantiation -> Protected<thm0> -> Protected<thm0> =
                     else
                         let tvs = itlist (union << tyvars << snd) tyin []
                         hyps
-                        // TODO : Modify this to use Choice.List.partition.
                         |> Choice.List.partition (fun tm ->
                             choice {
                             let! tvs' = type_vars_in_term tm

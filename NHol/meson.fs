@@ -896,7 +896,7 @@ let GEN_MESON_TAC =
         fun tms -> 
             choice {
                 let! preds, funs = Choice.List.fold (fun acc x -> fm_consts x acc) ([], []) tms
-                let eqs0, noneqs = partition (fun (t, _) -> is_const t && fst(Choice.get <| dest_const t) = "=") preds
+                let! eqs0, noneqs = Choice.List.partition (fun (t, _) -> dest_const t |> Choice.map (fun (s, _) -> is_const t && s = "=")) preds
                 if eqs0 = [] then 
                     return []
                 else 
@@ -958,11 +958,9 @@ let GEN_MESON_TAC =
                         dest_neg t
                         |> Choice.bindError (fun _ -> Choice.result t)) lits
 
-                let eqs, noneqs = 
-                    partition (fun t -> 
-                        match dest_const(fst(strip_comb t)) with
-                        | Success (s, _) -> s = "="
-                        | Error _ -> false) atoms
+                let! eqs, noneqs = 
+                    Choice.List.partition (fun t -> 
+                       dest_const(fst(strip_comb t)) |> Choice.map (fun (s, _) -> s = "=")) atoms
 
                 let acc = itlist (subterms_irrefl lconsts) noneqs []
                 let uts = itlist (itlist(subterms_irrefl lconsts) << snd << strip_comb) eqs acc
