@@ -197,8 +197,15 @@ let lift_function =
                             let! tms2 = Choice.List.map 
                                          (fun v -> 
                                             // NOTE: could two exceptions be equal here?
-                                            find (fun th -> lhand v = Choice.bind (lhand << concl) th) ethlist
-                                            |> Option.toChoiceWithError "find") hyps
+                                            Choice.List.tryFind (fun th -> 
+                                                choice {
+                                                    let! th = th
+                                                    let tm1 = concl th
+                                                    let! tm2 = lhand tm1
+                                                    let! tm3 = lhand v
+                                                    return tm2 = tm3
+                                                }) ethlist
+                                            |> Choice.bind (Option.toChoiceWithError "find")) hyps
 
                             let th2c = end_itlist CONJ tms2
                             let th2d = MATCH_MP wth th2c

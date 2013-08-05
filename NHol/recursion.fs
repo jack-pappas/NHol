@@ -100,8 +100,14 @@ let prove_recursive_functions_exist =
             let! ixtm = subst (zip urfns ixvs) ixbody
             let ixths = CONJUNCTS(ASSUME ixtm)
 
-            let! rixths = Choice.List.map (fun t -> find (aconv t << concl << Choice.get) ixths
-                                                    |> Option.toChoiceWithError "find") rawcls
+            let! rixths = Choice.List.map (fun t -> 
+                                Choice.List.tryFind (fun th ->
+                                    choice {
+                                        let! th = th
+                                        let tm1 = concl th
+                                        return aconv t tm1
+                                    }) ixths
+                                    |> Choice.bind (Option.toChoiceWithError "find")) rawcls
 
             let rixth = itlist SIMPLE_EXISTS ufns (end_itlist CONJ rixths)
             return! PROVE_HYP ixth (itlist SIMPLE_CHOOSE urfns rixth)

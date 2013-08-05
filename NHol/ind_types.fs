@@ -742,60 +742,101 @@ let define_type_raw_001 =
     (* Makes a type definition for one of the defined subsets.                 *)
     (* ----------------------------------------------------------------------- *)
     let define_inductive_type cdefs exth = 
-        let extm = concl <| Choice.get exth
-        let epred = fst(strip_comb extm)
-        let ename = fst(Choice.get <| dest_var epred)
-        let th1 = ASSUME(Option.get <| find (fun eq -> Choice.get <| lhand eq = epred) (hyp <| Choice.get exth))
-        let th2 = TRANS th1 (SUBS_CONV cdefs (Choice.get <| rand(concl <| Choice.get th1)))
-        let th3 = EQ_MP (AP_THM th2 (Choice.get <| rand extm)) exth
-        let th4, _ = Choice.get <| Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (th3, []) (hyp <| Choice.get th3)
-        let mkname = "_mk_" + ename
-        let destname = "_dest_" + ename
-        let bij1, bij2 = new_basic_type_definition ename (mkname, destname) th4
-        let bij2a = AP_THM th2 (Choice.get <| rand(Choice.get <| rand(concl <| Choice.get bij2)))
-        let bij2b = TRANS bij2a bij2
-        bij1, bij2b
+        choice {
+            let! exth = exth
+            let extm = concl exth
+            let epred = fst(strip_comb extm)
+            let! (ename, _) = dest_var epred
+            let! tm1 = 
+                Choice.List.tryFind (fun eq -> lhand eq |> Choice.map (fun tm -> tm = epred)) (hyp exth)
+                |> Choice.bind (Option.toChoiceWithError "find")
+            let th1 = ASSUME tm1
+            let! tm2 = Choice.bind (rand << concl) th1
+            let th2 = TRANS th1 (SUBS_CONV cdefs tm2)
+            let! tm3 = rand extm
+            let th3 = EQ_MP (AP_THM th2 tm3) (Choice.result exth)
+            let! tms4 = Choice.map hyp th3
+            let! th4, _ = Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (th3, []) tms4
+            let mkname = "_mk_" + ename
+            let destname = "_dest_" + ename
+            let bij1, bij2 = new_basic_type_definition ename (mkname, destname) th4
+            let! tm5 = Choice.bind (rand << concl) bij2
+            let! tm6 = rand tm5
+            let bij2a = AP_THM th2 tm6
+            let bij2b = TRANS bij2a bij2
+            return bij1, bij2b
+        }
 
     (* ----------------------------------------------------------------------- *)
     (* Defines a type constructor corresponding to current pseudo-constructor. *)
     (* ----------------------------------------------------------------------- *)
 
     let define_inductive_type_constructor defs consindex th = 
-        let avs, bod = strip_forall(concl <| Choice.get th)
-        let asms, conc = 
-            if is_imp bod
-            then conjuncts(Choice.get <| lhand bod), Choice.get <| rand bod
-            else [], bod
-        let asmlist = map (Choice.get << dest_comb) asms
-        let cpred, cterm = Choice.get <| dest_comb conc
-        let oldcon, oldargs = strip_comb cterm
-        let modify_arg v = 
-            try 
-                let dest =
-                    // TODO : Give this variable a better name.
-                    let x =
-                        rev_assoc v asmlist
-                        |> Option.getOrFailWith "find"
-                    assoc x consindex
-                    |> Option.getOrFailWith "find"
-                    |> snd
-                let ty' = hd(snd(Choice.get <| dest_type(Choice.get <| type_of dest)))
-                let v' = mk_var(fst(Choice.get <| dest_var v), ty')
-                Choice.get <| mk_comb(dest, v'), v'
-            with
-            | Failure _ -> v, v
-        let newrights, newargs = unzip(map modify_arg oldargs)
-        let retmk =
-            assoc cpred consindex
-            |> Option.getOrFailWith "find"
-            |> fst
-        let defbod = Choice.get <| mk_comb(retmk, list_mk_comb(oldcon, newrights))
-        let defrt = list_mk_abs(newargs, defbod)
-        let expth = Option.get <| find (fun th -> Choice.get <| lhand(concl <| Choice.get th) = oldcon) defs
-        let rexpth = SUBS_CONV [expth] defrt
-        let deflf = mk_var(fst(Choice.get <| dest_var oldcon), Choice.get <| type_of defrt)
-        let defth = new_definition(Choice.get <| mk_eq(deflf, Choice.get <| rand(concl <| Choice.get rexpth)))
-        TRANS defth (SYM rexpth)
+        choice {
+            let! th = th
+            let avs, bod = strip_forall(concl th)
+            let! asms, conc = 
+                choice {
+                    if is_imp bod
+                    then
+                        let! tm1 = lhand bod
+                        let! tm2 = rand bod
+                        return conjuncts tm1, tm2
+                    else 
+                        return [], bod
+                }
+
+            let! asmlist = Choice.List.map dest_comb asms
+            let! cpred, cterm = dest_comb conc
+            let oldcon, oldargs = strip_comb cterm
+            let modify_arg v = 
+                choice { 
+                    let! dest =
+                        choice {
+                            // TODO : Give this variable a better name.
+                            let! x =
+                                rev_assoc v asmlist
+                                |> Option.toChoiceWithError "find"
+                            return!
+                                assoc x consindex
+                                |> Option.toChoiceWithError "find"
+                                |> Choice.map snd
+                        }
+                    let! ty1 = type_of dest
+                    let! (_, ty2) = dest_type ty1
+                    let ty' = hd ty2
+                    let! (ty3, _) = dest_var v
+                    let v' = mk_var(ty3, ty')
+                    let! tm1 = mk_comb(dest, v')
+                    return tm1, v'
+                }
+                |> Choice.fill (v, v)
+
+            let newrights, newargs = unzip(map modify_arg oldargs)
+            let! retmk =
+                assoc cpred consindex
+                |> Option.toChoiceWithError "find"
+                |> Choice.map fst
+            let! defbod = mk_comb(retmk, list_mk_comb(oldcon, newrights))
+            let defrt = list_mk_abs(newargs, defbod)
+            let! expth = 
+                Choice.List.tryFind (fun th -> 
+                    choice {
+                        let! th = th
+                        let! tm1 = lhand(concl th)
+                        return tm1 = oldcon
+                    }) defs
+                |> Choice.bind (Option.toChoiceWithError "find")
+
+            let rexpth = SUBS_CONV [expth] defrt
+            let! (ty1, _) = dest_var oldcon
+            let! ty2 = type_of defrt
+            let deflf = mk_var(ty1, ty2)
+            let! tm1 = Choice.bind (rand << concl) rexpth
+            let! tm2 = mk_eq(deflf, tm1)
+            let defth = new_definition tm2
+            return! TRANS defth (SYM rexpth)
+        }
 
     (* ----------------------------------------------------------------------- *)
     (* Instantiate the induction theorem on the representatives to transfer    *)
@@ -1092,7 +1133,7 @@ let define_type_raw_001 =
         (* ----------------------------------------------------------------------- *)
         let defs, rth, ith = Choice.get <| justify_inductive_type_model def
         let neths = Choice.get <| prove_model_inhabitation rth
-        let tybijpairs = map (define_inductive_type defs) neths
+        let tybijpairs = Choice.get <| Choice.List.map (define_inductive_type defs) neths
         let preds = map (repeat (Choice.toOption << rator) << concl <<Choice.get) neths
         let mkdests = 
             map (fun (th, _) -> 
