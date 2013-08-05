@@ -210,7 +210,8 @@ let derive_nonschematic_inductive_relations =
                         let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
                         let th2 = EQ_MP (SYM th1) th0
                         let th3 = INST yes (DISCH atm th2)
-                        let! tm4 = funpow (length yes) (Choice.bind rand) (Choice.bind (lhand << concl) th3)
+                        let! tm3 = Choice.bind (lhand << concl) th3
+                        let! tm4 = Choice.funpow (length yes) rand tm3
                         let th4 = itlist (CONJ << REFL << fst) yes (ASSUME tm4)
                         let th5 = GENL args (GENL nvs (DISCH tm4 (MP th3 th4)))
                         let! tm5 = Choice.map concl th5
@@ -235,7 +236,8 @@ let derive_nonschematic_inductive_relations =
                         let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
                         let th2 = EQ_MP (SYM th1) th0
                         let th3 = INST yes (DISCH atm th2)
-                        let! tm4 = funpow (length yes) (Choice.bind rand) (Choice.bind (lhand << concl) th3)
+                        let! tm3 = Choice.bind (lhand << concl) th3
+                        let! tm4 = Choice.funpow (length yes) rand tm3
                         let th4 = itlist (CONJ << REFL << fst) yes (ASSUME tm4)
                         let th5 = GENL args (GENL nvs (DISCH tm4 (MP th3 th4)))
                         let! tm5 = Choice.map concl th5
@@ -244,7 +246,9 @@ let derive_nonschematic_inductive_relations =
                         let th8 = GENL avs (MP th6 th7)
                         return! IMP_ANTISYM_RULE (DISCH_ALL th5) (DISCH_ALL th8)
                 }
-            let! ftm = funpow (length args) (Choice.bind (Choice.bind body << rand)) (Choice.bind (rand << concl) eth)
+
+            let! tm1 = Choice.bind (rand << concl) eth
+            let! ftm = Choice.funpow (length args) (Choice.bind body << rand) tm1
             return! TRANS eth (itlist MK_FORALL args (FORALL_IMPS_CONV ftm))
         }
 
@@ -476,13 +480,14 @@ let MONO_TAC =
             let! tacs = 
                 Choice.List.fold (fun acc th -> 
                         choice {
-                            let! tm = funpow 2 (Choice.bind rand) (Choice.map concl th)
+                            let! th = th
+                            let! tm = Choice.funpow 2 rand (concl th)
                             let ft = repeat (Choice.toOption << rator) tm
                             let c = 
                                 match dest_const ft with
                                 | Success(s, _) -> s
                                 | Error _ -> ""
-                            return (c, BACKCHAIN_TAC th |> THEN <| REPEAT CONJ_TAC) :: acc
+                            return (c, BACKCHAIN_TAC (Choice.result th) |> THEN <| REPEAT CONJ_TAC) :: acc
                         }) ["", MONO_ABS_TAC] (!monotonicity_theorems) 
 
             let MONO_STEP_TAC = REPEAT GEN_TAC
@@ -661,9 +666,11 @@ let derive_strong_induction =
         choice {
             let avs, ibod = strip_forall tm
             let n = length avs
-            let prator = funpow n (Choice.get << rator)
+            let prator = Choice.funpow n rator
             let! ant, con = dest_imp ibod
-            return n, (prator ant, prator con)
+            let! ant' = prator ant
+            let! con' = prator con
+            return n, (ant', con')
         }
 
     let rec prove_triv tm = 

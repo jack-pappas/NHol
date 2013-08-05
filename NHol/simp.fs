@@ -200,7 +200,7 @@ let net_of_cong (th : Protected<thm0>) sofar : Protected<_> =
             return! Choice.failwith "net_of_cong: Non-implicational congruence"
         else 
             let! pat = lhs conc
-            let conv = GEN_PART_MATCH (Choice.bind lhand << funpow n (Choice.bind rand) << Choice.result) th
+            let conv = GEN_PART_MATCH (Choice.bind lhand << Choice.funpow n rand) th
             return! enter [] (pat, (4, conv)) sofar
     }
 

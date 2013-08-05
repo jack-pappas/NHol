@@ -534,7 +534,8 @@ let define_type_raw_001 =
     let sucivate = 
         let zero = (parse_term @"0")
         let suc = (parse_term @"SUC")
-        fun n -> funpow n (curry (Choice.get << mk_comb) suc) zero
+        fun n -> 
+            Choice.funpow n (curry mk_comb suc) zero
 
     (* ----------------------------------------------------------------------- *)
     (* Eliminate local "definitions" in hyps.                                  *)
@@ -632,7 +633,7 @@ let define_type_raw_001 =
                         let! conty = Choice.List.fold (fun acc ty -> mk_fun_ty ty acc) recty tms 
 
                         let condef = 
-                            list_mk_comb(constr, [sucivate n; 
+                            list_mk_comb(constr, [Choice.get <| sucivate n; 
                                                   iarg; 
                                                   rarg])
 
@@ -1061,31 +1062,39 @@ let define_type_raw_001 =
             let ERULE = GEN_REWRITE_RULE I (map snd tybijpairs)
 
             let simplify_fxthm rthm fxth = 
-                let pat = funpow 4 (Choice.get << rand) (concl <| Choice.get fxth)
-                if is_imp(repeat (Choice.toOption << Choice.map snd << dest_forall) (concl <| Choice.get rthm))
-                then 
-                    let th1 = PART_MATCH (Choice.bind rand << rand) rthm pat
-                    let tms1 = conjuncts(Choice.get <| lhand(concl <| Choice.get th1))
-                    let ths2 = map (fun t -> EQ_MP (SYM(SCONV t)) TRUTH) tms1
-                    ERULE(MP th1 (end_itlist CONJ ths2))
-                else ERULE(PART_MATCH rand rthm pat)
+                choice {
+                    let! fxth = fxth
+                    let! pat = Choice.funpow 4 rand (concl fxth)
+                    let! rthm = rthm
+                    if is_imp(repeat (Choice.toOption << Choice.map snd << dest_forall) (concl rthm)) then 
+                        let! th1 = PART_MATCH (Choice.bind rand << rand) (Choice.result rthm) pat
+                        let! tm1 = lhand(concl th1)
+                        let tms1 = conjuncts tm1
+                        let ths2 = map (fun t -> EQ_MP (SYM(SCONV t)) TRUTH) tms1
+                        return! ERULE(MP (Choice.result th1) (end_itlist CONJ ths2))
+                    else 
+                        return! ERULE(PART_MATCH rand (Choice.result rthm) pat)
+                }
 
             let fxths3 = map2 simplify_fxthm (CONJUNCTS rth) fxths2
             let fxths4 = map2 (fun th1 -> TRANS th1 << AP_TERM fn) fxths2 fxths3
 
             let cleanup_fxthm cth fxth = 
-                let tms = snd(strip_comb(Choice.get <| rand(Choice.get <| rand(concl <| Choice.get fxth))))
-                let kth = RIGHT_BETAS tms (ASSUME(hd(hyp <| Choice.get cth)))
-                TRANS fxth (AP_TERM fn kth)
+                choice {
+                    let tms = snd(strip_comb(Choice.get <| rand(Choice.get <| rand(concl <| Choice.get fxth))))
+                    let kth = RIGHT_BETAS tms (ASSUME(hd(hyp <| Choice.get cth)))
+                    return! TRANS fxth (AP_TERM fn kth)
+                }
 
             let fxth5 = end_itlist CONJ (map2 cleanup_fxthm conthms fxths4)
-            let pasms = filter (C mem (map fst consindex) << Choice.get << lhand) (hyp <| Choice.get fxth5)
+            let! tm1 = Choice.map hyp fxth5
+            let! pasms = Choice.List.filter (Choice.map (C mem (map fst consindex)) << lhand) tm1
             let fxth6 = itlist DISCH pasms fxth5
-            let fxth7, _ = 
-                Choice.get <| Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (fxth6, []) (itlist (union << hyp << Choice.get) conthms []) 
+            let tms1 = itlist (union << hyp << Choice.get) conthms []
+            let! fxth7, _ = Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (fxth6, []) tms1
             let fxth8 = UNDISCH_ALL fxth7
-
-            return! fst(Choice.get <| Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (fxth8, []) (subtract (hyp <| Choice.get fxth8) eqs))
+            let! th1, _ = Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (fxth8, []) (subtract (hyp <| Choice.get fxth8) eqs)
+            return! th1
         }
 
     (* ----------------------------------------------------------------------- *)
@@ -1097,20 +1106,21 @@ let define_type_raw_001 =
         let zty = (parse_type @"Z")
         let numty = (parse_type @"num")
         let rec extract_arg tup v = 
-            if v = tup
-            then REFL tup
-            else 
-                let t1, t2 = Choice.get <| dest_pair tup
-                let PAIR_th = 
-                    ISPECL [t1; t2] (if free_in v t1
-                                     then FST
-                                     else SND)
-                let tup' = Choice.get <| rand(concl <| Choice.get PAIR_th)
-                if tup' = v
-                then PAIR_th
+            choice {
+                if v = tup then 
+                    return! REFL tup
                 else 
-                    let th = extract_arg (Choice.get <| rand(concl <| Choice.get PAIR_th)) v
-                    SUBS [SYM PAIR_th] th
+                    let! t1, t2 = dest_pair tup
+                    let PAIR_th = 
+                        ISPECL [t1; t2] (if free_in v t1 then FST else SND)
+                    let! tup' = rand(concl <| Choice.get PAIR_th)
+                    if tup' = v then 
+                        return! PAIR_th
+                    else 
+                        let th = extract_arg (Choice.get <| rand(concl <| Choice.get PAIR_th)) v
+                        return! SUBS [SYM PAIR_th] th
+            }
+
         fun consindex -> 
             let recty = hd(snd(Choice.get <| dest_type(Choice.get <| type_of(fst(hd consindex)))))
             let domty = hd(snd(Choice.get <| dest_type recty))
@@ -1119,6 +1129,7 @@ let define_type_raw_001 =
             let mks = map (fst << snd) consindex
             let mkindex = 
                 map (fun t -> hd(tl(snd(Choice.get <| dest_type(Choice.get <| type_of t)))), t) mks
+
             fun cth -> 
                 choice {
                     let artms = snd(strip_comb(Choice.get <| rand(Choice.get <| rand(concl <| Choice.get cth))))
@@ -1129,7 +1140,7 @@ let define_type_raw_001 =
                     let rargs, iargs = partition (C free_in rtm) args
                     let xths = map (extract_arg itm) iargs
                     let cargs' = map (Choice.get << subst [i, itm] << Choice.get << lhand << concl <<Choice.get) xths
-                    let indices = map sucivate (0 -- (length rargs - 1))
+                    let! indices = Choice.List.map sucivate (0 -- (length rargs - 1))
                     let! rindexed = Choice.List.map (curry mk_comb r) indices
                     let rargs' = 
                         map2 (fun a rx -> Choice.get <| mk_comb(Option.getOrFailWith "find" <| assoc a mkindex, rx)) artys 
@@ -1922,6 +1933,7 @@ let define_type_raw =
     let recover_clause id tm = 
         let con, args = strip_comb tm
         fst(Choice.get <| dest_const con) + id, map (Choice.get << type_of) args
+
     let rec create_auxiliary_clauses nty = 
         let id = fst(Choice.get <| dest_var(genvar bool_ty))
         let tycon, tyargs = Choice.get <| dest_type nty
@@ -1941,6 +1953,7 @@ let define_type_raw =
         let tyal = map (fun ty -> mk_vartype(fst(Choice.get <| dest_type ty) + id), ty) mtys
         let cls'' = map (modify_type tyal ||>> map(modify_item tyal)) cls'
         k, tyal, cls'', INST_TYPE tyins ith, INST_TYPE tyins rth
+
     let rec define_type_nested def = 
         let n = length(itlist (@) (map (map fst << snd) def) [])
         let newtys = map fst def
@@ -2010,6 +2023,7 @@ let define_type_raw =
             let dths = map mk_newcon ncjs
             let ith6, rth6 = CONJ_PAIR(PURE_REWRITE_RULE dths irth6)
             n, ith6, rth6
+
     fun def -> 
         let newtys = map fst def
         let truecons = itlist (@) (map (map fst << snd) def) []
@@ -2043,25 +2057,22 @@ let the_inductive_types =
          "sum = INL A | INR B", (sum_INDUCT, sum_RECURSION)];;
 
 /// Automatically define user-specified inductive data types.
-let define_type s =
+let define_type s = 
     match assoc s !the_inductive_types with
-    | Some retval ->
+    | Some retval -> 
         warn true "Benign redefinition of inductive type"
         retval
-    | None ->
+    | None -> 
         let defspec = parse_inductive_type_specification s
         let newtypes = map fst defspec
         let constructors = itlist ((@) << map fst) (map snd defspec) []
-        if not(length(setify newtypes) = length newtypes)
-        then failwith "define_type: multiple definitions of a type"
-        elif not(length(setify constructors) = length constructors)
-        then failwith "define_type: multiple instances of a constructor"
-        elif exists (Choice.isResult << get_type_arity << Choice.get << dest_vartype) newtypes
-        then 
+        if not(length(setify newtypes) = length newtypes) then failwith "define_type: multiple definitions of a type"
+        elif not(length(setify constructors) = length constructors) then 
+            failwith "define_type: multiple instances of a constructor"
+        elif exists (Choice.isResult << get_type_arity << Choice.get << dest_vartype) newtypes then 
             let t = Option.get <| find (Choice.isResult << get_type_arity) (map (Choice.get << dest_vartype) newtypes)
             failwith("define_type: type :" + t + " already defined")
-        elif exists (Choice.isResult << get_const_type) constructors
-        then 
+        elif exists (Choice.isResult << get_const_type) constructors then 
             let t = Option.get <| find (Choice.isResult << get_const_type) constructors
             failwith("define_type: constant " + t + " already defined")
         else 
@@ -2082,6 +2093,7 @@ let UNWIND_CONV, MATCH_CONV =
         BOOL_CASES_TAC(parse_term @"p:bool")
         |> THEN <| ASM_REWRITE_TAC [COND_ID]
         |> THEN <| MESON_TAC [])
+
     let pth_1 = 
       prove((parse_term @"_MATCH x (_SEQPATTERN r s) =
       (if ?y. r x y then _MATCH x r else _MATCH x s) /\
@@ -2089,82 +2101,95 @@ let UNWIND_CONV, MATCH_CONV =
       (if ?y. r x y then _FUNCTION r x else _FUNCTION s x)"),
         REWRITE_TAC [_MATCH; _SEQPATTERN; _FUNCTION]
         |> THEN <| MESON_TAC [])
+
     let pth_2 = 
         prove
             ((parse_term @"((?y. _UNGUARDED_PATTERN (GEQ s t) (GEQ u y)) <=> s = t) /\
      ((?y. _GUARDED_PATTERN (GEQ s t) p (GEQ u y)) <=> s = t /\ p)"), 
              REWRITE_TAC [_UNGUARDED_PATTERN; _GUARDED_PATTERN; GEQ_DEF]
              |> THEN <| MESON_TAC [])
+
     let pth_3 = 
         prove
             ((parse_term @"(_MATCH x (\y z. P y z) = if ?!z. P x z then @z. P x z else @x. F) /\
      (_FUNCTION (\y z. P y z) x = if ?!z. P x z then @z. P x z else @x. F)"), 
              REWRITE_TAC [_MATCH; _FUNCTION])
+
     let pth_4 = 
         prove
             ((parse_term @"(_UNGUARDED_PATTERN (GEQ s t) (GEQ u y) <=> y = u /\ s = t) /\
      (_GUARDED_PATTERN (GEQ s t) p (GEQ u y) <=> y = u /\ s = t /\ p)"), 
              REWRITE_TAC [_UNGUARDED_PATTERN; _GUARDED_PATTERN; GEQ_DEF]
              |> THEN <| MESON_TAC [])
+
     let pth_5 = 
         prove
             ((parse_term @"(if ?!z. z = k then @z. z = k else @x. F) = k"), 
              MESON_TAC [])
+
     let rec INSIDE_EXISTS_CONV conv tm = 
-        if is_exists tm
-        then BINDER_CONV (INSIDE_EXISTS_CONV conv) tm
+        if is_exists tm then BINDER_CONV (INSIDE_EXISTS_CONV conv) tm
         else conv tm
+
     let PUSH_EXISTS_CONV = 
         let econv = REWR_CONV SWAP_EXISTS_THM
         let rec conv bc tm = 
-            try 
-                (econv
-                 |> THENC <| BINDER_CONV(conv bc)) tm
-            with
-            | Failure _ -> bc tm
+            choice { 
+                return! (econv |> THENC <| BINDER_CONV(conv bc)) tm
+            }
+            |> Choice.bindError (fun _ -> bc tm)
         conv
+
     let BREAK_CONS_CONV = 
         let conv2 = GEN_REWRITE_CONV DEPTH_CONV [AND_CLAUSES; OR_CLAUSES]
                     |> THENC <| ASSOC_CONV CONJ_ASSOC
         fun tm -> 
             let conv0 = TOP_SWEEP_CONV(REWRITES_CONV(!basic_rectype_net))
             let conv1 = 
-                if is_conj tm
-                then LAND_CONV conv0
+                if is_conj tm then LAND_CONV conv0
                 else conv0
             (conv1
              |> THENC <| conv2) tm
+
     let UNWIND_CONV = 
         let baseconv = 
             GEN_REWRITE_CONV I [UNWIND_THM1
                                 UNWIND_THM2
                                 EQT_INTRO(SPEC_ALL EXISTS_REFL)
                                 EQT_INTRO(GSYM(SPEC_ALL EXISTS_REFL))]
+
         let rec UNWIND_CONV tm = 
             let evs, bod = strip_exists tm
             let eqs = conjuncts bod
-            try 
-                let eq = Option.get <| find (fun tm -> 
-                    is_eq tm &&
-                    let l, r = Choice.get <| dest_eq tm
-                    (mem l evs && not(free_in l r)) || 
-                    (mem r evs && not(free_in r l))) eqs
-                let l, r = Choice.get <| dest_eq eq
+            choice { 
+                let! eq = 
+                    Choice.List.tryFind (fun tm -> 
+                        choice {
+                            let! l, r = dest_eq tm
+                            return
+                                is_eq tm &&
+                                (mem l evs && not(free_in l r)) || 
+                                (mem r evs && not(free_in r l))
+                        }) eqs
+                    |> Choice.bind (Option.toChoiceWithError "find")
+
+                let! l, r = dest_eq eq
                 let v = 
                     if mem l evs && not(free_in l r)
                     then l
                     else r
                 let cjs' = eq :: (subtract eqs [eq])
                 let n = length evs - (1 + index v (rev evs))
-                let th1 = CONJ_ACI_RULE(Choice.get <| mk_eq(bod, list_mk_conj cjs'))
+                let! tm1 = mk_eq(bod, list_mk_conj cjs')
+                let th1 = CONJ_ACI_RULE tm1
                 let th2 = itlist MK_EXISTS evs th1
-                let th3 = 
-                    funpow n BINDER_CONV (PUSH_EXISTS_CONV baseconv) 
-                        (Choice.get <| rand(concl <| Choice.get th2))
-                CONV_RULE (RAND_CONV UNWIND_CONV) (TRANS th2 th3)
-            with
-            | Failure _ -> REFL tm
+                let! tm2 = Choice.bind (rand << concl) th2 
+                let th3 = funpow n BINDER_CONV (PUSH_EXISTS_CONV baseconv) tm2
+                return! CONV_RULE (RAND_CONV UNWIND_CONV) (TRANS th2 th3)
+            }
+            |> Choice.bindError (fun _ -> REFL tm)
         UNWIND_CONV
+
     let MATCH_SEQPATTERN_CONV = 
         GEN_REWRITE_CONV I [pth_1]
         |> THENC <| RATOR_CONV
@@ -2178,9 +2203,14 @@ let UNWIND_CONV, MATCH_CONV =
                                                                                     EQ_REFL)
                                                                            AND_CLAUSES]
                                   |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [EXISTS_SIMP]))
+
     let MATCH_ONEPATTERN_CONV tm = 
-        let th1 = GEN_REWRITE_CONV I [pth_3] tm
-        let tm' = Choice.get <| body(Choice.get <| rand(Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get th1))))
+        choice {
+        let! th1 = GEN_REWRITE_CONV I [pth_3] tm
+        let! tm1 = rand(concl th1)
+        let! tm2 = lhand tm1
+        let! tm3 = rand tm2
+        let! tm' = body tm3
         let th2 = 
             (INSIDE_EXISTS_CONV(GEN_REWRITE_CONV I [pth_4]
                                 |> THENC <| RAND_CONV BREAK_CONS_CONV)
@@ -2189,27 +2219,39 @@ let UNWIND_CONV, MATCH_CONV =
                                                           (SPEC_ALL EQ_REFL)
                                                       AND_CLAUSES]
              |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [EXISTS_SIMP]) tm'
+
         let conv tm = 
-            if tm = (Choice.get <| lhand(concl <| Choice.get th2))
-            then th2
-            else fail()
-        CONV_RULE 
-            (RAND_CONV
-                 (RATOR_CONV
-                      (COMB2_CONV (RAND_CONV(BINDER_CONV conv)) 
-                           (BINDER_CONV conv)))) th1
+            choice {
+                let! tm1 = Choice.bind (lhand << concl) th2
+                if tm = tm1
+                then return! th2
+                else return! Choice.fail()
+            }
+
+        return!
+            CONV_RULE 
+                (RAND_CONV
+                     (RATOR_CONV
+                          (COMB2_CONV (RAND_CONV(BINDER_CONV conv)) 
+                               (BINDER_CONV conv)))) (Choice.result th1)
+        }
+
     let MATCH_SEQPATTERN_CONV_TRIV = 
         MATCH_SEQPATTERN_CONV
         |> THENC <| GEN_REWRITE_CONV I [COND_CLAUSES]
+
     let MATCH_SEQPATTERN_CONV_GEN = 
         MATCH_SEQPATTERN_CONV
         |> THENC <| GEN_REWRITE_CONV TRY_CONV [COND_CLAUSES]
+
     let MATCH_ONEPATTERN_CONV_TRIV = 
         MATCH_ONEPATTERN_CONV
         |> THENC <| GEN_REWRITE_CONV I [pth_5]
+
     let MATCH_ONEPATTERN_CONV_GEN = 
         MATCH_ONEPATTERN_CONV
         |> THENC <| GEN_REWRITE_CONV TRY_CONV [pth_0; pth_5]
+
     do_list (ignore << extend_basic_convs)
         ["MATCH_SEQPATTERN_CONV", 
          ((parse_term @"_MATCH x (_SEQPATTERN r s)"), MATCH_SEQPATTERN_CONV_TRIV)
@@ -2228,12 +2270,12 @@ let FORALL_UNWIND_CONV =
     let PUSH_FORALL_CONV = 
         let econv = REWR_CONV SWAP_FORALL_THM
         let rec conv bc tm = 
-            try 
-                (econv
-                 |> THENC <| BINDER_CONV(conv bc)) tm
-            with
-            | Failure _ -> bc tm
+            choice { 
+                return! (econv |> THENC <| BINDER_CONV(conv bc)) tm
+            }
+            |> Choice.bindError (fun _ -> bc tm)
         conv
+
     let baseconv = 
         GEN_REWRITE_CONV I [MESON [] 
                                 (parse_term @"(!x. x = a /\ p x ==> q x) <=> (p a ==> q a)")
@@ -2241,31 +2283,39 @@ let FORALL_UNWIND_CONV =
                                 (parse_term @"(!x. a = x /\ p x ==> q x) <=> (p a ==> q a)")
                             MESON [] (parse_term @"(!x. x = a ==> q x) <=> q a")
                             MESON [] (parse_term @"(!x. a = x ==> q x) <=> q a")]
+
     let rec FORALL_UNWIND_CONV tm = 
-        try 
+        choice { 
             let avs, bod = strip_forall tm
-            let ant, con = Choice.get <| dest_imp bod
+            let! ant, con = dest_imp bod
             let eqs = conjuncts ant
-            let eq = 
-                Option.get <| find (fun tm -> 
-                    is_eq tm && 
-                    let l, r = Choice.get <| dest_eq tm
-                    (mem l avs && not(free_in l r)) || 
-                    (mem r avs && not(free_in r l))) eqs
-            let l, r = Choice.get <| dest_eq eq
+            let! eq = 
+                Choice.List.tryFind (fun tm -> 
+                    choice {
+                        let! l, r = dest_eq tm
+                        return
+                            is_eq tm && 
+                            (mem l avs && not(free_in l r)) || 
+                            (mem r avs && not(free_in r l))
+                    }) eqs
+                |> Choice.bind (Option.toChoiceWithError "find")
+
+            let! l, r = dest_eq eq
             let v = 
-                if mem l avs && not(free_in l r)
-                then l
+                if mem l avs && not(free_in l r) then l
                 else r
+
             let cjs' = eq :: (subtract eqs [eq])
             let n = length avs - (1 + index v (rev avs))
-            let th1 = CONJ_ACI_RULE(Choice.get <| mk_eq(ant, list_mk_conj cjs'))
-            let th2 = AP_THM (AP_TERM (Choice.get <| rator(Choice.get <| rator bod)) th1) con
+            let! tm1 =  mk_eq(ant, list_mk_conj cjs')
+            let th1 = CONJ_ACI_RULE tm1
+            let! tm2 = rator bod
+            let! tm3 = rator tm2
+            let th2 = AP_THM (AP_TERM tm3 th1) con
             let th3 = itlist MK_FORALL avs th2
-            let th4 = 
-                funpow n BINDER_CONV (PUSH_FORALL_CONV baseconv) 
-                    (Choice.get <| rand(concl <| Choice.get th3))
-            CONV_RULE (RAND_CONV FORALL_UNWIND_CONV) (TRANS th3 th4)
-        with
-        | Failure _ -> REFL tm
+            let! tm4 = Choice.bind (rand << concl) th3
+            let th4 = funpow n BINDER_CONV (PUSH_FORALL_CONV baseconv) tm4
+            return! CONV_RULE (RAND_CONV FORALL_UNWIND_CONV) (TRANS th3 th4)
+        }
+        |> Choice.bindError (fun _ -> REFL tm)
     FORALL_UNWIND_CONV
