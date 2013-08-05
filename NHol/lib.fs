@@ -122,6 +122,12 @@ module Choice =
 
     (* These functions are specific to this project, and so probably won't be included in ExtCore. *)
 
+    // Instead of using the Choice.get available in ExtCore, we redefine it here
+    // as an alias for ExtCore.Choice.bindOrRaise, so we'll get more information when
+    // an error occurs.
+    let inline get (value : Choice<'T, exn>) =
+        ExtCore.Choice.bindOrRaise value
+
     // The Choice.failwith in ExtCore returns the error string as-is, instead of wrapping it in an exception.
     // We could modify NHol to work the same way, we'd just need to use the Choice.bindOrFail function at the call sites.
     let inline failwith msg : Choice<'T, exn> =
