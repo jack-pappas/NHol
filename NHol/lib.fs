@@ -184,15 +184,15 @@ module Choice =
         match value with
         | Choice1Of2 (result1, result2) ->
             (result1, result2)
-        | Choice2Of2 _ ->
-            (failwith msg, failwith msg) 
+        | Choice2Of2 e ->
+            (nestedFailwith e msg, nestedFailwith e msg) 
 
     let getOrFailure3 msg (value : Choice<Choice<'T, exn> * Choice<'U, exn> * Choice<'V, exn>, exn>) =
         match value with
         | Choice1Of2 (result1, result2, result3) ->
             (result1, result2, result3)
-        | Choice2Of2 _ ->
-            (failwith msg, failwith msg, failwith msg) 
+        | Choice2Of2 e ->
+            (nestedFailwith e msg, nestedFailwith e msg, nestedFailwith e msg) 
 
     /// Applies the specified binding function to a choice value representing an error value
     /// (Choice2Of2). If the choice value represents a result value (Choice1Of2), the result value
