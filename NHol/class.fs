@@ -681,7 +681,8 @@ let COND_CONG =
     TAUT(parse_term @"(g = g') ==>
         (g' ==> (t = t')) ==>
         (~g' ==> (e = e')) ==>
-        ((if g then t else e) = (if g' then t' else e'))");;
+        ((if g then t else e) = (if g' then t' else e'))")
+    |> ExtCore.Choice.bindOrRaise;;
 
 extend_basic_congs [COND_CONG]
 

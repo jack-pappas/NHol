@@ -203,9 +203,9 @@ extend_basic_rewrites [REFL_CLAUSE;
                            prove
                                ((parse_term @"((x = x) ==> p) <=> p"), 
                                 REWRITE_TAC [EQT_INTRO(SPEC_ALL EQ_REFL)
-                                             IMP_CLAUSES]) in IMP_EQ_CLAUSE);] |> ignore
-extend_basic_congs 
-    [ITAUT (parse_term @"(p <=> p') ==> (p' ==> (q <=> q')) ==> (p ==> q <=> p' ==> q')")]
+                                             IMP_CLAUSES]) in IMP_EQ_CLAUSE);] |> ExtCore.Choice.bindOrRaise
+extend_basic_congs
+    [ITAUT (parse_term @"(p <=> p') ==> (p' ==> (q <=> q')) ==> (p ==> q <=> p' ==> q')") |> ExtCore.Choice.bindOrRaise]
 
 (* ------------------------------------------------------------------------- *)
 (* Rewrite rule for unique existence.                                        *)

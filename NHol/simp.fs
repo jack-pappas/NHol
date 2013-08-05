@@ -69,7 +69,7 @@ let IMP_REWR_CONV = PART_MATCH (Choice.bind lhs << Choice.map snd << dest_imp)
 (* ------------------------------------------------------------------------- *)
 
 /// Basic rewriting conversion restricted by term order.
-let ORDERED_REWR_CONV ord th = 
+let ORDERED_REWR_CONV ord th : term -> Protected<_> = 
     let basic_conv = REWR_CONV th
     fun tm -> 
         choice {
@@ -82,7 +82,7 @@ let ORDERED_REWR_CONV ord th =
         }
 
 /// Basic conditional rewriting conversion restricted by term order.
-let ORDERED_IMP_REWR_CONV ord th = 
+let ORDERED_IMP_REWR_CONV ord th : term -> Protected<_> = 
     let basic_conv = IMP_REWR_CONV th
     fun tm -> 
         choice {
@@ -140,40 +140,40 @@ let term_order =
 (* ------------------------------------------------------------------------- *)
 
 /// Insert a theorem into a net as a (conditional) rewrite.
-let net_of_thm rep (th : Protected<thm0>) net = 
+let net_of_thm rep (th : Protected<thm0>) (net : net<int * (term -> Protected<_>)>) : Protected<net<int * (term -> Protected<_>)>> =
     choice {
         let! tm = Choice.map concl th
         let! lconsts = Choice.map (freesl << hyp) th
         let matchable x y = Choice.isResult <| term_match lconsts x y
         match tm with
-        | Comb(Comb(Const("=", _), (Abs(x, Comb(Var(s, ty) as v, x')) as l)), v') when x' = x && v' = v && not (x = v) -> 
-            let conv tm = 
+        | Comb(Comb(Const("=", _), (Abs(x, Comb(Var(s, ty) as v, x')) as l)), v') when x' = x && v' = v && not (x = v) ->
+            let conv tm =
                 choice {
                     match tm with
                     | Abs(y, Comb(t, y')) when y = y' && not(free_in y t) ->
                         let! inst = term_match [] v t
                         return! INSTANTIATE inst th
-                    | _ -> 
+                    | _ ->
                         return! Choice.failwith "REWR_CONV (ETA_AX special case)"
                 }
             return! enter lconsts (l, (1, conv)) net
-        | Comb(Comb(Const("=", _), l), r) -> 
-            if rep && free_in l r then 
-                let th' = EQT_INTRO th
-                return! enter lconsts (l, (1, REWR_CONV th')) net
-            elif rep && matchable l r && matchable r l then 
+        | Comb(Comb(Const("=", _), l), r) ->
+            if rep && free_in l r then
+                let! th' = EQT_INTRO th
+                return! enter lconsts (l, (1, REWR_CONV (Choice.result th'))) net
+            elif rep && matchable l r && matchable r l then
                 return! enter lconsts (l, (1, ORDERED_REWR_CONV term_order th)) net
             else 
                 return! enter lconsts (l, (1, REWR_CONV th)) net
         | Comb(Comb(_, t), Comb(Comb(Const("=", _), l), r)) -> 
-            if rep && free_in l r then 
+            if rep && free_in l r then
                 let th' = DISCH t (EQT_INTRO(UNDISCH th))
                 return! enter lconsts (l, (3, IMP_REWR_CONV th')) net
-            elif rep && matchable l r && matchable r l then 
+            elif rep && matchable l r && matchable r l then
                 return! enter lconsts (l, (3, ORDERED_IMP_REWR_CONV term_order th)) net
-            else 
+            else
                 return! enter lconsts (l, (3, IMP_REWR_CONV th)) net
-        | _ -> 
+        | _ ->
             return! Choice.failwith "net_of_thm: Unhandled case."
     }
 
@@ -189,7 +189,7 @@ let net_of_conv tm conv sofar = enter [] (tm, (2, conv)) sofar
 (* ------------------------------------------------------------------------- *)
 
 /// Add a congruence rule to a net.
-let net_of_cong (th : Protected<thm0>) sofar = 
+let net_of_cong (th : Protected<thm0>) sofar : Protected<_> =
     choice {
         let! tm = Choice.map concl th
         let conc, n = repeat (fun (tm, m) -> 
@@ -214,54 +214,72 @@ let net_of_cong (th : Protected<thm0>) sofar =
 (* ------------------------------------------------------------------------- *)
 
 /// Turn theorem into list of (conditional) rewrites.
-let mk_rewrites = 
+let mk_rewrites : _ -> _ -> _ -> Protected<_> = 
     let IMP_CONJ_CONV = 
         REWR_CONV(ITAUT(parse_term @"p ==> q ==> r <=> p /\ q ==> r"))
     let IMP_EXISTS_RULE = 
         let cnv = 
             REWR_CONV(ITAUT(parse_term @"(!x. P x ==> Q) <=> (?x. P x) ==> Q"))
         fun v th -> CONV_RULE cnv (GEN v th)
-    let collect_condition oldhyps th = 
+
+    let collect_condition oldhyps (th : Protected<_>) : Protected<_> =
         choice {
-            let! tms = Choice.map hyp th
-            let conds = subtract tms oldhyps
-            if conds = [] then 
-                return! th
-            else 
-                let jth = itlist DISCH conds th
-                let kth = CONV_RULE (REPEATC IMP_CONJ_CONV) jth
-                let! tms' = Choice.map concl kth
-                let! cond, eqn = dest_imp tms'
-                let fvs = subtract (subtract (frees cond) (frees eqn)) (freesl oldhyps)
-                return! itlist IMP_EXISTS_RULE fvs kth
+        let! th = th
+        let tms = hyp th
+        let conds = subtract tms oldhyps
+        if List.isEmpty conds then 
+            return th
+        else 
+            let jth = itlist DISCH conds (Choice.result th)
+            let! kth = CONV_RULE (REPEATC IMP_CONJ_CONV) jth
+            let tms' = concl kth
+            let! cond, eqn = dest_imp tms'
+            let fvs = subtract (subtract (frees cond) (frees eqn)) (freesl oldhyps)
+            return!
+                let kth = Choice.result kth in
+                itlist IMP_EXISTS_RULE fvs kth
         }
-    let rec split_rewrites oldhyps cf th sofar : Choice<Protected<thm0> list, _> = 
+
+    let rec split_rewrites oldhyps cf th sofar : Protected<Protected<thm0> list> = 
         choice {
-            let! tm = Choice.map concl th
-            if is_forall tm then 
-                return! split_rewrites oldhyps cf (SPEC_ALL th) sofar
+            let tm = concl th
+            if is_forall tm then
+                let! th' = SPEC_ALL (Choice.result th)
+                return! split_rewrites oldhyps cf th' sofar
             elif is_conj tm then
-                let! right = split_rewrites oldhyps cf (CONJUNCT2 th) sofar
-                return! split_rewrites oldhyps cf (CONJUNCT1 th) right
-            elif is_imp tm && cf then 
-                return! split_rewrites oldhyps cf (UNDISCH th) sofar
-            elif is_eq tm then 
-                return (if cf then collect_condition oldhyps th else th) :: sofar
-            elif is_neg tm then 
-                let! ths = split_rewrites oldhyps cf (EQF_INTRO th) sofar
+                let! th' = CONJUNCT2 (Choice.result th)
+                let! right = split_rewrites oldhyps cf th' sofar
+                let! th'' = CONJUNCT1 (Choice.result th)
+                return! split_rewrites oldhyps cf th'' right
+            elif is_imp tm && cf then
+                let! th' = UNDISCH (Choice.result th)
+                return! split_rewrites oldhyps cf th' sofar
+            elif is_eq tm then
+                let! v =
+                    choice {
+                    if cf then
+                        return! collect_condition oldhyps (Choice.result th)
+                    else return th }
+                return (Choice.result v) :: sofar
+            elif is_neg tm then
+                let! th' = EQF_INTRO (Choice.result th)
+                let! ths = split_rewrites oldhyps cf th' sofar
                 let! tm1 = rand tm
-                if is_eq tm1 then 
-                    return! split_rewrites oldhyps cf (EQF_INTRO(GSYM th)) ths
-                else 
+                if is_eq tm1 then
+                    let! th' = EQF_INTRO(GSYM (Choice.result th))
+                    return! split_rewrites oldhyps cf th' ths
+                else
                     return ths
-            else 
-                return! split_rewrites oldhyps cf (EQT_INTRO th) sofar
+            else
+                let! th' = EQT_INTRO (Choice.result th)
+                return! split_rewrites oldhyps cf th' sofar
         }
 
     fun cf (th : Protected<thm0>) (sofar : Protected<thm0> list) ->
         choice {
-            let! ts = Choice.map hyp th
-            return! split_rewrites ts cf th sofar
+        let! th = th
+        let ts = hyp th
+        return! split_rewrites ts cf th sofar
         }
 
 (* ------------------------------------------------------------------------- *)
@@ -315,8 +333,8 @@ let apply_prover (Prover(conv, _)) tm = conv tm
 (* We also have a type of (traversal) strategy, following Konrad.            *)
 (* ------------------------------------------------------------------------- *)
 
-type simpset = 
-    | Simpset of gconv net * (strategy -> strategy) * prover list * (Protected<thm0> -> Protected<thm0> list -> Choice<Protected<thm0> list, exn>)
+type simpset =
+    | Simpset of gconv net * (strategy -> strategy) * prover list * (Protected<thm0> -> Protected<thm0> list -> Protected<Protected<thm0> list>)
 
 (* Rewrites & congruences *)
 (* Prover for conditions  *)
@@ -386,7 +404,7 @@ let ss_of_maker newmaker (Simpset(net, prover, provers, _)) =
 (* ------------------------------------------------------------------------- *)
 
 /// Augment context of a simpset with a list of theorems.
-let AUGMENT_SIMPSET cth (Simpset(net, prover, provers, rewmaker)) = 
+let AUGMENT_SIMPSET (cth : Protected<thm0>) (Simpset(net, prover, provers, rewmaker)) = 
     choice {
         let provers' = map (C augment [cth]) provers
         let! cthms = rewmaker cth []
@@ -405,7 +423,8 @@ let AUGMENT_SIMPSET cth (Simpset(net, prover, provers, rewmaker)) =
 // TOP_SWEEP_SQCONV: Applies simplification top-down at all levels, but after descending to subterms, does not return to higher ones.
 let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP_SQCONV = 
     let IMP_REWRITES_CONV strat (Simpset(net, prover, provers, rewmaker) as ss) lev pconvs tm = 
-        tryfind (fun (n, cnv) -> 
+        pconvs
+        |> tryfind (fun (n, cnv) -> 
                 if n >= 4 then 
                     None
                 else 
@@ -422,48 +441,58 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                                 let cth = prover strat ss (lev - 1) tm'
                                 Choice.toOption <| MP th cth
                             | Error _ -> None
-                    | Error _ -> None) pconvs
+                    | Error _ -> None)
         |> Option.toChoiceWithError "IMP_REWRITES_CONV: Too deep"
 
     let rec RUN_SUB_CONV strat ss lev triv th = 
         choice {
-            let! tm = Choice.map concl th
+            let! th = th
+            let tm = concl th
             if is_imp tm then 
                 let! subtm = lhand tm
                 let avs, bod = strip_forall subtm
-                let! (t, t'), ss', mk_fun = 
+                let! (t, t'), ss', mk_fun =
+                    choice {
                     match dest_eq bod with
                     | Success t_pair ->
-                        Choice.result (t_pair, ss, I)
+                        return t_pair, ss, I
                     | Error _ ->
                         match dest_imp bod with
                         | Success (cxt, deq) ->
-                            (dest_eq deq, AUGMENT_SIMPSET (ASSUME cxt) ss)
-                            ||> Choice.bind2 (fun tm' ss' ->
-                                Choice.result (tm', ss', DISCH cxt))
-                        | Error _ -> Choice.fail()
+                            let! tm' = dest_eq deq
+                            let! cth = ASSUME cxt
+                            let! ss' = AUGMENT_SIMPSET (Choice.result cth) ss
+                            return tm', ss', DISCH cxt
+                        | Error ex ->
+                            return! Choice.error ex
+                    }
                 
-                let! eth, triv' = 
+                let! eth, triv' =
+                    choice {
                     match strat ss' lev t with
                     | Success st ->
-                        Choice.result (Choice.result st, false)
+                        return Choice.result st, false
                     | Error _ -> 
-                        Choice.result (REFL t, triv)
-
-                let eth' = GENL avs (mk_fun eth)
-                let th' = 
+                        return REFL t, triv
+                    }
+                let! eth = eth
+                let! eth' = GENL avs (mk_fun (Choice.result eth))
+                
+                let! th' =
+                    choice {
                     if is_var t' then
-                        Choice.bind (rand << concl) eth 
-                        |> Choice.bind (fun tm1 -> INST [tm1, t'] th)
+                        let! tm1 = rand <| concl eth
+                        return! INST [tm1, t'] (Choice.result th)
                     else
-                        Choice.map concl eth' 
-                        |> Choice.bind (fun tm2 -> GEN_PART_MATCH lhand th tm2)
-                let th'' = MP th' eth'
+                        let tm2 = concl eth'
+                        return! GEN_PART_MATCH lhand (Choice.result th) tm2
+                    }
+                let th'' = MP (Choice.result th') (Choice.result eth')
                 return! RUN_SUB_CONV strat ss lev triv' th''
-            elif triv then 
+            elif triv then
                 return! Choice.fail()
             else 
-                return! th
+                return th
         }
 
     let GEN_SUB_CONV strat ss lev pconvs tm = 
@@ -595,18 +624,18 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
 // basic_convs: List the current default conversions used in rewriting and simplification.
 // basic_net: Returns the term net used to optimize access to default rewrites and conversions.
 let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, extend_basic_convs, basic_convs, basic_net = 
-    let rewrites = ref([] : Protected<thm0> list)
-    let conversions = ref ([] : (string * (term * conv)) list)
-    let conv_net = ref(empty_net : gconv net)
+    let rewrites : Protected<thm0> list ref = ref []
+    let conversions : ((string * (term * conv)) list) ref = ref []
+    let conv_net : net<gconv> ref = ref empty_net
 
-    let rehash_convnet() = 
+    let rehash_convnet() =
         choice {
-            let! nets = Choice.List.fold (fun acc (_, (pat,cnv)) -> net_of_conv pat cnv acc) empty_net (!conversions)
-            let! nets2 = Choice.List.fold (fun acc x -> net_of_thm true x acc) nets (!rewrites)
+            let! nets = Choice.List.fold (fun acc (_, (pat,cnv)) -> net_of_conv pat cnv acc) empty_net !conversions
+            let! nets2 = Choice.List.fold (fun acc x -> net_of_thm true x acc) nets !rewrites
             return conv_net := nets2
         }
 
-    let set_basic_rewrites thl = 
+    let set_basic_rewrites thl =
         choice {
             let! canon_thl = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
             rewrites := canon_thl
@@ -614,7 +643,7 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
         }
 
     let extend_basic_rewrites thl =
-        choice { 
+        choice {
             let! canon_thl = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
             rewrites := canon_thl @ !rewrites
             do! rehash_convnet()
@@ -622,12 +651,12 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
 
     let basic_rewrites() = !rewrites
 
-    let set_basic_convs cnvs = 
+    let set_basic_convs cnvs =
         conversions := cnvs
         rehash_convnet()
 
-    let extend_basic_convs(name, patcong) = 
-        conversions := (name, patcong) :: filter (fun (name', _) -> name <> name') (!conversions)
+    let extend_basic_convs(name, patcong) =
+        conversions := (name, patcong) :: filter (fun (name', _) -> name <> name') !conversions
         rehash_convnet()
 
     let basic_convs() = !conversions
@@ -642,10 +671,13 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
 // set_basic_congs: Change the set of basic congruences used by the simplifier.
 // extend_basic_congs: Extends the set of congruence rules used by the simplifier.
 // basic_congs: Lists the congruence rules used by the simplifier.
-let set_basic_congs, extend_basic_congs, basic_congs = 
-    let congs = ref([] : Protected<thm0> list)
+let set_basic_congs, extend_basic_congs, basic_congs =
+    let congs = ref([] : thm0 list)
     (fun thl -> congs := thl),
-    (fun thl -> congs := union' equals_thm thl (!congs)),
+    (fun thl ->
+        let equals_thm x y =
+            equals_thm (Choice.result x) (Choice.result y)
+        congs := union' equals_thm thl !congs),
     (fun () -> !congs)
 
 (* ------------------------------------------------------------------------- *)
@@ -653,33 +685,33 @@ let set_basic_congs, extend_basic_congs, basic_congs =
 (* ------------------------------------------------------------------------- *)
 
 /// Rewrite with theorems as well as an existing net.
-let GENERAL_REWRITE_CONV rep (cnvl : conv -> conv) (builtin_net : gconv net) thl = 
+let GENERAL_REWRITE_CONV rep (cnvl : conv -> conv) (builtin_net : gconv net) (thl : Protected<thm0> list) : conv = 
     fun tm ->
         choice {
-            let! thl_canon = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
-            let! final_net = Choice.List.fold (fun acc x -> net_of_thm rep x acc) builtin_net thl_canon
-            let conv = REWRITES_CONV final_net
-            return! cnvl conv tm
+        let! thl_canon = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
+        let! final_net = Choice.List.fold (fun acc x -> net_of_thm rep x acc) builtin_net thl_canon
+        let conv = REWRITES_CONV final_net
+        return! cnvl conv tm
         }
 
 /// Rewrites a term, selecting terms according to a user-specified strategy.
-let GEN_REWRITE_CONV (cnvl : conv -> conv) thl = 
+let GEN_REWRITE_CONV (cnvl : conv -> conv) thl : conv = 
     GENERAL_REWRITE_CONV false cnvl empty_net thl
 
 /// Rewrites a term with only the given list of rewrites.
-let PURE_REWRITE_CONV thl = 
+let PURE_REWRITE_CONV thl : conv = 
     GENERAL_REWRITE_CONV true TOP_DEPTH_CONV empty_net thl
 
 /// Rewrites a term including built-in tautologies in the list of rewrites.
-let REWRITE_CONV thl = 
+let REWRITE_CONV thl : conv = 
     GENERAL_REWRITE_CONV true TOP_DEPTH_CONV (basic_net()) thl
 
 /// Rewrites a term once with only the given list of rewrites.
-let PURE_ONCE_REWRITE_CONV thl = 
+let PURE_ONCE_REWRITE_CONV thl : conv = 
     GENERAL_REWRITE_CONV false ONCE_DEPTH_CONV empty_net thl
 
 /// Rewrites a term, including built-in tautologies in the list of rewrites.
-let ONCE_REWRITE_CONV thl = 
+let ONCE_REWRITE_CONV thl : conv = 
     GENERAL_REWRITE_CONV false ONCE_DEPTH_CONV (basic_net()) thl
 
 (* ------------------------------------------------------------------------- *)
@@ -691,46 +723,58 @@ let GEN_REWRITE_RULE cnvl thl =
     CONV_RULE (GEN_REWRITE_CONV cnvl thl)
 
 /// Rewrites a theorem with only the given list of rewrites.
-let PURE_REWRITE_RULE thl = 
+let PURE_REWRITE_RULE thl =
     CONV_RULE (PURE_REWRITE_CONV thl)
 
 /// Rewrites a theorem including built-in tautologies in the list of rewrites.
-let REWRITE_RULE thl = 
+let REWRITE_RULE thl =
     CONV_RULE (REWRITE_CONV thl)
 
 /// Rewrites a theorem once with only the given list of rewrites.
-let PURE_ONCE_REWRITE_RULE thl = 
+let PURE_ONCE_REWRITE_RULE thl =
     CONV_RULE (PURE_ONCE_REWRITE_CONV thl)
 
 /// Rewrites a theorem, including built-in tautologies in the list of rewrites.
-let ONCE_REWRITE_RULE thl = 
+let ONCE_REWRITE_RULE thl =
     CONV_RULE (ONCE_REWRITE_CONV thl)
 
 /// Rewrites a theorem including the theorem's assumptions as rewrites.
-let PURE_ASM_REWRITE_RULE thl (th : Protected<thm0>) = 
+let PURE_ASM_REWRITE_RULE thl (th : Protected<thm0>) =
     choice {
-        let! tms = Choice.map hyp th
-        return! PURE_REWRITE_RULE ((map ASSUME tms) @ thl) th
+    let! th = th
+    let tms = hyp th
+    let! assumptions = Choice.List.map ASSUME tms
+    let assumptions = List.map Choice.result assumptions
+    return! PURE_REWRITE_RULE (assumptions @ thl) (Choice.result th)
     }
 
 /// Rewrites a theorem including built-in rewrites and the theorem's assumptions.
 let ASM_REWRITE_RULE thl (th : Protected<thm0>) = 
     choice {
-        let! tms = Choice.map hyp th
-        return! REWRITE_RULE ((map ASSUME tms) @ thl) th
+    let! th = th
+    let tms = hyp th
+    let! assumptions = Choice.List.map ASSUME tms
+    let assumptions = List.map Choice.result assumptions
+    return! REWRITE_RULE (assumptions @ thl) (Choice.result th)
     }
 
 /// Rewrites a theorem once, including the theorem's assumptions as rewrites.
 let PURE_ONCE_ASM_REWRITE_RULE thl (th : Protected<thm0>) =
     choice {
-        let! tms = Choice.map hyp th 
-        return! PURE_ONCE_REWRITE_RULE ((map ASSUME tms) @ thl) th
+    let! th = th
+    let tms = hyp th
+    let! assumptions = Choice.List.map ASSUME tms
+    let assumptions = List.map Choice.result assumptions
+    return! PURE_ONCE_REWRITE_RULE (assumptions @ thl) (Choice.result th)
     }
 
 let ONCE_ASM_REWRITE_RULE thl (th : Protected<thm0>) = 
     choice {
-        let! tms = Choice.map hyp th 
-        return! ONCE_REWRITE_RULE ((map ASSUME tms) @ thl) th
+    let! th = th
+    let tms = hyp th
+    let! assumptions = Choice.List.map ASSUME tms
+    let assumptions = List.map Choice.result assumptions
+    return! ONCE_REWRITE_RULE (assumptions @ thl) (Choice.result th)
     }
 
 /// Rewrites a goal, selecting terms according to a user-specified strategy.
@@ -774,11 +818,11 @@ let (ONCE_ASM_REWRITE_TAC : Protected<thm0> list -> tactic) =
 (* ------------------------------------------------------------------------- *)
 
 /// General simplification with given strategy and simpset and theorems.
-let GEN_SIMPLIFY_CONV (strat : strategy) ss lev thl = 
+let GEN_SIMPLIFY_CONV (strat : strategy) ss lev thl =
     fun tm ->
         choice {
-            let! ss' = Choice.List.fold (flip AUGMENT_SIMPSET) ss thl
-            return! TRY_CONV (strat ss' lev) tm
+        let! ss' = Choice.List.fold (flip AUGMENT_SIMPSET) ss thl
+        return! TRY_CONV (strat ss' lev) tm
         }
 
 /// General top-level simplification with arbitrary simpset.
@@ -794,7 +838,7 @@ let SIMPLIFY_CONV ss =
 (* ------------------------------------------------------------------------- *)
 
 /// Simpset consisting of only the default rewrites and conversions.
-let empty_ss = 
+let empty_ss =
     Simpset(empty_net, basic_prover, [], mk_rewrites true)
 
 /// Construct a straightforward simpset from a list of theorems.
@@ -802,10 +846,10 @@ let basic_ss =
     let rewmaker = mk_rewrites true
     fun thl -> 
         choice {
-            let! cthms = Choice.List.fold (fun acc x -> rewmaker x acc) [] thl
-            let! net' = Choice.List.fold (fun acc x -> net_of_thm true x acc) (basic_net()) cthms
-            let! net'' = Choice.List.fold (fun acc x -> net_of_cong x acc) net' (basic_congs()) 
-            return Simpset(net'', basic_prover, [], rewmaker)
+        let! cthms = Choice.List.fold (fun acc x -> rewmaker x acc) [] thl
+        let! net' = Choice.List.fold (fun acc x -> net_of_thm true x acc) (basic_net()) cthms
+        let! net'' = Choice.List.fold (fun acc x -> net_of_cong x acc) net' (List.map Choice.result <| basic_congs()) 
+        return Simpset(net'', basic_prover, [], rewmaker)
         }
 
 /// Simplify a term repeatedly by conditional contextual rewriting.
@@ -891,10 +935,11 @@ let ABBREV_TAC tm : tactic =
             if mem v avoids then 
                 return! Choice.failwith "ABBREV_TAC: variable already used"
             else 
-                return! CHOOSE_THEN (fun th -> 
-                        RULE_ASSUM_TAC(PURE_ONCE_REWRITE_RULE [th])
-                        |> THEN <| PURE_ONCE_REWRITE_TAC [th]
-                        |> THEN <| ASSUME_TAC th) th3 gl
+                return!
+                    CHOOSE_THEN (fun th ->
+                    RULE_ASSUM_TAC(PURE_ONCE_REWRITE_RULE [th])
+                    |> THEN <| PURE_ONCE_REWRITE_TAC [th]
+                    |> THEN <| ASSUME_TAC th) th3 gl
         }
 
 /// Expand an abbreviation in the hypotheses.
