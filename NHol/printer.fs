@@ -217,7 +217,8 @@ let print_all_thm = ref true
 /// Gets the name of a constant or variable.
 let name_of tm = 
     match tm with
-    | Var(x, ty) | Const(x, ty) -> x
+    | Var(x, ty)
+    | Const(x, ty) -> x
     | _ -> ""
 
 (* ------------------------------------------------------------------------- *)
@@ -264,13 +265,18 @@ let pp_print_type, pp_print_qtype =
 // install_user_printer: Install a user-defined printing function into the HOL Light term printer.
 // delete_user_printer: Remove user-defined printer from the HOL Light term printing.
 // try_user_printer: Try user-defined printers on a term.
-let install_user_printer, delete_user_printer, try_user_printer = 
+let install_user_printer, delete_user_printer, (try_user_printer : term -> Protected<unit>) = 
     let user_printers = ref([] : (string * (term -> unit)) list)
-    (fun pr -> user_printers := pr :: (!user_printers)), 
-    (fun s -> user_printers := snd(Option.get <| remove (fun (s', _) -> s = s') (!user_printers))),
-    // NOTE: wrong use of Some, need to change this
-    (fun tm -> tryfind (fun (_, pr) -> Some <| pr tm) (!user_printers) 
-               |> Option.toChoiceWithError "find")
+    (fun pr ->
+        user_printers := pr :: !user_printers), 
+    (fun s ->
+        user_printers := snd(Option.get <| remove (fun (s', _) -> s = s') !user_printers)),
+    (fun tm ->
+        !user_printers
+        |> tryfind (fun (_, pr) ->
+            // NOTE: wrong use of Some, need to change this
+            Some <| pr tm)
+        |> Option.toChoiceWithError "find")
 
 (* ------------------------------------------------------------------------- *)
 (* Printer for terms.                                                        *)
@@ -293,36 +299,47 @@ let pp_print_term =
             let! cc = dest_const c
             if i = c || (is_const i && is_const c && reverse_interface ci = reverse_interface cc) then 
                 return (l, r)
-            else return! Choice.fail()
+            else
+                return! Choice.fail()
         }        
         |> Choice.mapError (fun e -> nestedFailure e "DEST_BINARY")
 
-    and ARIGHT s = 
+    and ARIGHT s =
+        choice {
         match get_infix_status s with
-        | Some (_, "right") -> true
-        | Some _ -> false
+        | Some (_, "right") ->
+            return true
+        | Some _ ->
+            return false
         // Add this to ensure the original meaning
-        | None -> failwith "find"
+        | None ->
+            return! Choice.nestedFailwith (exn "find") "ARIGHT"
+        }
 
     let rec powerof10 n = 
         if abs_num n </ Int 1 then false
         elif n =/ Int 1 then true
         else powerof10(n / Int 10)
 
-    let bool_of_term t = 
+    let bool_of_term t =
+        choice {
         match t with
-        | Const("T", _) -> true
-        | Const("F", _) -> false
-        | _ -> failwith "bool_of_term"
+        | Const("T", _) ->
+            return true
+        | Const("F", _) ->
+            return false
+        | _ ->
+            return! Choice.failwith "bool_of_term"
+        }
 
-    let code_of_term t = 
+    let code_of_term t =
         let f, tms = strip_comb t
-        if not(is_const f && fst(Choice.get <| dest_const f) = "ASCII") || not(length tms = 8) then 
+        if not(is_const f && fst(Choice.get <| dest_const f) = "ASCII") || not(length tms = 8) then
             failwith "code_of_term"
-        else 
-            itlist (fun b f -> 
-                if b then 1 + 2 * f else 2 * f) 
-                    (map bool_of_term (rev tms)) 0
+        else
+            itlist (fun b f ->
+                if b then 1 + 2 * f else 2 * f)
+                    (map (Choice.get << bool_of_term) (rev tms)) 0
 
     let rec dest_clause tm = 
         choice {
@@ -362,7 +379,8 @@ let pp_print_term =
             | Success _ -> ()
             | Error _ -> 
                 match dest_numeral tm with
-                | Success tm -> pp_print_string fmt (string_of_num tm)
+                | Success tm ->
+                    pp_print_string fmt (string_of_num tm)
                 | Error _ -> 
                     match dest_list tm with
                     | Success tms ->
@@ -543,7 +561,7 @@ let pp_print_term =
                                                                  && is_gabs(hd args) then print_binder prec tm
                                                             elif Option.isSome <| get_infix_status s && length args = 2 then 
                                                                 let bargs = 
-                                                                    if ARIGHT s then 
+                                                                    if Choice.get <| ARIGHT s then 
                                                                         let tms, tmt = splitlist (Choice.toOption << DEST_BINARY hop) tm
                                                                         tms @ [tmt]
                                                                     else 

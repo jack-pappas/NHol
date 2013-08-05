@@ -23,6 +23,8 @@ limitations under the License.
 /// Iterated operations.
 module NHol.iterate
 
+open ExtCore.Control
+open ExtCore.Control.Collections
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
@@ -1842,7 +1844,9 @@ let th =
               REPEAT STRIP_TAC
               |> THEN <| MATCH_MP_TAC NSUM_EQ
               |> THEN <| ASM_SIMP_TAC [IN_ELIM_THM; IN_NUMSEG])
-extend_basic_congs(map SPEC_ALL (CONJUNCTS th))
+extend_basic_congs(
+    Choice.List.map SPEC_ALL (CONJUNCTS th)
+    |> ExtCore.Choice.bindOrRaise)
 
 (* ------------------------------------------------------------------------- *)
 (* Thanks to finite sums, we can express cardinality of finite union.        *)
@@ -2790,7 +2794,9 @@ let th_001 =
         REPEAT STRIP_TAC 
         |> THEN <| MATCH_MP_TAC NSUM_EQ 
         |> THEN <| ASM_SIMP_TAC [IN_ELIM_THM; IN_NUMSEG])
-extend_basic_congs (map SPEC_ALL (CONJUNCTS th_001))
+extend_basic_congs (
+    Choice.List.map SPEC_ALL (CONJUNCTS th_001)
+    |> ExtCore.Choice.bindOrRaise)
 
 (* ------------------------------------------------------------------------- *)
 (* Some special algebraic rearrangements.                                    *)

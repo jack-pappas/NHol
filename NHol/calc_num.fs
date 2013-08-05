@@ -362,7 +362,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
                                  |> THEN <| REWRITE_TAC [BIT0; BIT1]
                                  |> THEN <| REWRITE_TAC [ADD_CLAUSES])
 
-        let unhandled_conv name tm : thm = 
+        let unhandled_conv name tm : Protected<thm0> = 
             Choice.failwith (name + ": Unhandled case.")
 
         match sths with

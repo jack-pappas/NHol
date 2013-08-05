@@ -196,10 +196,15 @@ let derive_nonschematic_inductive_relations =
                         let atm = itlist (curry (Choice.get << mk_conj) << Choice.get << mk_eq) (yes @ no) ant
                         let ths, tth = nsplit CONJ_PAIR plis (ASSUME atm)
                         let! thl = Choice.List.map (fun t -> 
-                                        find (fun th -> match Choice.bind (lhs << concl) th with
-                                                        | Success t' when t' = t -> true
-                                                        | _ -> false) ths
-                                        |> Option.toChoiceWithError "find") args
+                                        Choice.List.tryFind (fun th -> 
+                                            choice {
+                                                let! th = th
+                                                let tm1 = concl th
+                                                let! tm2 = lhs tm1
+                                                return tm2 = t
+                                            }) ths
+                                        |> Choice.bind (Option.toChoiceWithError "find")
+                                            ) args
 
                         let th0 = MP (SPECL avs (ASSUME cls)) tth
                         let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
@@ -218,10 +223,14 @@ let derive_nonschematic_inductive_relations =
                         let atm = list_mk_conj tms
                         let ths = CONJUNCTS(ASSUME atm)
                         let! thl = Choice.List.map (fun t -> 
-                                        find (fun th -> match Choice.bind (lhs << concl) th with
-                                                        | Success t' when t' = t -> true
-                                                        | _ -> false) ths
-                                        |> Option.toChoiceWithError "find") args
+                                        Choice.List.tryFind (fun th -> 
+                                            choice {
+                                                let! th = th
+                                                let tm1 = concl th
+                                                let! tm2 = lhs tm1
+                                                return tm2 = t
+                                            }) ths
+                                        |> Choice.bind (Option.toChoiceWithError "find")) args
                         let th0 = SPECL avs (ASSUME cls)
                         let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
                         let th2 = EQ_MP (SYM th1) th0
@@ -667,9 +676,13 @@ let derive_strong_induction =
                 let avs, bod = strip_forall tm
                 let! a, c = dest_imp bod
                 let ths = CONJUNCTS(ASSUME a)
-                let! th = find (function | Success th -> aconv c (concl th)
-                                         | Error _ -> false) ths
-                          |> Option.toChoiceWithError "find"
+                let! th = 
+                    Choice.List.tryFind (fun th -> 
+                        choice {
+                            let! th = th
+                            return aconv c (concl th)
+                        }) ths
+                    |> Choice.bind (Option.toChoiceWithError "find")
                 return! GENL avs (DISCH a th)
         }
 

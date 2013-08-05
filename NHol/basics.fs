@@ -52,7 +52,7 @@ let genvar =
 (* ------------------------------------------------------------------------- *)
 
 /// Break apart a function type into domain and range.
-let dest_fun_ty ty = 
+let dest_fun_ty ty : Protected<hol_type * hol_type> = 
     match ty with
     | Tyapp("fun", [ty1; ty2]) -> Choice.result (ty1, ty2)
     | _ -> Choice.failwith "dest_fun_ty"
@@ -68,7 +68,7 @@ let rec occurs_in ty bigty =
 /// and replace the topmost instances of any tyi encountered with the corresponding tyi'.
 /// In the (usual) case where all the tyi are type variables, this is the same as type_subst,
 /// but also works when they are not.
-let rec tysubst alist ty =
+let rec tysubst alist ty : Protected<hol_type> =
     choice {
         // OPTIMIZE : Use Option.fillWith from ExtCore.
         match rev_assoc ty alist with
@@ -88,7 +88,7 @@ let rec tysubst alist ty =
 (* ------------------------------------------------------------------------- *)
 
 /// Returns the bound variable of an abstraction.
-let bndvar tm = 
+let bndvar tm : Protected<term> =
     choice {
         let! (tm0, _) = dest_abs tm
         return tm0
@@ -96,7 +96,7 @@ let bndvar tm =
     |> Choice.mapError (fun e -> nestedFailure e "bndvar: Not an abstraction")
 
 /// Returns the body of an abstraction.
-let body tm = 
+let body tm : Protected<term> =
     choice {
         let! (_, tm1) = dest_abs tm
         return tm1
@@ -128,7 +128,7 @@ let is_binary s tm =
     | _ -> false
 
 /// Breaks apart an instance of a binary operator with given name.
-let dest_binary s tm = 
+let dest_binary s tm : Protected<term * term> = 
     match tm with
     | Comb(Comb(Const(s', _), l), r) when s' = s -> 
         Choice.result (l, r)
@@ -145,13 +145,14 @@ let mk_binary s =
             return! mk_comb(l', r)
         }
         |> Choice.mapError (fun e -> nestedFailure e "mk_binary")
+        : Protected<term>
 
 (* ------------------------------------------------------------------------- *)
 (* Produces a sequence of variants, considering previous inventions.         *)
 (* ------------------------------------------------------------------------- *)
 
 /// Pick a list of variants of variables, avoiding a list of variables and each other.
-let rec variants av vs =
+let rec variants av vs : Protected<term list> =
     choice {
         if vs = [] then 
             return []
@@ -166,7 +167,7 @@ let rec variants av vs =
 (* ------------------------------------------------------------------------- *)
 
 /// Determines the variables used, free or bound, in a given term.
-let variables = 
+let variables : term -> Protected<term list> = 
     let rec vars(acc, tm) =
         choice {
         if is_var tm then
@@ -181,50 +182,68 @@ let variables =
             let! l' = vars(acc, l)
             return! vars(l', r)
         }
-    fun tm -> vars([], tm)
+    fun tm ->
+        vars([], tm)
 
 (* ------------------------------------------------------------------------- *)
 (* General substitution (for any free expression).                           *)
 (* ------------------------------------------------------------------------- *)
 
 /// Substitute terms for other terms inside a term.
-let subst = 
-    let rec ssubst ilist tm = 
-        if ilist = [] then tm
+let subst : (term * term) list -> term -> Protected<term> = 
+    let rec ssubst ilist tm =
+        choice {
+        if List.isEmpty ilist then
+            return tm
         else 
             match find ((aconv tm) << snd) ilist with
-            | Some(tm', _) -> tm'
+            | Some(tm', _) ->
+                return tm'
             | None ->
                 match tm with
                 | Comb(f, x) -> 
-                    let f' = ssubst ilist f
-                    let x' = ssubst ilist x
-                    if f' == f && x' == x then tm
-                    else Choice.get <| mk_comb(f', x')
-                | Abs(v, bod) -> 
-                    let ilist' = filter (not << (vfree_in v) << snd) ilist
-                    Choice.get <| mk_abs(v, ssubst ilist' bod)
-                | _ -> tm
+                    let! f' = ssubst ilist f
+                    let! x' = ssubst ilist x
+                    if f' == f && x' == x then
+                        return tm
+                    else
+                        return! mk_comb(f', x')
+                | Abs(v, bod) ->
+                    // CLEAN : Rename this value to something sensible.
+                    let! foo1 =
+                        let ilist' = filter (not << (vfree_in v) << snd) ilist
+                        ssubst ilist' bod
+                    return! mk_abs(v, foo1)
+                | _ ->
+                    return tm
+        }
+
     let subst ilist =
         let theta = filter (fun (s, t) -> compare s t <> 0) ilist
-        if theta = [] then (fun tm -> tm)
+        if List.isEmpty theta then
+            Choice.result
         else 
             let ts, xs = unzip theta
-            fun tm -> 
-                let gs = Choice.get <| variants (Choice.get <| variables tm) (map (genvar << Choice.get << type_of) xs)
-                let tm' = ssubst (zip gs xs) tm
-                if tm' == tm then tm
-                else Choice.get <| vsubst (zip ts gs) tm'
-    fun ilist tm ->
-        Choice.attempt <| fun () ->
-            subst ilist tm
+            fun tm ->
+                choice {
+                let! variables_tm = variables tm
+                // CLEAN : Rename this value to something sensible.
+                // TODO : This should be reworked to use Choice.List.map.
+                let foo1 = map (genvar << Choice.get << type_of) xs
+                let! gs = variants variables_tm foo1
+                let! tm' = ssubst (zip gs xs) tm
+                if tm' == tm then return tm
+                else return! vsubst (zip ts gs) tm'
+                }
+
+    subst
 
 (* ------------------------------------------------------------------------- *)
 (* Alpha conversion term operation.                                          *)
 (* ------------------------------------------------------------------------- *)
 
 /// Changes the name of a bound variable.
-let alpha v tm = 
+let alpha v tm : Protected<term> = 
     choice {
         let! (v0, bod) = 
             dest_abs tm 
@@ -244,41 +263,42 @@ let alpha v tm =
 (* ------------------------------------------------------------------------- *)
 
 /// Computes a type instantiation to match one type to another.
-let type_match vty cty sofar = 
-    let rec type_match vty cty sofar = 
-        if is_vartype vty then
-            match rev_assoc vty sofar with
-            | Some x ->
-                if x = cty then
-                    Choice.result sofar
-                else Choice.failwith "type_match"
-            | None ->
-                Choice.result <| (cty, vty) :: sofar
-        else 
-            let vop, vargs = Choice.get <| dest_type vty
-            let cop, cargs = Choice.get <| dest_type cty
-            if vop = cop then
-                // TODO : Change to use Choice.List.foldBack2 from ExtCore.
-                itlist2 (fun x y z -> Choice.get <| type_match x y z) vargs cargs sofar
-                |> Choice.result
-            else Choice.failwith "type_match"
-
-    Choice.attemptNested <| fun () ->
-        type_match vty cty sofar
+let rec type_match vty cty sofar : Protected<(hol_type * hol_type) list> =
+    choice {
+    if is_vartype vty then
+        match rev_assoc vty sofar with
+        | Some x ->
+            if x = cty then
+                return sofar
+            else
+                return! Choice.failwith "type_match"
+        | None ->
+            return (cty, vty) :: sofar
+    else 
+        let! vop, vargs = dest_type vty
+        let! cop, cargs = dest_type cty
+        if vop = cop then
+            // TODO : Change to use Choice.List.foldBack2 from ExtCore.
+            return itlist2 (fun x y z -> Choice.get <| type_match x y z) vargs cargs sofar
+        else
+            return! Choice.failwith "type_match"
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Conventional matching version of mk_const (but with a sanity test).       *)
 (* ------------------------------------------------------------------------- *)
 
 /// Constructs a constant with type matching.
-let mk_mconst(c, ty) = 
-    choice { 
+let mk_mconst(c, ty) : Protected<term> =
+    choice {
         let! uty = get_const_type c
         let! mat = type_match uty ty []
         let! con = mk_const(c, mat)
         let! tc = type_of con
-        if tc = ty then return con
-        else return! Choice.fail()
+        if tc = ty then
+            return con
+        else
+            return! Choice.fail ()
     }
     |> Choice.mapError (fun e ->
         nestedFailure e "mk_const: generic type cannot be instantiated")
@@ -288,7 +308,7 @@ let mk_mconst(c, ty) =
 (* ------------------------------------------------------------------------- *)
 
 /// Makes a combination, instantiating types in rator if necessary.
-let mk_icomb(tm1, tm2) = 
+let mk_icomb(tm1, tm2) : Protected<term> =
     choice {
         let! ty1 = type_of tm1
         let! (s, ty1') = dest_type ty1
@@ -297,8 +317,9 @@ let mk_icomb(tm1, tm2) =
             let! ty2 = type_of tm2
             let! tyins = type_match ty ty2 []
             let! tm1' = inst tyins tm1
-            return mk_comb(tm1', tm2)
-        | _ -> return! Choice.failwith "mk_icomb: Unhandled case."
+            return! mk_comb(tm1', tm2)
+        | _ ->
+            return! Choice.failwith "mk_icomb: Unhandled case."
     }
 
 (* ------------------------------------------------------------------------- *)
@@ -306,8 +327,8 @@ let mk_icomb(tm1, tm2) =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies constant to list of arguments, instantiating constant type as needed.
-let list_mk_icomb cname args = 
-    let list_mk_icomb cname args = 
+let list_mk_icomb cname args : Protected<term> =
+    let list_mk_icomb cname args =
         let atys, _ = nsplit (Choice.get << dest_fun_ty) args (Choice.get <| get_const_type cname)
         let tyin = itlist2 (fun g a -> Choice.get << type_match g (Choice.get <| type_of a)) atys args []
         list_mk_comb(Choice.get <| mk_const(cname, tyin), args)
@@ -347,13 +368,13 @@ let rec free_in tm1 tm2 =
 (* Searching for terms.                                                      *)
 (* ------------------------------------------------------------------------- *)
 
-/// Searches a term for a subterm that satises a given predicate.
-let rec find_term p tm =
+/// Searches a term for a subterm that satisfies a given predicate.
+let rec find_term p tm : Protected<term> =
     choice {
     if p tm then return tm
     elif is_abs tm then
-        // TODO : Change this to use the workflow instead of Choice.bind.
-        return! Choice.bind (find_term p) (body tm)
+        let! bod = body tm
+        return! find_term p bod
     elif is_comb tm then
         let! l, r = dest_comb tm
         return!
@@ -364,7 +385,7 @@ let rec find_term p tm =
     }
 
 /// Searches a term for all subterms that satisfy a predicate.
-let find_terms = 
+let find_terms =
     let rec accum tl p tm = 
         choice {
             let tl' = 
@@ -379,7 +400,7 @@ let find_terms =
                 let! ran = rand tm
                 return! accum tl'' p ran
             else return tl'
-        }
+        } : Protected<term list>
     accum []
 
 (* ------------------------------------------------------------------------- *)
@@ -395,7 +416,7 @@ let is_binder s tm =
     | _ -> false
 
 /// Breaks apart a "binder".
-let dest_binder s tm =
+let dest_binder s tm : Protected<term * term> =
     choice {
     match tm with
     | Comb(Const(s', _), Abs(x, t)) when s' = s -> 
@@ -414,7 +435,7 @@ let mk_binder op =
             let! tm' = inst [tv, aty] c'
             let! tm'' = mk_abs(v, tm)
             return! mk_comb(tm', tm'')
-        }
+        } : Protected<term>
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax for binary operators.                                              *)
@@ -427,7 +448,7 @@ let is_binop op tm =
     | _ -> false
 
 /// Breaks apart an application of a given binary operator to two arguments.
-let dest_binop op tm =
+let dest_binop op tm : Protected<term * term> =
     choice {
     match tm with
     | Comb(Comb(op', l), r) when op' = op -> 
@@ -437,12 +458,16 @@ let dest_binop op tm =
     }
 
 /// The call 'mk_binop op l r' returns the term '(op l) r'.
-let mk_binop op tm1 = 
+let mk_binop op tm1 : (term -> Protected<term>) =
     let tm1' = mk_comb(op, tm1)
     fun tm2 ->
-        Choice.bind (fun f -> mk_comb(f, tm2)) tm1'
+        choice {
+        let! tm1' = tm1'
+        return! mk_comb(tm1', tm2)
+        }
 
 /// Makes an iterative application of a binary operator.
+// TODO : Modify this to use Choice.List.reduce/reduceBack.
 let list_mk_binop op = end_itlist(fun x -> Choice.get << mk_binop op x)
 
 /// Repeatedly breaks apart an iterated binary operator into components.
@@ -495,14 +520,14 @@ let dest_disj = dest_binary "\\/"
 let disjuncts = striplist (Choice.toOption << dest_disj)
 
 /// Tests a term to see if it is a logical negation.
-let is_neg tm = 
+let is_neg tm =
     let v = rator tm |> Choice.bind dest_const
     match v with
     | Success("~", _) -> true
     | _ -> false
 
 /// Breaks apart a negation, returning its body.
-let dest_neg tm =
+let dest_neg tm : Protected<term> =
     choice {
     let! n, p = dest_comb tm
     let! s, _ = dest_const n
@@ -524,13 +549,15 @@ let dest_cons = dest_binary "CONS"
 let is_cons = is_binary "CONS"
 
 /// Iteratively breaks apart a list term.
-let dest_list tm = 
-    let v = 
-        let tms, nil = splitlist (Choice.toOption << dest_cons) tm
-        match dest_const nil with
-        | Success("NIL", _) -> Choice.result tms
-        | _ -> Choice.fail()
-    v |> Choice.mapError (fun e -> nestedFailure e "dest_list")
+let dest_list tm : Protected<term list> =
+    let tms, nil = splitlist (Choice.toOption << dest_cons) tm
+    match dest_const nil with
+    | Success("NIL", _) ->
+        Choice.result tms
+    | Success(_,_) ->
+        Choice.failwith "dest_list"
+    | Error ex ->
+        Choice.nestedFailwith ex "dest_list"
 
 /// Tests a term to see if it is a list.
 let is_list x =
@@ -541,7 +568,7 @@ let is_list x =
 (* ------------------------------------------------------------------------- *)
 
 /// Converts a HOL numeral term to unlimited-precision integer.
-let dest_numeral = 
+let dest_numeral : term -> Protected<Num> =
     let rec dest_num tm = 
         choice {
             let b = 
@@ -584,16 +611,16 @@ let dest_numeral =
 (* ------------------------------------------------------------------------- *)
 
 /// Breaks apart a generalized abstraction into abstracted varstruct and body.
-let dest_gabs = 
+let dest_gabs : term -> Protected<term * term> =
     let dest_geq = dest_binary "GEQ"
-    fun tm -> 
-        choice { 
-            if is_abs tm then 
+    fun tm ->
+        choice {
+            if is_abs tm then
                 return! dest_abs tm
-            else 
+            else
                 let! (l, r) = dest_comb tm
-                let! (l', _) = dest_const l 
-                if not (l' = "GABS") then 
+                let! (l', _) = dest_const l
+                if not (l' = "GABS") then
                     return! Choice.fail()
                 else
                     let! r' = body r
@@ -608,7 +635,7 @@ let is_gabs x =
     Choice.isResult (dest_gabs x)
     
 /// Constructs a generalized abstraction.
-let mk_gabs = 
+let mk_gabs : term * term -> Protected<term> = 
     let mk_forall(v, t) = 
         choice {
             let! ty1 = type_of v
@@ -627,7 +654,7 @@ let mk_gabs =
             return! mk_comb(tm1, t2)
         }
 
-    let mk_gabs (tm1, tm2) = 
+    fun (tm1, tm2) ->
         choice {
             if is_var tm1 then 
                 return! mk_abs(tm1, tm2)
@@ -645,11 +672,11 @@ let mk_gabs =
                 return! mk_comb(tm6, bod)
         }
 
-    fun (tm1, tm2) -> mk_gabs (tm1, tm2)
-
-
 /// Iteratively makes a generalized abstraction.
-let list_mk_gabs(vs, bod) = itlist (curry (Choice.get << mk_gabs)) vs bod
+// TODO : Modify this to use Choice.List.foldBack/fold.
+let list_mk_gabs(vs, bod) =
+    itlist (curry (Choice.get << mk_gabs)) vs bod
+    //|> Choice.result
 
 /// Breaks apart an iterated generalized or basic abstraction.
 let strip_gabs = splitlist (Choice.toOption << dest_gabs)
@@ -659,11 +686,12 @@ let strip_gabs = splitlist (Choice.toOption << dest_gabs)
 (* ------------------------------------------------------------------------- *)
 
 /// Breaks apart a let-expression.
-let dest_let tm = 
+let dest_let tm : Protected<(term * term) list * term> = 
     choice { 
         let l, aargs = strip_comb tm
         let! (l', _ ) = dest_const l
-        if l' <> "LET" then return! Choice.fail()
+        if l' <> "LET" then
+            return! Choice.fail()
         else 
             let vars, lebod = strip_gabs(hd aargs)
             let eqs = zip vars (tl aargs)
@@ -679,7 +707,7 @@ let is_let x =
     Choice.isResult (dest_let x)
 
 /// Constructs a let-expression.
-let mk_let(assigs, bod) = 
+let mk_let(assigs, bod) : Protected<term> = 
     choice {
         let lefts, rights = unzip assigs
         let! tb = type_of bod
@@ -697,18 +725,21 @@ let mk_let(assigs, bod) =
 (* ------------------------------------------------------------------------- *)
 
 /// Make a list of terms with stylized variable names.
-let make_args = 
+let make_args : _ -> _ -> _ -> Protected<term list> = 
     let rec margs n s avoid tys =
         choice {
-        if tys = [] then return []
+        if List.isEmpty tys then
+            return []
         else
             let! v = variant avoid (mk_var(s + (string n), hd tys))
             let! vs = margs (n + 1) s (v :: avoid) (tl tys)
             return v :: vs
         }
     fun s avoid tys ->
-        if length tys = 1 then 
-            variant avoid (mk_var(s, hd tys)) |> Choice.map (fun x -> [x])
+        if length tys = 1 then
+            mk_var(s, hd tys)
+            |> variant avoid
+            |> Choice.map List.singleton
         else margs 0 s avoid tys
 
 (* ------------------------------------------------------------------------- *)
@@ -716,7 +747,7 @@ let make_args =
 (* ------------------------------------------------------------------------- *)
 
 /// Returns a path to some subterm satisfying a predicate.
-let find_path = 
+let find_path : _ -> _ -> Protected<string> = 
     let rec find_path p tm = 
         choice {
             if p tm then 
@@ -739,22 +770,26 @@ let find_path =
                             return "l" :: ls
                         })
         }
-    fun p tm -> Choice.map implode (find_path p tm)
+
+    fun p tm ->
+        Choice.map implode (find_path p tm)
 
 /// Find the subterm of a given term indicated by a path.
-let follow_path = 
-    let rec follow_path s tm = 
+let follow_path : string -> term -> Protected<term> =
+    let rec follow_path s tm =
         choice {
             match s with
             | [] -> return tm
-            | "l" :: t -> 
+            | "l" :: t ->
                 let! tm1 = rator tm
                 return! follow_path t tm1
-            | "r" :: t -> 
+            | "r" :: t ->
                 let! tm1 = rand tm
                 return! follow_path t tm1
-            | _ :: t -> 
+            | _ :: t ->
                 let! tm1 = body tm
                 return! follow_path t tm1
         }
-    fun s tm -> follow_path (explode s) tm
+
+    fun s tm ->
+        follow_path (explode s) tm

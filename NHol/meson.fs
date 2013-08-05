@@ -104,7 +104,7 @@ type fol_form =
 (* ------------------------------------------------------------------------- *)
 
 type fol_goal = 
-    | Subgoal of fol_atom * fol_goal list * (int * thm) * int * (fol_term * int) list
+    | Subgoal of fol_atom * fol_goal list * (int * Protected<thm0>) * int * (fol_term * int) list
 
 (* ------------------------------------------------------------------------- *)
 (* General MESON procedure, using assumptions and with settable limits.      *)
@@ -896,7 +896,7 @@ let GEN_MESON_TAC =
         fun tms -> 
             choice {
                 let! preds, funs = Choice.List.fold (fun acc x -> fm_consts x acc) ([], []) tms
-                let eqs0, noneqs = partition (fun (t, _) -> is_const t && fst(Choice.get <| dest_const t) = "=") preds
+                let! eqs0, noneqs = Choice.List.partition (fun (t, _) -> dest_const t |> Choice.map (fun (s, _) -> is_const t && s = "=")) preds
                 if eqs0 = [] then 
                     return []
                 else 
@@ -958,11 +958,9 @@ let GEN_MESON_TAC =
                         dest_neg t
                         |> Choice.bindError (fun _ -> Choice.result t)) lits
 
-                let eqs, noneqs = 
-                    partition (fun t -> 
-                        match dest_const(fst(strip_comb t)) with
-                        | Success (s, _) -> s = "="
-                        | Error _ -> false) atoms
+                let! eqs, noneqs = 
+                    Choice.List.partition (fun t -> 
+                       dest_const(fst(strip_comb t)) |> Choice.map (fun (s, _) -> s = "=")) atoms
 
                 let acc = itlist (subterms_irrefl lconsts) noneqs []
                 let uts = itlist (itlist(subterms_irrefl lconsts) << snd << strip_comb) eqs acc
@@ -1037,7 +1035,7 @@ let GEN_MESON_TAC =
     (* Push duplicated copies of poly theorems to match existing assumptions.  *)
     (* ----------------------------------------------------------------------- *)
 
-    let (POLY_ASSUME_TAC : thm list -> tactic) = 
+    let (POLY_ASSUME_TAC : Protected<thm0> list -> tactic) = 
         let rec uniq' eq = 
             fun l -> 
             match l with
@@ -1128,7 +1126,7 @@ let GEN_MESON_TAC =
     (* Basic HOL MESON procedure.                                              *)
     (* ----------------------------------------------------------------------- *)
 
-    let SIMPLE_MESON_REFUTE min max inc ths : thm = 
+    let SIMPLE_MESON_REFUTE min max inc ths : Protected<thm0> = 
         choice {
             clear_contrapos_cache()
             inferences := 0

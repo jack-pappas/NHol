@@ -17,12 +17,19 @@ limitations under the License.
 
 *)
 
+#if FSI_VER_2
+#r "./../packages/FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
+#r "./../packages/FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
+#r "./../packages/FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
+#r "./../packages/ExtCore.0.8.32/lib/net40/ExtCore.dll"
+#else
 #I "./../packages"
 
 #r "FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
 #r "FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
 #r "FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
 #r "ExtCore.0.8.32/lib/net40/ExtCore.dll"
+#endif
 
 // Disable "Incomplete pattern matches on this expression." warnings.
 // Some of these are true warnings, but should be fixed in the code.

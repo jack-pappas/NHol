@@ -27,6 +27,7 @@ open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
 open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open lib
@@ -527,9 +528,9 @@ let GEN_REAL_ARITH_001 =
                                         match ths with
                                         | [] -> 
                                             let eq, ne = 
-                                                partition (is_req << concl <<Choice.get) dun
+                                                Choice.get <| Choice.List.partition (Choice.map (is_req << concl)) dun
                                             let le, nl = 
-                                                partition (is_ge << concl <<Choice.get) ne
+                                                Choice.get <| Choice.List.partition (Choice.map (is_ge << concl)) ne
                                             let lt = filter (is_gt << concl <<Choice.get) nl
                                             prover hol_of_positivstellensatz 
                                                 (eq, le, lt)

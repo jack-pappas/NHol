@@ -174,7 +174,7 @@ let (DISJ_ACI_RULE : conv) =
 (* ------------------------------------------------------------------------- *)
 
 /// Puts an iterated conjunction in canonical form.
-let CONJ_CANON_CONV tm : thm = 
+let CONJ_CANON_CONV tm : Protected<thm0> = 
     choice {
         let tm' = list_mk_conj(setify(conjuncts tm))
         let! tm1 = mk_eq(tm, tm')
@@ -182,7 +182,7 @@ let CONJ_CANON_CONV tm : thm =
     }
 
 /// Puts an iterated disjunction in canonical form.
-let DISJ_CANON_CONV tm : thm = 
+let DISJ_CANON_CONV tm : Protected<thm0> = 
     choice {
         let tm' = list_mk_disj(setify(disjuncts tm))
         let! tm1 = mk_eq(tm, tm')
@@ -206,7 +206,7 @@ let DISJ_CANON_CONV tm : thm =
 (* ------------------------------------------------------------------------- *)
 
 /// General NNF (negation normal form) conversion.
-let (GEN_NNF_CONV : bool -> conv * (term -> thm * thm) -> conv) = 
+let (GEN_NNF_CONV : bool -> conv * (term -> Protected<thm0> * Protected<thm0>) -> conv) = 
     let and_tm = (parse_term @"(/\)")
     let or_tm = (parse_term @"(\/)")
     let not_tm = (parse_term @"(~)")

@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{2c197ce2-a645-4cd6-8727-4c52ed510138}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>NHol</RootNamespace>
+    <AssemblyName>NHol</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <Name>NHol</Name>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <Tailcalls>false</Tailcalls>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;FSI_VER_2</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <DocumentationFile>bin\Debug\NHol.XML</DocumentationFile>
+    <OtherFlags>--mlcompatibility</OtherFlags>
+    <NoWarn>49</NoWarn>
+    <StartAction>Program</StartAction>
+    <StartProgram>C:\Program Files (x86)\Microsoft SDKs\F#\3.0\Framework\v4.0\Fsi.exe</StartProgram>
+    <StartArguments>--use:system.fsx --use:lib.fs --use:fusion.fs --use:basics.fs --use:nets.fs --use:printer.fs --use:preterm.fs --use:parser.fs --use:equal.fs --use:bool.fs --use:drule.fs --use:tactics.fs --use:itab.fs --use:simp.fs --use:theorems.fs --use:ind_defs.fs --use:class.fs --use:trivia.fs --use:canon.fs --use:meson.fs --use:quot.fs --use:pair.fs --use:nums.fs --use:recursion.fs --use:arith.fs --use:wf.fs --use:calc_num.fs --use:normalizer.fs --use:grober.fs --use:ind_types.fs --use:lists.fs --use:realax.fs --use:calc_int.fs --use:realarith.fs --use:real.fs --use:calc_rat.fs --use:int.fs --use:sets.fs --use:iterate.fs --use:cart.fs --use:define.fs --use:help.fs --use:database.fs</StartArguments>
+    <StartWorkingDirectory>C:\Users\Jack\Documents\Code Libraries\NHol\NHol\</StartWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <Tailcalls>true</Tailcalls>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <WarningLevel>3</WarningLevel>
+    <DocumentationFile>bin\Release\NHol.XML</DocumentationFile>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\FSharp\1.0\Microsoft.FSharp.Targets" Condition="!Exists('$(MSBuildBinPath)\Microsoft.Build.Tasks.v4.0.dll')" />
+  <Import Project="$(MSBuildExtensionsPath32)\..\Microsoft F#\v4.0\Microsoft.FSharp.Targets" Condition=" Exists('$(MSBuildBinPath)\Microsoft.Build.Tasks.v4.0.dll')" />
+  <ItemGroup>
+    <None Include="packages.config" />
+    <Compile Include="..\Common\CommonAssemblyInfo.fs">
+      <Link>CommonAssemblyInfo.fs</Link>
+    </Compile>
+    <Compile Include="AssemblyInfo.fs" />
+    <None Include="system.fsx" />
+    <Compile Include="lib.fs" />
+    <Compile Include="fusion.fs" />
+    <Compile Include="basics.fs" />
+    <Compile Include="nets.fs" />
+    <Compile Include="printer.fs" />
+    <Compile Include="preterm.fs" />
+    <Compile Include="parser.fs" />
+    <Compile Include="equal.fs" />
+    <Compile Include="bool.fs" />
+    <Compile Include="drule.fs" />
+    <Compile Include="tactics.fs" />
+    <Compile Include="itab.fs" />
+    <Compile Include="simp.fs" />
+    <Compile Include="theorems.fs" />
+    <Compile Include="ind_defs.fs" />
+    <Compile Include="class.fs" />
+    <Compile Include="trivia.fs" />
+    <Compile Include="canon.fs" />
+    <Compile Include="meson.fs" />
+    <Compile Include="quot.fs" />
+    <Compile Include="pair.fs" />
+    <Compile Include="nums.fs" />
+    <Compile Include="recursion.fs" />
+    <Compile Include="arith.fs" />
+    <Compile Include="wf.fs" />
+    <Compile Include="calc_num.fs" />
+    <Compile Include="normalizer.fs" />
+    <Compile Include="grobner.fs" />
+    <Compile Include="ind_types.fs" />
+    <Compile Include="lists.fs" />
+    <Compile Include="realax.fs" />
+    <Compile Include="calc_int.fs" />
+    <Compile Include="realarith.fs" />
+    <Compile Include="real.fs" />
+    <Compile Include="calc_rat.fs" />
+    <Compile Include="int.fs" />
+    <Compile Include="sets.fs" />
+    <Compile Include="iterate.fs" />
+    <Compile Include="cart.fs" />
+    <Compile Include="define.fs" />
+    <Compile Include="help.fs" />
+    <Compile Include="database.fs" />
+    <Compile Include="util.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="ExtCore">
+      <HintPath>..\packages\ExtCore.0.8.32\lib\net40\ExtCore.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSharp.Compatibility.OCaml">
+      <HintPath>..\packages\FSharp.Compatibility.OCaml.0.1.10\lib\net40\FSharp.Compatibility.OCaml.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSharp.Compatibility.OCaml.Format">
+      <HintPath>..\packages\FSharp.Compatibility.OCaml.Format.0.1.10\lib\net40\FSharp.Compatibility.OCaml.Format.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSharp.Compatibility.OCaml.System">
+      <HintPath>..\packages\FSharp.Compatibility.OCaml.System.0.1.10\lib\net40\FSharp.Compatibility.OCaml.System.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FSharp.Core">
+      <HintPath>C:\Program Files (x86)\Reference Assemblies\Microsoft\FSharp\3.0\Runtime\v4.0\FSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="mscorlib" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+  </ItemGroup>
+  <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+	     Other similar extension points exist, see Microsoft.Common.targets.
+	<Target Name="BeforeBuild">
+	</Target>
+	<Target Name="AfterBuild">
+	</Target>
+	-->
+</Project>

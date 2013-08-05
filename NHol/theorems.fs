@@ -190,22 +190,34 @@ let IMP_CLAUSES =
     prove((parse_term @"!t. (T ==> t <=> t) /\ (t ==> T <=> T) /\ (F ==> t <=> T) /\
        (t ==> t <=> T) /\ (t ==> F <=> ~t)"), ITAUT_TAC)
 
-extend_basic_rewrites [REFL_CLAUSE;
-                       EQ_CLAUSES;
-                       NOT_CLAUSES_WEAK;
-                       AND_CLAUSES;
-                       OR_CLAUSES;
-                       IMP_CLAUSES;
-                       FORALL_SIMP;
-                       EXISTS_SIMP;
-                       BETA_THM;
-                       (let IMP_EQ_CLAUSE = 
-                           prove
-                               ((parse_term @"((x = x) ==> p) <=> p"), 
-                                REWRITE_TAC [EQT_INTRO(SPEC_ALL EQ_REFL)
-                                             IMP_CLAUSES]) in IMP_EQ_CLAUSE);] |> ignore
-extend_basic_congs 
-    [ITAUT (parse_term @"(p <=> p') ==> (p' ==> (q <=> q')) ==> (p ==> q <=> p' ==> q')")]
+do
+    let IMP_EQ_CLAUSE =
+        prove(
+            parse_term @"((x = x) ==> p) <=> p", 
+            REWRITE_TAC [
+                EQT_INTRO(SPEC_ALL EQ_REFL);
+                IMP_CLAUSES])
+    extend_basic_rewrites [
+        REFL_CLAUSE;
+        EQ_CLAUSES;
+        NOT_CLAUSES_WEAK;
+        AND_CLAUSES;
+        OR_CLAUSES;
+        IMP_CLAUSES;
+        FORALL_SIMP;
+        EXISTS_SIMP;
+        BETA_THM;
+        IMP_EQ_CLAUSE;]
+#if BIND_OR_RAISE
+    |> ExtCore.Choice.bindOrRaise
+#else
+    |> ignore
+#endif
+
+    extend_basic_congs [
+        ITAUT (parse_term @"(p <=> p') ==> (p' ==> (q <=> q')) ==> (p ==> q <=> p' ==> q')")
+        |> ExtCore.Choice.bindOrRaise
+        ]
 
 (* ------------------------------------------------------------------------- *)
 (* Rewrite rule for unique existence.                                        *)
@@ -446,141 +458,142 @@ let EXISTS_UNIQUE =
 (* of naming introduced variables and assumptions (from Marco Maggesi).      *)
 (* ------------------------------------------------------------------------- *)
 
-// DESTRUCT_TAC: Performs elimination on a theorem within a tactic proof.
-// FIX_TAC: Fixes universally quantified variables in goal.
-// INTRO_TAC: Breaks down outer quantifiers in goal, introducing variables and named hypotheses.
-let DESTRUCT_TAC, FIX_TAC, INTRO_TAC = 
-    let NAME_GEN_TAC s gl = 
+let private NAME_GEN_TAC s gl = 
+    choice {
+        let! ty = (Choice.map snd << Choice.bind dest_var << Choice.map fst << dest_forall << snd) gl
+        return! X_GEN_TAC (mk_var(s, ty)) gl
+    }
+
+let private OBTAIN_THEN v ttac th = 
+    fun tm ->
         choice {
-            let! ty = (Choice.map snd << Choice.bind dest_var << Choice.map fst << dest_forall << snd) gl
-            return! X_GEN_TAC (mk_var(s, ty)) gl
+            let! ty = Choice.bind (Choice.map snd << Choice.bind dest_var << Choice.map fst << dest_exists << concl) th
+            return! X_CHOOSE_THEN (mk_var(v, ty)) ttac th tm
         }
 
-    let OBTAIN_THEN v ttac th = 
-        fun tm ->
+let private CONJ_LIST_TAC = end_itlist(fun t1 t2 -> CONJ_TAC
+                                                    |> THENL <| [t1; t2])
+
+let private NUM_DISJ_TAC n = 
+    if n <= 0 then 
+        fun _ -> Choice.failwith "NUM_DISJ_TAC"
+    else REPLICATE_TAC (n - 1) DISJ2_TAC
+            |> THEN <| REPEAT DISJ1_TAC
+
+let private NAME_PULL_FORALL_CONV = 
+    let SWAP_FORALL_CONV = REWR_CONV SWAP_FORALL_THM
+    let AND_FORALL_CONV = GEN_REWRITE_CONV I [AND_FORALL_THM]
+    let RIGHT_IMP_FORALL_CONV = GEN_REWRITE_CONV I [RIGHT_IMP_FORALL_THM]
+    fun s -> 
+        let rec PULL_FORALL tm = 
             choice {
-                let! ty = Choice.bind (Choice.map snd << Choice.bind dest_var << Choice.map fst << dest_exists << concl) th
-                return! X_CHOOSE_THEN (mk_var(v, ty)) ttac th tm
-            }
-
-    let CONJ_LIST_TAC = end_itlist(fun t1 t2 -> CONJ_TAC
-                                                |> THENL <| [t1; t2])
-
-    let NUM_DISJ_TAC n = 
-        if n <= 0 then 
-            fun _ -> Choice.failwith "NUM_DISJ_TAC"
-        else REPLICATE_TAC (n - 1) DISJ2_TAC
-             |> THEN <| REPEAT DISJ1_TAC
-
-    let NAME_PULL_FORALL_CONV = 
-        let SWAP_FORALL_CONV = REWR_CONV SWAP_FORALL_THM
-        let AND_FORALL_CONV = GEN_REWRITE_CONV I [AND_FORALL_THM]
-        let RIGHT_IMP_FORALL_CONV = GEN_REWRITE_CONV I [RIGHT_IMP_FORALL_THM]
-        fun s -> 
-            let rec PULL_FORALL tm = 
-                choice {
-                    if is_forall tm then 
-                        let! (tm', _) = dest_forall tm
-                        if name_of tm' = s then 
-                            return! REFL tm
-                        else 
-                            return! (BINDER_CONV PULL_FORALL
-                                     |> THENC <| SWAP_FORALL_CONV) tm
-                    elif is_imp tm then 
-                        return! (RAND_CONV PULL_FORALL
-                                 |> THENC <| RIGHT_IMP_FORALL_CONV) tm
-                    elif is_conj tm then 
-                        return! (BINOP_CONV PULL_FORALL
-                                 |> THENC <| AND_FORALL_CONV) tm
+                if is_forall tm then 
+                    let! (tm', _) = dest_forall tm
+                    if name_of tm' = s then 
+                        return! REFL tm
                     else 
-                        return! Choice.fail()
-                }
-            PULL_FORALL
+                        return! (BINDER_CONV PULL_FORALL
+                                    |> THENC <| SWAP_FORALL_CONV) tm
+                elif is_imp tm then 
+                    return! (RAND_CONV PULL_FORALL
+                                |> THENC <| RIGHT_IMP_FORALL_CONV) tm
+                elif is_conj tm then 
+                    return! (BINOP_CONV PULL_FORALL
+                                |> THENC <| AND_FORALL_CONV) tm
+                else 
+                    return! Choice.failwith "NAME_PULL_FORALL_CONV"
+            }
+        PULL_FORALL
 
-    let parse_fix = 
-        let ident = 
-            function 
-            | Ident s :: rest when isalpha s -> s, rest
-            | _ -> raise Noparse
-        let rename = 
-            let old_name = possibly(a(Ident "/") .>>. ident |>> snd)
-            (a(Resword "[") .>>. ident |>> snd) .>>. old_name 
-            .>>. a(Resword "]") |>> fst
-        let mk_var v = CONV_TAC(NAME_PULL_FORALL_CONV v)
-                       |> THEN <| GEN_TAC
-        let mk_rename = 
-            function 
-            | u, [v] -> CONV_TAC(NAME_PULL_FORALL_CONV v)
-                        |> THEN <| NAME_GEN_TAC u
-            | u, _ -> NAME_GEN_TAC u
-        let vars = many(rename |>> mk_rename <|> (ident |>> mk_var)) |>> EVERY
-        let star = possibly(a(Ident "*") |>> K(REPEAT GEN_TAC))
-        vars .>>. star |>> function 
-                           | tac, [] -> tac
-                           | tac, _ -> tac
-                                       |> THEN <| REPEAT GEN_TAC
-    let parse_destruct = 
-        let OBTAINL_THEN : string list -> thm_tactical = 
-            EVERY_TCL << map OBTAIN_THEN
-        let ident p = 
-            function 
-            | Ident s :: rest when p s -> s, rest
-            | _ -> raise Noparse
-        let rec destruct inp = disj inp
-        and disj inp = 
-            let DISJ_CASES_LIST = end_itlist DISJ_CASES_THEN2
-            (listof conj (a(Resword "|")) "Disjunction" |>> DISJ_CASES_LIST) inp
-        and conj inp = (atleast 1 atom |>> end_itlist CONJUNCTS_THEN2) inp
-        and obtain inp = 
-            let obtain_prfx = 
-                let var_list = atleast 1 (ident isalpha)
-                (a(Ident "@") .>>. var_list |>> snd) .>>. a(Resword ".") |>> fst
-            (obtain_prfx .>>. destruct |>> uncurry OBTAINL_THEN) inp
-        and atom inp = 
-            let label = ident isalnum |>> LABEL_TAC
-            let paren = 
-                (a(Resword "(") .>>. destruct |>> snd) .>>. a(Resword ")") 
-                |>> fst
-            (label <|> obtain <|> paren) inp
-        destruct
-    let parse_intro = 
-        let number = 
-            function 
-            | Ident s :: rest -> 
-                (try 
-                     let n = int_of_string s
-                     if n < 1 then raise Noparse
-                     else n, rest
-                 with
-                 | Failure _ -> raise Noparse)
-            | _ -> raise Noparse
-        let pa_fix = a(Ident "!") .>>. parse_fix |>> snd
-        let pa_dest = parse_destruct |>> DISCH_THEN
-        let pa_prefix = 
-            elistof (pa_fix <|> pa_dest) (a(Resword ";")) "Prefix intro pattern"
-        let rec pa_intro toks = 
-            (pa_prefix .>>. possibly pa_postfix |>> uncurry (@) |>> EVERY) toks
-        and pa_postfix toks = (pa_conj <|> pa_disj) toks
-        and pa_conj toks = 
-            let conjs = 
-                listof pa_intro (a(Ident "&")) "Intro pattern" |>> CONJ_LIST_TAC
-            ((a(Resword "{") .>>. conjs |>> snd) .>>. a(Resword "}") |>> fst) 
-                toks
-        and pa_disj toks = 
-            let disj = number |>> NUM_DISJ_TAC
-            ((a(Ident "#") .>>. disj |>> snd) .>>. pa_intro |>> (uncurry THEN)) 
-                toks
-        pa_intro
-    let DESTRUCT_TAC s = 
-        let tac, rest = (fix "Destruct pattern" parse_destruct << lex << explode) s
-        if rest = [] then tac
-        else fun _ _ -> Choice.failwith "Garbage after destruct pattern"
-    let INTRO_TAC s = 
-        let tac, rest = (fix "Introduction pattern" parse_intro << lex << explode) s
-        if rest = [] then tac
-        else fun _ -> Choice.failwith "Garbage after intro pattern"
-    let FIX_TAC s = 
-        let tac, rest = (parse_fix << lex << explode) s
-        if rest = [] then tac
-        else fun _ -> Choice.failwith "FIX_TAC: invalid pattern"
-    DESTRUCT_TAC, FIX_TAC, INTRO_TAC
+let private parse_fix = 
+    let ident = 
+        function 
+        | Ident s :: rest when isalpha s -> s, rest
+        | _ -> raise Noparse
+    let rename = 
+        let old_name = possibly(a(Ident "/") .>>. ident |>> snd)
+        (a(Resword "[") .>>. ident |>> snd) .>>. old_name 
+        .>>. a(Resword "]") |>> fst
+    let mk_var v = CONV_TAC(NAME_PULL_FORALL_CONV v)
+                    |> THEN <| GEN_TAC
+    let mk_rename = 
+        function 
+        | u, [v] -> CONV_TAC(NAME_PULL_FORALL_CONV v)
+                    |> THEN <| NAME_GEN_TAC u
+        | u, _ -> NAME_GEN_TAC u
+    let vars = many(rename |>> mk_rename <|> (ident |>> mk_var)) |>> EVERY
+    let star = possibly(a(Ident "*") |>> K(REPEAT GEN_TAC))
+    vars .>>. star |>> function 
+                        | tac, [] -> tac
+                        | tac, _ -> tac
+                                    |> THEN <| REPEAT GEN_TAC
+let private parse_destruct = 
+    let OBTAINL_THEN : string list -> thm_tactical = 
+        EVERY_TCL << map OBTAIN_THEN
+    let ident p = 
+        function 
+        | Ident s :: rest when p s -> s, rest
+        | _ -> raise Noparse
+    let rec destruct inp = disj inp
+    and disj inp = 
+        let DISJ_CASES_LIST = end_itlist DISJ_CASES_THEN2
+        (listof conj (a(Resword "|")) "Disjunction" |>> DISJ_CASES_LIST) inp
+    and conj inp = (atleast 1 atom |>> end_itlist CONJUNCTS_THEN2) inp
+    and obtain inp = 
+        let obtain_prfx = 
+            let var_list = atleast 1 (ident isalpha)
+            (a(Ident "@") .>>. var_list |>> snd) .>>. a(Resword ".") |>> fst
+        (obtain_prfx .>>. destruct |>> uncurry OBTAINL_THEN) inp
+    and atom inp = 
+        let label = ident isalnum |>> LABEL_TAC
+        let paren = 
+            (a(Resword "(") .>>. destruct |>> snd) .>>. a(Resword ")") 
+            |>> fst
+        (label <|> obtain <|> paren) inp
+    destruct
+let private parse_intro = 
+    let number = 
+        function 
+        | Ident s :: rest -> 
+            (try 
+                    let n = int_of_string s
+                    if n < 1 then raise Noparse
+                    else n, rest
+                with
+                | Failure _ -> raise Noparse)
+        | _ -> raise Noparse
+    let pa_fix = a(Ident "!") .>>. parse_fix |>> snd
+    let pa_dest = parse_destruct |>> DISCH_THEN
+    let pa_prefix = 
+        elistof (pa_fix <|> pa_dest) (a(Resword ";")) "Prefix intro pattern"
+    let rec pa_intro toks = 
+        (pa_prefix .>>. possibly pa_postfix |>> uncurry (@) |>> EVERY) toks
+    and pa_postfix toks = (pa_conj <|> pa_disj) toks
+    and pa_conj toks = 
+        let conjs = 
+            listof pa_intro (a(Ident "&")) "Intro pattern" |>> CONJ_LIST_TAC
+        ((a(Resword "{") .>>. conjs |>> snd) .>>. a(Resword "}") |>> fst) 
+            toks
+    and pa_disj toks = 
+        let disj = number |>> NUM_DISJ_TAC
+        ((a(Ident "#") .>>. disj |>> snd) .>>. pa_intro |>> (uncurry THEN)) 
+            toks
+    pa_intro
+
+/// Performs elimination on a theorem within a tactic proof.
+let DESTRUCT_TAC s =
+    let tac, rest = (fix "Destruct pattern" parse_destruct << lex << explode) s
+    if List.isEmpty rest then tac
+    else fun _ _ -> Choice.failwith "Garbage after destruct pattern"
+
+/// Fixes universally quantified variables in goal.
+let FIX_TAC s =
+    let tac, rest = (parse_fix << lex << explode) s
+    if List.isEmpty rest then tac
+    else fun _ -> Choice.failwith "FIX_TAC: invalid pattern"
+
+/// Breaks down outer quantifiers in goal, introducing variables and named hypotheses.
+let INTRO_TAC s =
+    let tac, rest = (fix "Introduction pattern" parse_intro << lex << explode) s
+    if List.isEmpty rest then tac
+    else fun _ -> Choice.failwith "Garbage after intro pattern"

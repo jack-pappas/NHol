@@ -40,6 +40,9 @@ open ExtCore.Control.Collections
 
 #endif
 
+//
+type Protected<'T> = Choice<'T, exn>
+
 // The exception fired by failwith is used as a control flow.
 // KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
 // Using exception as a control flow should be eliminated in the future.
@@ -74,8 +77,56 @@ let inline get (value : Choice<'T, #exn>) =
 // Follow the naming convention of ExtCore
 [<RequireQualifiedAccess>]
 module Choice =
-    (* These functions are fairly specific to this project,
-       and so probably won't be included in ExtCore. *)
+    (* These functions are generally useful, and may be moved into ExtCore in the future. *)
+    
+    /// Composes two functions designed for use with the 'choice' workflow.
+    /// This function is analagous to the F# (>>) operator.
+    // NOTE : This function has been added to ExtCore for the 0.8.33 release.
+    let compose (f : 'T -> Choice<'U, 'Error>) (g : 'U -> Choice<'V, 'Error>) =
+        f >> (Choice.bind g)
+
+    /// Composes two functions designed for use with the 'choice' workflow.
+    /// This function is analagous to the F# (<<) operator.
+    // NOTE : This function has been added to ExtCore for the 0.8.33 release.
+    let composeBack (f : 'U -> Choice<'V, 'Error>) (g : 'T -> Choice<'U, 'Error>) =
+        g >> (Choice.bind f)
+
+
+    module List =
+        /// <summary>Applies a function to each element of the collection, threading an accumulator argument
+        /// through the computation. If the input function is <c>f</c> and the elements are <c>i0...iN</c> then computes 
+        /// <c>f i0 (...(f iN-1 iN))</c>.
+        /// </summary>
+        /// <remarks>Raises <c>System.ArgumentException</c> if <c>list</c> is empty</remarks>
+        /// <param name="reduction">The function to reduce two list elements to a single element.</param>
+        /// <param name="list">The input list.</param>
+        /// <exception cref="System.ArgumentException">Thrown when the list is empty.</exception>
+        /// <returns>The final reduced value.</returns>
+        // NOTE : This function has been added to ExtCore for the 0.8.33 release.
+        [<CompiledName("ReduceBack")>]
+        let reduceBack (reduction : 'T -> 'T -> Choice<'T, 'Error>) (list : 'T list) =
+            // Preconditions
+            checkNonNull "list" list
+
+            // Extract the first element in the list then fold over the tail, using the first element
+            // as the initial state value. If the list contains only one element, we return immediately.
+            // NOTE : In order to reduce _backwards_ over the list, we reverse the list before calling fold.
+            match List.rev list with
+            | [] ->
+                invalidArg "list" "The input list was empty."
+            | [x] ->
+                Choice1Of2 x
+            | hd :: tl ->
+                Choice.List.fold reduction hd tl
+
+
+    (* These functions are specific to this project, and so probably won't be included in ExtCore. *)
+
+    // Instead of using the Choice.get available in ExtCore, we redefine it here
+    // as an alias for ExtCore.Choice.bindOrRaise, so we'll get more information when
+    // an error occurs.
+    let inline get (value : Choice<'T, exn>) =
+        ExtCore.Choice.bindOrRaise value
 
     // The Choice.failwith in ExtCore returns the error string as-is, instead of wrapping it in an exception.
     // We could modify NHol to work the same way, we'd just need to use the Choice.bindOrFail function at the call sites.
@@ -113,18 +164,24 @@ module Choice =
 
     let fill defaultResult (value : Choice<'T, 'Error>) =
         match value with
-        | Choice1Of2 result -> result
-        | Choice2Of2 _ -> defaultResult
+        | Choice1Of2 result ->
+            result
+        | Choice2Of2 _ ->
+            defaultResult
 
     let getOrFailure2 msg (value : Choice<Choice<'T, exn> * Choice<'U, exn>, exn>) =
         match value with
-        | Success (result1, result2) -> (result1, result2)
-        | Error _ -> (failwith msg, failwith msg) 
+        | Choice1Of2 (result1, result2) ->
+            (result1, result2)
+        | Choice2Of2 _ ->
+            (failwith msg, failwith msg) 
 
     let getOrFailure3 msg (value : Choice<Choice<'T, exn> * Choice<'U, exn> * Choice<'V, exn>, exn>) =
         match value with
-        | Success (result1, result2, result3) -> (result1, result2, result3)
-        | Error _ -> (failwith msg, failwith msg, failwith msg) 
+        | Choice1Of2 (result1, result2, result3) ->
+            (result1, result2, result3)
+        | Choice2Of2 _ ->
+            (failwith msg, failwith msg, failwith msg) 
 
     /// Applies the specified binding function to a choice value representing an error value
     /// (Choice2Of2). If the choice value represents a result value (Choice1Of2), the result value
@@ -136,14 +193,17 @@ module Choice =
         | Choice2Of2 error ->
             binding error
 
-    module List =
-        let rec reduceBack (binding : 'T -> 'T -> Choice<'T, exn>) values =
-            match values with
-            | [] -> failwith "The input list shouldn't be empty"
-            | [v] -> Choice.result v
-            | v::vs -> 
-                reduceBack binding vs
-                |> Choice.bind (binding v) 
+    /// Iterates a function a fixed number of times.
+    /// The iteration will be short-circuited if/when the function returns an error.
+    let rec funpow n f x =
+        choice {
+        if n < 1 then
+            return x
+        else
+            let! next_x = f x
+            return! funpow (n - 1) f next_x
+        }
+
 
 (* ------------------------------------------------------------------------- *)
 (* Functions needed for OCaml compatibility. These augment or supercede      *)

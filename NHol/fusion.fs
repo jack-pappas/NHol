@@ -35,16 +35,16 @@ open lib
 #endif
 
 [<AutoOpen>]
-module Hol_kernel = 
-    type hol_type = 
+module Hol_kernel =
+    type hol_type =
         | Tyvar of string
         | Tyapp of string * hol_type list
-        override this.ToString() = 
+        override this.ToString() =
             match this with
             | Tyvar s -> "Tyvar \"" + s + "\""
             | Tyapp(s, htlist) -> "Tyapp (\"" + s + "\", " + htlist.ToString() + ")"
     
-    type term = 
+    type term =
         | Var of string * hol_type
         | Const of string * hol_type
         | Comb of term * term
@@ -57,14 +57,14 @@ module Hol_kernel =
             | Abs(t1, t2) -> 
                 "Abs (\"" + t1.ToString() + "\", " + t2.ToString() + ")"
     
-    type thm0 = 
-        | Sequent of (term list * term)
-        override this.ToString() = 
+    type thm0 =
+        | Sequent of term list * term
+        override this.ToString() =
             match this with
             | Sequent(tlist, t) -> 
                 "Sequent (" + tlist.ToString() + ", " + t.ToString() + ")"
 
-    type thm = Choice<thm0, exn>
+    //type thm = Protected<thm0>
     
     (* ------------------------------------------------------------------------- *)
     (* List of current type constants with their arities.                        *)
@@ -89,11 +89,11 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the arity of a type constructor.
-    let get_type_arity s =
+    let get_type_arity s : Protected<int> =
         match assoc s !the_type_constants with
-        | Some result -> 
+        | Some result ->
             Choice.result result
-        | None -> 
+        | None ->
             Choice.failwith "find"
     
     (* ------------------------------------------------------------------------- *)
@@ -101,18 +101,20 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Declares a new type or type constructor.
-    let new_type(name, arity) =
-        if Choice.isResult <| get_type_arity name then 
-            Choice.failwith("new_type: type " + name + " has already been declared")
-        else 
-            Choice.result (the_type_constants := (name, arity) :: (!the_type_constants))
+    let new_type(name, arity) : Protected<unit> =
+        if Choice.isResult <| get_type_arity name then
+            let msg = sprintf "new_type: type %s has already been declared" name
+            Choice.failwith msg
+        else
+            the_type_constants := (name, arity) :: !the_type_constants
+            Choice.result ()
     
     (* ------------------------------------------------------------------------- *)
     (* Basic type constructors.                                                  *)
     (* ------------------------------------------------------------------------- *)
 
     /// Constructs a type (other than a variable type).
-    let mk_type(tyop, args) : Choice<hol_type, exn> =
+    let mk_type(tyop, args) : Protected<hol_type> =
         choice {
         let! arity = get_type_arity tyop
         if arity = length args then
@@ -131,17 +133,19 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Breaks apart a type (other than a variable type).
-    let dest_type = function 
-        | (Tyapp(s, ty)) ->
+    let dest_type ty : Protected<string * hol_type list> =
+        match ty with
+        | Tyapp(s, ty) ->
             Choice.result (s, ty)
-        | (Tyvar _) ->
+        | Tyvar _ ->
             Choice.failwith "dest_type: type variable not a constructor"
     
     /// Breaks a type variable down to its name.
-    let dest_vartype = function 
-        | (Tyvar s) ->
+    let dest_vartype ty : Protected<string> =
+        match ty with
+        | Tyvar s ->
             Choice.result s
-        | (Tyapp(_, _)) ->
+        | Tyapp(_, _) ->
             Choice.failwith "dest_vartype: type constructor not a variable"
             
     (* ------------------------------------------------------------------------- *)
@@ -159,9 +163,12 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns a list of the type variables in a type.
-    let rec tyvars = function 
-        | (Tyapp(_, args)) -> itlist (union << tyvars) args []
-        | (Tyvar v as tv) -> [tv]
+    let rec tyvars ty =
+        match ty with
+        | Tyapp(_, args) ->
+            itlist (union << tyvars) args []
+        | Tyvar v as tv ->
+            [tv]
     
     (* ------------------------------------------------------------------------- *)
     (* Substitute types for type variables.                                      *)
@@ -207,7 +214,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Gets the generic type of a constant from the name of the constant.
-    let get_const_type s =
+    let get_const_type s : Protected<hol_type> =
         choice {
         match assoc s !the_term_constants with
         | Some result -> 
@@ -221,7 +228,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Declares a new constant.
-    let new_constant(name, ty) =
+    let new_constant(name, ty) : Protected<unit> =
         if Choice.isResult <| get_const_type name then 
             Choice.failwith("new_constant: constant " + name + " has already been declared")
         else 
@@ -232,18 +239,27 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the type of a term.
-    let type_of tm = 
-        let rec type_of tm = 
+    // OPTIMIZE : Use ChoiceCont from ExtCore here to recurse in bounded stack space.
+    let type_of tm : Protected<hol_type> =
+        let rec type_of tm =
+            choice {
             match tm with
-            | Var(_, ty) -> ty
-            | Const(_, ty) -> ty
-            | Comb(s, _) -> hd(tl(snd(Choice.get <| dest_type(type_of s))))
-            | Abs(Var(_, ty), t) -> 
-                Tyapp("fun", [ty; type_of t])
-            | _ -> failwith "type_of: not a type of a term"
+            | Var(_, ty) ->
+                return ty
+            | Const(_, ty) ->
+                return ty
+            | Comb(s, _) ->
+                let! type_of_s = type_of s
+                let! dest_type_of_s = dest_type type_of_s
+                return hd (tl (snd dest_type_of_s))
+            | Abs(Var(_, ty), t) ->
+                let! type_of_t = type_of t
+                return Tyapp("fun", [ty; type_of_t])
+            | _ ->
+                return! Choice.failwith "type_of: not a type of a term"
+            }
 
-        Choice.attempt <| fun () ->
-            type_of tm
+        type_of tm
     
     (* ------------------------------------------------------------------------- *)
     (* Primitive discriminators.                                                 *)
@@ -281,7 +297,7 @@ module Hol_kernel =
     let mk_var(v, ty) = Var(v, ty)
     
     /// Produce constant term by applying an instantiation to its generic type.
-    let mk_const(name, theta) = 
+    let mk_const(name, theta) : Protected<term> = 
         choice {
             let! uty = get_const_type name
             return Const(name, type_subst theta uty)
@@ -290,7 +306,7 @@ module Hol_kernel =
             nestedFailure e "mk_const: not a constant name")
     
     /// Constructs an abstraction.
-    let mk_abs(bvar, bod) =
+    let mk_abs(bvar, bod) : Protected<term> =
         choice {
         match bvar with
         | Var(_, _) ->
@@ -300,7 +316,7 @@ module Hol_kernel =
         }    
     
     /// Constructs a combination.
-    let mk_comb(f, a) =
+    let mk_comb(f, a) : Protected<term> =
         choice {
         let! ty0 = type_of f
         match ty0 with
@@ -319,32 +335,32 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Breaks apart a variable into name and type.
-    let dest_var = 
-        function 
+    let dest_var tm : Protected<string * hol_type> = 
+        match tm with
         | Var(s, ty) -> 
             Choice.result (s, ty)
         | _ -> 
             Choice.failwith "dest_var: not a variable"
     
     /// Breaks apart a constant into name and type.
-    let dest_const = 
-        function 
+    let dest_const tm : Protected<string * hol_type> = 
+        match tm with
         | Const(s, ty) -> 
             Choice.result (s, ty)
         | _ -> 
             Choice.failwith "dest_const: not a constant"
     
     /// Breaks apart a combination (function application) into rator and rand.
-    let dest_comb = 
-        function 
+    let dest_comb tm : Protected<term * term> = 
+        match tm with
         | Comb(f, x) -> 
             Choice.result (f, x)
         | _ -> 
             Choice.failwith "dest_comb: not a combination"
     
     /// Breaks apart an abstraction into abstracted variable and body.
-    let dest_abs = 
-        function 
+    let dest_abs tm : Protected<term * term> = 
+        match tm with
         | Abs(v, b) -> 
             Choice.result (v, b)
         | _ -> 
@@ -355,12 +371,16 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns a list of the variables free in a term.
-    let rec frees tm = 
+    let rec frees tm =
         match tm with
-        | Var(_, _) -> [tm]
-        | Const(_, _) -> []
-        | Abs(bv, bod) -> subtract (frees bod) [bv]
-        | Comb(s, t) -> union (frees s) (frees t)
+        | Const(_, _) ->
+            []
+        | Var(_, _) ->
+            [tm]
+        | Abs(bv, bod) ->
+            subtract (frees bod) [bv]
+        | Comb(s, t) ->
+            union (frees s) (frees t)
     
     /// Returns a list of the free variables in a list of terms.
     let freesl tml = itlist (union << frees) tml []
@@ -369,30 +389,37 @@ module Hol_kernel =
     (* Whether all free variables in a term appear in a list.                    *)
     (* ------------------------------------------------------------------------- *)
     /// Tests if all free variables of a term appear in a list.
-    let rec freesin acc tm = 
+    let rec freesin acc tm =
         match tm with
-        | Var(_, _) -> mem tm acc
-        | Const(_, _) -> true
-        | Abs(bv, bod) -> freesin (bv :: acc) bod
-        | Comb(s, t) -> freesin acc s && freesin acc t
+        | Const(_, _) ->
+            true
+        | Var(_, _) ->
+            mem tm acc
+        | Abs(bv, bod) ->
+            freesin (bv :: acc) bod
+        | Comb(s, t) ->
+            freesin acc s && freesin acc t
     
     (* ------------------------------------------------------------------------- *)
     (* Whether a variable (or constant in fact) is free in a term.               *)
     (* ------------------------------------------------------------------------- *)
 
     /// Tests whether a variable (or constant) occurs free in a term.
-    let rec vfree_in v tm = 
+    let rec vfree_in v tm =
         match tm with
-        | Abs(bv, bod) -> v <> bv && vfree_in v bod
-        | Comb(s, t) -> vfree_in v s || vfree_in v t
-        | _ -> compare tm v = 0
+        | Abs(bv, bod) ->
+            v <> bv && vfree_in v bod
+        | Comb(s, t) ->
+            vfree_in v s || vfree_in v t
+        | _ ->
+            compare tm v = 0
     
     (* ------------------------------------------------------------------------- *)
     (* Finds the type variables (free) in a term.                                *)
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the set of type variables used in a term.
-    let rec type_vars_in_term tm =
+    let rec type_vars_in_term tm : Protected<hol_type list> =
         choice {
             match tm with
             | Var(_, ty) -> 
@@ -416,7 +443,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Modifies a variable name to avoid clashes.
-    let rec variant avoid v =
+    let rec variant avoid v : Protected<term> =
         choice {
         if not(exists (vfree_in v) avoid) then
             return v
@@ -432,100 +459,215 @@ module Hol_kernel =
     (* Substitution primitive (substitution for variables only!)                 *)
     (* ------------------------------------------------------------------------- *)
 
+    // CLEAN : Change the name of the 'ilist' parameter here to 'theta' if it makes sense,
+    // or change the the 'theta' parameter in the vsubst function to 'ilist' -- either way,
+    // the code would be more readable if they had the same name.
+    let rec private vsubstRec ilist tm : Protected<term> =
+        choice {
+        match tm with
+        | Const(_, _) ->
+            return tm
+        | Var(_, _) ->
+            return rev_assocd tm ilist tm
+        | Comb(s, t) -> 
+            let! s' = vsubstRec ilist s
+            let! t' = vsubstRec ilist t
+            if s' == s && t' == t then
+                return tm
+            else
+                return Comb(s', t')
+        | Abs(v, s) -> 
+            let ilist' = filter (fun (t, x) -> x <> v) ilist
+            if ilist' = [] then
+                return tm
+            else 
+                let! s' = vsubstRec ilist' s
+                if s' == s then
+                    return tm
+                elif exists (fun (t, x) -> vfree_in v t && vfree_in x s) ilist' then 
+                    let! v' = variant [s'] v
+                    // CLEAN : Replace the name of this value with something sensible.
+                    let! foo1 = vsubstRec ((v', v) :: ilist') s
+                    return Abs(v', foo1)
+                else
+                    return Abs(v, s')
+        }
+
+    // CLEAN : Replace the name of this function with something more descriptive.
+    let private checkTermAndVarTypesMatch theta =
+        theta
+        |> forall (fun (t, x) ->
+            match type_of t, dest_var x with
+            | Success r1, Success r2 ->
+                r1 = snd r2
+            | _ -> false)
+
     /// Substitute terms for variables inside a term.
-    let vsubst = 
-        let vsubst ilist tm = 
-            let rec vsubst ilist tm = 
-                match tm with
-                | Var(_, _) -> rev_assocd tm ilist tm
-                | Const(_, _) -> tm
-                | Comb(s, t) -> 
-                    let s' = vsubst ilist s
-                    let t' = vsubst ilist t
-                    if s' == s && t' == t then tm
-                    else Comb(s', t')
-                | Abs(v, s) -> 
-                    let ilist' = filter (fun (t, x) -> x <> v) ilist
-                    if ilist' = [] then tm
-                    else 
-                        let s' = vsubst ilist' s
-                        if s' == s then tm
-                        elif exists (fun (t, x) -> vfree_in v t && vfree_in x s) ilist' then 
-                            let v' = Choice.get <| variant [s'] v
-                            Abs(v', vsubst ((v', v) :: ilist') s)
-                        else Abs(v, s')
-
-            Choice.attempt <| fun () ->
-                vsubst ilist tm
-
-        fun theta ->
-            if theta = [] then Choice.result
-            elif forall (fun (t, x) -> 
-                    match type_of t, dest_var x with
-                    | Success r1, Success r2 -> r1 = snd r2
-                    | _ -> false) theta then vsubst theta
-            else fun tm -> Choice.failwith "vsubst: Bad substitution list"
+    // CLEAN : Unless it offers a _specific_ performance benefit, it would simplify the code if we
+    // added an extra parameter 'tm : term' to this function instead of returning a closure.
+    let vsubst theta : (term -> Protected<term>) =
+        if theta = [] then
+            Choice.result
+        elif checkTermAndVarTypesMatch theta then
+            vsubstRec theta
+        else
+            fun (_ : term) ->
+                Choice.failwith "vsubst: Bad substitution list"
     
     (* ------------------------------------------------------------------------- *)
     (* Type instantiation primitive.                                             *)
     (* ------------------------------------------------------------------------- *)
 
-    exception Clash of term
+    (* NOTE :   The original hol-light code defined an exception "Clash of term" for use
+                by the 'inst' function below. Instead of using exceptions, the F# code below
+                uses Choice<_,_,_> values; in this future, this should be modified to use
+                nested Choice<_,_> values instead (so Clash would be (Choice1Of2 << Choice2Of2)
+                so we can make better use of workflows. *)
+
+    let rec private instRec env tyin tm : Choice<term, term, exn> =
+        // These helper functions simplify some of the code below.
+        let inline result x = Choice1Of3 x
+        let inline clash x = Choice2Of3 x
+        let inline error x = Choice3Of3 x
+        let inline (|Result|Clash|Err|) value =
+            match value with
+            | Choice1Of3 tm -> Result tm
+            | Choice2Of3 tm -> Clash tm
+            | Choice3Of3 ex -> Err ex
+
+        match tm with
+        | Var(n, ty) ->
+            let tm' =
+                let ty' = type_subst tyin ty
+                if ty' == ty then tm
+                else Var(n, ty')
+            if compare (rev_assocd tm' env tm) tm = 0 then
+                result tm'
+            else
+                clash tm'
+        | Const(c, ty) -> 
+            let ty' = type_subst tyin ty
+            if ty' == ty then
+                result tm
+            else
+                result <| Const(c, ty')
+        | Comb(f, x) ->
+            match instRec env tyin f with
+            | Err ex ->
+                error ex
+            | Clash tm ->
+                clash tm
+            | Result f' ->
+                match instRec env tyin x with
+                | Err ex ->
+                    error ex
+                | Clash tm ->
+                    clash tm
+                | Result x' ->
+                    if f' == f && x' == x then
+                        result tm
+                    else
+                        result <| Comb(f', x')
+            
+        | Abs(y, t) ->
+            match instRec [] tyin y with
+            | Err ex ->
+                error ex
+            | Clash tm ->
+                clash tm
+            | Result y' ->
+                let env' = (y, y') :: env
+                match instRec env' tyin t with
+                | Err ex ->
+                    error ex
+                | Clash w' ->
+                    if w' <> y' then
+                        // At this point, we assume the clash cannot be fixed and return an error.
+                        // TODO : Provide a better error message; perhaps include the clashing terms.
+                        error <| exn "instRec: clash"
+                    else
+                        let ifrees =
+                            // Original code: map (instRec [] tyin) (frees t)
+                            // This is similar to Choice.List.map in ExtCore, except it uses Choice<_,_,_>.
+                            (Choice1Of3 [], frees t)
+                            ||> List.fold (fun state tm ->
+                                match state with
+                                | Err ex ->
+                                    error ex
+                                | Clash tm ->
+                                    clash tm
+                                | Result lst ->
+                                    match instRec [] tyin tm with
+                                    | Err ex ->
+                                        error ex
+                                    | Clash tm ->
+                                        clash tm
+                                    | Result tm ->
+                                        result (tm :: lst))
+                            |> function
+                                | Err ex ->
+                                    error ex
+                                | Clash tm ->
+                                    clash tm
+                                | Result lst ->
+                                    result (List.rev lst)
+
+                        match ifrees with
+                        | Err ex ->
+                            error ex
+                        | Clash tm ->
+                            clash tm
+                        | Result ifrees ->
+                            match variant ifrees y' with
+                            | Error ex ->
+                                error ex
+                            | Success y'' ->
+                                match dest_var y'' with
+                                | Error ex ->
+                                    error ex
+                                | Success dest_y'' ->
+                                    match dest_var y with
+                                    | Error ex ->
+                                        error ex
+                                    | Success dest_var_y ->
+                                        let z = Var(fst dest_y'', snd dest_var_y)
+                                        match vsubst [z, y] t with
+                                        | Error ex ->
+                                            error ex
+                                        | Success vsubst_zy_t ->
+                                            instRec env tyin (Abs(z, vsubst_zy_t))
+                | Result t' ->
+                    if y' == y && t' == t then
+                        result tm
+                    else
+                        result <| Abs(y', t')
+
+    let private instImpl env tyin tm : Protected<_> =
+        match instRec env tyin tm with
+        | Choice1Of3 result ->
+            Choice.result result
+        | Choice2Of3 clashTerm ->
+            // This handles the "Clash" case.
+            // TODO : Improve this error message; include the clashing term.
+            // NOTE : This case probably shouldn't ever be matched -- 'instRec' attempts to handle
+            // clashes, and finally returns an error (Choice3Of3) if a clash can't be handled.
+            Choice.failwith "instImpl: Clash"
+        | Choice3Of3 ex ->
+            Choice.error ex
     
     /// Instantiate type variables in a term.
-    let inst = 
-        let inst env tyin tm =
-            let rec inst env tyin tm = 
-                match tm with
-                | Var(n, ty) -> 
-                    let ty' = type_subst tyin ty
-                    let tm' = 
-                        if ty' == ty then tm
-                        else Var(n, ty')
-                    if compare (rev_assocd tm' env tm) tm = 0 then tm'
-                    else raise(Clash tm')
-                | Const(c, ty) -> 
-                    let ty' = type_subst tyin ty
-                    if ty' == ty then tm
-                    else Const(c, ty')
-                | Comb(f, x) -> 
-                    let f' = inst env tyin f
-                    let x' = inst env tyin x
-                    if f' == f && x' == x then tm
-                    else Comb(f', x')
-                | Abs(y, t) -> 
-                    let y' = inst [] tyin y
-                    let env' = (y, y') :: env
-                    try 
-                        let t' = inst env' tyin t
-                        if y' == y && t' == t then tm
-                        else Abs(y', t')
-                    with
-                    | Clash(w') as ex -> 
-                        if w' <> y' then raise ex
-                        else 
-                            let ifrees = map (inst [] tyin) (frees t)
-                            let y'' = Choice.get <| variant ifrees y'
-                            let z = Var(fst(Choice.get <| dest_var y''), snd(Choice.get <| dest_var y))
-                            inst env tyin (Abs(z, Choice.get <| vsubst [z, y] t))
-            try
-                Choice.result <| inst env tyin tm
-            with 
-            | :? Clash as ex ->
-                Choice2Of2 (ex :> exn)
-            | Failure s ->
-                Choice.failwith s
-
-        fun tyin -> 
-            if tyin = [] then Choice.result
-            else inst [] tyin
+    // CLEAN : Unless it offers a _specific_ performance benefit, it would simplify the code if we
+    // added an extra parameter 'tm : term' to this function instead of returning a closure.
+    let inst tyin : (term -> Protected<term>) = 
+        if tyin = [] then Choice.result
+        else instImpl [] tyin
     
     (* ------------------------------------------------------------------------- *)
     (* A few bits of general derived syntax.                                     *)
     (* ------------------------------------------------------------------------- *)
 
     /// Returns the operator from a combination (function application).
-    let rator tm =
+    let rator tm : Protected<term> =
         choice {
         match tm with
         | Comb(l, r) -> 
@@ -535,7 +677,7 @@ module Hol_kernel =
         }
     
     /// Returns the operand from a combination (function application).
-    let rand tm =
+    let rand tm : Protected<term> =
         choice {
         match tm with
         | Comb(l, r) -> 
@@ -548,14 +690,14 @@ module Hol_kernel =
     (* Syntax operations for equations.                                          *)
     (* ------------------------------------------------------------------------- *)
 
-    let safe_mk_eq l r =
+    let safe_mk_eq l r : Protected<term> =
         choice {
         let! ty = type_of l
         return Comb(Comb(Const("=", Tyapp("fun", [ty; Tyapp("fun", [ty; bool_ty])])), l), r)
         }
     
     /// Term destructor for equality.
-    let dest_eq tm =
+    let dest_eq tm : Protected<term * term> =
         choice {
         match tm with
         | Comb(Comb(Const("=", _), l), r) -> 
@@ -653,14 +795,14 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Returns theorem expressing reflexivity of equality.
-    let REFL tm : thm =
+    let REFL tm : Protected<thm0> =
         choice {
         let! tm' = safe_mk_eq tm tm
         return Sequent([], tm')
         }
 
     /// Uses transitivity of equality on two equational theorems.
-    let TRANS (thm1 : thm) (thm2 : thm) : thm = 
+    let TRANS (thm1 : Protected<thm0>) (thm2 : Protected<thm0>) : Protected<thm0> = 
         let TRANS (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
             choice {
             match (c1, c2) with
@@ -676,7 +818,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Proves equality of combinations constructed from equal functions and operands.
-    let MK_COMB(thm1 : thm, thm2 : thm) : thm =
+    let MK_COMB(thm1 : Protected<thm0>, thm2 : Protected<thm0>) : Protected<thm0> =
         let MK_COMB(Sequent(asl1, c1), Sequent(asl2, c2)) = 
             choice {
                 match (c1, c2) with
@@ -696,7 +838,7 @@ module Hol_kernel =
         Choice.bind2 (curry MK_COMB) thm1 thm2
     
     /// Abstracts both sides of an equation.
-    let ABS v (thm : thm) : thm =
+    let ABS v (thm : Protected<thm0>) : Protected<thm0> =
         let ABS v (Sequent(asl, c)) = 
             choice {
                 match (v, c) with
@@ -713,7 +855,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Special primitive case of beta-reduction.
-    let BETA tm : thm =
+    let BETA tm : Protected<thm0> =
         choice {
         match tm with
         | Comb(Abs(v, bod), arg) when compare arg v = 0 -> 
@@ -728,7 +870,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Introduces an assumption.
-    let ASSUME tm : thm =
+    let ASSUME tm : Protected<thm0> =
         choice {
         let! ty = type_of tm
         if compare ty bool_ty = 0 then
@@ -738,16 +880,19 @@ module Hol_kernel =
         }
     
     /// Equality version of the Modus Ponens rule.
-    let EQ_MP (thm1 : thm) (thm2 : thm) : thm =
-        let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) = 
+    let EQ_MP (thm1 : Protected<thm0>) (thm2 : Protected<thm0>) : Protected<thm0> =
+        let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) =
+            choice {
             match eq with
             | Comb(Comb(Const("=", _), l), r) when alphaorder l c = 0 -> 
-                Choice.result <| Sequent(term_union asl1 asl2, r)
-            | _ -> Choice.failwith "EQ_MP"
+                return Sequent(term_union asl1 asl2, r)
+            | _ ->
+                return! Choice.failwith "EQ_MP"
+            }
         Choice.bind2 EQ_MP thm1 thm2
     
     /// Deduces logical equivalence from deduction in both directions.
-    let DEDUCT_ANTISYM_RULE (thm1 : thm) (thm2 : thm) : thm =
+    let DEDUCT_ANTISYM_RULE (thm1 : Protected<thm0>) (thm2 : Protected<thm0>) : Protected<thm0> =
         let DEDUCT_ANTISYM_RULE (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
             choice {
             let asl1' = term_remove c2 asl1
@@ -762,20 +907,20 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Instantiates types in a theorem.
-    let INST_TYPE theta (thm : thm) : thm =
+    let INST_TYPE (theta : (hol_type * hol_type) list) (thm : Protected<thm0>) : Protected<thm0> =
         // TODO: revise this
-        let INST_TYPE theta (Sequent(asl, c)) : thm =
+        let INST_TYPE theta (Sequent(asl, c)) : Protected<thm0> =
             Choice.attempt <| fun () ->
-                let inst_fn = Choice.get << inst theta
-                Sequent(term_image inst_fn asl, inst_fn c)
+                let inst_fun : term -> term = Choice.get << inst theta
+                Sequent(term_image inst_fun asl, inst_fun c)
         Choice.bind (INST_TYPE theta) thm
     
     /// Instantiates free variables in a theorem.
-    let INST theta (thm : thm) : thm =
+    let INST theta (thm : Protected<thm0>) : Protected<thm0> =
         // TODO: revise this
-        let INST theta (Sequent(asl, c)) : thm =
+        let INST theta (Sequent(asl, c)) : Protected<thm0> =
             Choice.attempt <| fun () ->
-                let inst_fun = Choice.get << vsubst theta
+                let inst_fun : term -> term = Choice.get << vsubst theta
                 Sequent(term_image inst_fun asl, inst_fun c)
         Choice.bind (INST theta) thm
     
@@ -789,7 +934,7 @@ module Hol_kernel =
     let axioms() = !the_axioms
     
     /// Sets up a new axiom.
-    let new_axiom tm : thm =
+    let new_axiom tm : Protected<thm0> =
         choice {
         let! ty = type_of tm
         if compare ty bool_ty = 0 then 
@@ -811,7 +956,7 @@ module Hol_kernel =
     let definitions() = !the_definitions
     
     /// Makes a simple new definition of the form 'c = t'.
-    let new_basic_definition tm : thm =
+    let new_basic_definition tm : Protected<thm0> =
         choice {
         match tm with
         | Comb(Comb(Const("=", _), Var(cname, ty)), r) ->
@@ -849,7 +994,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Introduces a new type in bijection with a nonempty subset of an existing type.
-    let new_basic_type_definition tyname (absname, repname) (thm : thm) : thm * thm =
+    let new_basic_type_definition tyname (absname, repname) (thm : Protected<thm0>) : Protected<thm0> * Protected<thm0> =
         match thm with
         | Success (Sequent(asl, c)) ->
             if exists (Choice.isResult << get_const_type) [absname; repname] then 
@@ -924,6 +1069,7 @@ let mk_eq =
         return! mk_comb(l, r)
         }
         |> Choice.mapError (fun e -> nestedFailure e "mk_eq")
+        : Protected<term>
 
 (* ------------------------------------------------------------------------- *)
 (* Tests for alpha-convertibility (equality ignoring names in abstractions). *)

@@ -342,12 +342,14 @@ let new_specification =
                     return! 
                         choice { 
                             let! (_, sth) = 
-                                find (fun ((names', th'), sth') -> 
-                                        match th', th with
-                                        | Success th', Success th ->
-                                            names' = names && aconv (concl th') (concl th)
-                                        | _ -> false) (!the_specifications)
-                                |> Option.toChoiceWithError "find"
+                                Choice.List.tryFind 
+                                    (fun ((names', th'), sth') -> 
+                                        choice {
+                                            let! th' = th'
+                                            let! th = th
+                                            return names' = names && aconv (concl th') (concl th)
+                                        }) (!the_specifications)
+                                |> Choice.bind (Option.toChoiceWithError "find")
 
                             warn true ("Benign respecification")
                             return! sth

@@ -44,27 +44,30 @@ open parser
 (* Type abbreviation for conversions.                                        *)
 (* ------------------------------------------------------------------------- *)
 
-type conv = term -> thm
+type conv = term -> Protected<thm0>
 
 (* ------------------------------------------------------------------------- *)
 (* A bit more syntax.                                                        *)
 (* ------------------------------------------------------------------------- *)
 
 /// Take left-hand argument of a binary operator.
-let lhand = Choice.bind rand << rator
+let lhand : term -> Protected<term> =
+    Choice.bind rand << rator
 
 /// Returns the left-hand side of an equation.
-let lhs = Choice.map fst << dest_eq
+let lhs : term -> Protected<term> =
+    Choice.map fst << dest_eq
 
 /// Returns the right-hand side of an equation.
-let rhs = Choice.map snd << dest_eq
+let rhs : term -> Protected<term> =
+    Choice.map snd << dest_eq
 
 (* ------------------------------------------------------------------------- *)
 (* Similar to variant, but even avoids constants, and ignores types.         *)
 (* ------------------------------------------------------------------------- *)
 
 /// Rename variable to avoid specifed names and constant names.
-let mk_primed_var =
+let mk_primed_var : _ -> _ -> Protected<term> =
     let rec svariant avoid s = 
         if mem s avoid || (Choice.isResult <| get_const_type s && not(is_hidden s)) then 
             svariant avoid (s + "'")
@@ -80,7 +83,7 @@ let mk_primed_var =
 (* ------------------------------------------------------------------------- *)
 
 /// General case of beta-conversion.
-let BETA_CONV tm : thm = 
+let BETA_CONV tm : Protected<thm0> = 
     BETA tm
     |> Choice.bindError (fun _ ->
         choice { 
@@ -96,17 +99,17 @@ let BETA_CONV tm : thm =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies a function to both sides of an equational theorem.
-let AP_TERM tm th : thm = 
+let AP_TERM tm th : Protected<thm0> = 
     MK_COMB (REFL tm, th)
     |> Choice.mapError (fun e -> nestedFailure e "AP_TERM")
 
 /// Proves equality of equal functions applied to a term.
-let AP_THM th tm : thm = 
+let AP_THM th tm : Protected<thm0> = 
     MK_COMB (th, REFL tm)
     |> Choice.mapError (fun e -> nestedFailure e "AP_THM")
 
 /// Swaps left-hand and right-hand sides of an equation.
-let SYM (th : thm) : thm = 
+let SYM (th : Protected<thm0>) : Protected<thm0> = 
     choice {
         let! tm = Choice.map concl th
         let! l, r = dest_eq tm
@@ -117,12 +120,12 @@ let SYM (th : thm) : thm =
     }
 
 /// Proves equality of lpha-equivalent terms.
-let ALPHA tm1 tm2 : thm = 
+let ALPHA tm1 tm2 : Protected<thm0> = 
     TRANS (REFL tm1) (REFL tm2)
     |> Choice.mapError (fun e -> nestedFailure e "ALPHA")
 
 /// Renames the bound variable of a lambda-abstraction.
-let ALPHA_CONV v tm : thm = 
+let ALPHA_CONV v tm : Protected<thm0> =
     alpha v tm
     |> Choice.bind (ALPHA tm)
 
@@ -142,7 +145,8 @@ let MK_BINOP op (lth, rth) = MK_COMB(AP_TERM op lth, rth)
 (* ------------------------------------------------------------------------- *)
 
 /// Conversion that always fails.
-let NO_CONV : conv = fun tm -> Choice.failwith "NO_CONV"
+let NO_CONV : conv =
+    fun tm -> Choice.failwith "NO_CONV"
 
 /// Conversion that always succeeds and leaves a term unchanged.
 let ALL_CONV : conv = REFL
@@ -152,43 +156,47 @@ let ALL_CONV : conv = REFL
 (* ------------------------------------------------------------------------- *)
 
 /// Applies two conversions in sequence.
-let THENC : conv -> conv -> conv = 
-    fun conv1 conv2 t -> 
-        choice {
-            let th1 = conv1 t
-            let! t' = Choice.bind (rand << concl) th1
-            let th2 = conv2 t'
-            return! TRANS th1 th2
-        }
+let THENC (conv1 : conv) (conv2 : conv) : conv =
+    fun t ->
+    choice {
+        let! th1 = conv1 t
+        let! t' = rand <| concl th1
+        let th2 = conv2 t'
+        return!
+            let th1 = Choice.result th1 in
+            TRANS th1 th2
+    }
 
 /// Applies the first of two conversions that succeeds.
-let ORELSEC : conv -> conv -> conv = 
-    fun conv1 conv2 t -> 
-        conv1 t
-        |> Choice.bindError (fun _ -> conv2 t)
+let ORELSEC (conv1 : conv) (conv2 : conv) : conv =
+    fun t ->
+    conv1 t
+    |> Choice.bindError (fun _ -> conv2 t)
 
 /// Apply the first of the conversions in a given list that succeeds.
-let FIRST_CONV : conv list -> conv = 
+let FIRST_CONV : conv list -> conv =
     end_itlist ORELSEC
 
 /// Applies in sequence all the conversions in a given list of conversions.
-let EVERY_CONV : conv list -> conv = fun l -> itlist THENC l ALL_CONV
+let EVERY_CONV : conv list -> conv =
+    fun l -> itlist THENC l ALL_CONV
 
 /// Repeatedly apply a conversion (zero or more times) until it fails.
-let REPEATC : conv -> conv = 
-    let rec REPEATC conv t = 
+let REPEATC : conv -> conv =
+    let rec REPEATC conv t =
         (ORELSEC (THENC conv (REPEATC conv)) ALL_CONV) t
     REPEATC
 
 /// Makes a conversion fail if applying it leaves a term unchanged.
-let CHANGED_CONV : conv -> conv = 
-    fun conv tm -> 
+let CHANGED_CONV (conv : conv) : conv =
+    fun tm ->
         choice {
-            let th = conv tm
-            let! l, r = Choice.bind (dest_eq << concl) th
-            if aconv l r then 
+            let! th = conv tm
+            let! l, r = dest_eq <| concl th
+            if aconv l r then
                 return! Choice.failwith "CHANGED_CONV"
-            else return! th
+            else
+                return th
         }
 
 /// Attempts to apply a conversion; applies identity conversion in case of failure.
@@ -199,81 +207,108 @@ let TRY_CONV conv = ORELSEC conv ALL_CONV
 (* ------------------------------------------------------------------------- *)
 
 /// Applies a conversion to the operator of an application.
-let RATOR_CONV : conv -> conv = 
-    fun conv tm -> 
-        dest_comb tm
-        |> Choice.bind (fun (l, r) ->
-            AP_THM (conv l) r)
+let RATOR_CONV (conv : conv) : conv =
+    fun tm ->
+    choice {
+    let! l, r = dest_comb tm
+    let! conv_l = conv l
+    return!
+        let conv_l = Choice.result conv_l in
+        AP_THM conv_l r
+    }
 
 /// Applies a conversion to the operand of an application.
-let RAND_CONV : conv -> conv = 
-    fun conv tm -> 
-        dest_comb tm
-        |> Choice.bind (fun (l, r) ->
-            AP_TERM l (conv r))
+let RAND_CONV (conv : conv) : conv =
+    fun tm ->
+    choice {
+    let! l, r = dest_comb tm
+    let! conv_r = conv r
+    return!
+        let conv_r = Choice.result conv_r in
+        AP_TERM l conv_r
+    }
 
 /// Apply a conversion to left-hand argument of binary operator.
 let LAND_CONV = RATOR_CONV << RAND_CONV
 
 /// Applies two conversions to the two sides of an application.
-let COMB2_CONV : conv -> conv -> conv = 
-    fun lconv rconv tm -> 
-        dest_comb tm
-        |> Choice.bind (fun (l, r) ->
-            MK_COMB(lconv l, rconv r))
+let COMB2_CONV (lconv : conv) (rconv : conv) : conv =
+    fun tm ->
+    choice {
+    let! l, r = dest_comb tm
+    let! lconv_l = lconv l
+    let! rconv_r = rconv r
+    return!
+        let lconv_l = Choice.result lconv_l in
+        let rconv_r = Choice.result rconv_r in
+        MK_COMB (lconv_l, rconv_r)
+    }
 
 /// Applies a conversion to the two sides of an application.
 let COMB_CONV = W COMB2_CONV
 
 /// Applies a conversion to the body of an abstraction.
-let ABS_CONV : conv -> conv = 
-    fun conv tm -> 
-        choice {
-            let! v, bod = dest_abs tm
-            let th = conv bod
-            return! ABS v th
-            |> Choice.bindError(fun _ ->
-                choice {
-                    let! tv = type_of v
-                    let gv = genvar tv
-                    let! gbod = vsubst [gv, v] bod
-                    let gth = ABS gv (conv gbod)
-                    let! gtm = Choice.map concl gth
-                    let! l, r = dest_eq gtm
-                    let! v' = variant (frees gtm) v
-                    let! l' = alpha v' l
-                    let! r' = alpha v' r
-                    let! tm' = mk_eq(l', r')
-                    return! EQ_MP (ALPHA gtm tm') gth
-                })
-        }
+let ABS_CONV (conv : conv) : conv = 
+    fun tm ->
+    choice {
+    let! v, bod = dest_abs tm
+    let th = conv bod
+    return!
+        ABS v th
+        |> Choice.bindError(fun _ ->
+            choice {
+            let! tv = type_of v
+            let gv = genvar tv
+            let! gbod = vsubst [gv, v] bod
+            let! gth = ABS gv (conv gbod)
+            let gtm = concl gth
+            let! l, r = dest_eq gtm
+            let! v' = variant (frees gtm) v
+            let! l' = alpha v' l
+            let! r' = alpha v' r
+            let! tm' = mk_eq(l', r')
+            return!
+                let gth = Choice.result gth in
+                EQ_MP (ALPHA gtm tm') gth
+            })
+    }
 
 /// Applies conversion to the body of a binder.
-let BINDER_CONV conv tm = 
-    if is_abs tm then ABS_CONV conv tm
-    else RAND_CONV (ABS_CONV conv) tm
+let BINDER_CONV conv tm =
+    if is_abs tm then
+        ABS_CONV conv tm
+    else
+        RAND_CONV (ABS_CONV conv) tm
 
 /// Applies a conversion to the top-level subterms of a term.
 let SUB_CONV conv tm = 
     match tm with
-    | Comb(_, _) -> COMB_CONV conv tm
-    | Abs(_, _) -> ABS_CONV conv tm
-    | _ -> REFL tm
+    | Comb(_, _) ->
+        COMB_CONV conv tm
+    | Abs(_, _) ->
+        ABS_CONV conv tm
+    | _ ->
+        REFL tm
 
 /// Applies a conversion to both arguments of a binary operator.
-let BINOP_CONV conv tm : thm = 
+let BINOP_CONV conv tm : Protected<thm0> =
     choice {
-        let! lop, r = dest_comb tm
-        let! op, l = dest_comb lop
-        return! MK_COMB(AP_TERM op (conv l), conv r)
+    let! lop, r = dest_comb tm
+    let! op, l = dest_comb lop
+    let! conv_l = conv l
+    let! conv_r = conv r
+    return!
+        let conv_l = Choice.result conv_l in
+        let conv_r = Choice.result conv_r in
+        MK_COMB(AP_TERM op conv_l, conv_r)
     }
 
 (* ------------------------------------------------------------------------- *)
-(* Depth conversions; internal use of a failure-propagating `Boultonized'    *)
-(* version to avoid a great deal of reuilding of terms.                      *)
+(* Depth conversions; internal use of a failure-propagating 'Boultonized'    *)
+(* version to avoid a great deal of rebuilding of terms.                     *)
 (* ------------------------------------------------------------------------- *)
 
-let rec private THENQC (conv1 : conv) (conv2 : conv) tm : thm = 
+let rec private THENQC (conv1 : conv) (conv2 : conv) tm : Protected<thm0> = 
     let v = 
         let th1 = conv1 tm
         choice { 
@@ -285,7 +320,7 @@ let rec private THENQC (conv1 : conv) (conv2 : conv) tm : thm =
     v
     |> Choice.bindError (fun _ -> conv2 tm)
 
-and private THENCQC (conv1 : conv) (conv2 : conv) tm : thm = 
+and private THENCQC (conv1 : conv) (conv2 : conv) tm : Protected<thm0> =
     let th1 = conv1 tm
     choice { 
         let! tm = Choice.bind (rand << concl) th1
@@ -294,7 +329,7 @@ and private THENCQC (conv1 : conv) (conv2 : conv) tm : thm =
     }
     |> Choice.bindError (fun _ -> th1)
 
-and private COMB_QCONV conv tm : thm = 
+and private COMB_QCONV conv tm : Protected<thm0> = 
     dest_comb tm
     |> Choice.bind (fun (l, r) ->
         let v = 
@@ -349,14 +384,18 @@ let TOP_SWEEP_CONV (c : conv) : conv = TRY_CONV (TOP_SWEEP_QCONV c)
 (* ------------------------------------------------------------------------- *)
 
 /// Applied a conversion to the leaves of a tree of binary operator expressions.
-let rec DEPTH_BINOP_CONV op (conv : conv) tm : thm = 
+let rec DEPTH_BINOP_CONV op (conv : conv) tm : Protected<thm0> = 
     match tm with
-    | Comb(Comb(op', l), r) when op' = op -> 
-        dest_binop op tm
-        |> Choice.bind (fun (l, r) ->
-            let lth = DEPTH_BINOP_CONV op conv l
-            let rth = DEPTH_BINOP_CONV op conv r
-            MK_COMB(AP_TERM op' lth, rth))
+    | Comb(Comb(op', l), r) when op' = op ->
+        choice {
+        let! l, r = dest_binop op tm
+        let! lth = DEPTH_BINOP_CONV op conv l
+        let! rth = DEPTH_BINOP_CONV op conv r
+        return!
+            let lth = Choice.result lth in
+            let rth = Choice.result rth in
+            MK_COMB(AP_TERM op' lth, rth)
+        }
     | _ -> conv tm
 
 (* ------------------------------------------------------------------------- *)
@@ -368,10 +407,15 @@ let PATH_CONV =
     let rec path_conv s cnv = 
         match s with
         | [] -> cnv
-        | "l" :: t -> RATOR_CONV(path_conv t cnv)
-        | "r" :: t -> RAND_CONV(path_conv t cnv)
-        | _ :: t -> ABS_CONV(path_conv t cnv)
-    fun s cnv -> path_conv (explode s) cnv
+        | "l" :: t ->
+            RATOR_CONV(path_conv t cnv)
+        | "r" :: t ->
+            RAND_CONV(path_conv t cnv)
+        | _ :: t ->
+            ABS_CONV(path_conv t cnv)
+    
+    fun s cnv ->
+        path_conv (explode s) cnv
 
 (* ------------------------------------------------------------------------- *)
 (* Follow a pattern                                                          *)
@@ -400,7 +444,7 @@ let PAT_CONV =
 (* ------------------------------------------------------------------------- *)
 
 /// Symmetry conversion.
-let SYM_CONV tm : thm = 
+let SYM_CONV tm : Protected<thm0> = 
     choice {
         let th1 = SYM(ASSUME tm)
         let! tm' = Choice.map concl th1
@@ -414,7 +458,7 @@ let SYM_CONV tm : thm =
 (* ------------------------------------------------------------------------- *)
 
 /// Conversion to a rule.
-let CONV_RULE (conv : conv) (th : thm) : thm =
+let CONV_RULE (conv : conv) (th : Protected<thm0>) : Protected<thm0> =
     th
     |> Choice.map concl
     |> Choice.bind (fun tm -> EQ_MP (conv tm) th)
@@ -424,23 +468,24 @@ let CONV_RULE (conv : conv) (th : thm) : thm =
 (* ------------------------------------------------------------------------- *)
 
 /// Substitution conversion.
-let SUBS_CONV (ths : thm list) tm : thm = 
-    let tm = 
-        if ths = [] then REFL tm
+let SUBS_CONV (ths : Protected<thm0> list) tm : Protected<thm0> = 
+    if List.isEmpty ths then
+        REFL tm
+    else
+        choice {
+        let! lefts = Choice.List.map (Choice.bind lhand << Choice.map concl) ths
+        let! gvs = Choice.List.map (Choice.map genvar << type_of) lefts
+        let! pat = subst (zip gvs lefts) tm
+        let abs = list_mk_abs(gvs, pat)
+        let! th =
+            rev_itlist (fun y x -> CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(x, y))) 
+                ths (REFL abs)
+        let! tm' = rand <| concl th
+        if tm' = tm then
+            return! REFL tm
         else
-            choice { 
-                let! lefts = Choice.List.map (Choice.bind lhand << Choice.map concl) ths
-                let! gvs = Choice.List.map (Choice.map genvar << type_of) lefts
-                let! pat = subst (zip gvs lefts) tm
-                let abs = list_mk_abs(gvs, pat)
-                let th = 
-                    rev_itlist (fun y x -> CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(x, y))) 
-                        ths (REFL abs)
-                let! tm' = Choice.bind (rand << concl) th
-                if tm' = tm then return! REFL tm
-                else return! th
-            }
-    tm 
+            return th
+        }
     |> Choice.mapError (fun e -> nestedFailure e "SUBS_CONV")
 
 (* ------------------------------------------------------------------------- *)
@@ -460,31 +505,34 @@ let SUBS ths = CONV_RULE(SUBS_CONV ths)
 (* A cacher for conversions.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
-let private ALPHA_HACK (th : thm) : term -> thm = 
+let private ALPHA_HACK (th : Protected<thm0>) : conv = 
     let tm0 = Choice.bind (lhand << concl) th
-    fun tm -> 
+    fun tm ->
         choice {
-            let! tm' = tm0
-            if tm' = tm then return! th
-            else return! TRANS (ALPHA tm tm') th
+        let! tm' = tm0
+        if tm' = tm then
+            return! th
+        else
+            return! TRANS (ALPHA tm tm') th
         }
 
 /// A cacher for conversions.
-let CACHE_CONV (conv : conv) : conv = 
+let CACHE_CONV (conv : conv) : conv =
     // NOTE : This is not thread-safe!
     let net = ref empty_net
-    fun tm -> 
-        lookup tm (!net)
+    fun tm ->
+        lookup tm !net
         |> Choice.bind (fun fs ->
             tryfind (fun f -> Choice.toOption <| f tm) fs
             |> Option.toChoiceWithError "tryfind"
             |> Choice.bindError (fun _ ->
                 let th = conv tm
-                match enter [] (tm, ALPHA_HACK th) (!net) with
-                | Success n -> 
+                match enter [] (tm, ALPHA_HACK th) !net with
+                | Success n ->
                     net := n
-                | Error _ -> 
+                | Error ex ->
                     // NOTE: currently doing nothing in case of error
+                    System.Diagnostics.Debug.WriteLine "An unhandled error occurred in CACHE_CONV."
+                    System.Diagnostics.Debug.WriteLine ("Message: " + ex.Message)
                     ()
                 th))
-        
