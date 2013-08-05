@@ -328,14 +328,17 @@ let mk_icomb(tm1, tm2) : Protected<term> =
 
 /// Applies constant to list of arguments, instantiating constant type as needed.
 let list_mk_icomb cname args : Protected<term> =
-    let list_mk_icomb cname args =
-        let atys, _ = nsplit (Choice.get << dest_fun_ty) args (Choice.get <| get_const_type cname)
-        let tyin = itlist2 (fun g a -> Choice.get << type_match g (Choice.get <| type_of a)) atys args []
-        list_mk_comb(Choice.get <| mk_const(cname, tyin), args)
-
-    Choice.attempt <| fun () ->
-        list_mk_icomb cname args
-
+    choice {
+        let! ty1 = get_const_type cname
+        let! atys, _ = Choice.List.nsplit dest_fun_ty args ty1
+        let! tyin = Choice.List.foldBack2 (fun g a acc -> 
+                        choice {
+                            let! tya = type_of a
+                            return! type_match g tya acc
+                        }) atys args []
+        let! tm1 = mk_const(cname, tyin)
+        return list_mk_comb(tm1, args)
+    }
 (* ------------------------------------------------------------------------- *)
 (* Free variables in assumption list and conclusion of a theorem.            *)
 (* ------------------------------------------------------------------------- *)

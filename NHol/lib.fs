@@ -119,6 +119,17 @@ module Choice =
             | hd :: tl ->
                 Choice.List.fold reduction hd tl
 
+        /// Applies a destructor in right-associative mode a specified number of times.
+        let rec nsplit dest clist x = 
+            choice {
+                if clist = [] then 
+                    return [], x
+                else 
+                    let! l, r = dest x
+                    let! ll, y = nsplit dest (List.tail clist) r
+                    return l :: ll, y
+            }
+
 
     (* These functions are specific to this project, and so probably won't be included in ExtCore. *)
 
@@ -397,7 +408,7 @@ let rec end_itlist f l =
     | (h :: t) -> f h (end_itlist f t)
 
 /// Applies a paired function between adjacent elements of 2 lists.
-// OPTIMIZE : Make this an alias for List.fold2.
+// OPTIMIZE : Make this an alias for List.foldBack2.
 let rec itlist2 f l1 l2 b = 
     match (l1, l2) with
     | ([], []) -> b
@@ -405,7 +416,7 @@ let rec itlist2 f l1 l2 b =
     | _ -> failwith "itlist2"
 
 /// Applies a paired function between adjacent elements of 2 lists.
-// OPTIMIZE : Make this an alias for List.foldBack2.
+// OPTIMIZE : Make this an alias for List.fold2.
 let rec rev_itlist2 f l1 l2 b = 
     match (l1, l2) with
     | ([], []) -> b
@@ -774,8 +785,8 @@ let numerator = fst << numdom
 let denominator = snd << numdom
 
 module Big_int =
-    let inline gcd_big_int (a : System.Numerics.BigInteger) (b : System.Numerics.BigInteger) : System.Numerics.BigInteger =
-        System.Numerics.BigInteger.GreatestCommonDivisor(a,b) 
+    let inline gcd_big_int (a : bigint) (b : bigint) : bigint =
+        bigint.GreatestCommonDivisor(a,b) 
 
     let big_int_of_ratio r =
         let numerator, denominator = numdom r
@@ -1307,32 +1318,48 @@ let num_of_string =
          "E", 14;
          "f", 15;
          "F", 15]
+
     let rec valof b s = 
-        let v =
-            match assoc s values with
-            | Some x -> Int x
-            | None -> failwith "find"
-        if v </ b then v
-        else failwith "num_of_string: invalid digit for base"
+        choice {
+            let! v =
+                match assoc s values with
+                | Some x -> Choice.result <| Int x
+                | None -> Choice.failwith "find"
+            if v </ b then 
+                return v
+            else 
+                return! Choice.failwith "num_of_string: invalid digit for base"
+        }
+
     and two = num_2
     and ten = num_10
     and sixteen = Int 16
+
     let rec num_of_stringlist b l = 
-        match l with
-        | [] -> failwith "num_of_string: no digits after base indicator"
-        | [h] -> valof b h
-        | h :: t -> valof b h +/ b */ num_of_stringlist b t
+        choice {
+            match l with
+            | [] -> 
+                return! Choice.failwith "num_of_string: no digits after base indicator"
+            | [h] -> 
+                return! valof b h
+            | h :: t -> 
+                let! x = valof b h 
+                let! y = num_of_stringlist b t
+                return x +/ b */ y
+        }
+
     fun s ->
-        Choice.attempt <| fun () ->
+        choice {
             match explode(s) with
             | [] ->
-                failwith "num_of_string: no digits"
+                return! Choice.failwith "num_of_string: no digits"
             | "0" :: "x" :: hexdigits ->
-                num_of_stringlist sixteen (rev hexdigits)
+                return! num_of_stringlist sixteen (rev hexdigits)
             | "0" :: "b" :: bindigits ->
-                num_of_stringlist two (rev bindigits)
+                return! num_of_stringlist two (rev bindigits)
             | decdigits ->
-                num_of_stringlist ten (rev decdigits)
+                return! num_of_stringlist ten (rev decdigits)
+        }
             
 (* ------------------------------------------------------------------------- *)
 (* Convenient conversion between files and (lists of) strings.               *)

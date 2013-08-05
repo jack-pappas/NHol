@@ -137,7 +137,7 @@ let derive_nonschematic_inductive_relations =
             let th2 = GENL avs (DISCH tm1 (UNDISCH th1))
             let! tm2 = Choice.map concl th2
             let th3 = DISCH tm2 (UNDISCH(SPEC_ALL(ASSUME tm2)))
-            let thts, tht = nsplit (Choice.get << SIMPLE_DISJ_PAIR) (tl ths) th3
+            let! thts, tht = Choice.List.nsplit SIMPLE_DISJ_PAIR (tl ths) th3
             let proc_fn th = 
                 choice {
                     let! t = Choice.map (hd << hyp) th
@@ -720,13 +720,16 @@ let derive_strong_induction =
             let sth = SPECL svs rth
             let jth = SPECL svs ith
             let! gimps = subst (zip gs rs) icon
-            let prs = 
-                map2 
+            let! prs = 
+                Choice.List.map2 
                     (fun n (r, p) -> 
-                        let tys, ty = nsplit (Choice.get << dest_fun_ty) (1 -- n) (Choice.get <| type_of r)
-                        let gvs = map genvar tys
-                        list_mk_abs(gvs, Choice.get <| mk_conj(list_mk_comb(r, gvs), list_mk_comb(p, gvs)))) 
-                    ns prrs
+                        choice {
+                            let! tyr = type_of r
+                            let! tys, ty = Choice.List.nsplit dest_fun_ty (1 -- n) tyr
+                            let gvs = map genvar tys
+                            let! conj = mk_conj(list_mk_comb(r, gvs), list_mk_comb(p, gvs))
+                            return list_mk_abs(gvs, conj)
+                        }) ns prrs
 
             let modify_rule rcl itm = 
                 choice {
