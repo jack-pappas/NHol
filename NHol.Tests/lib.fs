@@ -1978,4 +1978,5 @@ let ``{subtract' r l1 l2} removes from the list {l1} all elements {x} such that 
 let ``{num_of_string "n"} converts the string {"n"} into an OCaml unlimited-precision number: type {num}``() = 
 
     NHol.lib.num_of_string "0b11000000"
+    |> ExtCore.Choice.get
     |> should equal (Int 192)
