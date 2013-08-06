@@ -26,6 +26,8 @@ module NHol.calc_rat
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -308,17 +310,16 @@ let REAL_RAT_NEG_CONV =
     let ptm = (parse_term @"(--)")
     let conv1 = GEN_REWRITE_CONV I [pth]
     fun tm -> 
-        try 
-            conv1 tm
-        with
-        | Failure _ -> 
-            try 
-                let l, r = Choice.get <| dest_comb tm
-                if l = ptm && is_realintconst r && dest_realintconst r >/ num_0
-                then REFL tm
-                else fail()
-            with
-            | Failure _ as e -> nestedFailwith e "REAL_RAT_NEG_CONV"
+        conv1 tm
+        |> Choice.bindError (fun _ -> 
+            choice { 
+                let! l, r = dest_comb tm
+                if l = ptm && is_realintconst r && Choice.get (dest_realintconst r) >/ num_0 then 
+                    return! REFL tm
+                else 
+                    return! fail()
+            }
+            |> Choice.mapError (fun e -> nestedFailure e "REAL_RAT_NEG_CONV"))
 
 /// Conversion to produce absolute value of a rational literal of type :real.
 let REAL_RAT_ABS_CONV = 
@@ -393,13 +394,14 @@ let REAL_RAT_ADD_CONV =
   let y2 = (parse_term @"y2:real")
   let y3 = (parse_term @"y3:real")
   let RAW_REAL_RAT_ADD_CONV tm = 
+    choice {
          let r1, r2 = dest_addop tm
          let x1', y1' = dest_divop r1
          let x2', y2' = dest_divop r2
-         let x1n = dest_realintconst x1'
-         let y1n = dest_realintconst y1'
-         let x2n = dest_realintconst x2'
-         let y2n = dest_realintconst y2'
+         let! x1n = dest_realintconst x1'
+         let! y1n = dest_realintconst y1'
+         let! x2n = dest_realintconst x2'
+         let! y2n = dest_realintconst y2'
          let x3n = x1n */ y2n +/ x2n */ y1n
          let y3n = y1n */ y2n
          let d = gcd_num x3n y3n
@@ -409,8 +411,8 @@ let REAL_RAT_ADD_CONV =
              if y3n' >/ Int 0
              then x3n', y3n'
              else minus_num x3n', minus_num y3n'
-         let x3' = mk_realintconst x3n''
-         let y3' = mk_realintconst y3n''
+         let! x3' = mk_realintconst x3n''
+         let! y3' = mk_realintconst y3n''
          let th0 = 
              INST [x1', x1
                    y1', y1
@@ -425,7 +427,8 @@ let REAL_RAT_ADD_CONV =
                     |> THENC <| REAL_INT_MUL_CONV) tm2
          let th3 = (RAND_CONV REAL_INT_MUL_CONV
                     |> THENC <| REAL_INT_MUL_CONV) tm3
-         MP th1 (TRANS th2 (SYM th3))
+         return! MP th1 (TRANS th2 (SYM th3))
+    }
   BINOP_CONV REAL_INT_RAT_CONV
   |> THENC <| RAW_REAL_RAT_ADD_CONV
   |> THENC <| TRY_CONV(GEN_REWRITE_CONV I [REAL_DIV_1])
@@ -473,35 +476,35 @@ let REAL_RAT_MUL_CONV =
     let d1 = (parse_term @"d1:real")
     let d2 = (parse_term @"d2:real")
     let RAW_REAL_RAT_MUL_CONV tm = 
+        choice {
         let r1, r2 = dest_mulop tm
         let x1', y1' = dest_divop r1
         let x2', y2' = dest_divop r2
-        let x1n = dest_realintconst x1'
-        let y1n = dest_realintconst y1'
-        let x2n = dest_realintconst x2'
-        let y2n = dest_realintconst y2'
+        let! x1n = dest_realintconst x1'
+        let! y1n = dest_realintconst y1'
+        let! x2n = dest_realintconst x2'
+        let! y2n = dest_realintconst y2'
         let d1n = gcd_num x1n y2n
         let d2n = gcd_num x2n y1n
-        if d1n = num_1 && d2n = num_1
-        then 
+        if d1n = num_1 && d2n = num_1 then 
             let th0 = 
                 INST [x1', x1
                       y1', y1
                       x2', x2
                       y2', y2] pth_nocancel
             let th1 = BINOP_CONV REAL_INT_MUL_CONV (Choice.get <| rand(concl <| Choice.get th0))
-            TRANS th0 th1
+            return! TRANS th0 th1
         else 
             let u1n = quo_num x1n d1n
             let u2n = quo_num x2n d2n
             let v1n = quo_num y1n d2n
             let v2n = quo_num y2n d1n
-            let u1' = mk_realintconst u1n
-            let u2' = mk_realintconst u2n
-            let v1' = mk_realintconst v1n
-            let v2' = mk_realintconst v2n
-            let d1' = mk_realintconst d1n
-            let d2' = mk_realintconst d2n
+            let! u1' = mk_realintconst u1n
+            let! u2' = mk_realintconst u2n
+            let! v1' = mk_realintconst v1n
+            let! v2' = mk_realintconst v2n
+            let! d1' = mk_realintconst d1n
+            let! d2' = mk_realintconst d2n
             let th0 = 
                 INST [x1', x1
                       y1', y1
@@ -516,7 +519,8 @@ let REAL_RAT_MUL_CONV =
             let th1 = EQT_ELIM(REAL_INT_REDUCE_CONV(Choice.get <| lhand(concl <| Choice.get th0)))
             let th2 = MP th0 th1
             let th3 = BINOP_CONV REAL_INT_MUL_CONV (Choice.get <| rand(concl <| Choice.get th2))
-            TRANS th2 th3
+            return! TRANS th2 th3
+        }
     BINOP_CONV REAL_INT_RAT_CONV
     |> THENC <| RAW_REAL_RAT_MUL_CONV
     |> THENC <| TRY_CONV(GEN_REWRITE_CONV I [REAL_DIV_1])
@@ -693,7 +697,7 @@ let REAL_RING,real_ideal_cofactors =
    let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
    let real_ty = (parse_type @"real") in
    let ``pure``,ideal =
-     RING_AND_IDEAL_CONV (Choice.result << rat_of_term,term_of_rat,REAL_RAT_EQ_CONV,
+     RING_AND_IDEAL_CONV (rat_of_term,Choice.get << term_of_rat,REAL_RAT_EQ_CONV,
           (parse_term @"(--):real->real"),(parse_term @"(+):real->real->real"),(parse_term @"(-):real->real->real"),
           (parse_term @"(inv):real->real"),(parse_term @"(*):real->real->real"),(parse_term @"(/):real->real->real"),
           (parse_term @"(pow):real->num->real"),
@@ -726,7 +730,7 @@ let REAL_IDEAL_CONV =
 /// Initial normalization and proof reconstruction wrapper for real decision procedure.
 let GEN_REAL_ARITH PROVER =
   GEN_REAL_ARITH
-   (term_of_rat,
+   (Choice.get << term_of_rat,
     REAL_RAT_EQ_CONV,REAL_RAT_GE_CONV,REAL_RAT_GT_CONV,
     REAL_POLY_CONV,REAL_POLY_NEG_CONV,REAL_POLY_ADD_CONV,REAL_POLY_MUL_CONV,
     PROVER)

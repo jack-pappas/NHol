@@ -695,7 +695,7 @@ let REAL_LINEAR_PROVER =
                             let k = minus_num d */ abs_num c
                             let e' = linear_cmul k e
                             let t' = linear_cmul (abs_num c) t
-                            let p' = Eqmul(term_of_rat k, p)
+                            let p' = Eqmul(Choice.get <| term_of_rat k, p)
                             let q' = Product(Rational_lt(abs_num c), q)
                             linear_add e' t', Sum(p', q')
                     linear_eqs(map xform es, map xform les, map xform lts)
@@ -716,7 +716,7 @@ let REAL_LINEAR_PROVER =
             elif not(is_comb tm)
             then (tm |=> Int 1)
             elif is_ratconst tm
-            then (one_tm |=> rat_of_term tm)
+            then (one_tm |=> Choice.get (rat_of_term tm))
             else 
                 let lop, r = Choice.get <| dest_comb tm
                 if not(is_comb lop)
@@ -726,7 +726,7 @@ let REAL_LINEAR_PROVER =
                     if op = add_tm
                     then linear_add (lin_of_hol l) (lin_of_hol r)
                     elif op = mul_tm && is_ratconst l
-                    then (r |=> rat_of_term l)
+                    then (r |=> Choice.get (rat_of_term l))
                     else (tm |=> Int 1)
         lin_of_hol
     let is_alien tm = 
@@ -757,7 +757,7 @@ let REAL_ARITH_001 =
              REAL_INT_POW_CONV) (<)
     let rule = 
         GEN_REAL_ARITH_001
-            (mk_realintconst, REAL_INT_EQ_CONV, REAL_INT_GE_CONV, 
+            (Choice.get << mk_realintconst, REAL_INT_EQ_CONV, REAL_INT_GE_CONV, 
              REAL_INT_GT_CONV, REAL_POLY_CONV, REAL_POLY_NEG_CONV, 
              REAL_POLY_ADD_CONV, REAL_POLY_MUL_CONV, NO_CONV, NO_CONV, 
              REAL_LINEAR_PROVER)
@@ -939,6 +939,6 @@ let REAL_ARITH =
             (is_realintconst, REAL_INT_ADD_CONV, REAL_INT_MUL_CONV, 
              REAL_INT_POW_CONV) (<)
     GEN_REAL_ARITH
-        (mk_realintconst, REAL_INT_EQ_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, 
+        (Choice.get << mk_realintconst, REAL_INT_EQ_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, 
          REAL_POLY_CONV, REAL_POLY_NEG_CONV, REAL_POLY_ADD_CONV, 
          REAL_POLY_MUL_CONV, REAL_LINEAR_PROVER)
