@@ -137,26 +137,26 @@ let overload_interface(sym, tm) : Protected<_> =
             Choice.error ex)
 
 /// Give overloaded constants involving a given type priority in operator overloading.
-let prioritize_overload ty =
+let prioritize_overload ty : Protected<unit> =
     !the_overload_skeletons
-    // TODO : Modify this to use Choice.List.iterBack/iter.
-    |> do_list (fun (s, gty) ->
-        try
-            let var_tm =
+    |> Choice.List.iter (fun (s, gty) ->
+        choice {
+            let! var_tm =
                 !the_interface
-                // TODO : Modify this to use Choice.List.tryFind.
-                |> find (fun (s', (n, t)) ->
-                    s' = s && mem ty (map fst (Choice.get <| type_match gty t [])))
-                |> Option.get
-                |> snd
-                |> mk_var
+                |> Choice.List.tryFind (fun (s', (n, t)) ->
+                    choice {
+                        let! tys = type_match gty t []
+                        return s' = s && mem ty (map fst tys)
+                    })
+                |> Choice.bind (Option.toChoiceWithError "find")
+                |> Choice.map (snd >> mk_var)
 
-            overload_interface(s, var_tm) |> Choice.get
-
-        with Failure _ ->
-            // NOTE: currently doing nothing to handle failures
+            return! overload_interface(s, var_tm)
+        }
+        |> Choice.bindError (fun _ ->
+            // NOTE: currently do nothing to handle failures
             System.Diagnostics.Debug.WriteLine "An unhandled error occurred in the 'prioritize_overload' function."
-            ())
+            Choice.result ()))
 
 (* ------------------------------------------------------------------------- *)
 (* Type abbreviations.                                                       *)

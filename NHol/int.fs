@@ -26,6 +26,8 @@ module NHol.int
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -154,7 +156,11 @@ do_list (ignore << overload_interface)
                             "&", (parse_term @"int_of_num:num->int")];;
 
 /// Give integer type 'int' priority in operator overloading.
-let prioritize_int() = prioritize_overload(Choice.get <| mk_type("int", []));;
+let prioritize_int() = 
+    choice {
+        let! ty = mk_type("int", [])
+        prioritize_overload ty
+    };;
 
 (* ------------------------------------------------------------------------- *)
 (* Definitions and closure derivations of all operations but "inv" and "/".  *)
@@ -1915,4 +1921,4 @@ let NUMBER_RULE tm = prove(tm,NUMBER_TAC);;
 (* Make sure we give priority to N.                                          *)
 (* ------------------------------------------------------------------------- *)
 
-prioritize_num()
+prioritize_num() |> ExtCore.Choice.bindOrRaise

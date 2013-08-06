@@ -366,7 +366,7 @@ let GEN_MESON_TAC =
                             return! istriv env x t'
                         }
                         // We only recover on a specific kind of error
-                        |> Choice.bindError (function Failure "find" -> Choice.result false | e -> Choice2Of2 e)
+                        |> Choice.bindError (function Failure "find" -> Choice.result false | e -> Choice.error e)
 
             | Fnapp(f, args) -> 
                 let! b = Choice.List.exists (istriv env x) args 
@@ -394,7 +394,7 @@ let GEN_MESON_TAC =
                  |> Choice.bindError (function Failure "find" -> 
                                                    istriv sofar x' tm1
                                                    |> Choice.map (fun b -> if b then sofar else (tm1, x') :: sofar)
-                                               | e -> Choice2Of2 e)
+                                               | e -> Choice.error e)
             | Fvar(x), _ ->
                return!  
                  choice { 
@@ -405,7 +405,7 @@ let GEN_MESON_TAC =
                                                      let tm2' = fol_subst_bump offset [] tm2
                                                      istriv sofar x tm2'
                                                      |> Choice.map (fun b -> if b then sofar else (tm2', x) :: sofar)
-                                               | e -> Choice2Of2 e)
+                                               | e -> Choice.error e)
         }
 
     (* ----------------------------------------------------------------------- *)
@@ -463,7 +463,7 @@ let GEN_MESON_TAC =
             else 
                 return ancestors
         }
-        |> Choice.bindError (function Failure "find" -> Choice.result ancestors | e -> Choice2Of2 e)
+        |> Choice.bindError (function Failure "find" -> Choice.result ancestors | e -> Choice.error e)
 
     (* ----------------------------------------------------------------------- *)
     (* Insert new goal's negation in ancestor clause, given refinement.        *)

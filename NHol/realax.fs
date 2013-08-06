@@ -101,7 +101,11 @@ do_list (ExtCore.Choice.bindOrRaise << overload_interface)
 (* ------------------------------------------------------------------------- *)
 
 /// Give natural number type 'num' priority in operator overloading.
-let prioritize_num() = prioritize_overload(Choice.get <| mk_type("num", []))
+let prioritize_num() = 
+    choice {
+        let! ty = mk_type("num", [])
+        return! prioritize_overload ty
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Absolute distance function on the naturals.                               *)
@@ -2472,7 +2476,11 @@ do_list (ExtCore.Choice.bindOrRaise << overload_interface)
 (* ------------------------------------------------------------------------- *)
 
 /// Give real number type 'real' priority in operator overloading.
-let prioritize_real() = prioritize_overload(Choice.get <| mk_type("real", []))
+let prioritize_real() = 
+    choice {
+        let! ty = mk_type("real", [])
+        return! prioritize_overload ty
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Additional definitions.                                                   *)

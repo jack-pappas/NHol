@@ -1357,7 +1357,7 @@ let (TAC_PROOF : goal * tactic -> Protected<thm0>) =
                     exn msg
                 if not <| isNull ex.Data then
                     ex.Data.["UnsolvedGoals"] <- sgs
-                return! Choice2Of2 ex
+                return! Choice.error ex
         }
 
 /// Attempts to prove a boolean term using the supplied tactic.

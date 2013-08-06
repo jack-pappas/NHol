@@ -1033,11 +1033,11 @@ module Hol_kernel =
                                          |> Choice.bind (fun tm -> safe_mk_eq (Comb(P, r)) tm |> Choice.map (fun tm' -> Sequent([], tm'))))
                                     | _ -> Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
                                 | Error ex -> 
-                                    (Choice2Of2 ex, Choice2Of2 ex)
+                                    (Choice.error ex, Choice.error ex)
                             | Error _ -> 
                                 Choice.failwithPair "new_basic_type_definition: Type already defined"
                         | Error ex -> 
-                            (Choice2Of2 ex, Choice2Of2 ex)
+                            (Choice.error ex, Choice.error ex)
         | Error _ ->
             Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
 

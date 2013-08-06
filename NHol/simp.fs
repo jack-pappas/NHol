@@ -944,9 +944,10 @@ let ABBREV_TAC tm : tactic =
 
 /// Expand an abbreviation in the hypotheses.
 let EXPAND_TAC s = 
+    // NOTE: recheck this
     let f thm =
         match check ((=) (Choice.result s) << Choice.map fst << Choice.bind dest_var << Choice.bind rhs << Choice.map concl) thm with
         | Success th -> th
-        | Error ex -> Choice2Of2 ex
+        | Error ex -> Choice.error ex
     FIRST_ASSUM (SUBST1_TAC << SYM << f)
     |> THEN <| BETA_TAC

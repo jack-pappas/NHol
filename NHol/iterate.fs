@@ -69,7 +69,7 @@ open int
 open sets
 #endif
 
-prioritize_num();;
+prioritize_num() |> ExtCore.Choice.bindOrRaise;;
 
 (* ------------------------------------------------------------------------- *)
 (* A natural notation for segments of the naturals.                          *)
@@ -1159,7 +1159,7 @@ let ITERATE_PAIR =
                                              (parse_term @"2 * SUC n + 1 = SUC(SUC(2 * n + 1))")]
                                  |> THEN <| ASM_MESON_TAC [monoidal]])
 
-prioritize_num()
+prioritize_num() |> ExtCore.Choice.bindOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Sums of natural numbers.                                                  *)
@@ -1874,7 +1874,7 @@ let CARD_UNIONS =
         |> THEN <| REWRITE_TAC [EMPTY_UNIONS; IN_ELIM_THM]
         |> THEN <| ASM MESON_TAC [])
 
-prioritize_real()
+prioritize_real() |> ExtCore.Choice.bindOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Sums of real numbers.                                                     *)
@@ -3032,4 +3032,4 @@ let REAL_POLYFUN_EQ_CONST =
                         |> THEN <| SIMP_TAC [LE_0; REAL_SUB_0]
                         |> THEN <| MESON_TAC [LE_1]])
 
-prioritize_num()
+prioritize_num() |> ExtCore.Choice.bindOrRaise
