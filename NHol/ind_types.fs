@@ -1692,60 +1692,95 @@ let prove_constructors_distinct =
 /// Proves a structural cases theorem for an automatically-defined concrete type.
 let prove_cases_thm = 
     let mk_exclauses x rpats = 
-        let xts = map (fun t -> list_mk_exists(frees t, Choice.get <| mk_eq(x, t))) rpats
-        Choice.get <| mk_abs(x, list_mk_disj xts)
+        choice {
+            let! xts = Choice.List.map (fun t -> 
+                            choice {
+                                let! tm = mk_eq(x, t)
+                                return list_mk_exists(frees t, tm)
+                            }) rpats
+            return! mk_abs(x, list_mk_disj xts)
+        }
+
     let prove_triv tm = 
-        let evs, bod = strip_exists tm
-        let l, r = Choice.get <| dest_eq bod
-        if l = r
-        then REFL l
-        else 
-            let lf, largs = strip_comb l
-            let rf, rargs = strip_comb r
-            if lf = rf
-            then 
-                let ths = map (ASSUME << Choice.get << mk_eq) (zip rargs largs)
-                let th1 = rev_itlist (C(curry MK_COMB)) ths (REFL lf)
-                itlist EXISTS_EQUATION (map (concl << Choice.get) ths) (SYM th1)
-            else failwith "prove_triv"
+        choice {
+            let evs, bod = strip_exists tm
+            let! l, r = dest_eq bod
+            if l = r then 
+                return! REFL l
+            else 
+                let lf, largs = strip_comb l
+                let rf, rargs = strip_comb r
+                if lf = rf then 
+                    let! ths = Choice.List.map (Choice.map ASSUME << mk_eq) (zip rargs largs)
+                    let th1 = rev_itlist (C(curry MK_COMB)) ths (REFL lf)
+                    let! tms = Choice.List.map (Choice.map concl) ths
+                    return! itlist EXISTS_EQUATION tms (SYM th1)
+                else 
+                    return! Choice.failwith "prove_triv"
+        }
+
     let rec prove_disj tm = 
-        if is_disj tm
-        then 
-            let l, r = Choice.get <| dest_disj tm
-            try 
-                DISJ1 (prove_triv l) r
-            with
-            | Failure _ -> DISJ2 l (prove_disj r)
-        else prove_triv tm
+        choice {
+            if is_disj tm then 
+                let! l, r = dest_disj tm
+                return! 
+                    DISJ1 (prove_triv l) r
+                    |> Choice.bindError (fun _ -> DISJ2 l (prove_disj r))
+            else 
+                return! prove_triv tm
+        }
+
     let prove_eclause tm = 
-        let avs, bod = strip_forall tm
-        let ctm = 
-            if is_imp bod
-            then Choice.get <| rand bod
-            else bod
-        let cth = prove_disj ctm
-        let dth = 
-            if is_imp bod
-            then DISCH (Choice.get <| lhand bod) cth
-            else cth
-        GENL avs dth
+        choice {
+            let avs, bod = strip_forall tm
+            let! ctm = 
+                choice {
+                    if is_imp bod then 
+                        return! rand bod
+                    else 
+                        return bod
+                }
+
+            let cth = prove_disj ctm
+            let dth = 
+                choice {
+                    if is_imp bod then 
+                        let! tm = lhand bod
+                        return! DISCH tm cth
+                    else 
+                        return! cth
+                }
+
+            return! GENL avs dth
+        }
+
     fun th -> 
-        let avs, bod = strip_forall(concl <| Choice.get th)
-        let cls = map (snd << strip_forall) (conjuncts(Choice.get <| lhand bod))
-        let pats = 
-            map (fun t -> 
-                    if is_imp t
-                    then Choice.get <| rand t
-                    else t) cls
-        let spats = map (Choice.get << dest_comb) pats
-        let preds = itlist (insert << fst) spats []
-        let rpatlist = 
-            map (fun pr -> map snd (filter (fun (p, x) -> p = pr) spats)) preds
-        let xs = Choice.get <| make_args "x" (freesl pats) (map (Choice.get << type_of << hd) rpatlist)
-        let xpreds = map2 mk_exclauses xs rpatlist
-        let ith = BETA_RULE(INST (zip xpreds preds) (SPEC_ALL th))
-        let eclauses = conjuncts(fst(Choice.get <| dest_imp(concl <| Choice.get ith)))
-        MP ith (end_itlist CONJ (map prove_eclause eclauses));;
+        choice {
+            let! th = th
+
+            let avs, bod = strip_forall(concl th)
+            let! tm1 = lhand bod
+            let cls = map (snd << strip_forall) (conjuncts tm1)
+            let! pats = 
+                Choice.List.map (fun t -> 
+                    choice {
+                        if is_imp t then
+                            return! rand t
+                        else 
+                            return t
+                    }) cls
+
+            let! spats = Choice.List.map dest_comb pats
+            let preds = itlist (insert << fst) spats []
+            let rpatlist = map (fun pr -> map snd (filter (fun (p, x) -> p = pr) spats)) preds
+            let! tys = Choice.List.map (type_of << hd) rpatlist
+            let! xs = make_args "x" (freesl pats) tys
+            let! xpreds = Choice.List.map2 mk_exclauses xs rpatlist
+            let! ith = BETA_RULE(INST (zip xpreds preds) (SPEC_ALL (Choice.result th)))
+            let! (tm1, _) = dest_imp(concl ith)
+            let eclauses = conjuncts(tm1)
+            return! MP (Choice.result ith) (end_itlist CONJ (map prove_eclause eclauses))
+        };;
 
 inductive_type_store 
 := ["list", (2, list_INDUCT, list_RECURSION)
@@ -1773,22 +1808,30 @@ let injectivity_store = ref []
 
 /// Extends internal store of distinctness and injectivity theorems for a new inductive type.
 let extend_rectype_net(tyname, (_, _, rth)) = 
-    let ths1 = 
-        try 
-            [prove_constructors_distinct rth]
-        with
-        | Failure _ -> []
-    let ths2 = 
-        try 
-            [prove_constructors_injective rth]
-        with
-        | Failure _ -> []
-    let canon_thl = itlist (fun x y -> Choice.get <| mk_rewrites false x y) (ths1 @ ths2) []
-    distinctness_store := map (fun th -> tyname, th) ths1 @ (!distinctness_store)
-    injectivity_store := map (fun th -> tyname, th) ths2 @ (!injectivity_store)
-    basic_rectype_net := itlist (fun x y -> Choice.get <| net_of_thm true x y) canon_thl (!basic_rectype_net)
+    choice {
+        let! ths1 = 
+            choice { 
+                // NOTE: weird decomposition here
+                let! th = prove_constructors_distinct rth
+                return [Choice.result th]
+            }
+            |> Choice.bindError (fun _ -> Choice.result [])
 
-do_list extend_rectype_net (!inductive_type_store);;
+        let! ths2 = 
+            choice { 
+                let! th = prove_constructors_injective rth
+                return [Choice.result th]
+            }
+            |> Choice.bindError (fun _ -> Choice.result [])
+
+        let! canon_thl = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] (ths1 @ ths2)
+        distinctness_store := map (fun th -> tyname, th) ths1 @ (!distinctness_store)
+        injectivity_store := map (fun th -> tyname, th) ths2 @ (!injectivity_store)
+        let! tms = Choice.List.fold (fun acc x -> net_of_thm true x acc) (!basic_rectype_net) canon_thl
+        basic_rectype_net := tms
+    }
+
+do_list (ignore << extend_rectype_net) (!inductive_type_store);;
 
 (* ------------------------------------------------------------------------- *)
 (* Return distinctness and injectivity for a type by simple lookup.          *)
@@ -1796,23 +1839,28 @@ do_list extend_rectype_net (!inductive_type_store);;
 
 /// Produce distinctness theorem for an inductive type.
 let distinctness ty =
-    assoc ty (!distinctness_store)
-    |> Option.getOrFailWith "find"
+    match assoc ty (!distinctness_store) with
+    | Some x -> x
+    | None -> Choice.failwith "find"
 
 /// Produce injectivity theorem for an inductive type.
 let injectivity ty =
-    assoc ty (!injectivity_store)
-    |> Option.getOrFailWith "find"
+    match assoc ty (!injectivity_store) with
+    | Some x -> x
+    | None -> Choice.failwith "find"
 
 /// Produce cases theorem for an inductive type.
 let cases ty = 
-    if ty = "num"
-    then num_CASES
-    else 
-        let _, ith, _ =
-            assoc ty (!inductive_type_store)
-            |> Option.getOrFailWith "find"
-        prove_cases_thm ith
+    choice {
+        if ty = "num" then 
+            return! num_CASES
+        else 
+            let! _, ith, _ =
+                assoc ty (!inductive_type_store)
+                |> Option.toChoiceWithError "find"
+
+            return! prove_cases_thm ith
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Convenient definitions for type isomorphism.                              *)
@@ -1851,24 +1899,34 @@ let define_type_raw =
 
     let TRIV_ANTE_RULE = 
         let TRIV_IMP_CONV tm = 
-            let avs, bod = strip_forall tm
-            let bth = 
-                if is_eq bod
-                then REFL(Choice.get <| rand bod)
-                else 
-                    let ant, con = Choice.get <| dest_imp bod
-                    let ith = SUBS_CONV (CONJUNCTS(ASSUME ant)) (Choice.get <| lhs con)
-                    DISCH ant ith
-            GENL avs bth
+            choice {
+                let avs, bod = strip_forall tm
+                let bth = 
+                    choice {
+                        if is_eq bod then
+                            let! tm1 = rand bod
+                            return! REFL tm1
+                        else 
+                            let! ant, con = dest_imp bod
+                            let! tm1 = lhs con
+                            let ith = SUBS_CONV (CONJUNCTS(ASSUME ant)) tm1
+                            return! DISCH ant ith
+                    }
+                return! GENL avs bth
+            }
+
         fun th -> 
-            let tm = concl <| Choice.get th
-            if is_imp tm
-            then 
-                let ant, con = Choice.get <| dest_imp(concl <| Choice.get th)
-                let cjs = conjuncts ant
-                let cths = map TRIV_IMP_CONV cjs
-                MP th (end_itlist CONJ cths)
-            else th
+            choice {
+                let! th = th
+                let tm = concl th
+                if is_imp tm then 
+                    let! ant, con = dest_imp(concl th)
+                    let cjs = conjuncts ant
+                    let cths = map TRIV_IMP_CONV cjs
+                    return! MP (Choice.result th) (end_itlist CONJ cths)
+                else 
+                    return th
+            }
 
     (* ----------------------------------------------------------------------- *)
     (* Lift type bijections to "arbitrary" (well, free rec or function) type.  *)
@@ -1877,25 +1935,25 @@ let define_type_raw =
     let ISO_EXPAND_CONV = PURE_ONCE_REWRITE_CONV [ISO]
 
     let rec lift_type_bijections iths cty = 
-        let itys = 
-            map (hd << snd << Choice.get << dest_type << Choice.get << type_of << Choice.get << lhand << concl <<Choice.get) iths
+        choice {
+            let! itys = 
+                Choice.List.map 
+                    (Choice.map (hd << snd) << Choice.bind dest_type << Choice.bind type_of << Choice.bind lhand << Choice.map concl) iths
 
-        match assoc cty (zip itys iths) with
-        | Some x -> x
-        | None ->
-            if not(exists (C occurs_in cty) itys)
-            then INST_TYPE [cty, aty] ISO_REFL
-            else 
-                let tycon, isotys = Choice.get <| dest_type cty
-                if tycon = "fun"
-                then 
-                    MATCH_MP ISO_FUN 
-                        (end_itlist CONJ 
-                             (map (lift_type_bijections iths) isotys))
+            match assoc cty (zip itys iths) with
+            | Some x -> 
+                return! x
+            | None -> 
+                if not(exists (C occurs_in cty) itys) then 
+                    return! INST_TYPE [cty, aty] ISO_REFL
                 else 
-                    failwith
-                        ("lift_type_bijections: Unexpected type operator \"" 
-                         + tycon + "\"")
+                    let! tycon, isotys = dest_type cty
+                    if tycon = "fun" then
+                        let ths = map (lift_type_bijections iths) isotys
+                        return! MATCH_MP ISO_FUN (end_itlist CONJ ths)
+                    else 
+                        return! Choice.failwith("lift_type_bijections: Unexpected type operator \"" + tycon + "\"")
+        }
 
     (* ----------------------------------------------------------------------- *)
     (* Prove isomorphism of nested types where former is the smaller.          *)
@@ -1910,315 +1968,477 @@ let define_type_raw =
                  |> THEN <| DISCH_THEN SUBST1_TAC
                  |> THEN <| MATCH_MP_TAC SELECT_AX
                  |> THEN <| POP_ASSUM ACCEPT_TAC)
+
         let USE_PTH = MATCH_MP pth
+
         let rec DE_EXISTENTIALIZE_RULE th = 
-            if not(is_exists(concl <| Choice.get th))
-            then [], th
-            else 
-                let th1 = USE_PTH th
-                let v1 = Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th1))
-                let gv = genvar(Choice.get <| type_of v1)
-                let th2 = CONV_RULE BETA_CONV (UNDISCH(INST [gv, v1] th1))
-                let vs, th3 = DE_EXISTENTIALIZE_RULE th2
-                gv :: vs, th3
+            choice {
+                let! th = th
+                if not(is_exists(concl th)) then 
+                    return [], th
+                else 
+                    let! th1 = USE_PTH (Choice.result th)
+                    let! tm1 = rand(concl th1)
+                    let! v1 = rand tm1
+                    let! ty1 = type_of v1
+                    let gv = genvar ty1
+                    let th2 = CONV_RULE BETA_CONV (UNDISCH(INST [gv, v1] (Choice.result th1)))
+                    let! vs, th3 = DE_EXISTENTIALIZE_RULE th2
+                    return gv :: vs, th3
+            }
+
         DE_EXISTENTIALIZE_RULE
-    let grab_type = Choice.get << type_of << Choice.get << rand << Choice.get << lhand << snd << strip_forall
+
+    let grab_type = Choice.bind type_of << Choice.bind rand << lhand << snd << strip_forall
 
     let clause_corresponds cl0 = 
-        let f0, ctm0 = Choice.get <| dest_comb(Choice.get <| lhs cl0)
-        let c0 = fst(Choice.get <| dest_const(fst(strip_comb ctm0)))
-        let dty0, rty0 = Choice.get <| dest_fun_ty(Choice.get <| type_of f0)
+        let v =
+            choice {
+                let f0, ctm0 = Choice.get <| dest_comb(Choice.get <| lhs cl0)
+                let c0 = fst(Choice.get <| dest_const(fst(strip_comb ctm0)))
+                let dty0, rty0 = Choice.get <| dest_fun_ty(Choice.get <| type_of f0)
+                return (c0, dty0, rty0)
+            }
         fun cl1 -> 
-            let f1, ctm1 = Choice.get <| dest_comb(Choice.get <| lhs cl1)
-            let c1 = fst(Choice.get <| dest_const(fst(strip_comb ctm1)))
-            let dty1, rty1 = Choice.get <| dest_fun_ty(Choice.get <| type_of f1)
-            c0 = c1 && dty0 = rty1 && rty0 = dty1
+            choice {
+                let! (c0, dty0, rty0) = v
+                let! tm1 = lhs cl1
+                let! f1, ctm1 = dest_comb tm1
+                let! (c1, _) = dest_const(fst(strip_comb ctm1))
+                let! ty1 = type_of f1
+                let! dty1, rty1 = dest_fun_ty ty1
+                return c0 = c1 && dty0 = rty1 && rty0 = dty1
+            }
 
     let prove_inductive_types_isomorphic n k (ith0, rth0) (ith1, rth1) = 
-        let sth0 = SPEC_ALL rth0
-        let sth1 = SPEC_ALL rth1
-        let t_tm = concl <| Choice.get TRUTH
-        let pevs0, pbod0 = strip_exists(concl <| Choice.get sth0)
-        let pevs1, pbod1 = strip_exists(concl <| Choice.get sth1)
+        choice {
+        let! sth0 = SPEC_ALL rth0
+        let! sth1 = SPEC_ALL rth1
+        let! t_tm = Choice.map concl TRUTH
+        let pevs0, pbod0 = strip_exists(concl sth0)
+        let pevs1, pbod1 = strip_exists(concl sth1)
         let pcjs0, qcjs0 = chop_list k (conjuncts pbod0)
         let pcjs1, qcjs1 = chop_list k (snd(chop_list n (conjuncts pbod1)))
-        let tyal0 = setify(zip (map grab_type pcjs1) (map grab_type pcjs0))
+
+        let! pcjs1' = Choice.List.map grab_type pcjs1
+        let! pcjs0' = Choice.List.map grab_type pcjs0
+        let tyal0 = setify(zip pcjs1' pcjs0')
+
         let tyal1 = map (fun (a, b) -> (b, a)) tyal0
-        let tyins0 = 
-            map (fun f -> 
-                    let domty, ranty = Choice.get <| dest_fun_ty(Choice.get <| type_of f)
-                    Choice.get <| tysubst tyal0 domty, ranty) pevs0
-        let tyins1 = 
-            map (fun f -> 
-                    let domty, ranty = Choice.get <| dest_fun_ty(Choice.get <| type_of f)
-                    Choice.get <| tysubst tyal1 domty, ranty) pevs1
-        let tth0 = INST_TYPE tyins0 sth0
-        let tth1 = INST_TYPE tyins1 sth1
-        let evs0, bod0 = strip_exists(concl <| Choice.get tth0)
-        let evs1, bod1 = strip_exists(concl <| Choice.get tth1)
-        let lcjs0, rcjs0 = 
-            chop_list k (map (snd << strip_forall) (conjuncts bod0))
+        let! tyins0 = 
+            Choice.List.map (fun f -> 
+                choice {
+                    let! tyf = type_of f
+                    let! domty, ranty = dest_fun_ty tyf
+                    let! ty1 = tysubst tyal0 domty
+                    return ty1, ranty
+                }) pevs0
+
+        let! tyins1 = 
+            Choice.List.map (fun f -> 
+                choice {
+                    let! tyf = type_of f
+                    let! domty, ranty = dest_fun_ty tyf
+                    let! ty1 = tysubst tyal1 domty
+                    return ty1, ranty
+                }) pevs1
+
+        let! tth0 = INST_TYPE tyins0 (Choice.result sth0)
+        let! tth1 = INST_TYPE tyins1 (Choice.result sth1)
+        let evs0, bod0 = strip_exists(concl tth0)
+        let evs1, bod1 = strip_exists(concl tth1)
+        let lcjs0, rcjs0 = chop_list k (map (snd << strip_forall) (conjuncts bod0))
         let lcjs1, rcjsx = 
-            chop_list k 
-                (map (snd << strip_forall) (snd(chop_list n (conjuncts bod1))))
-        let rcjs1 = map (fun t -> Option.get <| find (clause_corresponds t) rcjsx) rcjs0
+            chop_list k (map (snd << strip_forall) (snd(chop_list n (conjuncts bod1))))
+
+        let! rcjs1 = Choice.List.map (fun t -> Choice.List.find (clause_corresponds t) rcjsx) rcjs0
+
         let proc_clause tm0 tm1 = 
-            let l0, r0 = Choice.get <| dest_eq tm0
-            let l1, r1 = Choice.get <| dest_eq tm1
+            choice {
+            let! l0, r0 = dest_eq tm0
+            let! l1, r1 = dest_eq tm1
             let vc0, wargs0 = strip_comb r0
-            let con0, vargs0 = strip_comb(Choice.get <| rand l0)
-            let gargs0 = map (genvar << Choice.get << type_of) wargs0
-            let nestf0 =
-                map 
+            let! tm1 = rand l0
+            let con0, vargs0 = strip_comb tm1
+            let! gargs0 = Choice.List.map (Choice.map genvar << type_of) wargs0
+            let! nestf0 =
+                Choice.List.map 
                     (fun a -> 
-                        Option.isSome <| find(fun t -> is_comb t && Choice.get <| rand t = a) wargs0) 
+                        Choice.List.tryFind(fun t -> 
+                            choice {
+                                let! tm = rand t
+                                return is_comb t && tm = a
+                            }) wargs0
+                        |> Choice.map Option.isSome) 
                     vargs0
-            let targs0 = 
-                map2 (fun a f -> 
-                        if f
-                        then Option.get <| find (fun t -> is_comb t && Choice.get <| rand t = a) wargs0
-                        else a) vargs0 nestf0
+
+            let! targs0 = 
+                Choice.List.map2 (fun a f -> 
+                        if f then 
+                            Choice.List.tryFind (fun t -> 
+                                choice {
+                                    let! tm = rand t
+                                    return is_comb t && tm = a
+                                }) wargs0
+                            |> Choice.bind (Option.toChoiceWithError "find")
+                        else Choice.result a) vargs0 nestf0
+
             let gvlist0 = zip wargs0 gargs0
-            let xargs =
+            let! xargs =
                 targs0
-                |> map (fun v ->
+                |> Choice.List.map (fun v ->
                     assoc v gvlist0
-                    |> Option.getOrFailWith "find")
-            let inst0 = 
-                list_mk_abs
-                    (gargs0, list_mk_comb(fst(strip_comb(Choice.get <| rand l1)), xargs)), vc0
+                    |> Option.toChoiceWithError "find")
+            
+            let! tm1 = rand l1
+            let inst0 = list_mk_abs (gargs0, list_mk_comb(fst(strip_comb tm1), xargs)), vc0
             let vc1, wargs1 = strip_comb r1
-            let con1, vargs1 = strip_comb(Choice.get <| rand l1)
-            let gargs1 = map (genvar << Choice.get << type_of) wargs1
-            let targs1 = 
-                map2 (fun a f -> 
-                        if f
-                        then Option.get <| find (fun t -> is_comb t && Choice.get <| rand t = a) wargs1
-                        else a) vargs1 nestf0
+            let con1, vargs1 = strip_comb tm1
+
+            let! gargs1 = Choice.List.map (Choice.map genvar << type_of) wargs1
+            let! targs1 = 
+                Choice.List.map2 (fun a f -> 
+                        if f then 
+                            Choice.List.tryFind (fun t -> 
+                                choice {
+                                    let! tm = rand t
+                                    return is_comb t && tm = a
+                                }) wargs1
+                            |> Choice.bind (Option.toChoiceWithError "find")
+                        else Choice.result a) vargs1 nestf0
+
             let gvlist1 = zip wargs1 gargs1
-            let xargs =
+            let! xargs =
                 targs1
-                |> map (fun v ->
+                |> Choice.List.map (fun v ->
                     assoc v gvlist1
-                    |> Option.getOrFailWith "find")
-            let inst1 = 
-                list_mk_abs
-                    (gargs1, list_mk_comb(fst(strip_comb(Choice.get <| rand l0)), xargs)), vc1
-            inst0, inst1
-        let insts0, insts1 = 
-            unzip(map2 proc_clause (lcjs0 @ rcjs0) (lcjs1 @ rcjs1))
-        let uth0 = BETA_RULE(INST insts0 tth0)
-        let uth1 = BETA_RULE(INST insts1 tth1)
-        let efvs0, sth0 = DE_EXISTENTIALIZE_RULE uth0
-        let efvs1, sth1 = DE_EXISTENTIALIZE_RULE uth1
-        let efvs2 = 
-            map 
-                (fun t1 -> 
-                    Option.get <| find 
-                        (fun t2 -> 
-                            hd(tl(snd(Choice.get <| dest_type(Choice.get <| type_of t1)))) = hd
-                                                                     (snd
-                                                                          (Choice.get <| dest_type
-                                                                               (Choice.get <| type_of 
-                                                                                    t2)))) 
-                        efvs1) efvs0
-        let isotms = 
-            map2 (fun ff gg -> Choice.get <| list_mk_icomb "ISO" [ff; gg]) efvs0 efvs2
+                    |> Option.toChoiceWithError "find")
+            
+            let! tm2 = rand l0    
+            let inst1 = list_mk_abs (gargs1, list_mk_comb(fst(strip_comb tm2), xargs)), vc1
+            return inst0, inst1
+            }
+
+        let! insts = Choice.List.map2 proc_clause (lcjs0 @ rcjs0) (lcjs1 @ rcjs1)
+        let insts0, insts1 = unzip insts
+
+        let uth0 = BETA_RULE(INST insts0 (Choice.result tth0))
+        let uth1 = BETA_RULE(INST insts1 (Choice.result tth1))
+        let! efvs0, sth0 = DE_EXISTENTIALIZE_RULE uth0
+        let! efvs1, sth1 = DE_EXISTENTIALIZE_RULE uth1
+        let! efvs2 = 
+            Choice.List.map (fun t1 -> 
+                Choice.List.tryFind(fun t2 -> 
+                    choice {
+                        let! ty1 = type_of t1
+                        let! (_, tys2) = dest_type ty1
+                        let! ty3 = type_of t2
+                        let! (_, tys4) = dest_type ty3
+                        return hd(tl tys2) = hd(tys4)
+                    })  efvs1
+                |> Choice.bind (Option.toChoiceWithError "find")) efvs0
+
+        let! isotms = Choice.List.map2 (fun ff gg -> list_mk_icomb "ISO" [ff; gg]) efvs0 efvs2
+
         let ctm = list_mk_conj isotms
-        let cth1 = ISO_EXPAND_CONV ctm
-        let ctm1 = Choice.get <| rand(concl <| Choice.get cth1)
+        let! cth1 = ISO_EXPAND_CONV ctm
+        let! ctm1 = rand(concl cth1)
         let cjs = conjuncts ctm1
         let eee = map (fun n -> n mod 2 = 0) (0 -- (length cjs - 1))
         let cjs1, cjs2 = partition fst (zip eee cjs)
-        let ctm2 = 
-            Choice.get <| mk_conj(list_mk_conj(map snd cjs1), list_mk_conj(map snd cjs2))
-        let DETRIV_RULE = TRIV_ANTE_RULE << REWRITE_RULE [sth0; sth1]
+        let! ctm2 = mk_conj(list_mk_conj(map snd cjs1), list_mk_conj(map snd cjs2))
+        let DETRIV_RULE = TRIV_ANTE_RULE << REWRITE_RULE [Choice.result sth0; Choice.result sth1]
         let jth0 = 
-            let itha = SPEC_ALL ith0
-            let icjs = conjuncts(Choice.get <| rand(concl <| Choice.get itha))
-            let cinsts = 
-                map (fun tm -> tryfind (fun vtm -> Choice.toOption <| term_match [] vtm tm) icjs
-                               |> Option.getOrFailWith "tryfind") 
-                    (conjuncts(Choice.get <| rand ctm2))
-            let tvs = 
-                subtract (fst(strip_forall(concl <| Choice.get ith0))) 
-                    (itlist (fun (_, x, _) -> union(map snd x)) cinsts [])
-            let ctvs = 
-                map (fun p -> 
-                        let x = mk_var("x", hd(snd(Choice.get <| dest_type(Choice.get <| type_of p))))
-                        Choice.get <| mk_abs(x, t_tm), p) tvs
-            DETRIV_RULE(INST ctvs (itlist INSTANTIATE cinsts itha))
+            choice {
+                let! ith0 = ith0
+
+                let! itha = SPEC_ALL (Choice.result ith0)
+                let! tm1 = rand(concl itha)
+                let icjs = conjuncts tm1
+                let! tm2 = rand ctm2
+                let! cinsts = 
+                    Choice.List.map (fun tm -> tryfind (fun vtm -> Choice.toOption <| term_match [] vtm tm) icjs
+                                               |> Option.toChoiceWithError "tryfind") (conjuncts tm2)
+                let tvs = subtract (fst(strip_forall(concl ith0))) (itlist (fun (_, x, _) -> union(map snd x)) cinsts [])
+
+                let! ctvs = 
+                    Choice.List.map (fun p -> 
+                        choice {
+                            let! ty1 = type_of p
+                            let! (_, tys2) = dest_type ty1
+                            let x = mk_var("x", hd tys2)
+                            let! tm2 = mk_abs(x, t_tm)
+                            return tm2, p
+                        }) tvs
+
+                return! DETRIV_RULE(INST ctvs (itlist INSTANTIATE cinsts (Choice.result itha)))
+            }
+
         let jth1 = 
-            let itha = SPEC_ALL ith1
-            let icjs = conjuncts(Choice.get <| rand(concl <| Choice.get itha))
-            let cinsts = 
-                map (fun tm -> tryfind (fun vtm -> Choice.toOption <| term_match [] vtm tm) icjs
-                               |> Option.getOrFailWith "tryfind") 
-                    (conjuncts(Choice.get <| lhand ctm2))
-            let tvs = 
-                subtract (fst(strip_forall(concl <| Choice.get ith1))) 
-                    (itlist (fun (_, x, _) -> union(map snd x)) cinsts [])
-            let ctvs = 
-                map (fun p -> 
-                        let x = mk_var("x", hd(snd(Choice.get <| dest_type(Choice.get <| type_of p))))
-                        Choice.get <| mk_abs(x, t_tm), p) tvs
-            DETRIV_RULE(INST ctvs (itlist INSTANTIATE cinsts itha))
+            choice {
+                let! ith1 = ith1
+                let! itha = SPEC_ALL (Choice.result ith1)
+                let! tm1 = rand(concl itha)
+                let icjs = conjuncts tm1
+                let! tm2 = lhand ctm2
+                let cinsts = 
+                    map (fun tm -> tryfind (fun vtm -> Choice.toOption <| term_match [] vtm tm) icjs
+                                   |> Option.getOrFailWith "tryfind") 
+                        (conjuncts tm2)
+
+                let tvs = subtract (fst(strip_forall(concl ith1))) (itlist (fun (_, x, _) -> union(map snd x)) cinsts [])
+
+                let! ctvs = 
+                    Choice.List.map (fun p -> 
+                        choice {
+                            let! ty1 = type_of p
+                            let! (_, tys2) = dest_type ty1
+                            let x = mk_var("x", hd tys2)
+                            let! tm2 = mk_abs(x, t_tm)
+                            return tm2, p
+                        }) tvs
+
+                return! DETRIV_RULE(INST ctvs (itlist INSTANTIATE cinsts (Choice.result itha)))
+            }
+
         let cths4 = map2 CONJ (CONJUNCTS jth0) (CONJUNCTS jth1)
         let cths5 = map (PURE_ONCE_REWRITE_RULE [GSYM ISO]) cths4
         let cth6 = end_itlist CONJ cths5
-        cth6, CONJ sth0 sth1
+        return cth6, CONJ (Choice.result sth0) (Choice.result sth1)
+        }
 
     (* ----------------------------------------------------------------------- *)
     (* Define nested type by doing a 1-level unwinding.                        *)
     (* ----------------------------------------------------------------------- *)
 
     let SCRUB_ASSUMPTION th = 
-        let hyps = hyp <| Choice.get th
-        let eqn = 
-            Option.get <| find (fun t -> 
-                    let x = Choice.get <| lhs t
-                    forall (fun u -> not(free_in x (Choice.get <| rand u))) hyps) hyps
-        let l, r = Choice.get <| dest_eq eqn
-        MP (INST [r, l] (DISCH eqn th)) (REFL r)
+        choice {
+            let! th = th
+
+            let hyps = hyp th
+            let! eqn = 
+                Choice.List.tryFind (fun t -> 
+                    choice {
+                        let! x = lhs t
+                        return! Choice.List.forall (fun u -> 
+                                    choice {
+                                        let! tm = rand u
+                                        return not(free_in x tm)
+                                    }) hyps
+                    }) hyps
+                |> Choice.bind (Option.toChoiceWithError "find")
+
+            let! l, r = dest_eq eqn
+            return! MP (INST [r, l] (DISCH eqn (Choice.result th))) (REFL r)
+        }
+
     let define_type_basecase def = 
         let add_id s = fst(Choice.get <| dest_var(genvar bool_ty))
         let def' = map (I ||>> (map(add_id ||>> I))) def
         define_type_raw_002 def'
+
     let SIMPLE_BETA_RULE = GSYM << PURE_REWRITE_RULE [BETA_THM; FUN_EQ_THM]
     let ISO_USAGE_RULE = MATCH_MP ISO_USAGE
     let SIMPLE_ISO_EXPAND_RULE = CONV_RULE(REWR_CONV ISO)
+
     let REWRITE_FUN_EQ_RULE = 
-        let ths = itlist (fun x y -> Choice.get <| mk_rewrites false x y) [FUN_EQ_THM] []
-        let net = itlist (fun x y -> Choice.get <| net_of_thm false x y) ths (basic_net())
-        CONV_RULE << GENERAL_REWRITE_CONV true TOP_DEPTH_CONV net
+        // NOTE: add these arguments to propagate errors
+        fun tm gl ->
+            choice {
+                let! ths = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] [FUN_EQ_THM]
+                let! net = Choice.List.fold (fun acc x -> net_of_thm false x acc) (basic_net()) ths
+                return! (CONV_RULE << GENERAL_REWRITE_CONV true TOP_DEPTH_CONV net) tm gl
+            }
+
     let is_nested vs ty = 
         not(is_vartype ty) && not(intersect (tyvars ty) vs = [])
+
     let rec modify_type alist ty =
         match rev_assoc ty alist with
         | Some x -> x
         | None ->
-            try 
-                let tycon, tyargs = Choice.get <| dest_type ty
-                Choice.get <| mk_type(tycon, map (modify_type alist) tyargs)
-            with
-            | Failure _ -> ty
+            choice { 
+                let! tycon, tyargs = dest_type ty
+                return! mk_type(tycon, map (modify_type alist) tyargs)
+            }
+            |> Choice.fill ty
+
     let modify_item alist (s, l) = s, map (modify_type alist) l
     let modify_clause alist (l, lis) = l, map (modify_item alist) lis
+
     let recover_clause id tm = 
-        let con, args = strip_comb tm
-        fst(Choice.get <| dest_const con) + id, map (Choice.get << type_of) args
+        choice {
+            let con, args = strip_comb tm
+            let! (s, _) = dest_const con
+            let! tys = Choice.List.map type_of args
+            return s + id, tys
+        }
 
     let rec create_auxiliary_clauses nty = 
-        let id = fst(Choice.get <| dest_var(genvar bool_ty))
-        let tycon, tyargs = Choice.get <| dest_type nty
-        let k, ith, rth =
-            match assoc tycon !inductive_type_store with
-            | Some x -> x
-            | None ->
-                failwith("Can't Option.get <| find definition for nested type: " + tycon)
-        let evs, bod = strip_exists(snd(strip_forall(concl <| Choice.get rth)))
-        let cjs = map (Choice.get << lhand << snd << strip_forall) (conjuncts bod)
-        let rtys = map (hd << snd << Choice.get << dest_type << Choice.get << type_of) evs
-        let tyins = tryfind (fun vty -> Choice.toOption <| type_match vty nty []) rtys |> Option.getOrFailWith "tryfind"
-        let cjs' = map (Choice.get << inst tyins << Choice.get << rand) (fst(chop_list k cjs))
-        let mtys = itlist (insert << Choice.get << type_of) cjs' []
-        let pcons = map (fun ty -> filter (fun t -> Choice.get <| type_of t = ty) cjs') mtys
-        let cls' = zip mtys (map (map(recover_clause id)) pcons)
-        let tyal = map (fun ty -> mk_vartype(fst(Choice.get <| dest_type ty) + id), ty) mtys
-        let cls'' = map (modify_type tyal ||>> map(modify_item tyal)) cls'
-        k, tyal, cls'', INST_TYPE tyins ith, INST_TYPE tyins rth
+        choice {
+            let! (id, _) = dest_var(genvar bool_ty)
+            let! tycon, tyargs = dest_type nty
+            let! k, ith, rth =
+                choice {
+                    match assoc tycon !inductive_type_store with
+                    | Some x -> 
+                        return x
+                    | None ->
+                        return! Choice.failwith("Can't find definition for nested type: " + tycon)
+                }
+            
+            let! rth = rth
+            let evs, bod = strip_exists(snd(strip_forall(concl rth)))
+            let! cjs = Choice.List.map (lhand << snd << strip_forall) (conjuncts bod)
+            let! rtys = Choice.List.map (Choice.map (hd << snd) << Choice.bind dest_type << type_of) evs
+
+            let! tyins = tryfind (fun vty -> Choice.toOption <| type_match vty nty []) rtys 
+                         |> Option.toChoiceWithError "tryfind"
+
+            let! cjs' = Choice.List.map (Choice.bind (inst tyins) << rand) (fst(chop_list k cjs))
+            let mtys = itlist (insert << Choice.get << type_of) cjs' []
+
+            let! pcons = Choice.List.map (fun ty -> 
+                                Choice.List.filter (fun t -> 
+                                    choice {
+                                        let! ty1 = type_of t
+                                        return ty1 = ty
+                                    }) cjs') mtys
+
+            let! tys = Choice.List.map (Choice.List.map(recover_clause id)) pcons
+            let cls' = zip mtys tys
+
+            let! tyal = Choice.List.map (fun ty -> 
+                            choice {
+                                let! (s, _) = dest_type ty
+                                return mk_vartype(s + id), ty
+                            }) mtys
+
+            let cls'' = map (modify_type tyal ||>> map(modify_item tyal)) cls'
+            return k, tyal, cls'', INST_TYPE tyins ith, INST_TYPE tyins (Choice.result rth)
+        }
 
     let rec define_type_nested def = 
+        choice {
         let n = length(itlist (@) (map (map fst << snd) def) [])
         let newtys = map fst def
         let utys = unions(itlist (union << map snd << snd) def [])
         let rectys = filter (is_nested newtys) utys
-        if rectys = []
-        then 
+        if rectys = [] then 
             let th1, th2 = define_type_basecase def
-            n, th1, th2
+            return n, th1, th2
         else 
             let nty = hd(sort (fun t1 t2 -> occurs_in t2 t1) rectys)
-            let k, tyal, ncls, ith, rth = create_auxiliary_clauses nty
+            let! k, tyal, ncls, ith, rth = create_auxiliary_clauses nty
             let cls = map (modify_clause tyal) def @ ncls
-            let _, ith1, rth1 = define_type_nested cls
-            let xnewtys = 
-                map (hd << snd << Choice.get << dest_type << Choice.get << type_of) 
-                    (fst(strip_exists(snd(strip_forall(concl <| Choice.get rth1)))))
-            let xtyal = 
-                map (fun ty -> 
-                        let s = Choice.get <| dest_vartype ty
-                        Option.get <| find (fun t -> fst(Choice.get <| dest_type t) = s) xnewtys, ty) 
-                    (map fst cls)
+            let! _, ith1, rth1 = define_type_nested cls
+            let! rth1' = rth1
+            let! xnewtys = 
+                Choice.List.map (Choice.map (hd << snd) << Choice.bind dest_type << type_of) 
+                    (fst(strip_exists(snd(strip_forall(concl rth1')))))
+
+            let! xtyal = 
+                Choice.List.map (fun ty -> 
+                    choice {
+                        let! s = dest_vartype ty
+                        let! ty1 = Choice.List.tryFind (fun t -> 
+                                    choice {
+                                        let! (s', _) = dest_type t
+                                        return s' = s
+                                    }) xnewtys
+                                  |> Choice.bind (Option.toChoiceWithError "find")
+
+                        return ty1, ty
+                    }) (map fst cls)
+                    
             let ith0 = INST_TYPE xtyal ith
             let rth0 = INST_TYPE xtyal rth
-            let isoth, rclauses = 
-                prove_inductive_types_isomorphic n k (ith0, rth0) (ith1, rth1)
-            let irth3 = CONJ ith1 rth1
-            let vtylist = itlist (insert << Choice.get << type_of) (Choice.get <| variables(concl <| Choice.get irth3)) []
+            let! isoth, rclauses = prove_inductive_types_isomorphic n k (ith0, rth0) (ith1, rth1)
+            let! irth3 = CONJ ith1 rth1
+
+            let! tm1 = variables(concl irth3)
+            let vtylist = itlist (insert << Choice.get << type_of) tm1 []
             let isoths = CONJUNCTS isoth
-            let isotys = 
-                map (hd << snd << Choice.get << dest_type << Choice.get << type_of << Choice.get << lhand << concl <<Choice.get) isoths
-            let ctylist = 
-                filter (fun ty -> exists (fun t -> occurs_in t ty) isotys) 
-                    vtylist
+            let! isotys = 
+                Choice.List.map (Choice.map (hd << snd) << Choice.bind dest_type 
+                                 << Choice.bind type_of << Choice.bind lhand << Choice.map concl) isoths
+
+            let ctylist = filter (fun ty -> exists (fun t -> occurs_in t ty) isotys) vtylist
             let atylist = itlist (union << striplist (Choice.toOption << dest_fun_ty)) ctylist []
             let isoths' = 
                 map (lift_type_bijections isoths) 
-                    (filter (fun ty -> exists (fun t -> occurs_in t ty) isotys) 
-                         atylist)
-            let cisoths = 
-                map (BETA_RULE << lift_type_bijections isoths') ctylist
+                    (filter (fun ty -> exists (fun t -> occurs_in t ty) isotys) atylist)
+
+            let cisoths = map (BETA_RULE << lift_type_bijections isoths') ctylist
             let uisoths = map ISO_USAGE_RULE cisoths
-            let visoths = map (ASSUME << concl <<Choice.get) uisoths
-            let irth4 = 
-                itlist PROVE_HYP uisoths (REWRITE_FUN_EQ_RULE visoths irth3)
-            let irth5 = 
-                REWRITE_RULE (rclauses :: map SIMPLE_ISO_EXPAND_RULE isoths') 
-                    irth4
-            let irth6 = repeat (Choice.toOption << Choice.result << SCRUB_ASSUMPTION) irth5
-            let ncjs = 
-                filter 
-                    (fun t -> 
-                        exists (fun v -> not(is_var v)) 
-                            (snd(strip_comb(Choice.get <| rand(Choice.get <| lhs(snd(strip_forall t))))))) 
-                    (conjuncts
-                         (snd
-                              (strip_exists
-                                   (snd(strip_forall(Choice.get <| rand(concl <| Choice.get irth6)))))))
+
+            let! visoths = Choice.List.map (Choice.map (ASSUME << concl)) uisoths
+            let irth4 = itlist PROVE_HYP uisoths (REWRITE_FUN_EQ_RULE visoths (Choice.result irth3))
+            let irth5 = REWRITE_RULE (rclauses :: map SIMPLE_ISO_EXPAND_RULE isoths') irth4
+            let! irth6 = repeat (Choice.toOption << Choice.map Choice.result << SCRUB_ASSUMPTION) irth5
+
+            let! tm1 = rand(concl irth6)
+            let! ncjs = 
+                Choice.List.filter (fun t -> 
+                    choice {
+                        let! tm2 = lhs(snd(strip_forall t))
+                        let! tm3 = rand tm2 
+                        return exists (fun v -> not(is_var v)) (snd(strip_comb tm3))
+                    }) (conjuncts (snd (strip_exists (snd(strip_forall tm1)))))
+
             let mk_newcon tm = 
-                let vs, bod = strip_forall tm
-                let rdeb = Choice.get <| rand(Choice.get <| lhs bod)
-                let rdef = list_mk_abs(vs, rdeb)
-                let newname = fst(Choice.get <| dest_var(genvar bool_ty))
-                let def = Choice.get <| mk_eq(mk_var(newname, Choice.get <| type_of rdef), rdef)
-                let dth = new_definition def
-                SIMPLE_BETA_RULE dth
+                choice {
+                    let vs, bod = strip_forall tm
+                    let! tm1 = lhs bod
+                    let! rdeb = rand tm1
+                    let rdef = list_mk_abs(vs, rdeb)
+                    let! (newname, _) = dest_var(genvar bool_ty)
+                    let! ty1 = type_of rdef
+                    let! def = mk_eq(mk_var(newname, ty1), rdef)
+                    let dth = new_definition def
+                    return! SIMPLE_BETA_RULE dth
+                }
+
             let dths = map mk_newcon ncjs
-            let ith6, rth6 = CONJ_PAIR(PURE_REWRITE_RULE dths irth6)
-            n, ith6, rth6
+            let ith6, rth6 = CONJ_PAIR(PURE_REWRITE_RULE dths (Choice.result irth6))
+            return n, ith6, rth6
+        }
 
     fun def -> 
-        let newtys = map fst def
-        let truecons = itlist (@) (map (map fst << snd) def) []
-        let (p, ith0, rth0) = define_type_nested def
-        let avs, etm = strip_forall(concl <| Choice.get rth0)
-        let allcls = conjuncts(snd(strip_exists etm))
-        let relcls = fst(chop_list (length truecons) allcls)
-        let gencons = 
-            map (repeat (Choice.toOption << rator) << Choice.get << rand << Choice.get << lhand << snd << strip_forall) relcls
-        let cdefs = 
-            map2 
-                (fun s r -> SYM(new_definition(Choice.get <| mk_eq(mk_var(s, Choice.get <| type_of r), r)))) 
-                truecons gencons
-        let tavs = Choice.get <| make_args "f" [] (map (Choice.get << type_of) avs)
-        let ith1 = SUBS cdefs ith0
-        let rth1 = GENL tavs (SUBS cdefs (SPECL tavs rth0))
-        let retval = p, ith1, rth1
-        let newentries = map (fun s -> Choice.get <| dest_vartype s, retval) newtys
-        (inductive_type_store := newentries @ (!inductive_type_store)
-         do_list extend_rectype_net newentries
-         ith1, rth1)
+        choice {
+            let newtys = map fst def
+            let truecons = itlist (@) (map (map fst << snd) def) []
+            let! (p, ith0, rth0) = define_type_nested def
+            let! rth0 = rth0
+            let avs, etm = strip_forall(concl rth0)
+            let allcls = conjuncts(snd(strip_exists etm))
+            let relcls = fst(chop_list (length truecons) allcls)
+            let! gencons = 
+                Choice.List.map (Choice.map (repeat (Choice.toOption << rator)) << Choice.bind rand << lhand << snd << strip_forall) relcls
+
+            let! cdefs = 
+                Choice.List.map2 (fun s r -> 
+                    choice {
+                        let! ty1 = type_of r
+                        let! tm1 = mk_eq(mk_var(s, ty1), r)
+                        return SYM(new_definition tm1)
+                    }) truecons gencons
+
+            let! tavs = make_args "f" [] (map (Choice.get << type_of) avs)
+            let ith1 = SUBS cdefs ith0
+            let rth1 = GENL tavs (SUBS cdefs (SPECL tavs (Choice.result rth0)))
+            let retval = p, ith1, rth1
+
+            let! newentries = Choice.List.map (fun s -> 
+                                choice {
+                                    let! ty = dest_vartype s
+                                    return ty , retval
+                                }) newtys
+
+            inductive_type_store := newentries @ (!inductive_type_store)
+            do_list (ignore << extend_rectype_net) newentries
+            return ith1, rth1
+         }
 
 (* ----------------------------------------------------------------------- *)
 (* The overall function, with rather crude string-based benignity.         *)
