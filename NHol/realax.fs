@@ -200,15 +200,24 @@ let DIST_ELIM_THM =
 
 let DIST_LE_CASES, DIST_ADDBOUND, DIST_TRIANGLE, DIST_ADD2, DIST_ADD2_REV = 
     let rec DIST_ELIM_TAC = 
+        let tac th gl =
+            choice {
+                let! th = th
+                let! l, r = dest_eq(concl th)
+                if is_var l && not(vfree_in l r) then 
+                    return! ALL_TAC gl
+                else 
+                    return! ASSUME_TAC (Choice.result th) gl
+            }
+
         let conv = HIGHER_REWRITE_CONV [SUB_ELIM_THM; COND_ELIM_THM; DIST_ELIM_THM] false
         CONV_TAC conv
         |> THEN <| TRY GEN_TAC
         |> THEN <| CONJ_TAC
         |> THEN <| DISCH_THEN(fun th -> 
                        SUBST_ALL_TAC th
-                       |> THEN <| (let l, r = Choice.get <| dest_eq(concl <| Choice.get th)
-                                   if is_var l && not(vfree_in l r) then ALL_TAC
-                                   else ASSUME_TAC th))
+                       |> THEN <| tac th)
+
     let DIST_ELIM_TAC' = 
         REPEAT STRIP_TAC
         |> THEN <| REPEAT DIST_ELIM_TAC
@@ -238,7 +247,12 @@ let DIST_LE_CASES, DIST_ADDBOUND, DIST_TRIANGLE, DIST_ADD2, DIST_ADD2_REV =
 
     match distFuncs with
     | [dist_triangle; dist_add2; dist_add2_rev] -> DIST_LE_CASES, DIST_ADDBOUND, dist_triangle, dist_add2, dist_add2_rev
-    | _ -> failwith "distFuncs: Unhnadled case."
+    | _ -> 
+        Choice.failwith "distFuncs: Unhandled case.",
+        Choice.failwith "distFuncs: Unhandled case.",
+        Choice.failwith "distFuncs: Unhandled case.",
+        Choice.failwith "distFuncs: Unhandled case.",
+        Choice.failwith "distFuncs: Unhandled case."
 
 let DIST_TRIANGLE_LE = 
     prove
@@ -952,19 +966,16 @@ let NADD_LDISTRIB =
          |> THEN <| ASM_REWRITE_TAC [])
 
 let NADD_MUL_WELLDEF_LEMMA = 
-    prove
-        ((parse_term @"!x y y'. y === y' ==> (x ** y) === (x ** y')"), 
-         REPEAT GEN_TAC
-         |> THEN <| REWRITE_TAC [nadd_eq; NADD_MUL]
-         |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"B1:num"))
-         |> THEN 
-         <| X_CHOOSE_TAC (parse_term @"B2:num") 
-                (SPEC (parse_term @"x:nadd") NADD_DIST)
-         |> THEN <| EXISTS_TAC(parse_term @"B2 * B1")
-         |> THEN <| X_GEN_TAC(parse_term @"n:num")
-         |> THEN <| MATCH_MP_TAC LE_TRANS
-         |> THEN <| EXISTS_TAC(parse_term @"B2 * dist(fn y n,fn y' n)")
-         |> THEN <| ASM_REWRITE_TAC [LE_MULT_LCANCEL])
+    prove((parse_term @"!x y y'. y === y' ==> (x ** y) === (x ** y')"), 
+          REPEAT GEN_TAC
+          |> THEN <| REWRITE_TAC [nadd_eq; NADD_MUL]
+          |> THEN <| DISCH_THEN(X_CHOOSE_TAC(parse_term @"B1:num"))
+          |> THEN <| X_CHOOSE_TAC (parse_term @"B2:num") (SPEC (parse_term @"x:nadd") NADD_DIST)
+          |> THEN <| EXISTS_TAC(parse_term @"B2 * B1")
+          |> THEN <| X_GEN_TAC(parse_term @"n:num")
+          |> THEN <| MATCH_MP_TAC LE_TRANS
+          |> THEN <| EXISTS_TAC(parse_term @"B2 * dist(fn y n,fn y' n)")
+          |> THEN <| ASM_REWRITE_TAC [LE_MULT_LCANCEL])
 
 let NADD_MUL_WELLDEF = 
     prove((parse_term @"!x x' y y'. x === x' /\ y === y'
@@ -1825,11 +1836,33 @@ let HREAL_OF_NUM_EQ, HREAL_OF_NUM_LE, HREAL_OF_NUM_ADD, HREAL_OF_NUM_MUL, HREAL_
           hreal_le_add, hreal_le_exists, hreal_arch, hreal_add_sym, hreal_add_assoc, 
           hreal_add_lid, hreal_add_lcancel, hreal_mul_sym, hreal_mul_assoc, 
           hreal_mul_lid, hreal_add_ldistrib, hreal_mul_linv, hreal_inv_0
-    | _ -> failwith "naddFuncs: Unhandled case."
+    | _ -> 
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case.",
+        Choice.failwith "naddFuncs: Unhandled case."
 
 (* ------------------------------------------------------------------------- *)
 (* Consequential theorems needed later.                                      *)
 (* ------------------------------------------------------------------------- *)
+
 let HREAL_LE_EXISTS_DEF = 
     prove
         ((parse_term @"!m n. m <= n <=> ?d. n = m + d"), 
@@ -1926,6 +1959,7 @@ let HREAL_LE_MUL_RCANCEL_IMP =
 (* ------------------------------------------------------------------------- *)
 (* Define operations on representatives of signed reals.                     *)
 (* ------------------------------------------------------------------------- *)
+
 let treal_of_num = new_definition(parse_term @"treal_of_num n = (&n, &0)")
 
 let treal_neg = 
@@ -2062,12 +2096,12 @@ let TREAL_MUL_SYM =
 let TREAL_MUL_ASSOC = 
     prove((parse_term @"!x y z. (x treal_mul (y treal_mul z)) treal_eq
            ((x treal_mul y) treal_mul z)"),
-          SIMP_TAC [FORALL_PAIR_THM
-                    TREAL_EQ_AP
-                    treal_mul
-                    HREAL_ADD_LDISTRIB
-                    HREAL_ADD_RDISTRIB
-                    GSYM HREAL_MUL_ASSOC
+          SIMP_TAC [FORALL_PAIR_THM;
+                    TREAL_EQ_AP;
+                    treal_mul;
+                    HREAL_ADD_LDISTRIB;
+                    HREAL_ADD_RDISTRIB;
+                    GSYM HREAL_MUL_ASSOC;
                     HREAL_ADD_AC])
 
 let TREAL_MUL_LID = 
@@ -2390,7 +2424,27 @@ let REAL_ADD_SYM, REAL_ADD_ASSOC, REAL_ADD_LID, REAL_ADD_LINV, REAL_MUL_SYM, REA
             real_le_antisym, real_le_trans, real_le_total, real_le_ladd_imp, 
             real_le_mul, real_inv_0, real_mul_linv, real_of_num_eq, real_of_num_le, 
             real_of_num_add, real_of_num_mul
-    | _ -> failwith "realFuncs: Unhandled case."
+    | _ -> 
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case.",
+        Choice.failwith "realFuncs: Unhandled case."
 
 parse_as_prefix "--"
 parse_as_infix("/", (22, "left"))
@@ -2444,60 +2498,44 @@ let real_min =
 (*----------------------------------------------------------------------------*)
 
 let REAL_HREAL_LEMMA1 = 
-    prove
-        ((parse_term @"?r:hreal->real.
+    prove((parse_term @"?r:hreal->real.
        (!x. &0 <= x <=> ?y. x = r y) /\
        (!y z. y <= z <=> r y <= r z)"), 
-         EXISTS_TAC(parse_term @"\y. mk_real((treal_eq)(y,hreal_of_num 0))")
-         |> THEN <| REWRITE_TAC [GSYM real_le_th]
-         |> THEN <| REWRITE_TAC [treal_le; HREAL_ADD_LID; HREAL_ADD_RID]
-         |> THEN <| GEN_TAC
-         |> THEN <| EQ_TAC
-         |> THENL <| [MP_TAC
-                          (INST 
-                               [(parse_term @"dest_real x"), 
-                                (parse_term @"r:hreal#hreal->bool")] 
-                               (snd real_tybij))
-                      |> THEN <| REWRITE_TAC [fst real_tybij]
-                      |> THEN 
-                      <| DISCH_THEN
-                             (X_CHOOSE_THEN (parse_term @"p:hreal#hreal") MP_TAC)
-                      |> THEN 
-                      <| DISCH_THEN(MP_TAC << AP_TERM(parse_term @"mk_real"))
-                      |> THEN <| REWRITE_TAC [fst real_tybij]
-                      |> THEN <| DISCH_THEN SUBST1_TAC
-                      |> THEN <| REWRITE_TAC [GSYM real_of_num_th
-                                              GSYM real_le_th]
-                      |> THEN 
-                      <| SUBST1_TAC
-                             (GSYM(ISPEC (parse_term @"p:hreal#hreal") PAIR))
-                      |> THEN <| PURE_REWRITE_TAC [treal_of_num; treal_le]
-                      |> THEN <| PURE_REWRITE_TAC [HREAL_ADD_LID; HREAL_ADD_RID]
-                      |> THEN 
-                      <| DISCH_THEN
-                             (X_CHOOSE_THEN (parse_term @"d:hreal") SUBST1_TAC 
-                              << MATCH_MP HREAL_LE_EXISTS)
-                      |> THEN <| EXISTS_TAC(parse_term @"d:hreal")
-                      |> THEN <| AP_TERM_TAC
-                      |> THEN <| ONCE_REWRITE_TAC [FUN_EQ_THM]
-                      |> THEN <| X_GEN_TAC(parse_term @"q:hreal#hreal")
-                      |> THEN 
-                      <| SUBST1_TAC
-                             (GSYM(ISPEC (parse_term @"q:hreal#hreal") PAIR))
-                      |> THEN <| PURE_REWRITE_TAC [treal_eq]
-                      |> THEN 
-                      <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) 
-                             [HREAL_ADD_SYM]
-                      |> THEN <| REWRITE_TAC [GSYM HREAL_ADD_ASSOC
-                                              HREAL_EQ_ADD_LCANCEL]
-                      |> THEN <| REWRITE_TAC [HREAL_ADD_RID]
-                      DISCH_THEN(CHOOSE_THEN SUBST1_TAC)
-                      |> THEN <| REWRITE_TAC [GSYM real_of_num_th
-                                              GSYM real_le_th]
-                      |> THEN <| REWRITE_TAC [treal_of_num; treal_le]
-                      |> THEN <| REWRITE_TAC [HREAL_ADD_LID; HREAL_ADD_RID]
-                      |> THEN <| GEN_REWRITE_TAC RAND_CONV [GSYM HREAL_ADD_LID]
-                      |> THEN <| REWRITE_TAC [HREAL_LE_ADD]])
+          EXISTS_TAC(parse_term @"\y. mk_real((treal_eq)(y,hreal_of_num 0))")
+          |> THEN <| REWRITE_TAC [GSYM real_le_th]
+          |> THEN <| REWRITE_TAC [treal_le; HREAL_ADD_LID; HREAL_ADD_RID]
+          |> THEN <| GEN_TAC
+          |> THEN <| EQ_TAC
+          |> THENL <| [MP_TAC(INST [(parse_term @"dest_real x"), (parse_term @"r:hreal#hreal->bool")] (snd real_tybij))
+                       |> THEN <| REWRITE_TAC [fst real_tybij]
+                       |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term @"p:hreal#hreal") MP_TAC)
+                       |> THEN <| DISCH_THEN(MP_TAC << AP_TERM(parse_term @"mk_real"))
+                       |> THEN <| REWRITE_TAC [fst real_tybij]
+                       |> THEN <| DISCH_THEN SUBST1_TAC
+                       |> THEN <| REWRITE_TAC [GSYM real_of_num_th;
+                                               GSYM real_le_th]
+                       |> THEN <| SUBST1_TAC(GSYM(ISPEC (parse_term @"p:hreal#hreal") PAIR))
+                       |> THEN <| PURE_REWRITE_TAC [treal_of_num; treal_le]
+                       |> THEN <| PURE_REWRITE_TAC [HREAL_ADD_LID; HREAL_ADD_RID]
+                       |> THEN 
+                       <| DISCH_THEN(X_CHOOSE_THEN (parse_term @"d:hreal") SUBST1_TAC << MATCH_MP HREAL_LE_EXISTS)
+                       |> THEN <| EXISTS_TAC(parse_term @"d:hreal")
+                       |> THEN <| AP_TERM_TAC
+                       |> THEN <| ONCE_REWRITE_TAC [FUN_EQ_THM]
+                       |> THEN <| X_GEN_TAC(parse_term @"q:hreal#hreal")
+                       |> THEN <| SUBST1_TAC(GSYM(ISPEC (parse_term @"q:hreal#hreal") PAIR))
+                       |> THEN <| PURE_REWRITE_TAC [treal_eq]
+                       |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [HREAL_ADD_SYM]
+                       |> THEN <| REWRITE_TAC [GSYM HREAL_ADD_ASSOC;
+                                               HREAL_EQ_ADD_LCANCEL]
+                       |> THEN <| REWRITE_TAC [HREAL_ADD_RID];
+                       DISCH_THEN(CHOOSE_THEN SUBST1_TAC)
+                       |> THEN <| REWRITE_TAC [GSYM real_of_num_th;
+                                               GSYM real_le_th]
+                       |> THEN <| REWRITE_TAC [treal_of_num; treal_le]
+                       |> THEN <| REWRITE_TAC [HREAL_ADD_LID; HREAL_ADD_RID]
+                       |> THEN <| GEN_REWRITE_TAC RAND_CONV [GSYM HREAL_ADD_LID]
+                       |> THEN <| REWRITE_TAC [HREAL_LE_ADD]])
 
 let REAL_HREAL_LEMMA2 = 
     prove
