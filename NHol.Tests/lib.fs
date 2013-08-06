@@ -952,23 +952,21 @@ let ``{flat} flattens a list of lists into one long list``() =
 
 [<Test>]
 let ``{remove} separates the first element of a list to satisfy a predicate from the rest of the list``() =
-    
+
     remove (fun x -> x >= 3) [1;2;3;4;5;6]
-    |> should equal (3, [1; 2; 4; 5; 6])
+    |> should equal (Some (3, [1; 2; 4; 5; 6]))
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "remove")>]
-let ``{remove} fails if no element satisfies the predicate``() =
+let ``{remove} returns None if no element satisfies the predicate``() =
 
-    remove (fun x -> x >= 7) [1;2;3;4;5;6] 
-    |> ignore
+    remove (fun x -> x >= 7) [1;2;3;4;5;6]
+    |> should equal None
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "remove")>]
-let ``{remove} fails if applied to an empty list``() =
+let ``{remove} returns None if applied to an empty list``() =
 
-    remove (fun x -> true) [] 
-    |> ignore
+    remove (fun x -> true) []
+    |> should equal None
 
 (* chop_list tests *)
 
