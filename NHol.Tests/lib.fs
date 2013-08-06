@@ -883,8 +883,14 @@ let ``{partition p l} returns a pair of lists, the first with the elements which
 [<Test>]
 let ``{mapfilter} applies a function to every element of a list, returning a list of results for those elements for which application succeeds``() =
 
-    mapfilter (Some << hd) [[1;2;3];[4;5];[];[6;7;8];[]]
+    let fHd l =
+        match l with
+        | h::t -> Some(h)
+        | _ -> None
+
+    mapfilter fHd [[1;2;3];[4;5];[];[6;7;8];[]]
     |> should equal [1; 4; 6]
+
 
 [<Test>]
 [<ExpectedException(typeof<Microsoft.FSharp.Core.MatchFailureException>, ExpectedMessage = "The match cases were incomplete")>]
