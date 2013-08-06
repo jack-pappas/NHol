@@ -532,11 +532,13 @@ let ``{check p x} returns {x} if the application {p x} yields {true}``() =
     |> should equal 1
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "check")>]
-let ``{check p x} fails if the predicate {p} yields {false} when applied to the value {x}``() =
+let ``{check p x} returns choice exception if the predicate {p} yields {false} when applied to the value {x}``() =
 
-    check ((=) 1) 2
-    |> ignore
+    let x = check ((=) 1) 2
+    // TODO: Make this a NUnit custom constraint
+    match x with
+    | Choice1Of2 v -> Assert.Fail ()
+    | Choice2Of2 e -> Assert.AreEqual (e.Message, "check")
 
 (* funpow tests *)
 
@@ -901,11 +903,10 @@ let ``{find p [x1;_;xn]} returns the first {xi} in the list such that {p xi} is 
     |> should equal 4
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "find")>]
-let ``{find p [x1;_;xn]} fails with if no element satisfies the predicate``() =
+let ``{find p [x1;_;xn]} fails with None if no element satisfies the predicate``() =
     
     find (fun x -> x > 5) [1;2;3;4;5]
-    |> ignore
+    |> should equal None
 
 (* tryfind tests *)
 
@@ -971,14 +972,14 @@ let ``{chop_list i [x1;_;xn]} chops a list into two parts at a specified point, 
     |> should equal ([1; 2; 3], [4; 5])
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "chop_list")>]
+[<ExpectedException(typeof<System.ArgumentException>, ExpectedMessage = "The number of items to take from the list is greater than the length of the list.\r\nParameter name: count")>]
 let ``{chop_list i [x1;_;xn]} fails with if {i} is greater than the length of the list``() =
 
     chop_list 4 [1;2;3] 
     |> ignore
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "chop_list")>]
+[<ExpectedException(typeof<System.ArgumentException>, ExpectedMessage = "The number of items to take from the list is negative.\r\nParameter name: count")>]
 let ``{chop_list i [x1;_;xn]} fails with if {i} is negative``() =
 
     chop_list -1 [1;2;3] 
@@ -1684,31 +1685,30 @@ let ``{undefined} is the "empty" finite partial function that is nowhere defined
 (* applyd tests *)
 
 [<Test>]
-let ``{applyd f g x} returns {f x} is {f} is defined on {x}``() = 
+let ``{applyd f g x} returns {Some (f x)} if {f} is defined on {x}``() =
 
     applyd (1 |=> 2) (fun x -> Some x) 1 // note that |=> is defined later in Lib module
-    |> should equal 2
+    |> should equal (Some 2)
 
 [<Test>]
-let ``{applyd f g x} returns {g x} is {f} is undefined on {x}``() = 
+let ``{applyd f g x} returns {Some (g x)} is {f} if undefined on {x}``() =
 
     applyd undefined (fun x -> Some x) 1
-    |> should equal 1
+    |> should equal (Some 1)
 
 (* apply tests *)
 
 [<Test>]
-let ``{apply f x} returns {f x} if {f} is defined on {x}``() = 
+let ``{apply f x} returns {Some (f x)} if {f} is defined on {x}``() =
 
     apply (1 |=> 2) 1 // note that |=> is defined later in Lib module
-    |> should equal 2
+    |> should equal (Some 2)
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "apply")>]
-let ``{apply f x} fails if {f} is undefined on {x}``() = 
+let ``{apply f x} returns None if {f} is undefined on {x}``() =
 
     apply undefined 1
-    |> ignore
+    |> should equal None
 
 (* tryapplyd tests *)
 
@@ -1768,7 +1768,7 @@ let ``{{x |-> y} f}, if {f} is a finite partial function, gives a modified versi
     let valueAfterModification = apply g 1  // 3
 
     (valueBeforeModification,valueAfterModification)
-    |> should equal (2,3)
+    |> should equal (Some(2),Some(3))
 
 (* (|=>) tests *)
 
@@ -1819,7 +1819,7 @@ let ``{mapf f p} applies the, ordinary, function {f} to all  the range elements 
     let mappedF = mapf string_of_int f
 
     apply mappedF 1
-    |> should equal "2"
+    |> should equal (Some "2")
 
 (* foldl tests *)
 
