@@ -1195,11 +1195,10 @@ let ``{shareout} shares out the elements of the second list according to pattern
     |> should equal [["a"; "b"; "c"]; ["d"; "e"]; ["f"]; ["g"; "h"; "i"]]
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "chop_list")>]
+[<ExpectedException(typeof<System.ArgumentException>, ExpectedMessage = "The number of items to take from the list is greater than the length of the list.\r\nParameter name: count")>]
 let ``{shareout} fails if there are too few elements in the second list``() =
 
-    shareout [[1;2;3]; [4;5]; [6]; [7;8;9]] ["a"; "b"; "c"; "d"; "e"; "f"; "g"]
-    |> should equal [["a"; "b"; "c"]; ["d"; "e"]; ["f"]; ["g"; "h"; "i"]]
+    shareout [[1;2;3]; [4;5]; [6]; [7;8;9]] ["a"; "b"; "c"; "d"; "e"; "f"; "g"] |> ignore
 
 (* do_list tests *)
 
