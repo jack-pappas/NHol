@@ -730,7 +730,7 @@ let REAL_IDEAL_CONV =
 /// Initial normalization and proof reconstruction wrapper for real decision procedure.
 let GEN_REAL_ARITH PROVER =
   GEN_REAL_ARITH
-   (Choice.get << term_of_rat,
+   (term_of_rat,
     REAL_RAT_EQ_CONV,REAL_RAT_GE_CONV,REAL_RAT_GT_CONV,
     REAL_POLY_CONV,REAL_POLY_NEG_CONV,REAL_POLY_ADD_CONV,REAL_POLY_MUL_CONV,
     PROVER)
