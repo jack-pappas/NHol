@@ -731,7 +731,7 @@ let REAL_RING, real_ideal_cofactors =
    let real_ty = (parse_type @"real")
    let ``pure``, ideal =
      RING_AND_IDEAL_CONV
-         (rat_of_term, Choice.get << term_of_rat, REAL_RAT_EQ_CONV, (parse_term @"(--):real->real"), 
+         (rat_of_term, term_of_rat, REAL_RAT_EQ_CONV, (parse_term @"(--):real->real"), 
           (parse_term @"(+):real->real->real"), (parse_term @"(-):real->real->real"), (parse_term @"(inv):real->real"), 
           (parse_term @"(*):real->real->real"), (parse_term @"(/):real->real->real"), (parse_term @"(pow):real->num->real"), 
           REAL_INTEGRAL, REAL_RABINOWITSCH, REAL_POLY_CONV)

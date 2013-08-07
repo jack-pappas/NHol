@@ -441,24 +441,38 @@ let is_intconst tm =
 
 /// Converts an integer literal of type :int to an F# number.
 let dest_intconst tm = 
-    match tm with
-    | Comb(Const("int_of_num", _), n) -> Choice.get <| dest_numeral n
-    | Comb(Const("int_neg", _), Comb(Const("int_of_num", _), n)) -> 
-        let nn = Choice.get <| dest_numeral n
-        if nn <>/ num_0
-        then minus_num(Choice.get <| dest_numeral n)
-        else failwith "dest_intconst"
-    | _ -> failwith "dest_intconst"
+    choice {
+        match tm with
+        | Comb(Const("int_of_num", _), n) -> 
+            return! dest_numeral n
+        | Comb(Const("int_neg", _), Comb(Const("int_of_num", _), n)) -> 
+            let! nn = dest_numeral n
+            if nn <>/ num_0 then 
+                return minus_num nn
+            else 
+                return! Choice.failwith "dest_intconst"
+        | _ -> 
+            return! Choice.failwith "dest_intconst"
+    }
 
 /// Converts an F# number to a canonical integer literal of type :int.
 let mk_intconst = 
     let cast_tm = (parse_term @"int_of_num")
     let neg_tm = (parse_term @"int_neg")
-    let mk_numconst n = Choice.get <| mk_comb(cast_tm, Choice.get <| mk_numeral n)
+    let mk_numconst n = 
+        choice {
+            let! n' = mk_numeral n
+            return! mk_comb(cast_tm, n')
+        }
+
     fun x -> 
-        if x </ num_0
-        then Choice.get <| mk_comb(neg_tm, mk_numconst(minus_num x))
-        else mk_numconst x
+        choice {
+            if x </ num_0 then 
+                let! tm1 = mk_numconst(minus_num x)
+                return! mk_comb(neg_tm, tm1)
+            else 
+                return! mk_numconst x
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* A simple procedure to lift most universal real theorems to integers.      *)
@@ -1378,7 +1392,7 @@ let INT_RING, int_ideal_cofactors =
     let int_ty = (parse_type @"int")
     let ``pure``, ideal = 
         RING_AND_IDEAL_CONV
-            (Choice.result << dest_intconst, mk_intconst, INT_EQ_CONV, 
+            (dest_intconst, mk_intconst, INT_EQ_CONV, 
              (parse_term @"(--):int->int"), (parse_term @"(+):int->int->int"), 
              (parse_term @"(-):int->int->int"), genvar bool_ty, 
              (parse_term @"(*):int->int->int"), genvar bool_ty, 
@@ -1448,10 +1462,10 @@ let INT_DIV_CONV, INT_REM_CONV =
         let k = equo_num x y
         let l = emod_num x y
         let th0 = 
-            INST [mk_intconst x, m
-                  mk_intconst y, n
-                  mk_intconst k, q
-                  mk_intconst l, r] pth
+            INST [Choice.get <| mk_intconst x, m
+                  Choice.get <| mk_intconst y, n
+                  Choice.get <| mk_intconst k, q
+                  Choice.get <| mk_intconst l, r] pth
         let tm0 = Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th0))
         let th1 = (LAND_CONV INT_MUL_CONV
                    |> THENC <| INT_ADD_CONV) tm0
@@ -1464,12 +1478,12 @@ let INT_DIV_CONV, INT_REM_CONV =
     (fun tm -> 
         try 
             let l, r = Choice.get <| dest_binop dtm tm
-            CONJUNCT1(INT_DIVMOD_CONV (dest_intconst l) (dest_intconst r))
+            CONJUNCT1(INT_DIVMOD_CONV (Choice.get <| dest_intconst l) (Choice.get <| dest_intconst r))
         with
         | Failure _ as e -> nestedFailwith e "INT_DIV_CONV"), (fun tm -> 
         try 
             let l, r = Choice.get <| dest_binop mtm tm
-            CONJUNCT2(INT_DIVMOD_CONV (dest_intconst l) (dest_intconst r))
+            CONJUNCT2(INT_DIVMOD_CONV (Choice.get <| dest_intconst l) (Choice.get <| dest_intconst r))
         with
         | Failure _ as e -> nestedFailwith e "INT_MOD_CONV");;
 
