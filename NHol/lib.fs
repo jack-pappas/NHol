@@ -544,14 +544,8 @@ let rec partition p l =
 
 /// Applies a function to every element of a list, returning a list of results for those elements for which application succeeds.
 // OPTIMIZE : Make this an alias for List.choose.
-// Note: In the original HOL Light code, mapfilter would catch all Failures but pass exceptions such as out of memory.
-// To ensure mapfilter uses are converted correctly mapfilter catches all Failures
-// and signals that the F# code probably needs changing.
-let mapfilter f l = 
-    try
-        List.choose f l
-    with
-    | Failure msg -> raise (new System.ApplicationException "The function for List.choose most likely needs to be converted to return option type instead of using exception as control flow.")
+let mapfilter f l =
+    List.choose f l
 
 /// Returns the first element of a list which satisfies a predicate.
 // OPTIMIZE : Make this an alias for List.tryFind.

@@ -697,46 +697,51 @@ let ``{rev_itlist2} fails if the two lists are of different length``() =
 
 (* splitlist tests *)
 
-type exp = 
+type exp =
     | Atom of int
     | And of exp * exp
     with
-    override this.ToString() =  
+    override this.ToString() =
         match this with
-        | Atom x    -> sprintf "Atom (%A)" x 
+        | Atom x    -> sprintf "Atom (%A)" x
         | And (x,y) -> sprintf "And (%A,%A)" x y
 
-let dest_conj x = 
+let dest_conj x =
         match x with
         | And (x1,x2) -> (x1,x2)
         | _           -> failwith("dest_conj: not an And expression")
 
+let dest_conjOption x =
+        match x with
+        | And (x1,x2) -> Some(x1,x2)
+        | _           -> None
+
 [<Test>]
 let ``{splitlist} applies a binary destructor repeatedly in left-associative mode``() = 
 
-    splitlist (Some << dest_conj) (And (And (Atom 5, Atom 6), Atom 2))
+    splitlist dest_conjOption (And (And (Atom 5, Atom 6), Atom 2))
     |> should equal ([And (Atom 5, Atom 6)], Atom 2)
 
 (* rev_splitlist tests *)
 
 [<Test>]
-let ``{rev_splitlist} applies a binary destructor repeatedly in right-associative mode``() = 
+let ``{rev_splitlist} applies a binary destructor repeatedly in right-associative mode``() =
 
-    rev_splitlist (Some << dest_conj) (And (And (Atom 5, Atom 6), Atom 2))
+    rev_splitlist dest_conjOption (And (And (Atom 5, Atom 6), Atom 2))
     |> should equal (Atom 5, [Atom 6;Atom 2])
 
 (* striplist tests *)
 
 [<Test>]
-let ``{striplist} applies a binary destructor repeatedly, flattening the construction tree into a list``() = 
+let ``{striplist} applies a binary destructor repeatedly, flattening the construction tree into a list``() =
 
-    striplist (Some << dest_conj) (And (And (Atom 5,Atom 6), Atom 2))
+    striplist dest_conjOption (And (And (Atom 5,Atom 6), Atom 2))
     |> should equal [Atom 5;Atom 6;Atom 2]
 
 (* nsplit tests *)
 
 [<Test>]
-let ``{nsplit} applies a destructor in right-associative mode a specified number of times``() = 
+let ``{nsplit} applies a destructor in right-associative mode a specified number of times``() =
 
     nsplit dest_conj [1;2;3] (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4))))
     |> should equal ([Atom 1;Atom 2;Atom 3], Atom 4)
@@ -890,15 +895,6 @@ let ``{mapfilter} applies a function to every element of a list, returning a lis
 
     mapfilter fHd [[1;2;3];[4;5];[];[6;7;8];[]]
     |> should equal [1; 4; 6]
-
-[<Test>]
-[<ExpectedException(typeof<System.ApplicationException>, ExpectedMessage = "The function for List.choose most likely needs to be converted to return option type instead of using exception as control flow.")>]
-let ``{mapfilter} fails with a conversion message if an exception is used as a control flow``() =
-
-    let fHd l =
-        failwith "fHd"
-
-    mapfilter fHd [[1;2;3];[4;5];[];[6;7;8];[]] |> ignore
 
 (* find tests *)
 
