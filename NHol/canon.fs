@@ -954,6 +954,7 @@ let CONDS_ELIM_CONV, CONDS_CELIM_CONV =
         choice {
             match tm with
             | Comb(s, t) -> 
+                // NOTE: Choice.get is safe to use here
                 if is_cond tm && intersect (frees(Choice.get <| lhand s)) fvs = [] then 
                     return tm
                 else 
@@ -1095,6 +1096,7 @@ let (ASM_FOL_TAC : tactic) =
                 mapfilter (Choice.toOption << getmin) hops
             else 
                 map (fun t -> 
+                    // It's safe to use Choice.get here
                     if is_const t && fst(Choice.get <| dest_const t) = "=" then t, 2
                     else t, 0) (setify(map fst (vheads @ cheads)))
         FOL_CONV hddata

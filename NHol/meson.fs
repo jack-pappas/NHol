@@ -896,6 +896,7 @@ let GEN_MESON_TAC =
         fun tms -> 
             choice {
                 let! preds, funs = Choice.List.fold (fun acc x -> fm_consts x acc) ([], []) tms
+                // NOTE: review this function
                 let! eqs0, noneqs = Choice.List.partition (fun (t, _) -> dest_const t |> Choice.map (fun (s, _) -> is_const t && s = "=")) preds
                 if eqs0 = [] then 
                     return []
@@ -904,10 +905,11 @@ let GEN_MESON_TAC =
                     let fcongs = map (create_congruence_axiom false) funs
                     let! tms1 = Choice.List.map (Choice.map concl) (pcongs @ fcongs)
                     let! preds1, _ = Choice.List.fold (fun acc x -> fm_consts x acc) ([], []) tms1
-                    let eqs1 = filter (fun (t, _) -> 
-                                    match dest_const t with
-                                    | Success (s, _) -> is_const t && s = "="
-                                    | Error _ -> false) preds1
+                    let! eqs1 = Choice.List.filter (fun (t, _) -> 
+                                    choice {
+                                        let! (s, _) = dest_const t
+                                        return is_const t && s = "="
+                                    }) preds1
 
                     let eqs = union eqs0 eqs1
                     let equivs = itlist (union' equals_thm << Choice.get << create_equivalence_axioms) eqs []
@@ -1024,6 +1026,7 @@ let GEN_MESON_TAC =
             }
 
         fun ths -> 
+            // NOTE: review this
             if exists (function Success th -> (Choice.isResult << find_term is_eq << concl) th
                               | Error _ -> false) ths then 
                 let ths' = map BRAND_CONGS ths

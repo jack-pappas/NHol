@@ -681,13 +681,14 @@ let RING_AND_IDEAL_CONV =
         let holify_monomial vars (c, m) = 
           choice {
             let! xps = Choice.List.map holify_varpow (filter (fun (_, n) -> n <> 0) (zip vars m))
-            return! Choice.List.reduceBack ring_mk_mul (ring_mk_const c :: xps)
+            let! xp = ring_mk_const c
+            return! Choice.List.reduceBack ring_mk_mul (xp :: xps)
           }
 
         let holify_polynomial vars p = 
           choice {
             if p = [] then 
-                return ring_mk_const(num_0)
+                return! ring_mk_const num_0
             else
                 let! ns = Choice.List.map (holify_monomial vars) p 
                 return! Choice.List.reduceBack ring_mk_add ns
@@ -701,7 +702,9 @@ let RING_AND_IDEAL_CONV =
 
     let PROVE_NZ n = 
         choice {
-            let! tm = mk_eq(ring_mk_const n, ring_mk_const(num_0))
+            let! l = ring_mk_const n
+            let! r = ring_mk_const num_0
+            let! tm = mk_eq(l, r)
             return! EQF_ELIM(RING_EQ_CONV tm)
         }
     
@@ -811,7 +814,8 @@ let RING_AND_IDEAL_CONV =
                 let thm_fn pols = 
                     choice {
                         if pols = [] then 
-                            return! REFL(ring_mk_const num_0)
+                            let! tm1 = ring_mk_const num_0
+                            return! REFL tm1
                         else 
                             let! tms = Choice.List.map (fun (i, p) -> 
                                         choice {
@@ -896,6 +900,7 @@ let NUM_SIMPLIFY_CONV =
     let q_tm = (parse_term @"P:num->num->bool")
     let a_tm = (parse_term @"a:num")
     let b_tm = (parse_term @"b:num")
+    // It's safe to use Choice.get here
     let is_pre tm = is_comb tm && Choice.get <| rator tm = pre_tm
     let is_sub = is_binop(parse_term @"(-):num->num->num")
     let is_divmod = 
@@ -1027,7 +1032,7 @@ let NUM_RING =
 
     let rawring = 
         RING
-            (dest_numeral, Choice.get << mk_numeral, NUM_EQ_CONV, genvar bool_ty, 
+            (dest_numeral, mk_numeral, NUM_EQ_CONV, genvar bool_ty, 
              (parse_term @"(+):num->num->num"), genvar bool_ty, genvar bool_ty, (parse_term @"(*):num->num->num"), 
              genvar bool_ty, (parse_term @"(EXP):num->num->num"), NUM_INTEGRAL, TRUTH, NUM_NORMALIZE_CONV)
 

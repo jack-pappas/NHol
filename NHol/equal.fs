@@ -531,7 +531,7 @@ let CACHE_CONV (conv : conv) : conv =
                 | Success n ->
                     net := n
                 | Error ex ->
-                    // NOTE: currently doing nothing in case of error
+                    // NOTE: currently do nothing in case of error
                     System.Diagnostics.Debug.WriteLine "An unhandled error occurred in CACHE_CONV."
                     System.Diagnostics.Debug.WriteLine ("Message: " + ex.Message)
                     ()

@@ -59,10 +59,17 @@ let dest_fun_ty ty : Protected<hol_type * hol_type> =
 
 /// Tests if one type occurs in another.
 let rec occurs_in ty bigty =
-    match dest_type bigty with
-    | Success(_, ty0) ->
-        bigty = ty || is_type bigty && exists (occurs_in ty) ty0
-    | Error _ -> false
+    choice {
+        // In order to preserve original behaviour, this function now returns Protected<bool>
+        let! (_, tys0) = dest_type bigty
+        // Interpret the condition as a || (b && c)
+        if bigty = ty then
+            return true
+        elif not (is_type bigty) then
+            return false
+        else
+            return! Choice.List.exists (occurs_in ty) tys0
+    }
 
 /// The call tysubst [ty1',ty1; ... ; tyn',tyn] ty will systematically traverse the type ty
 /// and replace the topmost instances of any tyi encountered with the corresponding tyi'.
@@ -228,8 +235,7 @@ let subst : (term * term) list -> term -> Protected<term> =
                 choice {
                 let! variables_tm = variables tm
                 // CLEAN : Rename this value to something sensible.
-                // TODO : This should be reworked to use Choice.List.map.
-                let foo1 = map (genvar << Choice.get << type_of) xs
+                let! foo1 = Choice.List.map (Choice.map genvar << type_of) xs
                 let! gs = variants variables_tm foo1
                 let! tm' = ssubst (zip gs xs) tm
                 if tm' == tm then return tm
@@ -248,7 +254,8 @@ let alpha v tm : Protected<term> =
         let! (v0, bod) = 
             dest_abs tm 
             |> Choice.mapError (fun e -> nestedFailure e "alpha: Not an abstraction")
-        if v = v0 then return tm
+        if v = v0 then 
+            return tm
         else
             let! ty = type_of v
             let! ty0 = type_of v0
@@ -278,8 +285,7 @@ let rec type_match vty cty sofar : Protected<(hol_type * hol_type) list> =
         let! vop, vargs = dest_type vty
         let! cop, cargs = dest_type cty
         if vop = cop then
-            // TODO : Change to use Choice.List.foldBack2 from ExtCore.
-            return itlist2 (fun x y z -> Choice.get <| type_match x y z) vargs cargs sofar
+            return! Choice.List.foldBack2 (fun x y acc -> type_match x y acc) vargs cargs sofar
         else
             return! Choice.failwith "type_match"
     }
@@ -354,6 +360,7 @@ let thm_frees th =
 
 /// Tests if one term is free in another.
 let rec free_in tm1 tm2 = 
+    // NOTE: this function should be lifted to Protected<bool>
     if aconv tm1 tm2 then true
     elif is_comb tm2 then
         match dest_comb tm2 with
@@ -524,10 +531,12 @@ let disjuncts = striplist (Choice.toOption << dest_disj)
 
 /// Tests a term to see if it is a logical negation.
 let is_neg tm =
-    let v = rator tm |> Choice.bind dest_const
-    match v with
-    | Success("~", _) -> true
-    | _ -> false
+    choice {
+        let! tm1 = rator tm
+        let! (s, _) = dest_const tm1
+        return s = "~"
+    }
+    |> Choice.fill false
 
 /// Breaks apart a negation, returning its body.
 let dest_neg tm : Protected<term> =
@@ -553,14 +562,15 @@ let is_cons = is_binary "CONS"
 
 /// Iteratively breaks apart a list term.
 let dest_list tm : Protected<term list> =
-    let tms, nil = splitlist (Choice.toOption << dest_cons) tm
-    match dest_const nil with
-    | Success("NIL", _) ->
-        Choice.result tms
-    | Success(_,_) ->
-        Choice.failwith "dest_list"
-    | Error ex ->
-        Choice.nestedFailwith ex "dest_list"
+    choice { 
+        let tms, nil = splitlist (Choice.toOption << dest_cons) tm
+        let! (s, _) = dest_const nil
+        if s = "NIL" then 
+            return tms
+        else 
+            return! Choice.fail()
+    }
+    |> Choice.mapError (fun e -> nestedFailure e "dest_list")
 
 /// Tests a term to see if it is a list.
 let is_list x =
@@ -575,9 +585,12 @@ let dest_numeral : term -> Protected<Num> =
     let rec dest_num tm = 
         choice {
             let b = 
-                match dest_const tm with
-                | Success(s, _) -> s = "_0"
-                | Error _ -> false
+                choice {
+                    let! (s, _) = dest_const tm
+                    return s = "_0"
+                }
+                |> Choice.fill false
+
             if b then 
                 return num_0
             else 

@@ -476,9 +476,14 @@ let COND_CLAUSES =
 
 /// Tests a term to see if it is a conditional.
 let is_cond tm = 
-    match (Choice.bind dest_const << Choice.bind rator << Choice.bind rator) (rator tm) with
-    | Success("COND", _) -> true
-    | _ -> false
+    choice {
+        let! tm1 = rator tm
+        let! tm2 = rator tm1
+        let! tm3 = rator tm2
+        let! (s, _) = dest_const tm3
+        return s = "COND"
+    }
+    |> Choice.fill false
 
 /// Constructs a conditional term.
 let mk_cond(b, x, y) = 
@@ -550,6 +555,7 @@ let COND_ABS =
 let (TAUT : conv) =
     let PROP_REWRITE_TAC = REWRITE_TAC []
     let RTAUT_TAC(asl, w) = 
+        // NOTE: rewrite this function
         let ok t =
             Choice.get <| type_of t = bool_ty && Choice.isResult <| find_term is_var t && free_in t w
 

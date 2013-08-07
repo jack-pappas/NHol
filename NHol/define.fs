@@ -727,8 +727,9 @@ let instantiate_casewise_recursion,
              let th = EACK_PROFORMA n SUPERADMISSIBLE_MATCH_GUARDED_PATTERN
              (APPLY_PROFORMA_TAC th |>THEN<| CONJ_TAC |>THENL<|
                [SIMPLIFY_MATCH_WELLDEFINED_TAC; ALL_TAC]) gl
-    | "superadmissible",_ when is_comb bod && Choice.get <| rator bod = f
-          -> APPLY_PROFORMA_TAC SUPERADMISSIBLE_TAIL gl
+    // Choice.get is safe to use after is_*
+    | "superadmissible",_ when is_comb bod && Choice.get <| rator bod = f -> 
+             APPLY_PROFORMA_TAC SUPERADMISSIBLE_TAIL gl
     | "admissible","sum"
           -> APPLY_PROFORMA_TAC ADMISSIBLE_SUM gl
     | "admissible","nsum"
@@ -747,8 +748,9 @@ let instantiate_casewise_recursion,
           -> APPLY_PROFORMA_TAC ADMISSIBLE_GUARDED_PATTERN gl
     | "admissible",_ when is_abs bod
           -> APPLY_PROFORMA_TAC ADMISSIBLE_LAMBDA gl
-    | "admissible",_ when is_comb bod && Choice.get <| rator bod = f
-          -> if free_in f (Choice.get <| rand bod) then
+    // Choice.get is safe to use after is_*
+    | "admissible",_ when is_comb bod && Choice.get <| rator bod = f -> 
+            if free_in f (Choice.get <| rand bod) then
                APPLY_PROFORMA_TAC ADMISSIBLE_NEST gl
              else
                APPLY_PROFORMA_TAC ADMISSIBLE_BASE gl

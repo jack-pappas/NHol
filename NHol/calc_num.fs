@@ -594,9 +594,11 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
       let rec dest_raw_numeral tm =
         choice {
             let b = 
-                match dest_const tm with
-                | Success(s, _) -> s = "_0"
-                | Error _ -> false
+                choice {
+                    let! (s, _) = dest_const tm
+                    return s = "_0"
+                }
+                |> Choice.fill false
 
             if b then 
                 return Int 0

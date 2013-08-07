@@ -3129,8 +3129,8 @@ let dest_setenum =
     let fn = splitlist(Choice.toOption << dest_binary "INSERT")
     fun tm -> 
         let l, n = fn tm
-        if is_const n && fst(Choice.get <| dest_const n) = "EMPTY"
-        then l
+        // It's safe to call Choice.get here
+        if is_const n && fst(Choice.get <| dest_const n) = "EMPTY" then l
         else failwith "dest_setenum: not a finite set enumeration"
 
 /// Tests if a term is a set enumeration.
