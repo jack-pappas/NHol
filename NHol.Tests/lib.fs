@@ -1673,13 +1673,12 @@ let ``{decreasing f} returns a binary function ordering elements in a call {decr
 (* undefined tests *)
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "apply")>]
 let ``{undefined} is the "empty" finite partial function that is nowhere defined``() =
 
-    let it = (undefined:func<string,string>)
+    // i.e. let undefined = Empty
 
-    apply it "anything" // note that apply is defined later in Lib module
-    |> ignore
+    apply undefined "anything" // note that apply is defined later in Lib module
+    |> should equal None
 
 (* applyd tests *)
 
