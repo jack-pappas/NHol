@@ -27,6 +27,7 @@ open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
 open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open lib
@@ -194,21 +195,25 @@ let REAL_RAT_LE_CONV =
     let x2 = (parse_term @"x2:real")
     let y1 = (parse_term @"y1:real")
     let y2 = (parse_term @"y2:real")
-    let dest_le = Choice.get << dest_binop(parse_term @"(<=)")
-    let dest_div = Choice.get << dest_binop(parse_term @"(/)")
+    let dest_le = dest_binop(parse_term @"(<=)")
+    let dest_div = dest_binop(parse_term @"(/)")
     let RAW_REAL_RAT_LE_CONV tm = 
-        let l, r = dest_le tm
-        let lx, ly = dest_div l
-        let rx, ry = dest_div r
-        let th0 = 
-            INST [lx, x1
-                  ly, y1
-                  rx, x2
-                  ry, y2] pth
-        let th1 = funpow 2 (MP_CONV REAL_INT_LT_CONV) th0
-        let th2 = (BINOP_CONV REAL_INT_MUL_CONV
-                   |> THENC <| REAL_INT_LE_CONV)(Choice.get <| rand(concl <| Choice.get th1))
-        TRANS th1 th2
+        choice {
+            let! l, r = dest_le tm
+            let! lx, ly = dest_div l
+            let! rx, ry = dest_div r
+            let th0 = 
+                INST [lx, x1;
+                      ly, y1;
+                      rx, x2;
+                      ry, y2] pth
+            let! th1 = funpow 2 (MP_CONV REAL_INT_LT_CONV) th0
+            let! tm1 = rand(concl th1)
+            let th2 = (BINOP_CONV REAL_INT_MUL_CONV
+                       |> THENC <| REAL_INT_LE_CONV) tm1
+            return! TRANS (Choice.result th1) th2
+        }
+
     BINOP_CONV REAL_INT_RAT_CONV
     |> THENC <| RAW_REAL_RAT_LE_CONV
 
@@ -225,22 +230,27 @@ let REAL_RAT_LT_CONV =
     let x2 = (parse_term @"x2:real")
     let y1 = (parse_term @"y1:real")
     let y2 = (parse_term @"y2:real")
-    let dest_lt = Choice.get << dest_binop(parse_term @"(<)")
-    let dest_div = Choice.get << dest_binop(parse_term @"(/)")
+
+    let dest_lt = dest_binop(parse_term @"(<)")
+    let dest_div = dest_binop(parse_term @"(/)")
 
     let RAW_REAL_RAT_LT_CONV tm = 
-        let l, r = dest_lt tm
-        let lx, ly = dest_div l
-        let rx, ry = dest_div r
-        let th0 = 
-            INST [lx, x1
-                  ly, y1
-                  rx, x2
-                  ry, y2] pth
-        let th1 = funpow 2 (MP_CONV REAL_INT_LT_CONV) th0
-        let th2 = (BINOP_CONV REAL_INT_MUL_CONV
-                   |> THENC <| REAL_INT_LT_CONV)(Choice.get <| rand(concl <| Choice.get th1))
-        TRANS th1 th2
+        choice {
+            let! l, r = dest_lt tm
+            let! lx, ly = dest_div l
+            let! rx, ry = dest_div r
+            let th0 = 
+                INST [lx, x1;
+                      ly, y1;
+                      rx, x2;
+                      ry, y2] pth
+            let! th1 = funpow 2 (MP_CONV REAL_INT_LT_CONV) th0
+            let! tm1 = rand(concl th1)
+            let th2 = (BINOP_CONV REAL_INT_MUL_CONV
+                       |> THENC <| REAL_INT_LT_CONV) tm1
+            return! TRANS (Choice.result th1) th2
+        }
+
     BINOP_CONV REAL_INT_RAT_CONV
     |> THENC <| RAW_REAL_RAT_LT_CONV
 
@@ -263,21 +273,27 @@ let REAL_RAT_EQ_CONV =
     let x2 = (parse_term @"x2:real")
     let y1 = (parse_term @"y1:real")
     let y2 = (parse_term @"y2:real")
-    let dest_eq = Choice.get << dest_binop(parse_term @"(=) :real->real->bool")
-    let dest_div = Choice.get << dest_binop(parse_term @"(/)")
+
+    let dest_eq = dest_binop(parse_term @"(=) :real->real->bool")
+    let dest_div = dest_binop(parse_term @"(/)")
+
     let RAW_REAL_RAT_EQ_CONV tm = 
-        let l, r = dest_eq tm
-        let lx, ly = dest_div l
-        let rx, ry = dest_div r
-        let th0 = 
-            INST [lx, x1
-                  ly, y1
-                  rx, x2
-                  ry, y2] pth
-        let th1 = funpow 2 (MP_CONV REAL_INT_LT_CONV) th0
-        let th2 = (BINOP_CONV REAL_INT_MUL_CONV
-                   |> THENC <| REAL_INT_EQ_CONV)(Choice.get <| rand(concl <| Choice.get th1))
-        TRANS th1 th2
+        choice {
+            let! l, r = dest_eq tm
+            let! lx, ly = dest_div l
+            let! rx, ry = dest_div r
+            let th0 = 
+                INST [lx, x1;
+                      ly, y1;
+                      rx, x2;
+                      ry, y2] pth
+            let! th1 = funpow 2 (MP_CONV REAL_INT_LT_CONV) th0
+            let! tm1 = rand(concl th1)
+            let th2 = (BINOP_CONV REAL_INT_MUL_CONV
+                       |> THENC <| REAL_INT_EQ_CONV) tm1
+            return! TRANS (Choice.result th1) th2
+        }
+
     BINOP_CONV REAL_INT_RAT_CONV
     |> THENC <| RAW_REAL_RAT_EQ_CONV
 
@@ -304,6 +320,7 @@ let REAL_RAT_NEG_CONV =
         |> Choice.bindError (fun _ -> 
             choice { 
                 let! l, r = dest_comb tm
+                // It's safe to use Choice.get here
                 if l = ptm && is_realintconst r && Choice.get (dest_realintconst r) >/ num_0 then 
                     return! REFL tm
                 else 
@@ -373,8 +390,9 @@ let REAL_RAT_ADD_CONV =
                   |> THEN <| ASM_REWRITE_TAC []
                   DISCH_THEN(fun th -> ASM_REWRITE_TAC [MATCH_MP RAT_LEMMA5 th])])
 
-  let dest_divop = Choice.get << dest_binop(parse_term @"(/)")
-  let dest_addop = Choice.get << dest_binop(parse_term @"(+)")
+  let dest_divop = dest_binop(parse_term @"(/)")
+  let dest_addop = dest_binop(parse_term @"(+)")
+
   let x1 = (parse_term @"x1:real")
   let x2 = (parse_term @"x2:real")
   let x3 = (parse_term @"x3:real")
@@ -384,9 +402,9 @@ let REAL_RAT_ADD_CONV =
 
   let RAW_REAL_RAT_ADD_CONV tm = 
     choice {
-         let r1, r2 = dest_addop tm
-         let x1', y1' = dest_divop r1
-         let x2', y2' = dest_divop r2
+         let! r1, r2 = dest_addop tm
+         let! x1', y1' = dest_divop r1
+         let! x2', y2' = dest_divop r2
          let! x1n = dest_realintconst x1'
          let! y1n = dest_realintconst y1'
          let! x2n = dest_realintconst x2'
@@ -408,14 +426,15 @@ let REAL_RAT_ADD_CONV =
                    y2', y2;
                    x3', x3;
                    y3', y3] pth
-         let th1 = funpow 3 (MP_CONV REAL_INT_LT_CONV) th0
-         let tm2, tm3 = Choice.get <| dest_eq(fst(Choice.get <| dest_imp(concl <| Choice.get th1)))
+         let! th1 = funpow 3 (MP_CONV REAL_INT_LT_CONV) th0
+         let! (tm1, _) = dest_imp(concl th1) 
+         let! tm2, tm3 = dest_eq tm1
          let th2 = (LAND_CONV(BINOP_CONV REAL_INT_MUL_CONV
                               |> THENC <| REAL_INT_ADD_CONV)
                     |> THENC <| REAL_INT_MUL_CONV) tm2
          let th3 = (RAND_CONV REAL_INT_MUL_CONV
                     |> THENC <| REAL_INT_MUL_CONV) tm3
-         return! MP th1 (TRANS th2 (SYM th3))
+         return! MP (Choice.result th1) (TRANS th2 (SYM th3))
     }
 
   BINOP_CONV REAL_INT_RAT_CONV
@@ -471,50 +490,54 @@ let REAL_RAT_MUL_CONV =
 
     let RAW_REAL_RAT_MUL_CONV tm = 
         choice {
-        let r1, r2 = dest_mulop tm
-        let x1', y1' = dest_divop r1
-        let x2', y2' = dest_divop r2
-        let! x1n = dest_realintconst x1'
-        let! y1n = dest_realintconst y1'
-        let! x2n = dest_realintconst x2'
-        let! y2n = dest_realintconst y2'
-        let d1n = gcd_num x1n y2n
-        let d2n = gcd_num x2n y1n
-        if d1n = num_1 && d2n = num_1 then 
-            let th0 = 
-                INST [x1', x1;
-                      y1', y1;
-                      x2', x2;
-                      y2', y2] pth_nocancel
-            let th1 = BINOP_CONV REAL_INT_MUL_CONV (Choice.get <| rand(concl <| Choice.get th0))
-            return! TRANS th0 th1
-        else 
-            let u1n = quo_num x1n d1n
-            let u2n = quo_num x2n d2n
-            let v1n = quo_num y1n d2n
-            let v2n = quo_num y2n d1n
-            let! u1' = mk_realintconst u1n
-            let! u2' = mk_realintconst u2n
-            let! v1' = mk_realintconst v1n
-            let! v2' = mk_realintconst v2n
-            let! d1' = mk_realintconst d1n
-            let! d2' = mk_realintconst d2n
-            let th0 = 
-                INST [x1', x1;
-                      y1', y1;
-                      x2', x2;
-                      y2', y2;
-                      u1', u1;
-                      v1', v1;
-                      u2', u2;
-                      v2', v2;
-                      d1', d1;
-                      d2', d2] pth_cancel
-            let th1 = EQT_ELIM(REAL_INT_REDUCE_CONV(Choice.get <| lhand(concl <| Choice.get th0)))
-            let th2 = MP th0 th1
-            let th3 = BINOP_CONV REAL_INT_MUL_CONV (Choice.get <| rand(concl <| Choice.get th2))
-            return! TRANS th2 th3
+            let r1, r2 = dest_mulop tm
+            let x1', y1' = dest_divop r1
+            let x2', y2' = dest_divop r2
+            let! x1n = dest_realintconst x1'
+            let! y1n = dest_realintconst y1'
+            let! x2n = dest_realintconst x2'
+            let! y2n = dest_realintconst y2'
+            let d1n = gcd_num x1n y2n
+            let d2n = gcd_num x2n y1n
+            if d1n = num_1 && d2n = num_1 then 
+                let! th0 = 
+                    INST [x1', x1;
+                          y1', y1;
+                          x2', x2;
+                          y2', y2] pth_nocancel
+                let! tm1 = rand(concl th0)
+                let th1 = BINOP_CONV REAL_INT_MUL_CONV tm1
+                return! TRANS (Choice.result th0) th1
+            else 
+                let u1n = quo_num x1n d1n
+                let u2n = quo_num x2n d2n
+                let v1n = quo_num y1n d2n
+                let v2n = quo_num y2n d1n
+                let! u1' = mk_realintconst u1n
+                let! u2' = mk_realintconst u2n
+                let! v1' = mk_realintconst v1n
+                let! v2' = mk_realintconst v2n
+                let! d1' = mk_realintconst d1n
+                let! d2' = mk_realintconst d2n
+                let! th0 = 
+                    INST [x1', x1;
+                          y1', y1;
+                          x2', x2;
+                          y2', y2;
+                          u1', u1;
+                          v1', v1;
+                          u2', u2;
+                          v2', v2;
+                          d1', d1;
+                          d2', d2] pth_cancel
+                let! tm1 = lhand(concl th0)
+                let th1 = EQT_ELIM(REAL_INT_REDUCE_CONV tm1)
+                let! th2 = MP (Choice.result th0) th1
+                let! tm2 = rand(concl th2)
+                let th3 = BINOP_CONV REAL_INT_MUL_CONV tm2
+                return! TRANS (Choice.result th2) th3
         }
+
     BINOP_CONV REAL_INT_RAT_CONV
     |> THENC <| RAW_REAL_RAT_MUL_CONV
     |> THENC <| TRY_CONV(GEN_REWRITE_CONV I [REAL_DIV_1])
@@ -568,7 +591,7 @@ let REAL_RAT_MIN_CONV =
 /// Performs one arithmetic or relational operation on rational literals of type :real.
 let REAL_RAT_RED_CONV = 
     let gconv_net = 
-        itlist (uncurry (fun x y -> Choice.get << net_of_conv x y)) 
+        Choice.List.fold (fun acc (term, conv) -> net_of_conv term conv acc) (basic_net())
                                      [(parse_term @"x <= y"), REAL_RAT_LE_CONV;
                                       (parse_term @"x < y"), REAL_RAT_LT_CONV;
                                       (parse_term @"x >= y"), REAL_RAT_GE_CONV;
@@ -584,8 +607,13 @@ let REAL_RAT_RED_CONV =
                                       (parse_term @"x pow n"), REAL_RAT_POW_CONV;
                                       (parse_term @"max x y"), REAL_RAT_MAX_CONV;
                                       (parse_term @"min x y"), REAL_RAT_MIN_CONV] 
-            (basic_net())
-    REWRITES_CONV gconv_net
+    
+    // NOTE: add this argument to propagate errors
+    fun tm ->   
+        choice {    
+            let! gconv_net = gconv_net
+            return! REWRITES_CONV gconv_net tm
+        }
 
 /// Evaluate subexpressions built up from rational literals of type :real, by proof.
 let REAL_RAT_REDUCE_CONV = DEPTH_CONV REAL_RAT_RED_CONV
@@ -622,35 +650,49 @@ let REAL_POLY_CONV =
     let max_tm = (parse_term @"max:real->real->real")
     let min_tm = (parse_term @"min:real->real->real")
     let div_conv = REWR_CONV real_div
+
     let rec REAL_POLY_CONV tm = 
-        if not(is_comb tm) || is_ratconst tm then REFL tm
-        else 
-            let lop, r = Choice.get <| dest_comb tm
-            if lop = neg_tm then 
-                let th1 = AP_TERM lop (REAL_POLY_CONV r)
-                TRANS th1 (REAL_POLY_NEG_CONV(Choice.get <| rand(concl <| Choice.get th1)))
-            elif lop = inv_tm then 
-                let th1 = AP_TERM lop (REAL_POLY_CONV r)
-                TRANS th1 (TRY_CONV REAL_RAT_INV_CONV (Choice.get <| rand(concl <| Choice.get th1)))
-            elif lop = abs_tm then AP_TERM lop (REAL_POLY_CONV r)
-            elif not(is_comb lop) then REFL tm
+        choice {
+            if not(is_comb tm) || is_ratconst tm then 
+                return! REFL tm
             else 
-                let op, l = Choice.get <| dest_comb lop
-                if op = pow_tm then 
-                    let th1 = AP_THM (AP_TERM op (REAL_POLY_CONV l)) r
-                    TRANS th1 (TRY_CONV REAL_POLY_POW_CONV (Choice.get <| rand(concl <| Choice.get th1)))
-                elif op = add_tm || op = mul_tm || op = sub_tm then 
-                    let th1 = MK_COMB(AP_TERM op (REAL_POLY_CONV l), REAL_POLY_CONV r)
-                    let fn = 
-                        if op = add_tm then REAL_POLY_ADD_CONV
-                        elif op = mul_tm then REAL_POLY_MUL_CONV
-                        else REAL_POLY_SUB_CONV
-                    TRANS th1 (fn(Choice.get <| rand(concl <| Choice.get th1)))
-                elif op = div_tm then 
-                    let th1 = div_conv tm
-                    TRANS th1 (REAL_POLY_CONV(Choice.get <| rand(concl <| Choice.get th1)))
-                elif op = min_tm || op = max_tm then MK_COMB(AP_TERM op (REAL_POLY_CONV l), REAL_POLY_CONV r)
-                else REFL tm
+                let! lop, r = dest_comb tm
+                if lop = neg_tm then 
+                    let! th1 = AP_TERM lop (REAL_POLY_CONV r)
+                    let! tm1 = rand(concl th1)
+                    return! TRANS (Choice.result th1) (REAL_POLY_NEG_CONV tm1)
+                elif lop = inv_tm then 
+                    let! th1 = AP_TERM lop (REAL_POLY_CONV r)
+                    let! tm1 = rand(concl th1)
+                    return! TRANS (Choice.result th1) (TRY_CONV REAL_RAT_INV_CONV tm1)
+                elif lop = abs_tm then 
+                    return! AP_TERM lop (REAL_POLY_CONV r)
+                elif not(is_comb lop) then 
+                    return! REFL tm
+                else 
+                    let! op, l = dest_comb lop
+                    if op = pow_tm then 
+                        let! th1 = AP_THM (AP_TERM op (REAL_POLY_CONV l)) r
+                        let! tm1 = rand(concl th1)
+                        return! TRANS (Choice.result th1) (TRY_CONV REAL_POLY_POW_CONV tm1)
+                    elif op = add_tm || op = mul_tm || op = sub_tm then 
+                        let! th1 = MK_COMB(AP_TERM op (REAL_POLY_CONV l), REAL_POLY_CONV r)
+                        let fn = 
+                            if op = add_tm then REAL_POLY_ADD_CONV
+                            elif op = mul_tm then REAL_POLY_MUL_CONV
+                            else REAL_POLY_SUB_CONV
+                        let! tm1 = rand(concl th1)
+                        return! TRANS (Choice.result th1) (fn tm1)
+                    elif op = div_tm then 
+                        let! th1 = div_conv tm
+                        let! tm1 = rand(concl th1)
+                        return! TRANS (Choice.result th1) (REAL_POLY_CONV tm1)
+                    elif op = min_tm || op = max_tm then 
+                        return! MK_COMB(AP_TERM op (REAL_POLY_CONV l), REAL_POLY_CONV r)
+                    else 
+                        return! REFL tm
+        }
+
     REAL_POLY_CONV
 
 (* ------------------------------------------------------------------------- *)
@@ -659,7 +701,7 @@ let REAL_POLY_CONV =
 
 // REAL_RING: Ring decision procedure instantiated to real numbers.
 // real_ideal_cofactors: Produces cofactors proving that one real polynomial is in the ideal generated by others.
-let REAL_RING,real_ideal_cofactors =
+let REAL_RING, real_ideal_cofactors =
    let REAL_INTEGRAL = 
    #if BUGGY
      prove((parse_term @"(!x. &0 * x = &0) /\
@@ -686,19 +728,32 @@ let REAL_RING,real_ideal_cofactors =
                                    REAL_ARITH(parse_term @"~(&1 = &0)")])
 
    let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
-   let real_ty = (parse_type @"real") in
-   let ``pure``,ideal =
+   let real_ty = (parse_type @"real")
+   let ``pure``, ideal =
      RING_AND_IDEAL_CONV
          (rat_of_term, Choice.get << term_of_rat, REAL_RAT_EQ_CONV, (parse_term @"(--):real->real"), 
           (parse_term @"(+):real->real->real"), (parse_term @"(-):real->real->real"), (parse_term @"(inv):real->real"), 
           (parse_term @"(*):real->real->real"), (parse_term @"(/):real->real->real"), (parse_term @"(pow):real->num->real"), 
           REAL_INTEGRAL, REAL_RABINOWITSCH, REAL_POLY_CONV)
+
    (fun tm -> 
-     let th = init tm
-     EQ_MP (SYM th) (``pure``(Choice.get <| rand(concl <| Choice.get th)))),
+        choice {
+            let! th = init tm
+            let! tm1 = rand(concl th)
+            return! EQ_MP (SYM (Choice.result th)) (``pure`` tm1)
+        }),
    (fun tms tm -> 
-       if forall (fun t -> Choice.get <| type_of t = real_ty) (tm :: tms) then Choice.get <| ideal tms tm
-       else failwith "real_ideal_cofactors: not all terms have type :real")
+        choice {
+           let! b = Choice.List.forall (fun t -> 
+                        choice {
+                            let! ty1 = type_of t
+                            return ty1 = real_ty
+                         }) (tm :: tms)
+           if b then 
+               return! ideal tms tm
+           else 
+               return! Choice.failwith "real_ideal_cofactors: not all terms have type :real"
+        })
 
 (* ------------------------------------------------------------------------- *)
 (* Conversion for ideal membership.                                          *)
@@ -706,14 +761,17 @@ let REAL_RING,real_ideal_cofactors =
 
 /// Produces identity proving ideal membership over the reals.
 let REAL_IDEAL_CONV =
-   let mk_add = fun x -> Choice.get << mk_binop (parse_term @"( + ):real->real->real") x
-   let mk_mul = fun x -> Choice.get << mk_binop (parse_term @"( * ):real->real->real") x
-   fun tms tm ->
-     let cfs = real_ideal_cofactors tms tm
-     let tm' = end_itlist mk_add (map2 mk_mul cfs tms)
-     let th = REAL_POLY_CONV tm 
-     let th' = REAL_POLY_CONV tm'
-     TRANS th (SYM th')
+   let mk_add = mk_binop (parse_term @"( + ):real->real->real")
+   let mk_mul = mk_binop (parse_term @"( * ):real->real->real")
+   fun tms tm -> 
+       choice {
+           let! cfs = real_ideal_cofactors tms tm
+           let! tms = Choice.List.map2 mk_mul cfs tms
+           let! tm' = Choice.List.reduceBack mk_add tms
+           let th = REAL_POLY_CONV tm
+           let th' = REAL_POLY_CONV tm'
+           return! TRANS th (SYM th')
+       }
 
 (* ------------------------------------------------------------------------- *)
 (* Further specialize GEN_REAL_ARITH and REAL_ARITH (final versions).        *)
@@ -731,9 +789,13 @@ let GEN_REAL_ARITH PROVER =
 let REAL_ARITH =
   let init = GEN_REWRITE_CONV ONCE_DEPTH_CONV [DECIMAL]
   let ``pure`` = GEN_REAL_ARITH REAL_LINEAR_PROVER
+
   fun tm -> 
-    let th = init tm 
-    EQ_MP (SYM th) (``pure``(Choice.get <| rand(concl <| Choice.get th)))
+      choice {
+          let! th = init tm
+          let! tm1 = rand(concl th)
+          return! EQ_MP (SYM (Choice.result th)) (``pure`` tm1)
+      }
 
 /// Attempt to prove goal using basic algebra and linear arithmetic over the reals.
 let REAL_ARITH_TAC = CONV_TAC REAL_ARITH
@@ -769,30 +831,44 @@ let REAL_FIELD =
       |> THENC <| CONJ_CANON_CONV
 
   let core_rule t = 
-    try 
-      REAL_RING t 
-    with 
-    | Failure _ -> REAL_ARITH t
+    REAL_RING t 
+    |> Choice.bindError (fun _ -> REAL_ARITH t)
+
   let is_inv = 
       let inv_tm = (parse_term @"inv:real->real")
       let is_div = is_binop(parse_term @"(/):real->real->real")
-      fun tm -> (is_div tm || (is_comb tm && Choice.get <| rator tm = inv_tm)) && not(is_ratconst(Choice.get <| rand tm))
+      fun tm ->
+        // NOTE: rewrite this function since the 2nd Choice.get call is unsafe
+        (is_div tm || (is_comb tm && Choice.get <| rator tm = inv_tm)) && not(is_ratconst(Choice.get <| rand tm))
   
   let BASIC_REAL_FIELD tm = 
-      let is_freeinv t = is_inv t && free_in t tm
-      let itms = setify(map (Choice.get << rand) (Choice.get <| find_terms is_freeinv tm))
-      let hyps = map (fun t -> SPEC t REAL_MUL_RINV) itms
-      let tm' = itlist (fun th t -> Choice.get <| mk_imp(concl <| Choice.get th, t)) hyps tm
-      let th1 = setup_conv tm'
-      let cjs = conjuncts(Choice.get <| rand(concl <| Choice.get th1))
-      let ths = map core_rule cjs
-      let th2 = EQ_MP (SYM th1) (end_itlist CONJ ths)
-      rev_itlist (C MP) hyps th2
+      choice {
+          let is_freeinv t = is_inv t && free_in t tm
+          let! tms1 = find_terms is_freeinv tm
+          let! tms2 = Choice.List.map rand tms1
+          let itms = setify tms2
+          let hyps = map (fun t -> SPEC t REAL_MUL_RINV) itms
+          let! tm' = Choice.List.fold (fun acc th -> 
+                        choice {
+                            let! th = th
+                            return! mk_imp(concl th, acc)
+                        }) tm hyps
+
+          let! th1 = setup_conv tm'
+          let! tm3 = rand(concl th1)
+          let cjs = conjuncts tm3
+          let ths = map core_rule cjs
+          let th2 = EQ_MP (SYM (Choice.result th1)) (end_itlist CONJ ths)
+          return! rev_itlist (C MP) hyps th2
+      }
 
   fun tm -> 
-      let th0 = prenex_conv () tm
-      let tm0 = Choice.get <| rand(concl <| Choice.get th0)
-      let avs, bod = strip_forall tm0
-      let th1 = setup_conv bod
-      let ths = map BASIC_REAL_FIELD (conjuncts(Choice.get <| rand(concl <| Choice.get th1)))
-      EQ_MP (SYM th0) (GENL avs (EQ_MP (SYM th1) (end_itlist CONJ ths)))
+      choice {
+          let! th0 = prenex_conv () tm
+          let! tm0 = rand(concl th0)
+          let avs, bod = strip_forall tm0
+          let! th1 = setup_conv bod
+          let! tm1 = rand(concl th1)
+          let ths = map BASIC_REAL_FIELD (conjuncts tm1)
+          return! EQ_MP (SYM (Choice.result th0)) (GENL avs (EQ_MP (SYM (Choice.result th1)) (end_itlist CONJ ths)))
+      }
