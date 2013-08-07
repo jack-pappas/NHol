@@ -62,7 +62,7 @@ let rec occurs_in ty bigty =
     choice {
         // In order to preserve original behaviour, this function now returns Protected<bool>
         let! (_, tys0) = dest_type bigty
-        // Interprete the condition as a || (b && c)
+        // Interpret the condition as a || (b && c)
         if bigty = ty then
             return true
         elif not (is_type bigty) then
@@ -235,8 +235,7 @@ let subst : (term * term) list -> term -> Protected<term> =
                 choice {
                 let! variables_tm = variables tm
                 // CLEAN : Rename this value to something sensible.
-                // TODO : This should be reworked to use Choice.List.map.
-                let foo1 = map (genvar << Choice.get << type_of) xs
+                let! foo1 = Choice.List.map (Choice.map genvar << type_of) xs
                 let! gs = variants variables_tm foo1
                 let! tm' = ssubst (zip gs xs) tm
                 if tm' == tm then return tm
@@ -255,7 +254,8 @@ let alpha v tm : Protected<term> =
         let! (v0, bod) = 
             dest_abs tm 
             |> Choice.mapError (fun e -> nestedFailure e "alpha: Not an abstraction")
-        if v = v0 then return tm
+        if v = v0 then 
+            return tm
         else
             let! ty = type_of v
             let! ty0 = type_of v0
@@ -285,8 +285,7 @@ let rec type_match vty cty sofar : Protected<(hol_type * hol_type) list> =
         let! vop, vargs = dest_type vty
         let! cop, cargs = dest_type cty
         if vop = cop then
-            // TODO : Change to use Choice.List.foldBack2 from ExtCore.
-            return itlist2 (fun x y z -> Choice.get <| type_match x y z) vargs cargs sofar
+            return! Choice.List.foldBack2 (fun x y acc -> type_match x y acc) vargs cargs sofar
         else
             return! Choice.failwith "type_match"
     }
