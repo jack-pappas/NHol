@@ -1221,77 +1221,100 @@ let INT_ADD_CONV =
 
     GEN_REWRITE_CONV I [pth0]
     |> ORELSEC <| (fun tm -> 
-        try 
+        choice { 
             let l, r = dest tm
-            
-            if Choice.get <| rator l = neg_tm then 
-                if Choice.get <| rator r = neg_tm then 
-                    let th1 = 
-                        INST [Choice.get <| rand(Choice.get <| rand l), m_tm;
-                              Choice.get <| rand(Choice.get <| rand r), n_tm] pth1
-                    let tm1 = Choice.get <| rand(Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th1)))
+            let! tm1 = rator l
+            if tm1 = neg_tm then 
+                let! tm2 = rator r
+                if tm2 = neg_tm then
+                    let! tm3 = (Choice.bind rand << rand) l
+                    let! tm4 = (Choice.bind rand << rand) r
+                    let! th1 = 
+                        INST [tm3, m_tm;
+                              tm4, n_tm] pth1
+                    
+                    let! tm4 = rand(concl th1)
+                    let! tm5 = rand tm4
+                    let! tm1 = rand tm5
                     let th2 = AP_TERM neg_tm (AP_TERM amp_tm (NUM_ADD_CONV tm1))
-                    TRANS th1 th2
+                    return! TRANS (Choice.result th1) th2
                 else 
-                    let m = Choice.get <| rand(Choice.get <| rand l)
-                    let n = Choice.get <| rand r
-                    let m' = Choice.get <| dest_numeral m
-                    let n' = Choice.get <| dest_numeral n
+                    let! m = (Choice.bind rand << rand) l
+                    let! n = rand r
+                    let! m' = dest_numeral m
+                    let! n' = dest_numeral n
                     if m' <=/ n' then 
-                        let p = Choice.get <| mk_numeral(n' -/ m')
-                        let th1 = 
+                        let! p = mk_numeral(n' -/ m')
+                        let! th1 = 
                             INST [m, m_tm;
                                   p, n_tm] pth2
-                        let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get th1))))
-                        let th3 = AP_TERM (Choice.get <| rator tm) (AP_TERM amp_tm (SYM th2))
-                        TRANS th3 th1
+                        let! tm3 = lhand(concl th1)
+                        let! tm4 = rand tm3
+                        let! tm5 = rand tm4
+                        let th2 = NUM_ADD_CONV tm5
+                        let! tm6 = rator tm
+                        let th3 = AP_TERM tm6 (AP_TERM amp_tm (SYM th2))
+                        return! TRANS th3 (Choice.result th1)
                     else 
-                        let p = Choice.get <| mk_numeral(m' -/ n')
-                        let th1 = 
+                        let! p = mk_numeral(m' -/ n')
+                        let! th1 = 
                             INST [n, m_tm;
                                   p, n_tm] pth3
-                        let th2 = 
-                            NUM_ADD_CONV
-                                (Choice.get 
-                                 <| rand(Choice.get <| rand(Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th1)))))
+                        let! tm3 = lhand(concl th1)
+                        let! tm4 = lhand tm3
+                        let! tm5 = rand tm4
+                        let! tm6 = rand tm5
+                        let th2 = NUM_ADD_CONV tm6
                         let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
-                        let th4 = AP_THM (AP_TERM add_tm th3) (Choice.get <| rand tm)
-                        TRANS th4 th1
-            elif Choice.get <| rator r = neg_tm then 
-                let m = Choice.get <| rand l
-                let n = Choice.get <| rand(Choice.get <| rand r)
-                let m' = Choice.get <| dest_numeral m
-                let n' = Choice.get <| dest_numeral n
-                if n' <=/ m' then 
-                    let p = Choice.get <| mk_numeral(m' -/ n')
-                    let th1 = 
-                        INST [n, m_tm;
-                              p, n_tm] pth4
-                    let th2 = NUM_ADD_CONV(Choice.get <| rand(Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th1))))
-                    let th3 = AP_TERM add_tm (AP_TERM amp_tm (SYM th2))
-                    let th4 = AP_THM th3 (Choice.get <| rand tm)
-                    TRANS th4 th1
-                else 
-                    let p = Choice.get <| mk_numeral(n' -/ m')
-                    let th1 = 
-                        INST [m, m_tm;
-                              p, n_tm] pth5
-                    let th2 = 
-                        NUM_ADD_CONV
-                            (Choice.get 
-                             <| rand(Choice.get <| rand(Choice.get <| rand(Choice.get <| lhand(concl <| Choice.get th1)))))
-                    let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
-                    let th4 = AP_TERM (Choice.get <| rator tm) th3
-                    TRANS th4 th1
-            else 
-                let th1 = 
-                    INST [Choice.get <| rand l, m_tm;
-                          Choice.get <| rand r, n_tm] pth6
-                let tm1 = Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th1))
-                let th2 = AP_TERM amp_tm (NUM_ADD_CONV tm1)
-                TRANS th1 th2
-        with
-        | Failure _ as e -> nestedFailwith e "INT_ADD_CONV")
+                        let! tm7 = rand tm
+                        let th4 = AP_THM (AP_TERM add_tm th3) tm7
+                        return! TRANS th4 (Choice.result th1)
+            else
+                let! tm2 = rator r
+                if tm2 = neg_tm then 
+                    let! m = rand l
+                    let! n = (Choice.bind rand << rand) r
+                    let! m' = dest_numeral m
+                    let! n' = dest_numeral n
+                    if n' <=/ m' then 
+                        let! p = mk_numeral(m' -/ n')
+                        let! th1 = 
+                            INST [n, m_tm;
+                                  p, n_tm] pth4
+                        let! tm3 = lhand(concl th1)
+                        let! tm4 = lhand tm3
+                        let! tm5 = rand tm4
+                        let th2 = NUM_ADD_CONV tm5
+                        let th3 = AP_TERM add_tm (AP_TERM amp_tm (SYM th2))
+                        let! tm6 = rand tm
+                        let th4 = AP_THM th3 tm6
+                        return! TRANS th4 (Choice.result th1)
+                    else 
+                        let! p = mk_numeral(n' -/ m')
+                        let! th1 = 
+                            INST [m, m_tm;
+                                  p, n_tm] pth5
+                        let! tm3 = lhand(concl th1)
+                        let! tm4 = rand tm3
+                        let! tm5 = rand tm4
+                        let! tm6 = rand tm5
+                        let th2 = NUM_ADD_CONV tm6
+                        let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
+                        let! tm7 = rator tm
+                        let th4 = AP_TERM tm7 th3
+                        return! TRANS th4 (Choice.result th1)
+                else
+                    let! l' = rand l
+                    let! r' = rand r 
+                    let! th1 = 
+                        INST [l', m_tm;
+                              r', n_tm] pth6
+                    let! tm3 = rand(concl th1)          
+                    let! tm1 = rand tm3
+                    let th2 = AP_TERM amp_tm (NUM_ADD_CONV tm1)
+                    return! TRANS (Choice.result th1) th2
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "INT_ADD_CONV"))
 
 /// Conversion to perform subtraction on two integer literals of type :int.
 let INT_SUB_CONV = 
@@ -1317,9 +1340,13 @@ let INT_POW_CONV =
                    |> THENC <| RATOR_CONV(RATOR_CONV(RAND_CONV NUM_EVEN_CONV))
                    |> THENC <| GEN_REWRITE_CONV I [tth]
                    |> THENC <| (fun tm -> 
-                       if Choice.get <| rator tm = neg_tm
-                       then RAND_CONV (RAND_CONV NUM_EXP_CONV) tm
-                       else RAND_CONV NUM_EXP_CONV tm))
+                                    choice {
+                                       let! tm1 = rator tm
+                                       if tm1 = neg_tm then 
+                                           return! RAND_CONV (RAND_CONV NUM_EXP_CONV) tm
+                                       else 
+                                           return! RAND_CONV NUM_EXP_CONV tm
+                                    }))
 
 /// Conversion to produce absolute value of an integer literal of type :int.
 let INT_ABS_CONV = 
@@ -1471,20 +1498,25 @@ let INT_DIV_CONV, INT_REM_CONV =
         choice {
             let k = equo_num x y
             let l = emod_num x y
-            let th0 = 
-                INST [Choice.get <| mk_intconst x, m
-                      Choice.get <| mk_intconst y, n
-                      Choice.get <| mk_intconst k, q
-                      Choice.get <| mk_intconst l, r] pth
-            let tm0 = Choice.get <| lhand(Choice.get <| lhand(concl <| Choice.get th0))
+            let! x' = mk_intconst x
+            let! y' = mk_intconst y
+            let! k' = mk_intconst k
+            let! l' = mk_intconst l
+            let! th0 = 
+                INST [x', m;
+                      y', n;
+                      k', q;
+                      l', r] pth
+            let! tm1 = lhand(concl th0)
+            let! tm0 = lhand tm1
             let th1 = (LAND_CONV INT_MUL_CONV
                        |> THENC <| INT_ADD_CONV) tm0
-            let th2 = MP th0 th1
-            let tm2 = Choice.get <| lhand(concl <| Choice.get th2)
-            let th3 = MP th2 (EQT_ELIM(INT_LE_CONV tm2))
-            let tm3 = Choice.get <| lhand(concl <| Choice.get th3)
-            return! MP th3 (EQT_ELIM((RAND_CONV INT_ABS_CONV
-                                      |> THENC <| INT_LT_CONV) tm3))
+            let! th2 = MP (Choice.result th0) th1
+            let! tm2 = lhand(concl th2)
+            let! th3 = MP (Choice.result th2) (EQT_ELIM(INT_LE_CONV tm2))
+            let! tm3 = lhand(concl th3)
+            return! MP (Choice.result th3) (EQT_ELIM((RAND_CONV INT_ABS_CONV
+                                                      |> THENC <| INT_LT_CONV) tm3))
         }
     (fun tm -> 
         choice { 
@@ -1501,8 +1533,7 @@ let INT_DIV_CONV, INT_REM_CONV =
             let! r' = dest_intconst r
             return! CONJUNCT2(INT_DIVMOD_CONV l' r')
         }
-        |> Choice.mapError (fun e -> nestedFailure e "INT_MOD_CONV")
-        );;
+        |> Choice.mapError (fun e -> nestedFailure e "INT_MOD_CONV"));;
 
 /// Performs one arithmetic or relational operation on integer literals of type :int.
 let INT_RED_CONV = 
@@ -1599,6 +1630,7 @@ let INTEGER_TAC_001 =
     let int_ty = (parse_type @"int")
     let INT_POLYEQ_CONV = GEN_REWRITE_CONV I [GSYM INT_SUB_0]
                           |> THENC <| LAND_CONV INT_POLY_CONV
+
     let ISOLATE_VARIABLE = 
         // CAUTION: change from value to function to delay System.Exception
         let pth() = INT_ARITH(parse_term @"!a x. a = &0 <=> x = x + a")
@@ -1606,38 +1638,63 @@ let INTEGER_TAC_001 =
             let mons = striplist (Choice.toOption << dest_binary "int_add") t
             mem v mons && forall (fun m -> v = m || not(free_in v m)) mons
         fun vars tm -> 
-            let th = INT_POLYEQ_CONV tm
-            let th' = (SYM_CONV
-                       |> THENC <| INT_POLYEQ_CONV) tm
-            let v, th1 = 
-                try 
-                    Option.get <| find (fun v -> is_defined v (Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get th)))) vars, 
-                    th'
-                with
-                | Failure _ -> 
-                    Option.get <| find (fun v -> is_defined v (Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get th')))) vars, 
-                    th
-            let th2 = 
-                TRANS th1 (SPECL [Choice.get <| lhs(Choice.get <| rand(concl <| Choice.get th1))
-                                  v] <| pth())
-            CONV_RULE (RAND_CONV(RAND_CONV INT_POLY_CONV)) th2
+            choice {
+                let! th = INT_POLYEQ_CONV tm
+                let! th' = (SYM_CONV
+                           |> THENC <| INT_POLYEQ_CONV) tm
+                let! v, th1 = 
+                    choice {
+                        let! v = Choice.List.tryFind (fun v -> 
+                                    choice {
+                                        let! tm1 = rand(concl th)
+                                        let! tm2 = lhand tm1
+                                        return is_defined v tm2
+                                    }) vars 
+                                 |> Choice.bind (Option.toChoiceWithError "find")
+                        return v, th'
+                    }
+                    |> Choice.bindError (function Failure _ as e -> 
+                                                    choice {
+                                                        let! v = Choice.List.tryFind (fun v -> 
+                                                                    choice {
+                                                                        let! tm1 = rand(concl th')
+                                                                        let! tm2 = lhand tm1
+                                                                        return is_defined v tm2
+                                                                    }) vars 
+                                                                 |> Choice.bind (Option.toChoiceWithError "find")
+                                                        return v, th
+                                                    }
+                                                | e -> Choice.error e)
+                
+                let! tm1 = rand(concl th1)
+                let! tm2 = lhs tm1
+                let th2 = TRANS (Choice.result th1) (SPECL [tm2; v] <| pth())
+                return! CONV_RULE (RAND_CONV(RAND_CONV INT_POLY_CONV)) th2
+            }
 
     let UNWIND_POLYS_CONV tm = 
-        let vars, bod = strip_exists tm
-        let cjs = conjuncts bod
-        let th1 = tryfind (Choice.toOption << ISOLATE_VARIABLE vars) cjs |> Option.toChoiceWithError "tryfind"
-        let eq = Choice.get <| lhand(concl <| Choice.get th1)
-        let bod' = list_mk_conj(eq :: (subtract cjs [eq]))
-        let th2 = CONJ_ACI_RULE(Choice.get <| mk_eq(bod, bod'))
-        let th3 = TRANS th2 (MK_CONJ th1 (REFL(Choice.get <| rand(Choice.get <| rand(concl <| Choice.get th2)))))
-        let v = Choice.get <| lhs(Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get th3)))
-        let vars' = (subtract vars [v]) @ [v]
-        let th4 = CONV_RULE (RAND_CONV(REWR_CONV UNWIND_THM2)) (MK_EXISTS v th3)
-        let IMP_RULE v v' = 
-            DISCH_ALL
-                (itlist SIMPLE_CHOOSE v (itlist SIMPLE_EXISTS v' (ASSUME bod)))
-        let th5 = IMP_ANTISYM_RULE (IMP_RULE vars vars') (IMP_RULE vars' vars)
-        TRANS th5 (itlist MK_EXISTS (subtract vars [v]) th4)
+        choice {
+            let vars, bod = strip_exists tm
+            let cjs = conjuncts bod
+            let! th1 = tryfind (Choice.toOption << ISOLATE_VARIABLE vars) cjs |> Option.toChoiceWithError "tryfind"
+            let! eq = lhand(concl th1)
+            let bod' = list_mk_conj(eq :: (subtract cjs [eq]))
+            let! tm1 = mk_eq(bod, bod')
+            let! th2 = CONJ_ACI_RULE tm1
+            let! tm2 = rand(concl th2)
+            let! tm3 = rand tm2
+            let! th3 = TRANS (Choice.result th2) (MK_CONJ (Choice.result th1) (REFL tm3))
+            let! tm4 = rand(concl th3)
+            let! tm5 = lhand tm4
+            let! v = lhs tm5
+            let vars' = (subtract vars [v]) @ [v]
+            let th4 = CONV_RULE (RAND_CONV(REWR_CONV UNWIND_THM2)) (MK_EXISTS v (Choice.result th3))
+            let IMP_RULE v v' = 
+                DISCH_ALL
+                    (itlist SIMPLE_CHOOSE v (itlist SIMPLE_EXISTS v' (ASSUME bod)))
+            let th5 = IMP_ANTISYM_RULE (IMP_RULE vars vars') (IMP_RULE vars' vars)
+            return! TRANS th5 (itlist MK_EXISTS (subtract vars [v]) th4)
+        }
 
     let zero_tm = (parse_term @"&0")
     let one_tm = (parse_term @"&1")
@@ -1646,68 +1703,106 @@ let INTEGER_TAC_001 =
         let mul_tm = (parse_term @"(int_mul)")
         let add_tm = (parse_term @"(int_add)")
         let neg_tm = (parse_term @"(int_neg)")
-        let dest_mul = Choice.get << dest_binop mul_tm
-        let dest_add = Choice.get << dest_binop add_tm
-        let mk_mul = fun x -> Choice.get << mk_binop mul_tm x
-        let mk_add = fun x -> Choice.get << mk_binop add_tm x
-        let scrub_var v m = 
-            let ps = striplist (Some << dest_mul) m
-            let ps' = subtract ps [v]
-            if ps' = []
-            then one_tm
-            else end_itlist mk_mul ps'
-        let find_multipliers v mons = 
-            let mons1 = filter (fun m -> free_in v m) mons
-            let mons2 = map (scrub_var v) mons1
-            if mons2 = []
-            then zero_tm
-            else end_itlist mk_add mons2
-        fun vars tm -> 
-            let cmons, vmons = 
-                partition (fun m -> intersect (frees m) vars = []) 
-                    (striplist (Some << dest_add) tm)
-            let cofactors = map (fun v -> find_multipliers v vmons) vars
-            let cnc = 
-                if cmons = []
-                then zero_tm
-                else Choice.get <| mk_comb(neg_tm, end_itlist mk_add cmons)
-            cofactors, cnc
-    let isolate_variables evs ps eq = 
-        let vars = filter (fun v -> vfree_in v eq) evs
-        let qs, p = isolate_monomials vars eq
-        let rs = filter (fun t -> Choice.get <| type_of t = int_ty) (qs @ ps)
-        let rs = int_ideal_cofactors rs p
-        eq, zip (fst(chop_list (length qs) rs)) vars
+        let dest_mul = dest_binop mul_tm
+        let dest_add = dest_binop add_tm
+        let mk_mul = mk_binop mul_tm
+        let mk_add = mk_binop add_tm
 
-    let subst_in_poly i p = Choice.get <| rhs(concl <| Choice.get(INT_POLY_CONV(Choice.get <| vsubst i p)))
+        let scrub_var v m = 
+            choice {
+                let ps = striplist (Choice.toOption << dest_mul) m
+                let ps' = subtract ps [v]
+                if ps' = [] then 
+                    return one_tm
+                else 
+                    return! Choice.List.reduceBack mk_mul ps'
+            }
+
+        let find_multipliers v mons = 
+            choice {
+                let mons1 = filter (fun m -> free_in v m) mons
+                let! mons2 = Choice.List.map (scrub_var v) mons1
+                if mons2 = [] then 
+                    return zero_tm
+                else 
+                    return! Choice.List.reduceBack mk_add mons2
+            }
+
+        fun vars tm -> 
+            choice {
+                let cmons, vmons = partition (fun m -> intersect (frees m) vars = []) (striplist (Choice.toOption << dest_add) tm)
+                let! cofactors = Choice.List.map (fun v -> find_multipliers v vmons) vars
+                let! cnc = 
+                    choice {
+                        if cmons = [] then 
+                            return zero_tm
+                        else
+                            let! tm1 = Choice.List.reduceBack mk_add cmons 
+                            return! mk_comb(neg_tm, tm1)
+                    }
+
+                return cofactors, cnc
+            }
+
+    let isolate_variables evs ps eq = 
+        choice {
+            let vars = filter (fun v -> vfree_in v eq) evs
+            let! qs, p = isolate_monomials vars eq
+            let! rs = Choice.List.filter (fun t -> 
+                        choice {
+                            let! ty = type_of t
+                            return ty = int_ty
+                        }) (qs @ ps)
+
+            let! rs = int_ideal_cofactors rs p
+            return eq, zip (fst(chop_list (length qs) rs)) vars
+        }
+
+    let subst_in_poly i p = 
+        choice {
+            let! tm1 = vsubst i p
+            let! tm2 = INT_POLY_CONV tm1
+            return! rhs(concl <| tm2)
+        }
+
     let rec solve_idealism evs ps eqs = 
-        if evs = []
-        then []
-        else 
-            let eq, cfs = 
-                tryfind (Some << isolate_variables evs ps) eqs
-                |> Option.getOrFailWith "tryfind"
-                    
-            let evs' = subtract evs (map snd cfs)
-            let eqs' = map (subst_in_poly cfs) (subtract eqs [eq])
-            cfs @ solve_idealism evs' ps eqs'
+        choice {
+            if evs = [] then 
+                return []
+            else 
+                let eq, cfs = tryfind (Choice.toOption << isolate_variables evs ps) eqs |> Option.getOrFailWith "tryfind"
+                let evs' = subtract evs (map snd cfs)
+                let! eqs' = Choice.List.map (subst_in_poly cfs) (subtract eqs [eq])
+                let! cfs' = solve_idealism evs' ps eqs'
+                return cfs @ cfs'
+        }
+    
     let rec GENVAR_EXISTS_CONV tm = 
-        if not(is_exists tm)
-        then REFL tm
-        else 
-            let ev, bod = Choice.get <| dest_exists tm
-            let gv = genvar(Choice.get <| type_of ev)
-            (GEN_ALPHA_CONV gv
-             |> THENC <| BINDER_CONV GENVAR_EXISTS_CONV) tm
+        choice {
+            if not(is_exists tm) then 
+                return! REFL tm
+            else 
+                let! ev, bod = dest_exists tm
+                let! gv = Choice.map genvar (type_of ev)
+                return! 
+                    (GEN_ALPHA_CONV gv
+                     |> THENC <| BINDER_CONV GENVAR_EXISTS_CONV) tm
+        }
+
     let EXISTS_POLY_TAC(asl, w as gl) = 
-        let evs, bod = strip_exists w
-        let ps = 
-            mapfilter 
-                (Choice.toOption << check(fun t -> Choice.get <| type_of t = int_ty) << Choice.get << lhs << concl << Choice.get << snd) asl
-        let cfs = solve_idealism evs ps (map (Choice.get << lhs) (conjuncts bod))
-        (MAP_EVERY EXISTS_TAC (map (fun v -> rev_assocd v cfs zero_tm) evs)
-         |> THEN <| REPEAT(POP_ASSUM MP_TAC)
-         |> THEN <| CONV_TAC INT_RING) gl
+        choice {
+            let evs, bod = strip_exists w
+            let ps = 
+                mapfilter 
+                    (Choice.toOption << check(fun t -> Choice.get <| type_of t = int_ty) << Choice.get << lhs << concl << Choice.get << snd) asl
+            
+            let! tms = Choice.List.map lhs (conjuncts bod)
+            let! cfs = solve_idealism evs ps tms
+            return!
+                (MAP_EVERY EXISTS_TAC (map (fun v -> rev_assocd v cfs zero_tm) evs)
+                 |> THEN <| REPEAT(POP_ASSUM MP_TAC)
+                 |> THEN <| CONV_TAC INT_RING) gl
+         }
 
     let SCRUB_NEQ_TAC = 
         MATCH_MP_TAC 
@@ -1830,9 +1925,11 @@ let INTEGER_TAC =
                                        let! a, b = dest_gcd tm
                                        return SPECL [a; b] int_gcd
                                    }) gts
+
+                           let! gts' = Choice.List.map (Choice.map genvar << type_of) gts
                            return!
                                (MAP_EVERY MP_TAC ths
-                                |> THEN <| MAP_EVERY SPEC_TAC (zip gts (map (genvar << Choice.get << type_of) gts))) gl
+                                |> THEN <| MAP_EVERY SPEC_TAC (zip gts gts')) gl
                         })
     REPEAT(GEN_TAC
            |> ORELSE <| CONJ_TAC)
