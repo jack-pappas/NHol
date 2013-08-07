@@ -1944,7 +1944,8 @@ let define_type_raw =
             | Some x -> 
                 return! x
             | None -> 
-                if not(exists (C occurs_in cty) itys) then 
+                let! occur = Choice.List.exists (fun ty -> occurs_in ty cty) itys
+                if not occur then 
                     return! INST_TYPE [cty, aty] ISO_REFL
                 else 
                     let! tycon, isotys = dest_type cty
@@ -2327,8 +2328,8 @@ let define_type_raw =
         if rectys = [] then 
             let th1, th2 = define_type_basecase def
             return n, th1, th2
-        else 
-            let nty = hd(sort (fun t1 t2 -> occurs_in t2 t1) rectys)
+        else
+            let nty = hd(sort (fun t1 t2 -> Choice.get <| occurs_in t2 t1) rectys)
             let! k, tyal, ncls, ith, rth = create_auxiliary_clauses nty
             let cls = map (modify_clause tyal) def @ ncls
             let! _, ith1, rth1 = define_type_nested cls
@@ -2363,11 +2364,10 @@ let define_type_raw =
                 Choice.List.map (Choice.map (hd << snd) << Choice.bind dest_type 
                                  << Choice.bind type_of << Choice.bind lhand << Choice.map concl) isoths
 
-            let ctylist = filter (fun ty -> exists (fun t -> occurs_in t ty) isotys) vtylist
+            let! ctylist = Choice.List.filter (fun ty -> Choice.List.exists (fun t -> occurs_in t ty) isotys) vtylist
             let atylist = itlist (union << striplist (Choice.toOption << dest_fun_ty)) ctylist []
-            let isoths' = 
-                map (lift_type_bijections isoths) 
-                    (filter (fun ty -> exists (fun t -> occurs_in t ty) isotys) atylist)
+            let! atylist' = Choice.List.filter (fun ty -> Choice.List.exists (fun t -> occurs_in t ty) isotys) atylist
+            let isoths' = map (lift_type_bijections isoths) atylist'
 
             let cisoths = map (BETA_RULE << lift_type_bijections isoths') ctylist
             let uisoths = map ISO_USAGE_RULE cisoths

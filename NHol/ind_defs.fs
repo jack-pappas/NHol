@@ -112,9 +112,11 @@ let EXISTS_EQUATION =
 let derive_nonschematic_inductive_relations = 
     let getconcl tm = 
         let bod = repeat (Choice.toOption << Choice.map snd << dest_forall) tm
-        match dest_imp bod with
-        | Success (_, bod') -> bod'
-        | Error _ -> bod
+        choice {
+            let! (_, bod') = dest_imp bod
+            return bod'
+        }
+        |> Choice.fill bod
 
     let CONJ_ACI_RULE = AC CONJ_ACI
 
@@ -464,9 +466,11 @@ let MONO_TAC =
                 return! ACCEPT_TAC (SPEC a IMP_REFL) (asl, w)
             else 
                 let cn = 
-                    match dest_const(repeat (Choice.toOption << rator) c) with
-                    | Success(s, _) -> s
-                    | Error _ -> ""
+                    choice {
+                        let! (s, _) = dest_const(repeat (Choice.toOption << rator) c)
+                        return s
+                    }
+                    |> Choice.fill ""
 
                 return! 
                     tryfind (fun (k, t) -> 
@@ -484,9 +488,12 @@ let MONO_TAC =
                             let! tm = Choice.funpow 2 rand (concl th)
                             let ft = repeat (Choice.toOption << rator) tm
                             let c = 
-                                match dest_const ft with
-                                | Success(s, _) -> s
-                                | Error _ -> ""
+                                choice {
+                                    let! (s, _) = dest_const ft
+                                    return s
+                                }
+                                |> Choice.fill ""
+
                             return (c, BACKCHAIN_TAC (Choice.result th) |> THEN <| REPEAT CONJ_TAC) :: acc
                         }) ["", MONO_ABS_TAC] (!monotonicity_theorems) 
 

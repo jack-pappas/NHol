@@ -623,7 +623,7 @@ let let_CONV =
 let (LET_TAC : tactic) = 
     let is_trivlet tm = 
         match dest_let tm with
-        | Success (assigs, bod ) ->
+        | Success (assigs, bod) ->
             forall (uncurry (=)) assigs
         | Error _ -> false
 
@@ -647,10 +647,12 @@ let (LET_TAC : tactic) =
                 let! vars = Choice.List.map lhand cjs
                 let th2 = EQ_MP (SYM th1) (ASSUME tm1)
                 let th3 = DISCH_ALL(itlist SIMPLE_EXISTS vars th2)
-                let! tms = Choice.List.map (fun t -> 
-                                match rand t, lhand t with
-                                | Success t1, Success t2 -> Choice.result (t1, t2)
-                                | _ -> Choice.fail()) cjs
+                let! tms = Choice.List.map (fun t ->
+                                choice {
+                                    let! t1 = rand t
+                                    let! t2 = lhand t
+                                    return (t1, t2)
+                                }) cjs
                 let th4 = INST tms th3
                 return! MP (rewr2_RULE th4) TRUTH
             }

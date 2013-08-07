@@ -334,6 +334,7 @@ let pp_print_term =
 
     let code_of_term t =
         let f, tms = strip_comb t
+        // Choice.get is safe to use here
         if not(is_const f && fst(Choice.get <| dest_const f) = "ASCII") || not(length tms = 8) then
             failwith "code_of_term"
         else
@@ -418,6 +419,7 @@ let pp_print_term =
                                         if s <> "INSERT" then fail()
                                         else 
                                             let mems, oth = splitlist (Choice.toOption << dest_binary "INSERT") tm
+                                            // Choice.get is safe to use here
                                             if is_const oth && fst(Choice.get <| dest_const oth) = "EMPTY" then 
                                                 (pp_print_string fmt "{"
                                                  print_term_sequence ", " 14 mems
@@ -637,6 +639,7 @@ let pp_print_term =
                         let vs, bod = collectvs t
                         (true, v) :: vs, bod
                     else [], tm
+                // Choice.get is safe to use here
                 elif is_comb tm && name_of(Choice.get <| rator tm) = s then 
                     if is_abs(Choice.get <| rand tm) then 
                         let v, t = Choice.get <| dest_abs(Choice.get <| rand tm)

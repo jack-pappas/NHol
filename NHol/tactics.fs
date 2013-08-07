@@ -62,12 +62,14 @@ let null_meta = (([] : term list), null_inst)
 
 type goal = (string * Protected<thm0>) list * term
 
-/// NOTE: Redefine equals_thm
+/// NOTE: Redefined version of equals_thm
 let equals_thm (th : Protected<thm0>) (th' : Protected<thm0>) =
-    match th, th' with
-    | Success th, Success th' ->
-        equals_thm th th'
-    | _ -> false
+    choice {
+        let! th = th
+        let! th' = th'
+        return equals_thm th th'
+    }
+    |> Choice.fill false
 
 /// Equality test on goals.
 let equals_goal ((a, w) : goal) ((a', w') : goal) = 

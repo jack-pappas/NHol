@@ -900,6 +900,7 @@ let NUM_SIMPLIFY_CONV =
     let q_tm = (parse_term @"P:num->num->bool")
     let a_tm = (parse_term @"a:num")
     let b_tm = (parse_term @"b:num")
+    // It's safe to use Choice.get here
     let is_pre tm = is_comb tm && Choice.get <| rator tm = pre_tm
     let is_sub = is_binop(parse_term @"(-):num->num->num")
     let is_divmod = 

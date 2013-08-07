@@ -263,9 +263,7 @@ let parse_pretype =
                     |> Choice.get
                 with
                 | Failure _ -> 
-                    if (match get_type_arity s with
-                        | Success 0 -> true
-                        | _ -> false)
+                    if get_type_arity s |> Choice.map (fun s -> s = 0) |> Choice.fill false
                     then Ptycon(s, [])
                     else Utv(s)
             result, rest
@@ -273,9 +271,7 @@ let parse_pretype =
     let type_constructor input = 
         match input with
         | (Ident s) :: rest -> 
-            if (match get_type_arity s with
-                | Success i -> i > 0
-                | Error _ -> false)
+            if get_type_arity s |> Choice.map (fun s -> s > 0) |> Choice.fill false
             then s, rest
             else raise Noparse
         | _ -> raise Noparse
