@@ -549,6 +549,7 @@ let REAL_LINEAR_PROVER =
 
     let contradictory p (e, _) = 
         (is_undefined e && not(p num_0)) 
+        // It seems fine to use Option.get here
         || (dom e = [one_tm] && not(p(Option.get <| apply e one_tm)))
 
     let rec linear_ineqs vars (les, lts) = 
@@ -810,18 +811,21 @@ let GEN_REAL_ARITH =
                  REWRITE_TAC [real_abs; real_gt; real_ge]
                  |> THEN <| COND_CASES_TAC
                  |> THEN <| ASM_REWRITE_TAC [real_lt])
+
         let pth_max = 
             prove
                 ((parse_term @"P(max x y) <=> (y >= x /\ P y) \/ (x > y /\ P x)"), 
                  REWRITE_TAC [real_max; real_gt; real_ge]
                  |> THEN <| COND_CASES_TAC
                  |> THEN <| ASM_REWRITE_TAC [real_lt])
+
         let pth_min = 
             prove
                 ((parse_term @"P(min x y) <=> (y >= x /\ P x) \/ (x > y /\ P y)"), 
                  REWRITE_TAC [real_min; real_gt; real_ge]
                  |> THEN <| COND_CASES_TAC
                  |> THEN <| ASM_REWRITE_TAC [real_lt])
+
         let abs_tm = (parse_term @"real_abs")
         let p_tm = (parse_term @"P:real->bool")
         let x_tm = (parse_term @"x:real")
@@ -829,36 +833,49 @@ let GEN_REAL_ARITH =
         let is_max = is_binop(parse_term @"real_max")
         let is_min = is_binop(parse_term @"real_min")
 
-        let is_abs t = is_comb t && Choice.get <| rator t = abs_tm
+        let is_abs t = 
+            // It's safe to use Choice.get here
+            is_comb t && Choice.get <| rator t = abs_tm
 
         let eliminate_construct p c tm = 
-            let t = Choice.get <| find_term (fun t -> p t && free_in t tm) tm
-            let v = genvar(Choice.get <| type_of t)
-            let th0 = SYM(BETA_CONV(Choice.get <| mk_comb(Choice.get <| mk_abs(v, Choice.get <| subst [v, t] tm), t)))
-            let p, ax = Choice.get <| dest_comb(Choice.get <| rand(concl <| Choice.get th0))
-            CONV_RULE (RAND_CONV(BINOP_CONV(RAND_CONV BETA_CONV))) 
-                (TRANS th0 (c p ax))
+            choice {
+                let! t = find_term (fun t -> p t && free_in t tm) tm
+                let! ty1 = type_of t
+                let v = genvar ty1
+                let! tm1 = subst [v, t] tm
+                let! tm2 = mk_abs(v, tm1)
+                let! tm3 = mk_comb(tm2, t)
+                let! th0 = SYM(BETA_CONV tm3)
+                let! tm4 = rand(concl th0)
+                let! p, ax = dest_comb tm4
+                return! CONV_RULE (RAND_CONV(BINOP_CONV(RAND_CONV BETA_CONV))) (TRANS (Choice.result th0) (c p ax))
+            }
 
         let elim_abs = 
             eliminate_construct is_abs (fun p ax -> 
-                    INST [p, p_tm
-                          Choice.get <| rand ax, x_tm] pth_abs)
+                    choice {
+                        let! tm1 = rand ax
+                        return! INST [p, p_tm; tm1, x_tm] pth_abs
+                    })
 
         let elim_max = 
             eliminate_construct is_max (fun p ax -> 
-                    let ax, y = Choice.get <| dest_comb ax
-                    INST [p, p_tm
-                          Choice.get <| rand ax, x_tm
-                          y, y_tm] pth_max)
+                    choice {
+                        let! ax, y = dest_comb ax
+                        let! tm1 = rand ax
+                        return! INST [p, p_tm; tm1, x_tm; y, y_tm] pth_max
+                    })
 
         let elim_min = 
             eliminate_construct is_min (fun p ax -> 
-                    let ax, y = Choice.get <| dest_comb ax
-                    INST [p, p_tm
-                          Choice.get <| rand ax, x_tm
-                          y, y_tm] pth_min)
+                    choice {
+                        let! ax, y = dest_comb ax
+                        let! tm1 = rand ax
+                        return! INST [p, p_tm; tm1, x_tm; y, y_tm] pth_min
+                    })
 
         FIRST_CONV [elim_abs; elim_max; elim_min]
+
     fun (mkconst, EQ, GE, GT, NORM, NEG, ADD, MUL, PROVER) -> 
         GEN_REAL_ARITH_001(mkconst, EQ, GE, GT, NORM, NEG, ADD, MUL, ABSMAXMIN_ELIM_CONV1, ABSMAXMIN_ELIM_CONV2, PROVER)
 
