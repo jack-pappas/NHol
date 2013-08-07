@@ -914,27 +914,26 @@ let ``{find p [x1;_;xn]} fails with None if no element satisfies the predicate``
 (* tryfind tests *)
 
 [<Test>]
-let ``{tryfind f [x1;_;xn]} returns {f xi} for the first {xi} in the list for  which application of {f} succeeds``() =
+let ``{tryfind f [x1;_;xn]} returns Some {f xi} for the first {xi} in the list for  which application of {f} succeeds``() =
 
-    let (^/) x y = 
-        if y = 0 then failwith ("^/: No successful application")
-        else x / y
-    
-    tryfind (fun x -> Some <| 12 ^/ x) [0;6;2;3;4;5]
-    |> Option.getOrFailWith "tryfind"
-    |> should equal 2
+    let isUpper x =
+        if System.Char.IsUpper x
+        then Some x
+        else None
+
+    tryfind isUpper ['a';'b';'C';'d']
+    |> should equal (Some 'C')
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "tryfind")>]
-let ``{tryfind f [x1;_;xn]} fails if the application of the function fails for all elements in the list``() =
+let ``{tryfind f [x1;_;xn]} returns None if the application of the function fails for all elements in the list``() =
 
-    let (^/) x y = 
-        if y = 0 then failwith ("^/: Attempt to divide by zero")
-        else x / y
+    let isUpper x =
+        if System.Char.IsUpper x
+        then Some x
+        else None
 
-    tryfind (fun x -> Some <| 12 ^/ x) [0]
-    |> Option.getOrFailWith "tryfind" 
-    |> ignore
+    tryfind isUpper ['a';'b';'c';'d']
+    |> should equal None
 
 (* flat tests *)
 
