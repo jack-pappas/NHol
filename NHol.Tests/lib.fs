@@ -1776,16 +1776,15 @@ let ``{x |=> y} gives a finite partial function that maps {x} to {y}``() =
     let f = (1 |=> 2)
 
     apply f 1
-    |> should equal 2
+    |> should equal (Some 2)
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "apply")>]
-let ``{x |=> y} is undefined for all arguments other than {x}``() = 
+let ``{x |=> y} is undefined for all arguments other than {x}``() =
 
     let f = (1 |=> 2)
 
     apply f 2
-    |> ignore
+    |> should equal None
 
 (* is_undefined tests *)
 
