@@ -93,14 +93,19 @@ let mk_iff : term * term -> Protected<_> =
 
 /// Instantiate types and terms in a theorem.
 let PINST tyin tmin : Protected<thm0> -> Protected<thm0> = 
-    let iterm_fn = INST(map (I ||>> (Choice.get << inst tyin)) tmin)
+    let tmin' = Choice.List.map (fun (tm1, tm2) -> 
+                    choice {
+                        let! tm2' = inst tyin tm2
+                        return tm1, tm2'
+                    }) tmin
+
     let itype_fn = INST_TYPE tyin
     fun th -> 
-        try 
-            iterm_fn(itype_fn th)
-        with
-        | Failure _ as e ->
-            Choice.nestedFailwith e "PINST"
+        choice { 
+            let! tmin' = tmin'
+            return! INST tmin' (itype_fn th)
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "PINST")
 
 (* ------------------------------------------------------------------------- *)
 (* Useful derived deductive rule.                                            *)

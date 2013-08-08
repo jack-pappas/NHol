@@ -134,8 +134,7 @@ let rec BETAS_CONV tm : Protected<thm0> =
 let instantiate : instantiation -> term -> Protected<term> = 
     let betas n tm =
         choice {
-        // CLEAN : Rename this value to something sensible.
-        let! foo1 =
+        let! (tms1, tm2) =
             ([], tm)
             |> Choice.funpow n (fun (l, t) ->
                 choice {
@@ -144,15 +143,15 @@ let instantiate : instantiation -> term -> Protected<term> =
                 return rand_t :: l, rator_t
                 })
         
-        return
-            foo1
-            // TODO : Modify this to use Choice.List.fold.
-            ||> rev_itlist (fun a l ->
+        return!
+            // TODO : This one is originally rev_itlist. 
+            // We should validate the order of arguments.
+            (tm2, tms1)
+            ||> Choice.List.fold (fun l a ->
                 choice {
                 let! v, b = dest_abs l
                 return! vsubst [a, v] b
-                }
-                |> Choice.get)
+                })
         }
 
     let rec ho_betas bcs pat tm =
@@ -352,173 +351,245 @@ let INSTANTIATE_ALL : instantiation -> Protected<thm0> -> Protected<thm0> =
 /// Match one term against another.
 let term_match : term list -> term -> term -> Protected<_> = 
     let safe_inserta ((y : term, x : 'a) as n) (l : (term * 'a) list) = 
-        match rev_assoc x l with
-        | Some z ->
-            if aconv y z then l
-            else failwith "safe_inserta"
-        | None ->
-            n :: l
+        choice {
+            match rev_assoc x l with
+            | Some z ->
+                if aconv y z then 
+                    return l
+                else 
+                    return! Choice.failwith "safe_inserta"
+            | None ->
+                return n :: l
+        }
 
     let safe_insert ((y, x) as n) l =
-        match rev_assoc x l with
-        | Some z ->
-            if compare y z = 0 then l
-            else failwith "safe_insert"
-        | None ->
-            n :: l
+        choice {
+            match rev_assoc x l with
+            | Some z ->
+                if compare y z = 0 then 
+                    return l
+                else 
+                    return! Choice.failwith "safe_insert"
+            | None ->
+                return n :: l
+        }
 
     let mk_dummy = 
-        let name = fst(Choice.get <| dest_var(genvar aty))
-        fun ty -> mk_var(name, ty)
+        let name = Choice.map fst (dest_var(genvar aty))
+        fun ty -> 
+            choice {
+                let! name = name
+                return mk_var(name, ty)
+            }
 
     let rec term_pmatch lconsts env vtm ctm ((insts, homs) as sofar) = 
-        match (vtm, ctm) with
-        | Var(_, _), _ ->
-            match rev_assoc vtm env with
-            | Some ctm' ->
-                if compare ctm' ctm = 0 then sofar
-                else failwith "term_pmatch"
-            | None ->
-                if mem vtm lconsts then
-                    if compare ctm vtm = 0 then sofar
+        choice {
+            match (vtm, ctm) with
+            | Var(_, _), _ ->
+                match rev_assoc vtm env with
+                | Some ctm' ->
+                    if compare ctm' ctm = 0 then 
+                        return sofar
+                    else 
+                        return! Choice.failwith "term_pmatch"
+                | None ->
+                    if mem vtm lconsts then
+                        if compare ctm vtm = 0 then 
+                            return sofar
+                        else
+                            return! Choice.failwith "term_pmatch: can't instantiate local constant"
                     else
-                        failwith "term_pmatch: can't instantiate local constant"
+                        let! insts' = safe_inserta (ctm, vtm) insts
+                        return insts', homs
+
+            | Const(vname, vty), Const(cname, cty) -> 
+                if compare vname cname = 0 then 
+                    if compare vty cty = 0 then 
+                        return sofar
+                    else 
+                        let! cty' = mk_dummy cty
+                        let! vty' = mk_dummy vty
+                        let! inst' = safe_insert (cty', vty') insts
+                        return inst', homs
                 else
-                    safe_inserta (ctm, vtm) insts, homs
+                    return! Choice.failwith "term_pmatch"
 
-        | Const(vname, vty), Const(cname, cty) -> 
-            if compare vname cname = 0 then 
-                if compare vty cty = 0 then sofar
-                else safe_insert (mk_dummy cty, mk_dummy vty) insts, homs
-            else
-                failwith "term_pmatch"
+            | Abs(vv, vbod), Abs(cv, cbod) -> 
+                let! sofar' =
+                    choice {
+                        // CLEAN : Rename this value to something reasonable.
+                        let! dest_var_cv = dest_var cv
+                        let! dest_var_vv = dest_var vv
+                        let! tm1 = mk_dummy(snd dest_var_cv)
+                        let! tm2 = mk_dummy(snd dest_var_vv)
+                        let! foo1 = safe_insert (tm1, tm2) insts
+                        return foo1, homs
+                    }
+                return! term_pmatch lconsts ((cv, vv) :: env) vbod cbod sofar'
 
-        | Abs(vv, vbod), Abs(cv, cbod) -> 
-            let sofar' =
-                // CLEAN : Rename this value to something reasonable.
-                let dest_var_cv = Choice.get <| dest_var cv
-                let dest_var_vv = Choice.get <| dest_var vv
-                let foo1 = safe_insert (mk_dummy(snd dest_var_cv), mk_dummy(snd dest_var_vv)) insts
-                foo1, homs
-            term_pmatch lconsts ((cv, vv) :: env) vbod cbod sofar'
+            | _ -> 
+                let vhop = repeat (Choice.toOption << rator) vtm
+                if is_var vhop && not(mem vhop lconsts) && (Option.isNone <| rev_assoc vhop env) then
+                    let! vty = type_of vtm
+                    let! cty = type_of ctm
+                    let! insts' = 
+                        choice {
+                            if compare vty cty = 0 then 
+                                return insts
+                            else 
+                                let! tm1 = mk_dummy cty
+                                let! tm2 = mk_dummy vty
+                                return! safe_insert (tm1, tm2) insts
+                        }
 
-        | _ -> 
-            let vhop = repeat (Choice.toOption << rator) vtm
-            if is_var vhop && not(mem vhop lconsts) 
-               && (Option.isNone <| rev_assoc vhop env) then
-                let vty = Choice.get <| type_of vtm
-                let cty = Choice.get <| type_of ctm
-                let insts' = 
-                    if compare vty cty = 0 then insts
-                    else safe_insert (mk_dummy cty, mk_dummy vty) insts
-                insts', (env, ctm, vtm) :: homs
-            else 
-                let lv, rv = Choice.get <| dest_comb vtm
-                let lc, rc = Choice.get <| dest_comb ctm
-                let sofar' = term_pmatch lconsts env lv lc sofar
-                term_pmatch lconsts env rv rc sofar'
+                    return insts', (env, ctm, vtm) :: homs
+                else 
+                    let! lv, rv = dest_comb vtm
+                    let! lc, rc = dest_comb ctm
+                    let! sofar' = term_pmatch lconsts env lv lc sofar
+                    return! term_pmatch lconsts env rv rc sofar'
+        }
 
-    let get_type_insts insts =
+    let get_type_insts insts acc =
         insts
-        |> itlist (fun (t, x) sofar ->
+        |> Choice.List.fold (fun sofar (t, x) ->
             choice {
             let! dest_var_x = dest_var x
             let! type_of_t = type_of t
             return! type_match (snd dest_var_x) type_of_t sofar
-            }
-            |> Choice.get)
+            }) acc
 
-    let separate_insts insts = 
-        let realinsts, patterns = partition (is_var << snd) insts
-        let betacounts = 
-            if patterns = [] then []
-            else
-                (patterns, [])
-                ||> itlist (fun (_, p) sof -> 
-                    let hop, args = strip_comb p
-                    try 
+    let separate_insts (insts : (term * term) list) = 
+        choice {
+            let realinsts, patterns = partition (is_var << snd) insts
+            let betacounts = 
+                if patterns = [] then []
+                else
+                    (patterns, [])
+                    ||> itlist (fun (_, p) sof -> 
+                        let hop, args = strip_comb p
                         safe_insert (length args, hop) sof
-                    with
-                    | Failure _ -> 
-                        warn true "Inconsistent patterning in higher order match"
-                        sof)
-        let tyins = get_type_insts realinsts []
-        // CLEAN : Rename this value to something sensible.
-        let foo1 =
-            realinsts
-            |> mapfilter (fun (t, x) -> 
-                let x' =
-                    let xn, xty = Choice.get <| dest_var x
-                    mk_var(xn, type_subst tyins xty)
-                if compare t x' = 0 then None
-                else Some(t, x'))
-        betacounts, foo1, tyins
+                        |> Choice.fill( 
+                            warn true "Inconsistent patterning in higher order match"
+                            sof))
+
+            let! tyins = get_type_insts realinsts []
+            // CLEAN : Rename this value to something sensible.
+            let! foo1 =
+                realinsts
+                |> Choice.List.choose (fun (t, x) -> 
+                    choice {
+                    let! x' =
+                        choice {
+                        let! xn, xty = dest_var x
+                        return mk_var(xn, type_subst tyins xty)
+                        }
+                    if compare t x' = 0 then 
+                        return None
+                    else 
+                        return Some(t, x')
+                    })
+            return betacounts, foo1, tyins
+        }
 
     let rec term_homatch lconsts tyins (insts, homs) = 
-        if homs = [] then insts
+        choice {
+        if homs = [] then 
+            return insts
         else 
             let (env, ctm, vtm) = hd homs
             if is_var vtm then
                 if compare ctm vtm = 0 then
-                    term_homatch lconsts tyins (insts, tl homs)
+                    return! term_homatch lconsts tyins (insts, tl homs)
                 else 
-                    let newtyins =
-                        let type_of_ctm = Choice.get <| type_of ctm
-                        let dest_var_vtm = Choice.get <| dest_var vtm
-                        safe_insert (type_of_ctm, snd dest_var_vtm) tyins
+                    let! newtyins =
+                        choice {
+                        let! type_of_ctm = type_of ctm
+                        let! dest_var_vtm = dest_var vtm
+                        return! safe_insert (type_of_ctm, snd dest_var_vtm) tyins
+                        }
                     let newinsts = (ctm, vtm) :: insts
-                    term_homatch lconsts newtyins (newinsts, tl homs)
+                    return! term_homatch lconsts newtyins (newinsts, tl homs)
             else 
                 let vhop, vargs = strip_comb vtm
                 let afvs = freesl vargs
-                let inst_fn = Choice.get << inst tyins
-                try 
-                    let tmins = 
-                        map (fun a ->
-                               (match rev_assoc a env with
-                                | Some x -> x
-                                | None ->
-                                    match rev_assoc a insts with
-                                    | Some x -> x
-                                    | None -> 
-                                         if mem a lconsts then a
-                                         else fail()), inst_fn a) afvs
-                    let pats0 = map inst_fn vargs
-                    let pats = map (Choice.get << vsubst tmins) pats0
-                    let vhop' = inst_fn vhop
-                    let ni = 
-                        let chop, cargs = strip_comb ctm
-                        if compare cargs pats = 0 then 
-                            if compare chop vhop = 0 then insts
-                            else safe_inserta (chop, vhop) insts
-                        else 
-                            let ginsts = 
-                                map (fun p -> 
-                                        (if is_var p then p
-                                         else genvar(Choice.get <| type_of p)), p) pats
-                            let ctm' = Choice.get <| subst ginsts ctm
-                            let gvs = map fst ginsts
-                            let abstm = list_mk_abs(gvs, ctm')
-                            let vinsts = safe_inserta (abstm, vhop) insts
-                            let icpair = ctm', list_mk_comb(vhop', gvs)
-                            icpair :: vinsts
-                    term_homatch lconsts tyins (ni, tl homs)
-                with
-                | Failure _ -> 
-                    let lc, rc = Choice.get <| dest_comb ctm
-                    let lv, rv = Choice.get <| dest_comb vtm
-                    let pinsts_homs' = 
-                        term_pmatch lconsts env rv rc 
-                            (insts, (env, lc, lv) :: (tl homs))
-                    let tyins' = get_type_insts (fst pinsts_homs') []
-                    term_homatch lconsts tyins' pinsts_homs'
+                let inst_fn = inst tyins
+                return!
+                    choice { 
+                        let! tmins = 
+                            Choice.List.map (fun a ->
+                                choice {
+                                    match rev_assoc a env with
+                                    | Some x -> 
+                                        let! a' = inst_fn a
+                                        return x, a'
+                                    | None ->
+                                        match rev_assoc a insts with
+                                        | Some x -> 
+                                            let! a' = inst_fn a
+                                            return x, a'
+                                        | None -> 
+                                             if mem a lconsts then 
+                                                let! a' = inst_fn a
+                                                return a, a'
+                                             else 
+                                                return! Choice.fail()
+                               }) afvs
+
+                        let! pats0 = Choice.List.map inst_fn vargs
+                        let! pats = Choice.List.map (vsubst tmins) pats0
+                        let! vhop' = inst_fn vhop
+                        let! ni = 
+                            choice {
+                            let chop, cargs = strip_comb ctm
+                            if compare cargs pats = 0 then 
+                                if compare chop vhop = 0 then 
+                                    return insts
+                                else 
+                                    return! safe_inserta (chop, vhop) insts
+                            else 
+                                let! ginsts = 
+                                    Choice.List.map (fun p -> 
+                                        choice {
+                                            if is_var p then 
+                                                return p, p
+                                            else 
+                                                let! p' = Choice.map genvar (type_of p)
+                                                return p', p
+                                        }) pats
+
+                                let! ctm' = subst ginsts ctm
+                                let gvs = map fst ginsts
+                                let abstm = list_mk_abs(gvs, ctm')
+                                let! vinsts = safe_inserta (abstm, vhop) insts
+                                let icpair = ctm', list_mk_comb(vhop', gvs)
+                                return icpair :: vinsts
+                            }
+                        return! term_homatch lconsts tyins (ni, tl homs)
+                    }
+                    |> Choice.bindError (
+                            function 
+                            | Failure _ -> 
+                                choice {
+                                    let! lc, rc = dest_comb ctm
+                                    let! lv, rv = dest_comb vtm
+                                    let! pinsts_homs' = 
+                                        term_pmatch lconsts env rv rc 
+                                            (insts, (env, lc, lv) :: (tl homs))
+                                    let! tyins' = get_type_insts (fst pinsts_homs') []
+                                    return! term_homatch lconsts tyins' pinsts_homs'
+                                }
+                            | e ->
+                                Choice.error e)
+        }
 
     fun lconsts vtm ctm ->
-        Choice.attempt <| fun () ->
-            let pinsts_homs = term_pmatch lconsts [] vtm ctm ([], [])
-            let tyins = get_type_insts (fst pinsts_homs) []
-            let insts = term_homatch lconsts tyins pinsts_homs
-            separate_insts insts
+        choice {
+            let! pinsts_homs = term_pmatch lconsts [] vtm ctm ([], [])
+            let! tyins = get_type_insts (fst pinsts_homs) []
+            let! insts = term_homatch lconsts tyins pinsts_homs
+            return! separate_insts insts
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* First order unification (no type instantiation -- yet).                   *)

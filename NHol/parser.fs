@@ -26,6 +26,8 @@ module NHol.parser
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -256,16 +258,14 @@ let parse_pretype =
         match input with
         | (Ident s) :: rest -> 
             let result =
-                try
-                    assoc s (type_abbrevs())
-                    |> Option.toChoiceWithError "find"
-                    |> Choice.bind pretype_of_type
-                    |> Choice.get
-                with
-                | Failure _ -> 
+                assoc s (type_abbrevs())
+                |> Option.toChoiceWithError "find"
+                |> Choice.bind pretype_of_type
+                |> Choice.fill(
                     if get_type_arity s |> Choice.map (fun s -> s = 0) |> Choice.fill false
                     then Ptycon(s, [])
-                    else Utv(s)
+                    else Utv(s))
+
             result, rest
         | _ -> raise Noparse
     let type_constructor input = 

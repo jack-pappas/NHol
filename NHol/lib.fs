@@ -393,7 +393,7 @@ let rec itlist f l b =
     | (h :: t) -> f h (itlist f t b)
 
 /// Applies a binary function between adjacent elements of the reverse of a list.
-// OPTIMIZE : Make this an alias for List.foldBack.
+// OPTIMIZE : Make this an alias for List.fold.
 let rec rev_itlist f l b = 
     match l with
     | [] -> b
