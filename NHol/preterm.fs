@@ -90,7 +90,7 @@ let remove_interface sym =
 let reduce_interface(sym, tm) : Protected<_> = 
     let namty = 
         dest_const tm
-        |> Choice.bindError (fun _ -> dest_var tm)
+        |> Choice.bindError (function Failure _ -> dest_var tm | e -> Choice.error e)
     match namty with
     | Success namty ->
         the_interface := filter ((<>)(sym, namty)) !the_interface
@@ -102,7 +102,7 @@ let reduce_interface(sym, tm) : Protected<_> =
 let override_interface(sym, tm) : Protected<_> =
     let namty =
         dest_const tm
-        |> Choice.bindError (fun _ -> dest_var tm)
+        |> Choice.bindError (function Failure _ -> dest_var tm | e -> Choice.error e)
 
     match namty with
     | Success namty ->
@@ -124,7 +124,7 @@ let overload_interface(sym, tm) : Protected<_> =
 
     gty
     |> Choice.bind (fun gty ->
-        match dest_const tm |> Choice.bindError (fun _ -> dest_var tm) with
+        match dest_const tm |> Choice.bindError (function Failure _ -> dest_var tm | e -> Choice.error e) with
         | Success ((name, ty) as namty) ->
             match type_match gty ty [] with
             | Error ex ->
@@ -153,10 +153,12 @@ let prioritize_overload ty : Protected<unit> =
 
             return! overload_interface(s, var_tm)
         }
-        |> Choice.bindError (fun _ ->
-            // NOTE: currently do nothing to handle failures
-            System.Diagnostics.Debug.WriteLine "An unhandled error occurred in the 'prioritize_overload' function."
-            Choice.result ()))
+        |> Choice.bindError (function 
+                | Failure _ ->
+                    // NOTE: currently do nothing to handle failures
+                    System.Diagnostics.Debug.WriteLine "An unhandled error occurred in the 'prioritize_overload' function."
+                    Choice.result ()
+                | e -> Choice.error e))
 
 (* ------------------------------------------------------------------------- *)
 (* Type abbreviations.                                                       *)
@@ -216,7 +218,7 @@ let rec pretype_of_type ty : Protected<pretype> =
         let! ps = Choice.List.map pretype_of_type args
         return Ptycon(con, ps)
     }
-    |> Choice.bindError (fun _ -> dest_vartype ty |> Choice.map Utv)
+    |> Choice.bindError (function Failure _ -> dest_vartype ty |> Choice.map Utv | e -> Choice.error e)
 
 (* ------------------------------------------------------------------------- *)
 (* Preterm syntax.                                                           *)
@@ -240,26 +242,32 @@ let rec preterm_of_term tm : Protected<preterm> =
         let! pt = pretype_of_type ty
         return Varp(n, pt)
     }
-    |> Choice.bindError (fun _ ->
-        choice {
-            let! n, ty = dest_const tm
-            let! pt = pretype_of_type ty
-            return Constp(n, pt)
-        })
-    |> Choice.bindError (fun _ ->
-        choice {
-            let! v, bod = dest_abs tm
-            let! pb = preterm_of_term bod
-            let! pv = preterm_of_term v
-            return Absp(pv, pb)
-        })
-    |> Choice.bindError (fun _ ->
-        choice {
-            let! l, r = dest_comb tm
-            let! l' = preterm_of_term l
-            let! r' = preterm_of_term r  
-            return Combp(l', r')
-        })
+    |> Choice.bindError (function
+        | Failure _ ->
+            choice {
+                let! n, ty = dest_const tm
+                let! pt = pretype_of_type ty
+                return Constp(n, pt)
+            }
+        | e -> Choice.error e)
+    |> Choice.bindError (function
+        | Failure _ ->
+            choice {
+                let! v, bod = dest_abs tm
+                let! pb = preterm_of_term bod
+                let! pv = preterm_of_term v
+                return Absp(pv, pb)
+            }
+        | e -> Choice.error e)
+    |> Choice.bindError (function
+        | Failure _ ->
+            choice {
+                let! l, r = dest_comb tm
+                let! l' = preterm_of_term l
+                let! r' = preterm_of_term r  
+                return Combp(l', r')
+            }
+        | e -> Choice.error e)
 
 (* ------------------------------------------------------------------------- *)
 (* Main pretype->type, preterm->term and retypechecking functions.           *)
@@ -616,7 +624,7 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
 
                         return pmk_cv(c', tys)
                     }
-                    |> Choice.bindError (fun _ -> Choice.result <| Constp(s, tys))
+                    |> Choice.bindError (function Failure _ -> Choice.result <| Constp(s, tys) | e -> Choice.error e)
             | _ -> 
                 return! Choice.failwith "solve_preterm: Unhandled case."
         }

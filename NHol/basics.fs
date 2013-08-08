@@ -389,7 +389,9 @@ let rec find_term p tm : Protected<term> =
         let! l, r = dest_comb tm
         return!
             find_term p l
-            |> Choice.bindError (fun _ -> find_term p r)
+            |> Choice.bindError (function
+                    | Failure _ -> find_term p r
+                    | e -> Choice.error e)
     else
         return! Choice.failwith "find_term"
     }
@@ -779,12 +781,14 @@ let find_path : _ -> _ -> Protected<string> =
                         let! rs = find_path p tm1
                         return "r" :: rs
                     }
-                    |> Choice.bindError (fun _ -> 
-                        choice {
-                            let! tm1 = rator tm
-                            let! ls = find_path p tm1
-                            return "l" :: ls
-                        })
+                    |> Choice.bindError (function
+                        | Failure _ -> 
+                            choice {
+                                let! tm1 = rator tm
+                                let! ls = find_path p tm1
+                                return "l" :: ls
+                            }
+                        | e -> Choice.error e)
         }
 
     fun p tm ->

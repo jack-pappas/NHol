@@ -197,12 +197,16 @@ module Choice =
     /// Applies the specified binding function to a choice value representing an error value
     /// (Choice2Of2). If the choice value represents a result value (Choice1Of2), the result value
     /// is passed through without modification.
-    let bindError (binding : 'Error -> Choice<'T, 'Failure>) value =
+    let bindError (binding : 'Error -> Choice<'T, _>) value =
         match value with
         | Choice1Of2 result ->
             Choice1Of2 result
         | Choice2Of2 error ->
-            binding error
+            // NOTE: until we normalize all uses of bindError, we will categorize error patterns here
+            match error with
+            | Failure _ ->
+                binding error
+            | _ -> Choice2Of2 error
 
     /// Iterates a function a fixed number of times.
     /// The iteration will be short-circuited if/when the function returns an error.

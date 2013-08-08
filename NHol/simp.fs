@@ -350,16 +350,18 @@ and strategy = simpset -> int -> term -> Protected<thm0>
 let basic_prover (strat : strategy) (Simpset(net, prover, provers, rewmaker) as ss) lev tm : Protected<thm0> = 
     let sth = 
         strat ss lev tm
-        |> Choice.bindError (fun _ -> REFL tm)
+        |> Choice.bindError (function Failure _ -> REFL tm | e -> Choice.error e)
     EQT_ELIM sth
-    |> Choice.bindError (fun _ ->
-        choice {
-            let! tm = Choice.bind (rand << concl)  sth
-            let tth = 
-                tryfind (fun pr -> Choice.toOption <| apply_prover pr tm) provers
-                |> Option.toChoiceWithError "tryfind"
-            return! EQ_MP (SYM sth) tth
-            })
+    |> Choice.bindError (function
+        | Failure _ ->
+            choice {
+                let! tm = Choice.bind (rand << concl)  sth
+                let tth = 
+                    tryfind (fun pr -> Choice.toOption <| apply_prover pr tm) provers
+                    |> Option.toChoiceWithError "tryfind"
+                return! EQ_MP (SYM sth) tth
+                }
+        | e -> Choice.error e)
 
 (* ------------------------------------------------------------------------- *)
 (* Functions for changing or augmenting components of simpsets.              *)

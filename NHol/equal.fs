@@ -85,13 +85,15 @@ let mk_primed_var : _ -> _ -> Protected<term> =
 /// General case of beta-conversion.
 let BETA_CONV tm : Protected<thm0> = 
     BETA tm
-    |> Choice.bindError (fun _ ->
-        choice { 
-            let! f, arg = dest_comb tm
-            let! v = bndvar f
-            let! tm' = mk_comb(f, v)
-            return! INST [arg, v] (BETA tm')
-        })
+    |> Choice.bindError (function
+        | Failure _ ->
+            choice { 
+                let! f, arg = dest_comb tm
+                let! v = bndvar f
+                let! tm' = mk_comb(f, v)
+                return! INST [arg, v] (BETA tm')
+            }
+        | e -> Choice.error e)
     |> Choice.mapError (fun e -> nestedFailure e "BETA_CONV: Not a beta-redex")
 
 (* ------------------------------------------------------------------------- *)
@@ -170,8 +172,8 @@ let THENC (conv1 : conv) (conv2 : conv) : conv =
 /// Applies the first of two conversions that succeeds.
 let ORELSEC (conv1 : conv) (conv2 : conv) : conv =
     fun t ->
-    conv1 t
-    |> Choice.bindError (fun _ -> conv2 t)
+        conv1 t
+        |> Choice.bindError (function Failure _ -> conv2 t | e -> Choice.error e)
 
 /// Apply the first of the conversions in a given list that succeeds.
 let FIRST_CONV : conv list -> conv =
@@ -255,22 +257,24 @@ let ABS_CONV (conv : conv) : conv =
     let th = conv bod
     return!
         ABS v th
-        |> Choice.bindError(fun _ ->
-            choice {
-            let! tv = type_of v
-            let gv = genvar tv
-            let! gbod = vsubst [gv, v] bod
-            let! gth = ABS gv (conv gbod)
-            let gtm = concl gth
-            let! l, r = dest_eq gtm
-            let! v' = variant (frees gtm) v
-            let! l' = alpha v' l
-            let! r' = alpha v' r
-            let! tm' = mk_eq(l', r')
-            return!
-                let gth = Choice.result gth in
-                EQ_MP (ALPHA gtm tm') gth
-            })
+        |> Choice.bindError (function 
+            | Failure _ ->
+                choice {
+                let! tv = type_of v
+                let gv = genvar tv
+                let! gbod = vsubst [gv, v] bod
+                let! gth = ABS gv (conv gbod)
+                let gtm = concl gth
+                let! l, r = dest_eq gtm
+                let! v' = variant (frees gtm) v
+                let! l' = alpha v' l
+                let! r' = alpha v' r
+                let! tm' = mk_eq(l', r')
+                return!
+                    let gth = Choice.result gth in
+                    EQ_MP (ALPHA gtm tm') gth
+                }
+            | e -> Choice.error e)
     }
 
 /// Applies conversion to the body of a binder.
@@ -316,9 +320,9 @@ let rec private THENQC (conv1 : conv) (conv2 : conv) tm : Protected<thm0> =
             let th2 = conv2 tm
             return! TRANS th1 th2
         }
-        |> Choice.bindError (fun _ -> th1)
+        |> Choice.bindError (function Failure _ -> th1 | e -> Choice.error e)
     v
-    |> Choice.bindError (fun _ -> conv2 tm)
+    |> Choice.bindError (function Failure _ -> conv2 tm | e -> Choice.error e)
 
 and private THENCQC (conv1 : conv) (conv2 : conv) tm : Protected<thm0> =
     let th1 = conv1 tm
@@ -327,7 +331,7 @@ and private THENCQC (conv1 : conv) (conv2 : conv) tm : Protected<thm0> =
         let th2 = conv2 tm
         return! TRANS th1 th2
     }
-    |> Choice.bindError (fun _ -> th1)
+    |> Choice.bindError (function Failure _ -> th1 | e -> Choice.error e)
 
 and private COMB_QCONV conv tm : Protected<thm0> = 
     dest_comb tm
@@ -338,11 +342,12 @@ and private COMB_QCONV conv tm : Protected<thm0> =
                 let th2 = conv r
                 MK_COMB(th1, th2)
             v'
-            |> Choice.bindError (fun _ -> AP_THM th1 r)
+            |> Choice.bindError (function Failure _ -> AP_THM th1 r | e -> Choice.error e)
         v
-        |> Choice.bindError (fun _ -> AP_TERM l (conv r)))
+        |> Choice.bindError (function Failure _ -> AP_TERM l (conv r) | e -> Choice.error e))
 
-let rec private REPEATQC conv tm = THENCQC conv (REPEATQC conv) tm
+let rec private REPEATQC conv tm = 
+    THENCQC conv (REPEATQC conv) tm
 
 let private SUB_QCONV conv tm = 
     if is_abs tm then ABS_CONV conv tm
@@ -525,14 +530,16 @@ let CACHE_CONV (conv : conv) : conv =
         |> Choice.bind (fun fs ->
             tryfind (fun f -> Choice.toOption <| f tm) fs
             |> Option.toChoiceWithError "tryfind"
-            |> Choice.bindError (fun _ ->
-                let th = conv tm
-                match enter [] (tm, ALPHA_HACK th) !net with
-                | Success n ->
-                    net := n
-                | Error ex ->
-                    // NOTE: currently do nothing in case of error
-                    System.Diagnostics.Debug.WriteLine "An unhandled error occurred in CACHE_CONV."
-                    System.Diagnostics.Debug.WriteLine ("Message: " + ex.Message)
-                    ()
-                th))
+            |> Choice.bindError (function
+                | Failure _ ->
+                    let th = conv tm
+                    match enter [] (tm, ALPHA_HACK th) !net with
+                    | Success n ->
+                        net := n
+                    | Error ex ->
+                        // NOTE: currently do nothing in case of error
+                        System.Diagnostics.Debug.WriteLine "An unhandled error occurred in CACHE_CONV."
+                        System.Diagnostics.Debug.WriteLine ("Message: " + ex.Message)
+                        ()
+                    th
+                | e -> Choice.error e))

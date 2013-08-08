@@ -274,7 +274,7 @@ let rec DISCH_ALL (th : Protected<thm0>) : Protected<thm0> =
         let! th' = th
         match hyp th' with
         | t :: _ ->
-            return! DISCH_ALL(DISCH t th) |> Choice.bindError (fun _ -> th) 
+            return! DISCH_ALL(DISCH t th) |> Choice.bindError (function Failure _ -> th | e -> Choice.error e) 
         | _ -> 
             return! th
     }

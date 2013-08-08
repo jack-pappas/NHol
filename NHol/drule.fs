@@ -110,7 +110,7 @@ let MP_CONV (cnv : conv) (th : Protected<thm0>) : Protected<thm0> =
     return!
         let th = Choice.result th in
         MP th (EQT_ELIM ath)
-        |> Choice.bindError (fun _ -> MP th ath)
+        |> Choice.bindError (function Failure _ -> MP th ath | e -> Choice.error e)
     }    
 
 (* ------------------------------------------------------------------------- *)
@@ -165,34 +165,36 @@ let instantiate : instantiation -> term -> Protected<term> =
             let! foo1 = ho_betas bcs body_pat bod
             return! mk_abs(bv, foo1)
             }
-            |> Choice.bindError (fun _ ->
-                let hop, args = strip_comb pat
-                match rev_assoc hop bcs with
-                | Some n when length args = n ->
-                    betas n tm
-                | _ ->
-                    // CLEAN : This should be reworked to simplify the code.
-                    match dest_comb pat with
-                    | Error error ->
-                        Choice.error error
-                    | Success (lpat, rpat) ->
-                        match dest_comb tm with
+            |> Choice.bindError (function
+                | Failure _ ->
+                    let hop, args = strip_comb pat
+                    match rev_assoc hop bcs with
+                    | Some n when length args = n ->
+                        betas n tm
+                    | _ ->
+                        // CLEAN : This should be reworked to simplify the code.
+                        match dest_comb pat with
                         | Error error ->
                             Choice.error error
-                        | Success (ltm, rtm) ->
-                            match ho_betas bcs lpat ltm with
-                            | Success lth ->
-                                match ho_betas bcs rpat rtm with
-                                | Success rth ->
-                                    mk_comb(lth, rth)
+                        | Success (lpat, rpat) ->
+                            match dest_comb tm with
+                            | Error error ->
+                                Choice.error error
+                            | Success (ltm, rtm) ->
+                                match ho_betas bcs lpat ltm with
+                                | Success lth ->
+                                    match ho_betas bcs rpat rtm with
+                                    | Success rth ->
+                                        mk_comb(lth, rth)
+                                    | Error _ ->
+                                        mk_comb(lth, rtm)
                                 | Error _ ->
-                                    mk_comb(lth, rtm)
-                            | Error _ ->
-                                match ho_betas bcs rpat rtm with
-                                | Success rth ->
-                                    mk_comb(ltm, rth)
-                                | Error error ->
-                                    Choice.error error)
+                                    match ho_betas bcs rpat rtm with
+                                    | Success rth ->
+                                        mk_comb(ltm, rth)
+                                    | Error error ->
+                                        Choice.error error
+                | e -> Choice.error e)
 
     fun (bcs, tmin, tyin) tm ->
         choice {
@@ -212,8 +214,7 @@ let instantiate : instantiation -> term -> Protected<term> =
             else
                 return!
                     ho_betas bcs itm ttm
-                    |> Choice.bindError (fun _ ->
-                        Choice.result ttm)
+                    |> Choice.bindError (function Failure _ -> Choice.result ttm | e -> Choice.error e)
         }
 
 /// Apply a higher-order instantiation to conclusion of a theorem.
@@ -233,34 +234,38 @@ let INSTANTIATE : instantiation -> Protected<thm0> -> Protected<thm0> =
                 let! tm' = body pat
                 return! ABS bv (HO_BETAS bcs tm' bod)
             }
-            |> Choice.bindError (fun _ ->
-                let hop, args = strip_comb pat
-                rev_assoc hop bcs
-                |> Option.toChoiceWithError "find"
-                |> Choice.bind (fun n ->
-                    if length args = n then
-                        BETAS_CONV n tm
-                    else
-                        Choice.fail ())
-                |> Choice.bindError (fun _ ->
-                    choice {
-                        let! lpat, rpat = dest_comb pat
-                        let! ltm, rtm = dest_comb tm
+            |> Choice.bindError (function
+                | Failure _ ->
+                    let hop, args = strip_comb pat
+                    rev_assoc hop bcs
+                    |> Option.toChoiceWithError "find"
+                    |> Choice.bind (fun n ->
+                        if length args = n then
+                            BETAS_CONV n tm
+                        else
+                            Choice.fail ())
+                    |> Choice.bindError (function
+                        | Failure _ ->
+                            choice {
+                                let! lpat, rpat = dest_comb pat
+                                let! ltm, rtm = dest_comb tm
                         
-                        let! lth = HO_BETAS bcs lpat ltm
-                        let! rth = HO_BETAS bcs rpat rtm
-                        return!
-                            let lth = Choice.result lth in
-                            let rth = Choice.result rth in
-                            MK_COMB(lth, rth)
-                            |> Choice.bindError (fun _ ->
-                                AP_THM lth rtm)
-                            |> Choice.bindError (fun _ ->
-                                choice {
+                                let! lth = HO_BETAS bcs lpat ltm
                                 let! rth = HO_BETAS bcs rpat rtm
-                                return! AP_TERM ltm (Choice.result rth)
-                                })
-                    }))
+                                return!
+                                    let lth = Choice.result lth in
+                                    let rth = Choice.result rth in
+                                    MK_COMB(lth, rth)
+                                    |> Choice.bindError (fun _ ->
+                                        AP_THM lth rtm)
+                                    |> Choice.bindError (fun _ ->
+                                        choice {
+                                        let! rth = HO_BETAS bcs rpat rtm
+                                        return! AP_TERM ltm (Choice.result rth)
+                                        })
+                            }
+                         | e -> Choice.error e)
+                 | e -> Choice.error e)
 
     fun (bcs, tmin, tyin) th ->
         choice {
@@ -290,7 +295,7 @@ let INSTANTIATE : instantiation -> Protected<thm0> -> Protected<thm0> =
                         let eth = Choice.result eth in
                         let tth = Choice.result tth in
                         EQ_MP eth tth
-                        |> Choice.bindError (fun _ -> tth)
+                        |> Choice.bindError (function Failure _ -> tth | e -> Choice.error e)
             else 
                 return! Choice.failwith "INSTANTIATE: term or type var free in assumptions"
         }
@@ -674,21 +679,24 @@ let deep_alpha : (string * string) list -> term -> Protected<term> =
                 let! deep_alpha_ib = deep_alpha newenv ib
                 return! mk_abs(iv, deep_alpha_ib)
                 }
-                |> Choice.bindError (fun _ ->
-                    choice {
-                    let! deep_alpha_bod = deep_alpha env bod
-                    return! mk_abs(v, deep_alpha_bod)
-                    })
+                |> Choice.bindError (function
+                    | Failure _ ->
+                        choice {
+                        let! deep_alpha_bod = deep_alpha env bod
+                        return! mk_abs(v, deep_alpha_bod)
+                        }
+                    | e -> Choice.error e)
         }
-        |> Choice.bindError (fun _ ->
-            choice {
-            let! l, r = dest_comb tm
-            let! deep_alpha_l = deep_alpha env l
-            let! deep_alpha_r = deep_alpha env r
-            return! mk_comb(deep_alpha_l, deep_alpha_r)
-            }
-            |> Choice.bindError (fun _ ->
-                Choice.result tm))
+        |> Choice.bindError (function 
+            | Failure _ ->
+                choice {
+                let! l, r = dest_comb tm
+                let! deep_alpha_l = deep_alpha env l
+                let! deep_alpha_r = deep_alpha env r
+                return! mk_comb(deep_alpha_l, deep_alpha_r)
+                }
+                |> Choice.bindError (function Failure _ -> Choice.result tm | e -> Choice.error e)
+            | e -> Choice.error e)
     
     deep_alpha
 
