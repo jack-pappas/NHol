@@ -116,7 +116,5 @@ let assertProp testName (property : 'Testable) =
     Check.One (testName, nUnitConfig, property)
 
 /// Evaluate a choice, either returning results or raising exceptions
-let evaluate choice =
-    match choice with
-    | Success result -> result
-    | Error ex -> raise ex
+let inline evaluate choice : 'T =
+    ExtCore.Choice.bindOrRaise choice

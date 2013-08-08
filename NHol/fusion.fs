@@ -116,15 +116,17 @@ module Hol_kernel =
     /// Constructs a type (other than a variable type).
     let mk_type(tyop, args) : Protected<hol_type> =
         choice {
-        let! arity = get_type_arity tyop
+        let! arity =
+            get_type_arity tyop
+            |> Choice.mapError (fun ex ->
+                nestedFailure ex ("mk_type: type " + tyop + " has not been defined"))
+
         if arity = length args then
             return Tyapp(tyop, args)
         else
             return! Choice.failwith ("mk_type: wrong number of arguments to " + tyop)
         }
-        |> Choice.mapError (fun ex ->
-            nestedFailure ex ("mk_type: type " + tyop + " has not been defined"))
-
+        
     /// Constructs a type variable of the given name.
     let mk_vartype v = Tyvar(v)
     
