@@ -1822,12 +1822,11 @@ let MOD_NSUM_MOD =
         |> THEN <| MATCH_MP_TAC FINITE_INDUCT_STRONG
         |> THEN <| SIMP_TAC [NSUM_CLAUSES]
         |> THEN <| REPEAT STRIP_TAC
-        |> THEN 
-        <| W(MP_TAC << PART_MATCH (Choice.bind rand << rand) MOD_ADD_MOD << Choice.get << lhand << snd)
+        |> THEN <| W(MP_TAC << Choice.bind (PART_MATCH (Choice.bind rand << rand) MOD_ADD_MOD) << lhand << snd)
         |> THEN <| ASM_REWRITE_TAC []
         |> THEN <| DISCH_THEN(SUBST1_TAC << SYM)
         |> THEN 
-        <| W(MP_TAC << PART_MATCH (Choice.bind rand << rand) MOD_ADD_MOD << Choice.get << rand << snd)
+        <| W(MP_TAC << Choice.bind (PART_MATCH (Choice.bind rand << rand) MOD_ADD_MOD) << rand << snd)
         |> THEN <| ASM_SIMP_TAC [MOD_MOD_REFL])
 
 let MOD_NSUM_MOD_NUMSEG = prove((parse_term @"!f a b n.
