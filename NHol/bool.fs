@@ -59,7 +59,7 @@ parse_as_infix("/\\", (8, "right"))
 (* ------------------------------------------------------------------------- *)
 
 parse_as_infix("<=>", (2, "right"))
-override_interface("<=>", parse_term @"(=):bool->bool->bool") |> ExtCore.Choice.bindOrRaise
+override_interface("<=>", parse_term @"(=):bool->bool->bool") |> Choice.ignoreOrRaise
 parse_as_infix("=", (12, "right"))
 
 (* ------------------------------------------------------------------------- *)

@@ -63,7 +63,7 @@ open NHol.iterate
 open NHol.cart     
 open NHol.define
 
-#if LONGRUNNING
+#if COMPILED
 [<TestFixtureSetUp>]
 let SetUp () =
     printfn "I'm set up for the fixture"

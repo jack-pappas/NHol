@@ -142,7 +142,7 @@ let int_eq =
 (* Set up interface map.                                                     *)
 (* ------------------------------------------------------------------------- *)
 
-do_list (ExtCore.Choice.bindOrRaise << overload_interface) 
+do_list (Choice.ignoreOrRaise << overload_interface) 
                            ["+", (parse_term @"int_add:int->int->int")
                             "-", (parse_term @"int_sub:int->int->int")
                             "*", (parse_term @"int_mul:int->int->int")
@@ -1568,10 +1568,10 @@ let INT_REDUCE_CONV = DEPTH_CONV INT_RED_CONV
 (* Set up overloading so we can use same symbols for N, Z and even R.        *)
 (* ------------------------------------------------------------------------- *)
 
-make_overloadable "divides" (parse_type @"A->A->bool") |> ExtCore.Choice.bindOrRaise;;
-make_overloadable "mod" (parse_type @"A->A->A->bool") |> ExtCore.Choice.bindOrRaise;;
-make_overloadable "coprime" (parse_type @"A#A->bool") |> ExtCore.Choice.bindOrRaise;;
-make_overloadable "gcd" (parse_type @"A#A->A") |> ExtCore.Choice.bindOrRaise;;
+make_overloadable "divides" (parse_type @"A->A->bool") |> Choice.ignoreOrRaise;;
+make_overloadable "mod" (parse_type @"A->A->A->bool") |> Choice.ignoreOrRaise;;
+make_overloadable "coprime" (parse_type @"A#A->bool") |> Choice.ignoreOrRaise;;
+make_overloadable "gcd" (parse_type @"A#A->A") |> Choice.ignoreOrRaise;;
 
 (* ------------------------------------------------------------------------- *)
 (* The general notion of congruence: just syntax for equivalence relation.   *)
@@ -1588,14 +1588,14 @@ let real_mod =
     new_definition
         (parse_term @"real_mod n (x:real) y = ?q. integer q /\ x - y = q * n")
 
-overload_interface("mod", (parse_term @"real_mod")) |> ExtCore.Choice.bindOrRaise;;
+overload_interface("mod", (parse_term @"real_mod")) |> Choice.ignoreOrRaise;;
 
 (* ------------------------------------------------------------------------- *)
 (* Integer divisibility.                                                     *)
 (* ------------------------------------------------------------------------- *)
 
 parse_as_infix("divides", (12, "right"))
-overload_interface("divides", (parse_term @"int_divides:int->int->bool")) |> ExtCore.Choice.bindOrRaise
+overload_interface("divides", (parse_term @"int_divides:int->int->bool")) |> Choice.ignoreOrRaise
 
 let int_divides = new_definition(parse_term @"a divides b <=> ?x. b = a * x")
 
@@ -1604,7 +1604,7 @@ let int_divides = new_definition(parse_term @"a divides b <=> ?x. b = a * x")
 (* ------------------------------------------------------------------------- *)
 
 parse_as_prefix "mod"
-overload_interface("mod", (parse_term @"int_mod:int->int->int->bool")) |> ExtCore.Choice.bindOrRaise
+overload_interface("mod", (parse_term @"int_mod:int->int->int->bool")) |> Choice.ignoreOrRaise
 
 let int_mod = new_definition(parse_term @"(mod n) x y = n divides (x - y)");;
 
@@ -1617,7 +1617,7 @@ let int_congruent =
 (* Integer coprimality.                                                      *)
 (* ------------------------------------------------------------------------- *)
 
-overload_interface("coprime", (parse_term @"int_coprime:int#int->bool")) |> ExtCore.Choice.bindOrRaise
+overload_interface("coprime", (parse_term @"int_coprime:int#int->bool")) |> Choice.ignoreOrRaise
 
 let int_coprime = 
     new_definition(parse_term @"!a b. coprime(a,b) <=> ?x y. a * x + b * y = &1")
@@ -1896,7 +1896,7 @@ let INT_GCD_EXISTS_POS =
 (* Hence define (positive) gcd function; add elimination to INTEGER_TAC.     *)
 (* ------------------------------------------------------------------------- *)
 
-overload_interface("gcd", (parse_term @"int_gcd:int#int->int")) |> ExtCore.Choice.bindOrRaise
+overload_interface("gcd", (parse_term @"int_gcd:int#int->int")) |> Choice.ignoreOrRaise
 
 let int_gcd = new_specification ["int_gcd"] (REWRITE_RULE[EXISTS_UNCURRY; SKOLEM_THM] INT_GCD_EXISTS_POS);;
 
@@ -1968,10 +1968,10 @@ let NUM_OF_INT =
 (* Now define similar notions over the natural numbers.                      *)
 (* ------------------------------------------------------------------------- *)
 
-overload_interface("divides", (parse_term @"num_divides:num->num->bool")) |> ExtCore.Choice.bindOrRaise
-overload_interface("mod", (parse_term @"num_mod:num->num->num->bool")) |> ExtCore.Choice.bindOrRaise
-overload_interface("coprime", (parse_term @"num_coprime:num#num->bool")) |> ExtCore.Choice.bindOrRaise
-overload_interface("gcd", (parse_term @"num_gcd:num#num->num")) |> ExtCore.Choice.bindOrRaise
+overload_interface("divides", (parse_term @"num_divides:num->num->bool")) |> Choice.ignoreOrRaise
+overload_interface("mod", (parse_term @"num_mod:num->num->num->bool")) |> Choice.ignoreOrRaise
+overload_interface("coprime", (parse_term @"num_coprime:num#num->bool")) |> Choice.ignoreOrRaise
+overload_interface("gcd", (parse_term @"num_gcd:num#num->num")) |> Choice.ignoreOrRaise
 
 let num_divides = new_definition(parse_term @"a divides b <=> &a divides &b")
 
@@ -2108,4 +2108,4 @@ let NUMBER_RULE tm = prove(tm,NUMBER_TAC);;
 (* Make sure we give priority to N.                                          *)
 (* ------------------------------------------------------------------------- *)
 
-prioritize_num() |> ExtCore.Choice.bindOrRaise
+prioritize_num() |> Choice.ignoreOrRaise

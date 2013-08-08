@@ -676,10 +676,13 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
 let set_basic_congs, extend_basic_congs, basic_congs =
     let congs = ref([] : thm0 list)
     (fun thl -> congs := thl),
-    (fun thl ->
+    (fun (thl : Protected<_> list) ->
+        choice {
+        let! thl = Choice.List.map id thl
         let equals_thm x y =
             equals_thm (Choice.result x) (Choice.result y)
-        congs := union' equals_thm thl !congs),
+        return congs := union' equals_thm thl !congs
+        }),
     (fun () -> !congs)
 
 (* ------------------------------------------------------------------------- *)

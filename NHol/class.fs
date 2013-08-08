@@ -190,7 +190,8 @@ let SELECT_UNIQUE =
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM ETA_AX]
          |> THEN <| ASM_REWRITE_TAC [SELECT_REFL]);;
 
-extend_basic_rewrites [SELECT_REFL] |> ExtCore.Choice.bindOrRaise
+extend_basic_rewrites [SELECT_REFL]
+    |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Now we can derive type definitions from existence; check benignity.       *)
@@ -700,9 +701,10 @@ let COND_CONG =
         (g' ==> (t = t')) ==>
         (~g' ==> (e = e')) ==>
         ((if g then t else e) = (if g' then t' else e'))")
-    |> ExtCore.Choice.bindOrRaise;;
 
 extend_basic_congs [COND_CONG]
+|> Choice.ignoreOrRaise
+
 
 let COND_EQ_CLAUSE = 
     prove((parse_term @"(if x = x then y else z) = y"), REWRITE_TAC []);;

@@ -208,16 +208,12 @@ do
         EXISTS_SIMP;
         BETA_THM;
         IMP_EQ_CLAUSE;]
-#if BIND_OR_RAISE
-    |> ExtCore.Choice.bindOrRaise
-#else
-    |> ignore
-#endif
+    |> Choice.ignoreOrRaise
 
     extend_basic_congs [
         ITAUT (parse_term @"(p <=> p') ==> (p' ==> (q <=> q')) ==> (p ==> q <=> p' ==> q')")
-        |> ExtCore.Choice.bindOrRaise
         ]
+    |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Rewrite rule for unique existence.                                        *)

@@ -71,23 +71,23 @@ parse_as_infix("treal_add", (16, "right"))
 parse_as_infix("treal_le", (12, "right"))
 parse_as_infix("treal_eq", (10, "right"))
 
-make_overloadable "+" (parse_type @"A->A->A") |> ExtCore.Choice.bindOrRaise
-make_overloadable "-" (parse_type @"A->A->A") |> ExtCore.Choice.bindOrRaise
-make_overloadable "*" (parse_type @"A->A->A") |> ExtCore.Choice.bindOrRaise
-make_overloadable "/" (parse_type @"A->A->A") |> ExtCore.Choice.bindOrRaise
-make_overloadable "<" (parse_type @"A->A->bool") |> ExtCore.Choice.bindOrRaise
-make_overloadable "<=" (parse_type @"A->A->bool") |> ExtCore.Choice.bindOrRaise
-make_overloadable ">" (parse_type @"A->A->bool") |> ExtCore.Choice.bindOrRaise
-make_overloadable ">=" (parse_type @"A->A->bool") |> ExtCore.Choice.bindOrRaise
-make_overloadable "--" (parse_type @"A->A") |> ExtCore.Choice.bindOrRaise
-make_overloadable "pow" (parse_type @"A->num->A") |> ExtCore.Choice.bindOrRaise
-make_overloadable "inv" (parse_type @"A->A") |> ExtCore.Choice.bindOrRaise
-make_overloadable "abs" (parse_type @"A->A") |> ExtCore.Choice.bindOrRaise
-make_overloadable "max" (parse_type @"A->A->A") |> ExtCore.Choice.bindOrRaise
-make_overloadable "min" (parse_type @"A->A->A") |> ExtCore.Choice.bindOrRaise
-make_overloadable "&" (parse_type @"num->A") |> ExtCore.Choice.bindOrRaise
+make_overloadable "+" (parse_type @"A->A->A") |> Choice.ignoreOrRaise
+make_overloadable "-" (parse_type @"A->A->A") |> Choice.ignoreOrRaise
+make_overloadable "*" (parse_type @"A->A->A") |> Choice.ignoreOrRaise
+make_overloadable "/" (parse_type @"A->A->A") |> Choice.ignoreOrRaise
+make_overloadable "<" (parse_type @"A->A->bool") |> Choice.ignoreOrRaise
+make_overloadable "<=" (parse_type @"A->A->bool") |> Choice.ignoreOrRaise
+make_overloadable ">" (parse_type @"A->A->bool") |> Choice.ignoreOrRaise
+make_overloadable ">=" (parse_type @"A->A->bool") |> Choice.ignoreOrRaise
+make_overloadable "--" (parse_type @"A->A") |> Choice.ignoreOrRaise
+make_overloadable "pow" (parse_type @"A->num->A") |> Choice.ignoreOrRaise
+make_overloadable "inv" (parse_type @"A->A") |> Choice.ignoreOrRaise
+make_overloadable "abs" (parse_type @"A->A") |> Choice.ignoreOrRaise
+make_overloadable "max" (parse_type @"A->A->A") |> Choice.ignoreOrRaise
+make_overloadable "min" (parse_type @"A->A->A") |> Choice.ignoreOrRaise
+make_overloadable "&" (parse_type @"num->A") |> Choice.ignoreOrRaise
 
-do_list (ExtCore.Choice.bindOrRaise << overload_interface)
+do_list (Choice.ignoreOrRaise << overload_interface)
                            ["+", (parse_term @"(+):num->num->num")
                             "-", (parse_term @"(-):num->num->num")
                             "*", (parse_term @"(*):num->num->num")
@@ -419,8 +419,8 @@ let is_nadd_0 =
 let nadd_abs, nadd_rep = 
     new_basic_type_definition "nadd" ("mk_nadd", "dest_nadd") is_nadd_0
 
-override_interface("fn", (parse_term @"dest_nadd")) |> ExtCore.Choice.bindOrRaise
-override_interface("afn", (parse_term @"mk_nadd")) |> ExtCore.Choice.bindOrRaise
+override_interface("fn", (parse_term @"dest_nadd")) |> Choice.ignoreOrRaise
+override_interface("afn", (parse_term @"mk_nadd")) |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Properties of nearly-additive functions.                                  *)
@@ -559,7 +559,7 @@ let NADD_ALTMUL =
                                       GSYM MULT_ASSOC;
                                       LE_MULT_LCANCEL])
 
-override_interface("===", (parse_term @"(nadd_eq):nadd->nadd->bool")) |> ExtCore.Choice.bindOrRaise
+override_interface("===", (parse_term @"(nadd_eq):nadd->nadd->bool")) |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Definition of the equivalence relation and proof that it *is* one.        *)
@@ -594,7 +594,7 @@ let NADD_EQ_TRANS =
           |> THEN <| MATCH_MP_TAC LE_ADD2
           |> THEN <| ASM_REWRITE_TAC [])
 
-override_interface("&", (parse_term @"nadd_of_num:num->nadd")) |> ExtCore.Choice.bindOrRaise
+override_interface("&", (parse_term @"nadd_of_num:num->nadd")) |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Injection of the natural numbers.                                         *)
@@ -627,7 +627,7 @@ let NADD_OF_NUM_EQ =
          |> THEN <| REWRITE_TAC [GSYM DIST_RMUL
                                  BOUNDS_LINEAR_0; DIST_EQ_0])
 
-override_interface("<<=", (parse_term @"nadd_le:nadd->nadd->bool")) |> ExtCore.Choice.bindOrRaise
+override_interface("<<=", (parse_term @"nadd_le:nadd->nadd->bool")) |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Definition of (reflexive) ordering and the only special property needed.  *)
@@ -753,7 +753,7 @@ let NADD_OF_NUM_LE =
          |> THEN <| REWRITE_TAC [nadd_le; NADD_OF_NUM]
          |> THEN <| REWRITE_TAC [BOUNDS_LINEAR])
 
-override_interface("++", (parse_term @"nadd_add:nadd->nadd->nadd")) |> ExtCore.Choice.bindOrRaise
+override_interface("++", (parse_term @"nadd_add:nadd->nadd->nadd")) |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Addition.                                                                 *)
@@ -874,7 +874,7 @@ let NADD_OF_NUM_ADD =
          REWRITE_TAC [nadd_eq; NADD_OF_NUM; NADD_ADD]
          |> THEN <| REWRITE_TAC [RIGHT_ADD_DISTRIB; DIST_REFL; LE_0])
 
-override_interface("**", (parse_term @"nadd_mul:nadd->nadd->nadd")) |> ExtCore.Choice.bindOrRaise
+override_interface("**", (parse_term @"nadd_mul:nadd->nadd->nadd")) |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Multiplication.                                                           *)
@@ -1687,7 +1687,7 @@ let nadd_inv =
     new_definition
         (parse_term @"nadd_inv(x) = if x === &0 then &0 else afn(nadd_rinv x)")
 
-override_interface("inv", (parse_term @"nadd_inv:nadd->nadd")) |> ExtCore.Choice.bindOrRaise
+override_interface("inv", (parse_term @"nadd_inv:nadd->nadd")) |> Choice.ignoreOrRaise
 
 let NADD_INV = 
     prove
@@ -1777,12 +1777,12 @@ let NADD_INV_WELLDEF =
 let hreal_tybij = 
     define_quotient_type "hreal" ("mk_hreal", "dest_hreal") (parse_term @"(===)")
 
-do_list (ExtCore.Choice.bindOrRaise << overload_interface)
+do_list (Choice.ignoreOrRaise << overload_interface)
     ["+", (parse_term @"hreal_add:hreal->hreal->hreal");
      "*", (parse_term @"hreal_mul:hreal->hreal->hreal");
      "<=", (parse_term @"hreal_le:hreal->hreal->bool")]
 
-do_list (ExtCore.Choice.bindOrRaise << override_interface)
+do_list (Choice.ignoreOrRaise << override_interface)
     ["&", (parse_term @"hreal_of_num:num->hreal");
      "inv", (parse_term @"hreal_inv:hreal->hreal")]
 
@@ -2454,7 +2454,7 @@ parse_as_prefix "--"
 parse_as_infix("/", (22, "left"))
 parse_as_infix("pow", (24, "left"))
 
-do_list (ExtCore.Choice.bindOrRaise << overload_interface) 
+do_list (Choice.ignoreOrRaise << overload_interface) 
                            ["+", (parse_term @"real_add:real->real->real")
                             "-", (parse_term @"real_sub:real->real->real")
                             "*", (parse_term @"real_mul:real->real->real")
@@ -2746,7 +2746,7 @@ let REAL_COMPLETE =
                                                                    REAL_ADD_LINV]
                                            |> THEN <| REWRITE_TAC [ONCE_REWRITE_RULE [REAL_ADD_SYM] REAL_ADD_LID]]]]])
 
-do_list (ExtCore.Choice.bindOrRaise << reduce_interface)
+do_list (Choice.ignoreOrRaise << reduce_interface)
     ["+", (parse_term @"hreal_add:hreal->hreal->hreal");
      "*", (parse_term @"hreal_mul:hreal->hreal->hreal");
      "<=", (parse_term @"hreal_le:hreal->hreal->bool");

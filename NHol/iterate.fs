@@ -70,7 +70,7 @@ open int
 open sets
 #endif
 
-prioritize_num() |> ExtCore.Choice.bindOrRaise;;
+prioritize_num() |> Choice.ignoreOrRaise;;
 
 (* ------------------------------------------------------------------------- *)
 (* A natural notation for segments of the naturals.                          *)
@@ -1165,7 +1165,7 @@ let ITERATE_PAIR =
                                              (parse_term @"2 * SUC n + 1 = SUC(SUC(2 * n + 1))")]
                                  |> THEN <| ASM_MESON_TAC [monoidal]])
 
-prioritize_num() |> ExtCore.Choice.bindOrRaise
+prioritize_num() |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Sums of natural numbers.                                                  *)
@@ -1859,8 +1859,9 @@ let th =
               |> THEN <| ASM_SIMP_TAC [IN_ELIM_THM; IN_NUMSEG])
 
 extend_basic_congs(
-    Choice.List.map SPEC_ALL (CONJUNCTS th)
-    |> ExtCore.Choice.bindOrRaise)
+    List.map SPEC_ALL (CONJUNCTS th)
+    )
+    |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Thanks to finite sums, we can express cardinality of finite union.        *)
@@ -1889,7 +1890,7 @@ let CARD_UNIONS =
         |> THEN <| REWRITE_TAC [EMPTY_UNIONS; IN_ELIM_THM]
         |> THEN <| ASM MESON_TAC [])
 
-prioritize_real() |> ExtCore.Choice.bindOrRaise
+prioritize_real() |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Sums of real numbers.                                                     *)
@@ -2843,8 +2844,9 @@ let th_001 =
         |> THEN <| ASM_SIMP_TAC [IN_ELIM_THM; IN_NUMSEG])
 
 extend_basic_congs (
-    Choice.List.map SPEC_ALL (CONJUNCTS th_001)
-    |> ExtCore.Choice.bindOrRaise)
+    List.map SPEC_ALL (CONJUNCTS th_001)
+    )
+    |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Some special algebraic rearrangements.                                    *)
@@ -3082,4 +3084,4 @@ let REAL_POLYFUN_EQ_CONST =
                         |> THEN <| SIMP_TAC [LE_0; REAL_SUB_0]
                         |> THEN <| MESON_TAC [LE_1]])
 
-prioritize_num() |> ExtCore.Choice.bindOrRaise
+prioritize_num() |> Choice.ignoreOrRaise

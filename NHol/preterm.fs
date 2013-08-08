@@ -457,87 +457,105 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
     (* Unification of types                                                    *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec istrivial ptm env x = function 
-        | Stv y as t ->
-            y = x || defined env y && istrivial ptm env x (Option.get <| apply env y)
-        | Ptycon(f, args) as t when exists (istrivial ptm env x) args ->
-            let errorString = ExtCore.Choice.bindOrRaise <| string_of_ty_error env ptm
-            failwith errorString
-        | (Ptycon _ | Utv _) ->
-            false
+    let rec istrivial ptm env x = 
+        fun v ->
+            choice {
+            match v with 
+            | Stv y as t ->
+                if y = x then 
+                    return true
+                else
+                    if defined env y then
+                        // Option.get is safe to use here
+                        return! istrivial ptm env x (Option.get <| apply env y)
+                    else
+                        return false
+            | Ptycon(f, args) as t when Choice.List.exists (istrivial ptm env x) args = Choice1Of2 true ->
+                let! errorString = string_of_ty_error env ptm
+                return! Choice.failwith errorString
+            | (Ptycon _ | Utv _) ->
+                return false
+            } : Protected<bool>
 
     let unify ptm env ty1 ty2 = 
-        let unify ptm env ty1 ty2 = 
-            let rec unify env = function 
-                | [] -> env
+        let rec unify env = 
+            fun v ->
+                choice {
+                match v with 
+                | [] -> 
+                    return env
                 | (ty1, ty2, _) :: oth when ty1 = ty2 ->
-                    unify env oth
+                    return! unify env oth
                 | (Ptycon(f, fargs), Ptycon(g, gargs), ptm) :: oth -> 
                     if f = g && length fargs = length gargs then
-                        unify env (map2 (fun x y -> x, y, ptm) fargs gargs @ oth)
+                        return! unify env (map2 (fun x y -> x, y, ptm) fargs gargs @ oth)
                     else
-                        let errorString = ExtCore.Choice.bindOrRaise <| string_of_ty_error env ptm
-                        failwith errorString
+                        let! errorString = string_of_ty_error env ptm
+                        return! Choice.failwith errorString
                 | (Stv x, t, ptm) :: oth -> 
                     if defined env x then
-                        unify env ((Option.get <| apply env x, t, ptm) :: oth)
-                    else 
-                        unify (if istrivial ptm env x t then env
-                               else (x |-> t) env) oth
+                        // Option.get is safe to use here
+                        return! unify env ((Option.get <| apply env x, t, ptm) :: oth)
+                    else
+                        let! cond = istrivial ptm env x t  
+                        return! unify (if cond  then env else (x |-> t) env) oth
                 | (t, Stv x, ptm) :: oth ->
-                    unify env ((Stv x, t, ptm) :: oth)
+                    return! unify env ((Stv x, t, ptm) :: oth)
                 | (_, _, ptm) :: oth ->
-                    let errorString = ExtCore.Choice.bindOrRaise <| string_of_ty_error env ptm
-                    failwith errorString
+                    let! errorString = string_of_ty_error env ptm
+                    return! Choice.failwith errorString
+                }
 
-            unify env [ty1, ty2, Option.map (fun t -> t, ty1, ty2) ptm]
-
-        // NOTE: remove this when istrivial is converted                            
-        Choice.attempt <| fun () ->
-            unify ptm env ty1 ty2
+        unify env [ty1, ty2, Option.map (fun t -> t, ty1, ty2) ptm]
 
     (* ----------------------------------------------------------------------- *)
     (* Attempt to attach a given type to a term, performing unifications.      *)
     (* ----------------------------------------------------------------------- *)
 
-    let typify ty (ptm, venv, uenv) =
-        let rec typify ty (ptm, venv, uenv) =
+    let rec typify ty (ptm, venv, uenv) =
+        choice {
             //printfn "typify --> %A:%A:%A:%A" ty ptm venv uenv 
             match ptm with
             | Varp(s, _) when Option.isSome <| assoc s venv ->
-                let ty' =
+                let! ty' =
                     assoc s venv
-                    |> Option.getOrFailWith "find"
-                Varp(s, ty'), [], Choice.get <| unify (Some ptm) uenv ty' ty
+                    |> Option.toChoiceWithError "find"
+                let! fn = unify (Some ptm) uenv ty' ty
+                return Varp(s, ty'), [], fn
 
             | Varp(s, _) when Choice.isResult <| num_of_string s -> 
                 let t = pmk_numeral(Choice.get <| num_of_string s)
                 let ty' = Ptycon("num", [])
-                t, [], Choice.get <| unify (Some ptm) uenv ty' ty
+                let! fn = unify (Some ptm) uenv ty' ty
+                return t, [], fn
             
             | Varp(s, _) -> 
                 warn (s <> "" && isnum s) "Non-numeral begins with a digit"
                 if not(is_hidden s) && Choice.isResult <| get_generic_type s then 
                     let pty = pretype_instance(Choice.get <| get_generic_type s)
                     let ptm = Constp(s, pty)
-                    ptm, [], Choice.get <| unify (Some ptm) uenv pty ty
+                    let! fn = unify (Some ptm) uenv pty ty
+                    return ptm, [], fn
                 else 
                     let ptm = Varp(s, ty)
                     if Choice.isError <| get_var_type s then
-                        ptm, [s, ty], uenv
+                        return ptm, [s, ty], uenv
                     else 
-                        let pty = pretype_instance(Choice.get <| get_var_type s)
-                        ptm, [s, ty], Choice.get <| unify (Some ptm) uenv pty ty
+                        let! ty1 = get_var_type s
+                        let pty = pretype_instance ty1
+                        let! fn = unify (Some ptm) uenv pty ty
+                        return ptm, [s, ty], fn
 
             | Combp(f, x) -> 
                 let ty'' = new_type_var()
                 let ty' = Ptycon("fun", [ty''; ty])
-                let f', venv1, uenv1 = typify ty' (f, venv, uenv)
-                let x', venv2, uenv2 = typify ty'' (x, venv1 @ venv, uenv1)
-                Combp(f', x'), (venv1 @ venv2), uenv2
+                let! f', venv1, uenv1 = typify ty' (f, venv, uenv)
+                let! x', venv2, uenv2 = typify ty'' (x, venv1 @ venv, uenv1)
+                return Combp(f', x'), (venv1 @ venv2), uenv2
             
             | Typing(tm, pty) ->
-                typify ty (tm, venv, Choice.get <| unify (Some tm) uenv ty pty)
+                let! fn = unify (Some tm) uenv ty pty
+                return! typify ty (tm, venv, fn)
             
             | Absp(v, bod) -> 
                 let ty', ty'' = 
@@ -545,22 +563,22 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
                     | Ptycon("fun", [ty'; ty'']) -> ty', ty''
                     | _ -> new_type_var(), new_type_var()
                 let ty''' = Ptycon("fun", [ty'; ty''])
-                let uenv0 = Choice.get <| unify (Some ptm) uenv ty''' ty
-                let v', venv1, uenv1 = 
-                    let v', venv1, uenv1 = typify ty' (v, [], uenv0)
+                let! uenv0 = unify (Some ptm) uenv ty''' ty
+                let! v', venv1, uenv1 = 
+                    choice {
+                    let! v', venv1, uenv1 = typify ty' (v, [], uenv0)
                     match v' with
                     | Constp(s, _) when !ignore_constant_varstruct ->
-                        Varp(s, ty'), [s, ty'], uenv0
+                        return Varp(s, ty'), [s, ty'], uenv0
                     | _ ->
-                        v', venv1, uenv1
-                let bod', venv2, uenv2 = typify ty'' (bod, venv1 @ venv, uenv1)
-                Absp(v', bod'), venv2, uenv2
+                        return v', venv1, uenv1
+                    }
+                let! bod', venv2, uenv2 = typify ty'' (bod, venv1 @ venv, uenv1)
+                return Absp(v', bod'), venv2, uenv2
             
             | _ ->
-                failwith "typify: unexpected constant at this stage"
-        
-        Choice.attempt <| fun () ->
-            typify ty (ptm, venv, uenv)
+                return! Choice.failwith "typify: unexpected constant at this stage"
+        }
 
     (* ----------------------------------------------------------------------- *)
     (* Further specialize type constraints by resolving overloadings.          *)

@@ -69,11 +69,6 @@ let inline nestedFailwith innerException message =
 /// Fail with empty string.
 let inline fail () : 'T = failwith ""
 
-/// If Choice is 1Of2, return its value; otherwise, throw ArgumentException.
-/// This is an alias for ExtCore.Choice.bindOrRaise.
-let inline get (value : Choice<'T, #exn>) =
-    ExtCore.Choice.bindOrRaise value
-
 // Follow the naming convention of ExtCore
 [<RequireQualifiedAccess>]
 module Choice =
@@ -130,6 +125,14 @@ module Choice =
                     return l :: ll, y
             }
 
+    /// If BUGGY directive is defined, an exception could be raised
+    /// Otherwise, we just ignore the choice value
+    let inline ignoreOrRaise value : unit =
+#if BUGGY
+       ExtCore.Choice.bindOrRaise value
+#else
+        ignore value
+#endif        
 
     (* These functions are specific to this project, and so probably won't be included in ExtCore. *)
 
