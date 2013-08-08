@@ -26,6 +26,8 @@ module NHol.define
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+
 open NHol
 open lib
 open fusion
@@ -569,7 +571,9 @@ let instantiate_casewise_recursion,
             ((a <=> a') /\ (a' ==> (b <=> b')) ==> ((a ==> b) <=> (a' ==> b')))")))
         match simpFuncs with
         | [simp1; simp2; simp3] -> simp1, simp2, simp3
-        | _ -> failwith "simpFuncs: Unhandled case."
+        | _ -> 
+            let failTac = fun _ -> Choice.failwith "simpFuncs: Unhandled case."
+            failTac, failTac, failTac
 
     let false_tm = (parse_term @"F") in 
     let and_tm = (parse_term @"(/\)")
@@ -589,14 +593,19 @@ let instantiate_casewise_recursion,
                     else DISCH atm
                           (PURE_REWRITE_CONV[eq_refl; ASSUME atm] cons))
         let cth = 
-         try 
-          simp1 bth 
-         with 
-         | Failure _ -> 
-         try 
-           simp2 bth
-         with 
-         | Failure _ -> simp3 bth
+            choice { 
+                return! simp1 bth
+            }
+            |> Choice.bindError (function
+                | Failure _ -> 
+                    choice { 
+                        return! simp2 bth
+                    }
+                    |> Choice.bindError (function
+                            | Failure _ -> simp3 bth
+                            | e -> Choice.error e)
+                | e -> Choice.error e)
+
         itlist MK_FORALL avs cth
       (DEPTH_BINOP_CONV and_tm SIMPLIFY_CASE_DISTINCTNESS_CLAUSE |>THENC<|
        GEN_REWRITE_CONV DEPTH_CONV [FORALL_SIMP; AND_CLAUSES]) tm in

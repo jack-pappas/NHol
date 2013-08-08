@@ -555,12 +555,12 @@ let private parse_intro =
     let number = 
         function 
         | Ident s :: rest -> 
-            (try 
-                    let n = int_of_string s
-                    if n < 1 then raise Noparse
-                    else n, rest
-                with
-                | Failure _ -> raise Noparse)
+           (try 
+                let n = int_of_string s
+                if n < 1 then raise Noparse
+                else n, rest
+            with
+            | Failure _ -> raise Noparse)
         | _ -> raise Noparse
     let pa_fix = a(Ident "!") .>>. parse_fix |>> snd
     let pa_dest = parse_destruct |>> DISCH_THEN

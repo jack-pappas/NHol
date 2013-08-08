@@ -567,8 +567,7 @@ let term_match : term list -> term -> term -> Protected<_> =
                             }
                         return! term_homatch lconsts tyins (ni, tl homs)
                     }
-                    |> Choice.bindError (
-                            function 
+                    |> Choice.bindError (function 
                             | Failure _ -> 
                                 choice {
                                     let! lc, rc = dest_comb ctm
@@ -579,8 +578,7 @@ let term_match : term list -> term -> term -> Protected<_> =
                                     let! tyins' = get_type_insts (fst pinsts_homs') []
                                     return! term_homatch lconsts tyins' pinsts_homs'
                                 }
-                            | e ->
-                                Choice.error e)
+                            | e -> Choice.error e)
         }
 
     fun lconsts vtm ctm ->
@@ -703,24 +701,24 @@ let deep_alpha : (string * string) list -> term -> Protected<term> =
 // GEN_PART_MATCH: Instantiates a theorem by matching part of it to a term.
 let (PART_MATCH : (term -> Protected<_>) -> _ -> _ -> Protected<_>), (GEN_PART_MATCH : (term -> Protected<_>) -> _ -> _ -> Protected<_>) = 
     let rec match_bvs t1 t2 acc = 
-        try 
-            let v1, b1 = Choice.get <| dest_abs t1
-            let v2, b2 = Choice.get <| dest_abs t2
-            let n1 = fst(Choice.get <| dest_var v1)
-            let n2 = fst(Choice.get <| dest_var v2)
+        choice { 
+            let! v1, b1 = dest_abs t1
+            let! v2, b2 = dest_abs t2
+            let! (n1, _) = dest_var v1
+            let! (n2, _) = dest_var v2
             let newacc = 
-                if n1 = n2
-                then acc
+                if n1 = n2 then acc
                 else insert (n1, n2) acc
-            match_bvs b1 b2 newacc
-        with
-        | Failure _ -> 
-            try 
-                let l1, r1 = Choice.get <| dest_comb t1
-                let l2, r2 = Choice.get <| dest_comb t2
-                match_bvs l1 l2 (match_bvs r1 r2 acc)
-            with
-            | Failure _ -> acc
+            return match_bvs b1 b2 newacc
+        }
+        |> Choice.fill(
+                choice { 
+                    let! l1, r1 = dest_comb t1
+                    let! l2, r2 = dest_comb t2
+                    return match_bvs l1 l2 (match_bvs r1 r2 acc)
+                }
+                |> Choice.fill acc)
+
     let PART_MATCH partfn (th : Protected<thm0>) =
         let v = 
             choice {

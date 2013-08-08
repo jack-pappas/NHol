@@ -573,12 +573,13 @@ let SEMIRING_NORMALIZERS_CONV =
                     ptms
 
             let dest_varpow tm = 
-                try 
-                    let x, n = Choice.get <| dest_pow tm
-                    (x, Choice.get <| dest_numeral n)
-                with
-                | Failure _ -> 
-                    (tm, if is_semiring_constant tm then num_0 else num_1)
+                choice { 
+                    let! x, n = dest_pow tm
+                    let! n' = dest_numeral n
+                    return (x, n')
+                }
+                |> Choice.fill(
+                    (tm, if is_semiring_constant tm then num_0 else num_1))
 
             let morder = 
                 let rec lexorder l1 l2 = 

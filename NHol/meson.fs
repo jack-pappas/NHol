@@ -391,21 +391,23 @@ let GEN_MESON_TAC =
                      let! tm2' = rev_assoc x' sofar |> Option.toChoiceWithError "find"
                      return! fol_unify 0 tm1 tm2' sofar
                  }
-                 |> Choice.bindError (function Failure "find" -> 
-                                                   istriv sofar x' tm1
-                                                   |> Choice.map (fun b -> if b then sofar else (tm1, x') :: sofar)
-                                               | e -> Choice.error e)
+                 |> Choice.bindError (function 
+                        | Failure "find" -> 
+                            istriv sofar x' tm1
+                            |> Choice.map (fun b -> if b then sofar else (tm1, x') :: sofar)
+                        | e -> Choice.error e)
             | Fvar(x), _ ->
                return!  
                  choice { 
                      let! tm1' = rev_assoc x sofar |> Option.toChoiceWithError "find"
                      return! fol_unify offset tm1' tm2 sofar
                  }
-                 |> Choice.bindError (function | Failure "find" -> 
-                                                     let tm2' = fol_subst_bump offset [] tm2
-                                                     istriv sofar x tm2'
-                                                     |> Choice.map (fun b -> if b then sofar else (tm2', x) :: sofar)
-                                               | e -> Choice.error e)
+                 |> Choice.bindError (function 
+                        | Failure "find" -> 
+                                let tm2' = fol_subst_bump offset [] tm2
+                                istriv sofar x tm2'
+                                |> Choice.map (fun b -> if b then sofar else (tm2', x) :: sofar)
+                        | e -> Choice.error e)
         }
 
     (* ----------------------------------------------------------------------- *)

@@ -197,29 +197,35 @@ extend_basic_rewrites [SELECT_REFL] |> ExtCore.Choice.bindOrRaise
 (* ------------------------------------------------------------------------- *)
 
 /// List of type definitions made so far.
-let the_type_definitions = ref([] : ((string * string * string) * (Protected<thm0> * Protected<thm0>)) list)
+let the_type_definitions = ref([] : ((string * string * string) * (thm0 * thm0)) list)
 
 /// Introduces a new type in bijection with a nonempty subset of an existing type.
 let new_type_definition tyname (absname, repname) th = 
-    try 
-        let th', tth' =
+    choice { 
+        let! th', tth' =
             assoc (tyname, absname, repname) (!the_type_definitions)
-            |> Option.getOrFailWith "find"
-        if concl (Choice.get th') <> concl (Choice.get th)
-        then failwith ""
+            |> Option.toChoiceWithError "find"
+
+        let! th = th
+        if concl th' <> concl th then 
+            return! Choice.failwith ""
         else 
-            (warn true "Benign redefinition of type"
-             tth')
-    with
-    | Failure _ -> 
-        let th0 = CONV_RULE (RATOR_CONV(REWR_CONV EXISTS_THM)
-                             |> THENC <| BETA_CONV) th
-        let th1, th2 = new_basic_type_definition tyname (absname, repname) th0
-        let tth = 
-            CONJ (GEN_ALL th1) 
-                (GEN_ALL(CONV_RULE (LAND_CONV(TRY_CONV BETA_CONV)) th2))
-        the_type_definitions := ((tyname, absname, repname), (th, tth)) :: (!the_type_definitions)
-        tth;;
+            warn true "Benign redefinition of type"
+            return tth'
+    }
+    |> Choice.bindError (function
+        | Failure _ -> 
+            choice {
+                let th0 = CONV_RULE (RATOR_CONV(REWR_CONV EXISTS_THM)
+                                     |> THENC <| BETA_CONV) th
+                let th1, th2 = new_basic_type_definition tyname (absname, repname) th0
+                let! tth = CONJ (GEN_ALL th1) (GEN_ALL(CONV_RULE (LAND_CONV(TRY_CONV BETA_CONV)) th2))
+                let! th = th
+                the_type_definitions := ((tyname, absname, repname), (th, tth)) :: (!the_type_definitions)
+                return tth
+            }
+        | e -> Choice.error e
+        );;
 
 (* ------------------------------------------------------------------------- *)
 (* Derive excluded middle (the proof is from Beeson's book).                 *)
@@ -608,14 +614,20 @@ let (COND_CASES_TAC : tactic) =
     |> THEN <| CONJ_TAC
     |> THENL <| [DISCH_THEN(fun th -> ASSUME_TAC th
                                       |> THEN <| SUBST1_TAC(EQT_INTRO th))
-                 DISCH_THEN(fun th -> 
-                         try 
+                 DISCH_THEN(fun th gl -> 
+                         // NOTE: execute the tactics to check for failures
+                         choice { 
                              let th' = DENEG_RULE th
-                             ASSUME_TAC th'
-                             |> THEN <| SUBST1_TAC(EQT_INTRO th')
-                         with
-                         | Failure _ -> ASSUME_TAC th
-                                        |> THEN <| SUBST1_TAC(EQF_INTRO th))];;
+                             return!
+                                 (ASSUME_TAC th'
+                                  |> THEN <| SUBST1_TAC(EQT_INTRO th')) gl
+                         }
+                         |> Choice.bindError (
+                                function 
+                                | Failure _ -> 
+                                    (ASSUME_TAC th
+                                     |> THEN <| SUBST1_TAC(EQF_INTRO th)) gl
+                                | e -> Choice.error e))];;
 
 (* ------------------------------------------------------------------------- *)
 (* Skolemization.                                                            *)
