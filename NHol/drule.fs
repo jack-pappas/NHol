@@ -56,8 +56,11 @@ type instantiation = (int * term) list * (term * term) list * (hol_type * hol_ty
 
 /// Creates an arbitrary theorem as an axiom (dangerous!)
 let mk_thm(asl, c) = 
-    let ax = new_axiom(itlist (curry (Choice.get << mk_imp)) (rev asl) c)
-    rev_itlist (fun t th -> MP th (ASSUME t)) (rev asl) ax
+    choice {
+        let! tm = Choice.List.fold (curry mk_imp) c (rev asl)
+        let ax = new_axiom tm
+        return! rev_itlist (fun t th -> MP th (ASSUME t)) (rev asl) ax
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Derived congruence rules; very useful things!                             *)

@@ -678,14 +678,19 @@ let define_type_raw_001 =
                         let! conc = mk_comb(mk_var(tm1, predty), lapp)
                     
                         let! rule = 
-                            if conds = [] then Choice.result conc
-                            else mk_imp(list_mk_conj conds, conc)
+                            choice {
+                                if conds = [] then 
+                                    return conc
+                                else 
+                                    let! tm1 = list_mk_conj conds
+                                    return! mk_imp(tm1, conc)
+                            }
                     
                         return! list_mk_forall(args, rule)
                     }
 
                 let! tms1 = Choice.List.map mk_rule idefs
-                let rules = list_mk_conj tms1
+                let! rules = list_mk_conj tms1
                 let th0 = derive_nonschematic_inductive_relations rules
                 let th1 = prove_monotonicity_hyps th0
                 let th2a, th2bc = CONJ_PAIR th1
@@ -929,8 +934,9 @@ let define_type_raw_001 =
 
                     let conth3 = PRERULE conth2
                     let! lctms = Choice.List.map (Choice.map concl) pths
+                    let! tm3' = list_mk_conj lctms
                     let! tm3 = (Choice.bind rand << Choice.bind rand << Choice.map concl) conth3
-                    let! asmin = mk_imp(list_mk_conj lctms, tm3)
+                    let! asmin = mk_imp(tm3', tm3)
                     let! tm4 = lhand asmin
                     let! argsin = Choice.List.map rand (conjuncts tm4)
                     let! argsgen = 
@@ -1014,7 +1020,7 @@ let define_type_raw_001 =
             let! tm1 = lhand(concl iith)
             let bths = map2 (pullback_induction_clause tybijpairs conthms) (CONJUNCTS rth) (conjuncts tm1)
             let! tms = Choice.List.map (Choice.bind lhand << Choice.map concl) bths
-            let asm = list_mk_conj tms
+            let! asm = list_mk_conj tms
             let ths = map2 MP bths (CONJUNCTS(ASSUME asm))
             let th1 = MP (Choice.result iith) (end_itlist CONJ ths)
             let th2 = end_itlist CONJ (map (finish_induction_conclusion consindex tybijpairs) (CONJUNCTS th1))
@@ -1571,7 +1577,7 @@ let define_type_raw_002 =
                     let! gth = 
                         Choice.List.fold (fun th e -> 
                             choice {
-                                let l, r = Choice.get <| dest_eq e
+                                let! l, r = dest_eq e
                                 return MP (INST [r, l] (DISCH e th)) (REFL r)
                             }) fth dtms 
 
@@ -1665,7 +1671,8 @@ let prove_constructors_distinct =
                         return! list_mk_forall(frees tm1, tm2)
                     }) ls nums
 
-            let! eth = prove_recursive_functions_exist ax (list_mk_conj defs)
+            let! tm1 = list_mk_conj defs
+            let! eth = prove_recursive_functions_exist ax tm1
             let! ev, bod = dest_exists(concl eth)
             let REWRITE = GEN_REWRITE_RULE ONCE_DEPTH_CONV (CONJUNCTS(ASSUME bod))
             let! pat' = 
@@ -1706,9 +1713,10 @@ let prove_cases_thm =
             let! xts = Choice.List.map (fun t -> 
                             choice {
                                 let! tm = mk_eq(x, t)
-                                return list_mk_exists(frees t, tm)
+                                return! list_mk_exists(frees t, tm)
                             }) rpats
-            return! mk_abs(x, list_mk_disj xts)
+            let! tm1 = list_mk_disj xts
+            return! mk_abs(x, tm1)
         }
 
     let prove_triv tm = 
@@ -2153,13 +2161,15 @@ let define_type_raw =
 
         let! isotms = Choice.List.map2 (fun ff gg -> list_mk_icomb "ISO" [ff; gg]) efvs0 efvs2
 
-        let ctm = list_mk_conj isotms
+        let! ctm = list_mk_conj isotms
         let! cth1 = ISO_EXPAND_CONV ctm
         let! ctm1 = rand(concl cth1)
         let cjs = conjuncts ctm1
         let eee = map (fun n -> n mod 2 = 0) (0 -- (length cjs - 1))
         let cjs1, cjs2 = partition fst (zip eee cjs)
-        let! ctm2 = mk_conj(list_mk_conj(map snd cjs1), list_mk_conj(map snd cjs2))
+        let! ctm2' = list_mk_conj(map snd cjs1)
+        let! ctm2'' = list_mk_conj(map snd cjs2)
+        let! ctm2 = mk_conj(ctm2', ctm2'')
         let DETRIV_RULE = TRIV_ANTE_RULE << REWRITE_RULE [Choice.result sth0; Choice.result sth1]
         let jth0 = 
             choice {
@@ -2593,7 +2603,8 @@ let UNWIND_CONV, MATCH_CONV =
                     else r
                 let cjs' = eq :: (subtract eqs [eq])
                 let n = length evs - (1 + index v (rev evs))
-                let! tm1 = mk_eq(bod, list_mk_conj cjs')
+                let! tm0 = list_mk_conj cjs'
+                let! tm1 = mk_eq(bod, tm0)
                 let th1 = CONJ_ACI_RULE tm1
                 let th2 = itlist MK_EXISTS evs th1
                 let! tm2 = Choice.bind (rand << concl) th2 
@@ -2720,7 +2731,8 @@ let FORALL_UNWIND_CONV =
 
             let cjs' = eq :: (subtract eqs [eq])
             let n = length avs - (1 + index v (rev avs))
-            let! tm1 =  mk_eq(ant, list_mk_conj cjs')
+            let! tm0 = list_mk_conj cjs'
+            let! tm1 =  mk_eq(ant, tm0)
             let th1 = CONJ_ACI_RULE tm1
             let! tm2 = rator bod
             let! tm3 = rator tm2

@@ -91,8 +91,9 @@ let prove_recursive_functions_exist =
 
             let urfns = map (fun v -> assocd v (setify(zip axfns (map fst lpats))) v) exvs
 
-            let axtm = list_mk_exists(exvs, list_mk_conj raxs)
-            let urtm = list_mk_exists(urfns, tm)
+            let! tm1 = list_mk_conj raxs
+            let! axtm = list_mk_exists(exvs, tm1)
+            let! urtm = list_mk_exists(urfns, tm)
 
             let! insts = term_match [] axtm urtm
             let ixth = INSTANTIATE insts axth
@@ -124,15 +125,15 @@ let prove_recursive_functions_exist =
             let! r' = list_mk_abs(vargs, r)
             let fvs = frees rarg
             let! tm1 = mk_eq(l', r')
-            let! tm1 = list_mk_forall(fvs, tm1)
-            let def = ASSUME(tm1)
+            let! tm2 = list_mk_forall(fvs, tm1)
+            let def = ASSUME(tm2)
             return! GENL avs (RIGHT_BETAS vargs (SPECL fvs def))
         }
 
     let prove_canon_recursive_functions_exist ax tm = 
         choice {
             let ths = map canonize (conjuncts tm)
-            let atm = list_mk_conj(map (hd << hyp << Choice.get) ths)
+            let! atm = list_mk_conj(map (hd << hyp << Choice.get) ths)
             let aths = CONJUNCTS(ASSUME atm)
             let rth = end_itlist CONJ (map2 PROVE_HYP aths ths)
             let eth = prove_raw_recursive_functions_exist ax atm
@@ -212,7 +213,8 @@ let new_recursive_definition =
                 let ufns = itlist (insert << fst) lpats []
                 let fvs = map (fun t -> subtract (frees t) ufns) rawcls
                 let! gcls = Choice.List.map2 (curry list_mk_forall) fvs rawcls
-                let eth = prove_recursive_functions_exist ax (list_mk_conj gcls)
+                let! tm1 = list_mk_conj gcls
+                let eth = prove_recursive_functions_exist ax tm1
                 let! evs, bod = Choice.map (strip_exists << concl) eth
                 let! tms = Choice.List.map (Choice.map fst << dest_var) evs
                 let dth = new_specification tms eth

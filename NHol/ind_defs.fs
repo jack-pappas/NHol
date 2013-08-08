@@ -223,7 +223,7 @@ let derive_nonschematic_inductive_relations =
                         return! IMP_ANTISYM_RULE (DISCH_ALL th5) (DISCH_ALL th8)
                     else
                         let! tms = Choice.List.map mk_eq (yes @ no)
-                        let atm = list_mk_conj tms
+                        let! atm = list_mk_conj tms
                         let ths = CONJUNCTS(ASSUME atm)
                         let! thl = Choice.List.map (fun t -> 
                                         Choice.List.tryFind (fun th -> 
@@ -260,7 +260,7 @@ let derive_nonschematic_inductive_relations =
             let uncs = map strip_comb concls
             let rels = itlist (insert << fst) uncs []
             let! xargs = rels |> Choice.List.map (fun x -> assoc x uncs |> Option.toChoiceWithError "find")
-            let closed = list_mk_conj clauses
+            let! closed = list_mk_conj clauses
             let! avoids = variables closed
             let! tys = Choice.List.map type_of (end_itlist (@) xargs)
             let! flargs = make_args "a" avoids tys
@@ -272,9 +272,9 @@ let derive_nonschematic_inductive_relations =
                 mapfilter (fun t -> 
                     if fst t = tm then Some (snd t) else None) (zip (map fst uncs) pclauses)
             let clausell = map collectclauses rels
-            let cclausel = map list_mk_conj clausell
-            let cclauses = list_mk_conj cclausel
-            let oclauses = list_mk_conj pclauses
+            let! cclausel = Choice.List.map list_mk_conj clausell
+            let! cclauses = list_mk_conj cclausel
+            let! oclauses = list_mk_conj pclauses
             let! tm' = mk_eq (oclauses, cclauses)
             let eth = CONJ_ACI_RULE tm'
             let pth = TRANS (end_itlist MK_CONJ cthms) eth
@@ -283,7 +283,7 @@ let derive_nonschematic_inductive_relations =
 
     let derive_canon_inductive_relations clauses = 
         choice {
-            let closed = list_mk_conj clauses
+            let! closed = list_mk_conj clauses
             let clauses = conjuncts closed
             let vargs, bodies = unzip (map strip_forall clauses)
             let! tms = Choice.List.map dest_imp bodies
@@ -324,7 +324,8 @@ let derive_nonschematic_inductive_relations =
                                 return! list_mk_forall(a, tm2)
                             }) vargs ants
             let! tmr = Choice.map concl indthmr
-            let! monotm = mk_imp(tmr, list_mk_conj mconcs)
+            let! tm2 = list_mk_conj mconcs
+            let! monotm = mk_imp(tmr, tm2)
             let! tm3 = list_mk_forall(rels', monotm)
             let! tm4 = list_mk_forall(rels, tm3)
             let monothm = ASSUME(tm4)
@@ -614,7 +615,8 @@ let prove_inductive_relations_exist, new_inductive_definition =
             elif not(length(setify(map (snd << strip_comb) schems)) = 1) then 
                 return! Choice.failwith "Schematic variables not used consistently"
             else 
-                let! avoids = variables(list_mk_conj clauses)
+                let! tm0 = list_mk_conj clauses
+                let! avoids = variables tm0
                 let hack_fn tm = 
                     choice {
                         let! (tm1, _) = dest_var(repeat (Choice.toOption << rator) tm)
@@ -641,7 +643,8 @@ let prove_inductive_relations_exist, new_inductive_definition =
         choice {
             let clauses = conjuncts tm
             let! clauses', fvs = unschematize_clauses clauses
-            let th = derive_nonschematic_inductive_relations(list_mk_conj clauses')
+            let! tm1 = list_mk_conj clauses'
+            let th = derive_nonschematic_inductive_relations tm1
             return fvs, prove_monotonicity_hyps th
         }
 

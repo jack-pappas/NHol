@@ -746,7 +746,8 @@ let GEN_MESON_TAC =
                                 else 
                                     let ldjs, rdjs = chop_list n djs
                                     let ndjs = (hd rdjs) :: (ldjs @ (tl rdjs))
-                                    let! tm1 = mk_eq(tm, list_mk_disj ndjs)
+                                    let! tm0 = list_mk_disj ndjs
+                                    let! tm1 = mk_eq(tm, tm0)
                                     return! EQ_MP (DISJ_AC tm1) th
                             }
                         let fth = 

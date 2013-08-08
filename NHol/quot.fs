@@ -146,8 +146,8 @@ let lift_function =
                 let! ty1 = type_of rcon
                 let! u = variant (evs @ wfvs) (mk_var("u", ty1))
                 let! ucon = mk_comb(lcon, u)
-                let dbod = list_mk_conj(ucon :: mems)
-                let detm = list_mk_exists(rvs, dbod)
+                let! dbod = list_mk_conj(ucon :: mems)
+                let! detm = list_mk_exists(rvs, dbod)
                 let! datm = mk_abs(u, detm)
                 let! def = 
                     if is_eq con then list_mk_icomb "@" [datm]

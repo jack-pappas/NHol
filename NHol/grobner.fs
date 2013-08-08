@@ -779,24 +779,30 @@ let RING_AND_IDEAL_CONV =
                 let! l, r = dest_eq tm1
                 return! EQ_MP (EQF_INTRO th2) (REFL l)
             else if nths = [] && not(is_var ring_neg_tm) then 
-                let! vars, pols = grobify_equations(list_mk_conj(map (concl << Choice.get) eths))
+                let! tms0 = Choice.List.map (Choice.map concl) eths
+                let! tm1 = list_mk_conj tms0
+                let! vars, pols = grobify_equations tm1
                 let! ns = grobner_refute pols
                 return! execute_proof vars eths ns
             else 
                 let! vars, l, cert, noteqth = 
                   choice {
                     if nths = [] then 
-                        let! vars, pols = grobify_equations(list_mk_conj(map (concl << Choice.get) eths))
+                        let! tms0 = Choice.List.map (Choice.map concl) eths
+                        let! tm1 = list_mk_conj tms0
+                        let! vars, pols = grobify_equations tm1
                         let! l, cert = grobner_weak vars pols
                         return vars, l, cert, NOT_EQ_01
                     else 
-                        let nth = end_itlist (fun th1 th2 -> IDOM_RULE(CONJ th1 th2)) nths
-                        match grobify_equations
-                                  (list_mk_conj
-                                       ((Choice.get <| rand(concl <| Choice.get nth)) :: map (concl << Choice.get) eths)) with
-                        | Success (vars, pol :: pols) -> 
+                        let! nth = end_itlist (fun th1 th2 -> IDOM_RULE(CONJ th1 th2)) nths
+                        let! tm1 = rand(concl nth)
+                        let! tms2 = Choice.List.map (Choice.map concl) eths
+                        let! tm3 = list_mk_conj (tm1 :: tms2)
+                        let! tms = grobify_equations tm1
+                        match tms with
+                        | (vars, pol :: pols) -> 
                             let! deg, l, cert = grobner_strong vars pols pol
-                            let th1 = CONV_RULE (RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) nth
+                            let th1 = CONV_RULE (RAND_CONV(BINOP_CONV RING_NORMALIZE_CONV)) (Choice.result nth)
                             let th2 = funpow deg (IDOM_RULE << CONJ th1) NOT_EQ_01
                             return vars, l, cert, th2
                         | _ -> 

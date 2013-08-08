@@ -158,7 +158,7 @@ let AND_DEF = new_basic_definition <| parse_term @"(/\) = \p q. (\f:bool->bool->
 let mk_conj = mk_binary "/\\"
 
 /// Constructs the conjunction of a list of terms.
-let list_mk_conj = end_itlist(curry (Choice.get << mk_conj))
+let list_mk_conj = Choice.List.reduceBack (curry mk_conj)
 
 /// Introduces a conjunction.
 let CONJ = 
@@ -428,6 +428,7 @@ let ISPECL tms (th : Protected<thm0>) : Protected<thm0> =
             let avs = fst(chop_list (length tms) (fst(strip_forall(concl <| Choice.get th))))
             
             let tyins = 
+                // NOTE: rewrite this
                 match Choice.List.map (Choice.map snd << dest_var) avs, Choice.List.map type_of tms with
                 | Success avs, Success tms ->
                     Choice.List.fold (fun acc (x, y) -> type_match x y acc) [] (zip avs tms)
@@ -470,7 +471,8 @@ let EXISTS_DEF = new_basic_definition <| parse_term @"(?) = \P:A->bool. !q. (!x.
 let mk_exists = mk_binder "?"
 
 /// Multiply existentially quantifies both sides of an equation using the given variables.
-let list_mk_exists(vs, bod) = itlist (curry (Choice.get << mk_exists)) vs bod
+let list_mk_exists(vs, bod) = 
+    Choice.List.fold (fun acc x -> mk_exists(x, acc)) bod vs
 
 /// Introduces existential quantification given a particular witness.
 let EXISTS = 
@@ -542,7 +544,7 @@ let OR_DEF = new_basic_definition <| parse_term @"(\/) = \p q. !r. (p ==> r) ==>
 let mk_disj = mk_binary "\\/"
 
 /// Constructs the disjunction of a list of terms.
-let list_mk_disj = end_itlist(curry (Choice.get << mk_disj))
+let list_mk_disj = Choice.List.reduceBack (curry mk_disj)
 
 /// Introduces a right disjunct into the conclusion of a theorem.
 let DISJ1 = 

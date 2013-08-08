@@ -951,7 +951,7 @@ let instantiate_casewise_recursion,
           let rewr2 = GEN_REWRITE_CONV I [FUN_EQ_THM]
           fun parms tm -> 
             choice {
-              let parm = end_itlist (curry (Choice.get << mk_pair)) parms
+              let! parm = Choice.List.reduceBack (curry mk_pair) parms
               let! x, bod = dest_abs tm
               let! tm1 = vsubst [parm, x] bod
               let! tm' = mk_gabs(parm, tm1)
@@ -1009,7 +1009,8 @@ let instantiate_casewise_recursion,
               let! tm2 = mk_fun_ty dty ranty
               let! f' = variant (frees tm) (mk_var(tm1, tm2))
               let gvs = map genvar domtys
-              let! tm3 = mk_comb(f', end_itlist (curry(Choice.get << mk_pair)) gvs)
+              let! tm2' = Choice.List.reduceBack (curry mk_pair) gvs
+              let! tm3 = mk_comb(f', tm2')
               let! f'' = list_mk_abs(gvs, tm3)
               let! def' = subst [f'', f] def
               let! th1 = EXISTS (tm, f'') (ASSUME def')
@@ -1033,11 +1034,11 @@ let instantiate_casewise_recursion,
                   let parms = 
                       if parms0 <> [] then parms0
                       else [genvar aty]
-                  let parm = end_itlist (curry(Choice.get << mk_pair)) parms
+                  let! parm = Choice.List.reduceBack (curry mk_pair) parms
 
                   let! ss = Choice.List.map (fun a -> 
                                 choice {
-                                    let tm1 = end_itlist (curry(Choice.get << mk_pair)) a
+                                    let! tm1 = Choice.List.reduceBack (curry mk_pair) a
                                     return! mk_gabs(parm, tm1)
                                 }) arglists
 
@@ -1138,7 +1139,8 @@ let instantiate_casewise_recursion,
               let! th3 = SIMPLE_EXISTS ord (Choice.result th2)
               let allasms = hyp th3
               let! wfasm = lhand(concl th2)
-              let th4 = ASSUME(list_mk_conj(wfasm :: subtract allasms [wfasm]))
+              let! tm1 = list_mk_conj(wfasm :: subtract allasms [wfasm])
+              let th4 = ASSUME tm1
               let th5 = SIMPLE_CHOOSE ord (itlist PROVE_HYP (CONJUNCTS th4) (Choice.result th3))
               return! PROVE_HYP th5 (Choice.result th1)
           }
@@ -1183,15 +1185,16 @@ let instantiate_casewise_recursion,
                                    }) args
 
                   let! tm3 = mk_small_numeral k
-                  let tms4 = map (curry (Choice.get << mk_comb) fn) bargs
+                  let! tms4 = Choice.List.map (curry mk_comb fn) bargs
                   let! r' = list_mk_binop (parse_term @"(+):num->num->num") (tm3 :: tms4)
 
                   let! tm2 = mk_eq(l, r')
-                  return! list_mk_forall(avs, tm1)
+                  return! list_mk_forall(avs, tm2)
                 }
               let cjs = conjuncts cbod
               let! def = Choice.List.map2 process_clause (1 -- length cjs) cjs
-              return! prove_recursive_functions_exist (Choice.result sth) (list_mk_conj def)
+              let! tm5 = list_mk_conj def
+              return! prove_recursive_functions_exist (Choice.result sth) tm5
             }
 
       let INDUCTIVE_MEASURE_THEN tac (asl, w) = 
@@ -1342,7 +1345,8 @@ let define =
 
                 let ths = map do_clause cjs
                 let! ajs = Choice.List.map (Choice.map (hd << hyp)) ths
-                let th = ASSUME(list_mk_conj ajs)
+                let! tm2 = list_mk_conj ajs
+                let th = ASSUME tm2
                 let! th' = itlist GEN avs (itlist PROVE_HYP (CONJUNCTS th) (end_itlist CONJ ths)) 
                 return f, th'
         }
