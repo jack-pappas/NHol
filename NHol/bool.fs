@@ -351,7 +351,8 @@ let FORALL_DEF = new_basic_definition <| parse_term @"(!) = \P:A->bool. P = \x. 
 let mk_forall = mk_binder "!"
 
 /// Iteratively constructs a universal quantification.
-let list_mk_forall(vs, bod) = itlist (curry (Choice.get << mk_forall)) vs bod
+let list_mk_forall(vs, bod) = 
+    Choice.List.fold (fun acc x -> mk_forall(x, acc)) bod vs
 
 /// Specializes the conclusion of a theorem.
 let SPEC = 

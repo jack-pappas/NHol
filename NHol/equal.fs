@@ -481,7 +481,7 @@ let SUBS_CONV (ths : Protected<thm0> list) tm : Protected<thm0> =
         let! lefts = Choice.List.map (Choice.bind lhand << Choice.map concl) ths
         let! gvs = Choice.List.map (Choice.map genvar << type_of) lefts
         let! pat = subst (zip gvs lefts) tm
-        let abs = list_mk_abs(gvs, pat)
+        let! abs = list_mk_abs(gvs, pat)
         let! th =
             rev_itlist (fun y x -> CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(x, y))) 
                 ths (REFL abs)

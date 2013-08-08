@@ -974,9 +974,14 @@ let instantiate_casewise_recursion,
               | [] -> Choice.failwith "depair: Unhandled case."
 
           fun parm parms -> 
-              let p = mk_var("P", Choice.get <| mk_fun_ty (Choice.get <| type_of parm) bool_ty)
-              let tm = list_mk_forall(parms, Choice.get <| mk_comb(p, parm))
-              GEN p (SYM(depair parms tm))
+            choice {
+              let! ty1 = type_of parm
+              let! ty2 = mk_fun_ty ty1 bool_ty
+              let p = mk_var("P", ty2)
+              let! tm1 = mk_comb(p, parm)
+              let! tm = list_mk_forall(parms, tm1)
+              return! GEN p (SYM(depair parms tm))
+            }
 
       let ELIM_LISTOPS_CONV = 
           PURE_REWRITE_CONV [PAIRWISE;
@@ -1005,7 +1010,7 @@ let instantiate_casewise_recursion,
               let! f' = variant (frees tm) (mk_var(tm1, tm2))
               let gvs = map genvar domtys
               let! tm3 = mk_comb(f', end_itlist (curry(Choice.get << mk_pair)) gvs)
-              let f'' = list_mk_abs(gvs, tm3)
+              let! f'' = list_mk_abs(gvs, tm3)
               let! def' = subst [f'', f] def
               let! th1 = EXISTS (tm, f'') (ASSUME def')
               let bth = BETAS_CONV(list_mk_comb(f'', gvs))
@@ -1176,12 +1181,13 @@ let instantiate_casewise_recursion,
                                         let! ty1 = type_of t
                                         return ty1 = ty
                                    }) args
-                  let r' = 
-                      list_mk_binop (parse_term @"(+):num->num->num") 
-                          (Choice.get(mk_small_numeral k) :: map (curry (Choice.get << mk_comb) fn) bargs)
+
+                  let! tm3 = mk_small_numeral k
+                  let tms4 = map (curry (Choice.get << mk_comb) fn) bargs
+                  let! r' = list_mk_binop (parse_term @"(+):num->num->num") (tm3 :: tms4)
 
                   let! tm2 = mk_eq(l, r')
-                  return list_mk_forall(avs, tm1)
+                  return! list_mk_forall(avs, tm1)
                 }
               let cjs = conjuncts cbod
               let! def = Choice.List.map2 process_clause (1 -- length cjs) cjs
@@ -1330,7 +1336,8 @@ let define =
                     let lvs, bod = strip_forall t
                     let! tm1 = lhs bod
                     let fvs = subtract (frees tm1) (f :: lvs)
-                    return! SPECL fvs (ASSUME(list_mk_forall(fvs, t)))
+                    let! tm2 = list_mk_forall(fvs, t)
+                    return! SPECL fvs (ASSUME(tm2))
                     }
 
                 let ths = map do_clause cjs

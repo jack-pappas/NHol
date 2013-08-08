@@ -2034,8 +2034,8 @@ let NUM_CANCEL_CONV =
             let lats = sort (<=) (binops (parse_term @"(+)") l)
             let rats = sort (<=) (binops (parse_term @"(+)") r)
             let i, lats', rats' = minter [] [] [] lats rats
-            let l' = list_mk_binop add_tm (i @ lats')
-            let r' = list_mk_binop add_tm (i @ rats')
+            let! l' = list_mk_binop add_tm (i @ lats')
+            let! r' = list_mk_binop add_tm (i @ rats')
             let! tm1 = mk_eq(l, l')
             let lth = AC_RULE tm1
             let! tm2 = mk_eq(r, r')

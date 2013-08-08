@@ -837,7 +837,7 @@ let RING_AND_IDEAL_CONV =
     let RING tm = 
       choice {
         let avs = frees tm
-        let tm' = list_mk_forall(avs, tm)
+        let! tm' = list_mk_forall(avs, tm)
         let! tm0 = mk_neg tm'
         let th1 = INITIAL_CONV tm0
         let! tm1 = Choice.bind (rand << concl) th1
@@ -979,7 +979,7 @@ let NUM_SIMPLIFY_CONV =
                         let! vd = Choice.map genvar (type_of dtm)
                         let! vm = Choice.map genvar (type_of mtm)
                         let! tm3 = subst [vd, dtm; vm, mtm] tm
-                        let p = list_mk_abs([vd; vm], tm3)
+                        let! p = list_mk_abs([vd; vm], tm3)
                         let th0 = 
                             if pos then DIVMOD_ELIM_THM''
                             else DIVMOD_ELIM_THM'

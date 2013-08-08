@@ -298,8 +298,9 @@ let derive_nonschematic_inductive_relations =
                 choice {
                     let! tm = prime_fn con
                     let! tm' = mk_imp(closed', tm)
-                    return! mk_eq(repeat (Choice.toOption << rator) con, 
-                                  list_mk_abs (arg, list_mk_forall(rels', tm')))
+                    let! tm0 = list_mk_forall(rels', tm')
+                    let! tm1 = list_mk_abs (arg, tm0)
+                    return! mk_eq(repeat (Choice.toOption << rator) con, tm1)
                 }
 
             let! deftms = Choice.List.map2 mk_def vargs concs
@@ -316,10 +317,17 @@ let derive_nonschematic_inductive_relations =
             let indthms = map2 mk_ind vargs defthms
             let indthmr = end_itlist CONJ indthms
             let indthm = GENL rels' (DISCH closed' indthmr)
-            let mconcs = map2 (fun a t -> list_mk_forall(a, Choice.get <| mk_imp(t, Choice.get <| prime_fn t))) vargs ants
+            let! mconcs = Choice.List.map2 (fun a t -> 
+                            choice {
+                                let! tm1 = prime_fn t
+                                let! tm2 = mk_imp(t, tm1)
+                                return! list_mk_forall(a, tm2)
+                            }) vargs ants
             let! tmr = Choice.map concl indthmr
             let! monotm = mk_imp(tmr, list_mk_conj mconcs)
-            let monothm = ASSUME(list_mk_forall(rels, list_mk_forall(rels', monotm)))
+            let! tm3 = list_mk_forall(rels', monotm)
+            let! tm4 = list_mk_forall(rels, tm3)
+            let monothm = ASSUME(tm4)
             let closthm = ASSUME closed'
             let monothms = CONJUNCTS(MP (SPEC_ALL monothm) (MP (SPECL rels' indthm) closthm))
             let closthms = CONJUNCTS closthm
@@ -336,7 +344,7 @@ let derive_nonschematic_inductive_relations =
 
             let rulethms = map2 prove_rule monothms (zip closthms defthms)
             let rulethm = end_itlist CONJ rulethms
-            let dtms = map2 (curry list_mk_abs) vargs ants
+            let! dtms = Choice.List.map2 (curry list_mk_abs) vargs ants
             let double_fn = subst (zip dtms rels)
 
             let mk_unbetas tm dtm = 
@@ -548,7 +556,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
                 // TODO: revise due to massive changes
                 let! tm1 = Choice.List.fold (fun acc x -> type_of x |> Choice.bind (fun y -> mk_fun_ty y acc)) lty vs
                 let l' = mk_var(lname, tm1)
-                let r' = list_mk_abs(vs, r)
+                let! r' = list_mk_abs(vs, r)
                 let! tm2 = mk_eq(l', r')
                 let th0 = RIGHT_BETAS vs (ASSUME tm2)
                 let! tm3 = Choice.bind (lhs << concl) th0
@@ -562,9 +570,13 @@ let prove_inductive_relations_exist, new_inductive_definition =
                 let defs, others = partition is_eq tms
                 let th1 = itlist generalize_def defs th
                 if gflag then 
-                    let others' = map (fun t -> 
-                                    let fvs = frees t
-                                    SPECL fvs (ASSUME(list_mk_forall(fvs, t)))) others
+                    let! others' = 
+                        Choice.List.map (fun t -> 
+                            choice {
+                                let fvs = frees t
+                                let! tm1 = list_mk_forall(fvs, t)
+                                return SPECL fvs (ASSUME(tm1))
+                            }) others
                     return! GENL vs (itlist PROVE_HYP others' th1)
                 else 
                     return! th1
@@ -735,7 +747,7 @@ let derive_strong_induction =
                             let! tys, ty = Choice.List.nsplit dest_fun_ty (1 -- n) tyr
                             let gvs = map genvar tys
                             let! conj = mk_conj(list_mk_comb(r, gvs), list_mk_comb(p, gvs))
-                            return list_mk_abs(gvs, conj)
+                            return! list_mk_abs(gvs, conj)
                         }) ns prrs
 
             let modify_rule rcl itm = 
@@ -746,7 +758,8 @@ let derive_strong_induction =
                         let! tm1 = vsubst (zip gs ps) a
                         let! tm2 = mk_imp(tm1, a)
                         let! mgoal = mk_imp(gimps, tm2)
-                        let mth = ASSUME(list_mk_forall(gs @ ps @ avs, mgoal))
+                        let! tm2' = list_mk_forall(gs @ ps @ avs, mgoal)
+                        let mth = ASSUME(tm2')
                         let ith_r = BETA_RULE(SPECL (prs @ rs @ avs) mth)
                         let! tm3 = Choice.bind (lhand << concl) ith_r
                         let jth_r = MP ith_r (prove_triv tm3)
@@ -754,7 +767,7 @@ let derive_strong_induction =
                         let! t = Choice.bind (lhand << concl) jth_r
                         let kth_r = UNDISCH jth_r
                         let! tm4 = mk_imp(t, c)
-                        let ntm = list_mk_forall(avs, tm4)
+                        let! ntm = list_mk_forall(avs, tm4)
                         let lth_r = MP (SPECL avs rcl) kth_r
                         let lth_p = UNDISCH(SPECL avs (ASSUME ntm))
                         return! DISCH ntm (GENL avs (DISCH t (CONJ lth_r lth_p)))

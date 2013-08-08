@@ -819,7 +819,7 @@ let SELECT_ELIM_TAC =
                 // NOTE: revise due to massivie changes
                 let! fty = Choice.List.fold (fun acc x -> type_of x |> Choice.bind (fun y -> mk_fun_ty y acc)) ty1 fvs
                 let fn = genvar fty
-                let atm = list_mk_abs(fvs, t)
+                let! atm = list_mk_abs(fvs, t)
                 let! rawdef = mk_eq(fn, atm)
                 let def = GENL fvs (SYM(RIGHT_BETAS fvs (ASSUME rawdef)))
                 let! tm2 = Choice.bind (lhand << concl) th2
@@ -902,7 +902,7 @@ let LAMBDA_ELIM_CONV =
             let! v, bod = dest_abs atm
             let vs = frees atm
             let vs' = vs @ [v]
-            let aatm = list_mk_abs(vs, atm)
+            let! aatm = list_mk_abs(vs, atm)
             let! ty1 = type_of aatm
             let f = genvar ty1
             let! eq = mk_eq(f, aatm)

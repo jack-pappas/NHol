@@ -355,7 +355,8 @@ let GEN_BETA_CONV =
                 let gcon = 
                     genvar(itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) avs tms)
 
-                let bth = INST [list_mk_abs(aargs @ gargs, list_mk_comb(gcon, avs)), con'] sth
+                let! tm2' = list_mk_abs(aargs @ gargs, list_mk_comb(gcon, avs))
+                let bth = INST [tm2', con'] sth
                 let cth = el n (CONJUNCTS(ASSUME(snd(strip_exists(concl <| Choice.get bth)))))
                 let dth = CONV_RULE (funpow (length avs) BINDER_CONV (RAND_CONV(BETAS_CONV))) cth
                 let! tm3 = Choice.bind (lhand << snd << strip_forall << concl) dth
@@ -370,7 +371,8 @@ let GEN_BETA_CONV =
                 let mk_projector a = 
                     choice {
                         let! ity = type_of a
-                        let th = BETA_RULE(PINST [ity, zty] [list_mk_abs(avs, a), gcon] fth)
+                        let! tm1 = list_mk_abs(avs, a)
+                        let th = BETA_RULE(PINST [ity, zty] [tm1, gcon] fth)
                         return! SYM(SPEC_ALL(SELECT_RULE th))
                     }
 

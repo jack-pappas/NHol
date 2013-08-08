@@ -565,7 +565,7 @@ let term_match : term list -> term -> term -> Protected<_> =
 
                                 let! ctm' = subst ginsts ctm
                                 let gvs = map fst ginsts
-                                let abstm = list_mk_abs(gvs, ctm')
+                                let! abstm = list_mk_abs(gvs, ctm')
                                 let! vinsts = safe_inserta (abstm, vhop) insts
                                 let icpair = ctm', list_mk_comb(vhop', gvs)
                                 return icpair :: vinsts
@@ -932,9 +932,8 @@ let new_definition tm : Protected<thm0> =
             dest_eq bod
             |> Choice.mapError (fun e -> nestedFailure e "new_definition: Not an equation")
         let lv, largs = strip_comb l
-        let! rtm = 
-            // NOTE: list_mk_abs isn't converted yet, so exceptions can leak out
-            Choice.attempt (fun () -> list_mk_abs(largs, r))
+        let! rtm =
+            list_mk_abs(largs, r)
             |> Choice.mapError (fun e -> nestedFailure e "new_definition: Non-variable in LHS pattern")
 
         let! def = mk_eq(lv, rtm)

@@ -114,7 +114,8 @@ let body tm : Protected<term> =
 let list_mk_comb(h, t) = rev_itlist (C(curry (Choice.get << mk_comb))) t h
 
 /// Iteratively constructs abstractions.
-let list_mk_abs(vs, bod) = itlist (curry (Choice.get << mk_abs)) vs bod
+let list_mk_abs(vs, bod) = 
+    Choice.List.fold (fun acc x -> mk_abs(x, acc)) bod vs
 
 /// Iteratively breaks apart combinations (function applications).
 let strip_comb = rev_splitlist (Choice.toOption << dest_comb)
@@ -480,7 +481,8 @@ let mk_binop op tm1 : (term -> Protected<term>) =
 
 /// Makes an iterative application of a binary operator.
 // TODO : Modify this to use Choice.List.reduce/reduceBack.
-let list_mk_binop op = end_itlist(fun x -> Choice.get << mk_binop op x)
+let list_mk_binop op = 
+    Choice.List.reduceBack (mk_binop op)
 
 /// Repeatedly breaks apart an iterated binary operator into components.
 let binops op = striplist(Choice.toOption << dest_binop op)
@@ -662,7 +664,8 @@ let mk_gabs : term * term -> Protected<term> =
             return! mk_comb(cop, tm1)
         }
 
-    let list_mk_forall(vars, bod) = itlist (curry (Choice.get << mk_forall)) vars bod
+    let list_mk_forall(vars, bod) = 
+        Choice.List.fold (fun acc x -> mk_forall(x, acc)) bod vars
 
     let mk_geq(t1, t2) = 
         choice {
@@ -684,7 +687,7 @@ let mk_gabs : term * term -> Protected<term> =
                 let! f = variant (frees tm1 @ frees tm2) (mk_var("f", fty))
                 let! tm3 = mk_comb(f, tm1)
                 let! tm4 = mk_geq(tm3, tm2)
-                let tm5 = list_mk_forall(fvs, tm4)
+                let! tm5 = list_mk_forall(fvs, tm4)
                 let! tm6 = mk_const("GABS", [fty, aty])
                 let! bod = mk_abs(f, tm5)
                 return! mk_comb(tm6, bod)
@@ -693,8 +696,7 @@ let mk_gabs : term * term -> Protected<term> =
 /// Iteratively makes a generalized abstraction.
 // TODO : Modify this to use Choice.List.foldBack/fold.
 let list_mk_gabs(vs, bod) =
-    itlist (curry (Choice.get << mk_gabs)) vs bod
-    //|> Choice.result
+    Choice.List.fold (fun acc x -> mk_gabs(x, acc)) bod vs
 
 /// Breaks apart an iterated generalized or basic abstraction.
 let strip_gabs = splitlist (Choice.toOption << dest_gabs)
@@ -731,7 +733,7 @@ let mk_let(assigs, bod) : Protected<term> =
         let! tb = type_of bod
         let! tm = mk_const("LET_END", [tb, aty])
         let! lend = mk_comb(tm, bod)
-        let lbod = list_mk_gabs(lefts, lend)
+        let! lbod = list_mk_gabs(lefts, lend)
         let! tlb = type_of lbod
         let! (ty1, ty2) = dest_fun_ty tlb
         let! ltm = mk_const("LET", [ty1, aty; ty2, bty])

@@ -163,7 +163,7 @@ let lift_function =
                                         |> Option.toChoiceWithError "find"
                             })) hyps
 
-                let rdef = list_mk_abs(newargs, def)
+                let! rdef = list_mk_abs(newargs, def)
                 let! ty2 = type_of rdef
                 let ldef = mk_var(fname, ty2)
                 let dth = Choice.bind new_definition (mk_eq(ldef, rdef))

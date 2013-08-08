@@ -636,8 +636,8 @@ let define_type_raw_001 =
                             list_mk_comb(constr, [Choice.get <| sucivate n; 
                                                   iarg; 
                                                   rarg])
-
-                        return! mk_eq(mk_var(cname, conty), list_mk_abs(args, condef))
+                        let! tm1 = list_mk_abs(args, condef)
+                        return! mk_eq(mk_var(cname, conty), tm1)
                     }
 
                 let rec mk_constructors n rights = 
@@ -681,7 +681,7 @@ let define_type_raw_001 =
                             if conds = [] then Choice.result conc
                             else mk_imp(list_mk_conj conds, conc)
                     
-                        return list_mk_forall(args, rule)
+                        return! list_mk_forall(args, rule)
                     }
 
                 let! tms1 = Choice.List.map mk_rule idefs
@@ -836,7 +836,7 @@ let define_type_raw_001 =
                 |> Option.toChoiceWithError "find"
                 |> Choice.map fst
             let! defbod = mk_comb(retmk, list_mk_comb(oldcon, newrights))
-            let defrt = list_mk_abs(newargs, defbod)
+            let! defrt = list_mk_abs(newargs, defbod)
             let! expth = 
                 Choice.List.tryFind (fun th -> 
                     choice {
@@ -944,7 +944,9 @@ let define_type_raw_001 =
 
                     let! asmgen = subst (zip argsgen argsin) asmin
 
-                    let asmquant = list_mk_forall(snd(strip_comb(Choice.get <| rand(Choice.get <| rand asmgen))), asmgen)
+                    let! tm1 = rand asmgen
+                    let! tm2 = rand tm1
+                    let! asmquant = list_mk_forall(snd(strip_comb(tm2)), asmgen)
 
                     let th1 = INST (zip argsin argsgen) (SPEC_ALL(ASSUME asmquant))
                     let th2 = MP th1 (end_itlist CONJ pths)
@@ -952,12 +954,15 @@ let define_type_raw_001 =
                     return! DISCH asmquant (GENL avs (DISCH ant th3))
                 else 
                     let con = bimp
-                    let conth2 = BETA_CONV con
-                    let tth = PART_MATCH Choice.result rthm (Choice.get <| lhand(Choice.get <| rand(concl <| Choice.get conth2)))
-                    let conth3 = PRERULE conth2
+                    let! conth2 = BETA_CONV con
+                    let! tm1' = rand(concl conth2)
+                    let! tm2' = lhand tm1'
+                    let tth = PART_MATCH Choice.result rthm tm2'
+                    let conth3 = PRERULE (Choice.result conth2)
                     let! tm1 = Choice.bind (rand << concl) conth3
                     let! asmgen = rand tm1
-                    let asmquant = list_mk_forall(snd(strip_comb(Choice.get <| rand asmgen)), asmgen)
+                    let! tm2 = rand asmgen
+                    let! asmquant = list_mk_forall(snd(strip_comb(tm2)), asmgen)
                     let th2 = SPEC_ALL(ASSUME asmquant)
                     let th3 = EQ_MP (SYM conth3) (CONJ tth th2)
                     return! DISCH asmquant (GENL avs th3)
@@ -1207,7 +1212,7 @@ let define_type_raw_001 =
                     let! (name, _) = dest_const(repeat (Choice.toOption << rator) tm4)
                     let funname = name + "'"
                     let funarg = mk_var(funname, funty)
-                    return list_mk_abs([i; r; s], list_mk_comb(funarg, allargs))
+                    return! list_mk_abs([i; r; s], list_mk_comb(funarg, allargs))
                 }
 
     (* ----------------------------------------------------------------------- *)
@@ -1539,7 +1544,7 @@ let define_type_raw_002 =
                             let! (s, _) = dest_var fn
                             let fn' = mk_var(s, nty)
                             let! tm2 = mk_comb(inl, list_mk_comb(fn', args'))
-                            let r' = list_mk_abs (args'', tm2)
+                            let! r' = list_mk_abs (args'', tm2)
                             return r', fn
                         }
 
@@ -1603,23 +1608,28 @@ let prove_constructors_injective =
         choice {
             let f, args = strip_comb pat
             let! rt = Choice.List.reduceBack (curry mk_pair) args
-            let! ty = mk_fun_ty (Choice.get <| type_of pat) (Choice.get <| type_of rt)
+            let! tpat = type_of pat
+            let! trt = type_of rt
+            let! ty = mk_fun_ty tpat trt
             let fn = genvar ty
-            let! dtm = mk_eq(Choice.get <| mk_comb(fn, pat), rt)
-            let eth = prove_recursive_functions_exist ax (list_mk_forall(args, dtm))
+            let! tm1 = mk_comb(fn, pat)
+            let! dtm = mk_eq(tm1, rt)
+            let! tm0 = list_mk_forall(args, dtm)
+            let! eth = prove_recursive_functions_exist ax tm0
             let! args' = variants args args
             let! atm = mk_eq(pat, list_mk_comb(f, args'))
             let ath = ASSUME atm
             let bth = AP_TERM fn ath
-            let cth1 = SPECL args (ASSUME(snd(Choice.get <| dest_exists(concl <| Choice.get eth))))
+            let! (_, tm1) = dest_exists(concl eth)
+            let cth1 = SPECL args (ASSUME(tm1))
             let cth2 = INST (zip args' args) cth1
             let pth = TRANS (TRANS (SYM cth1) bth) cth2
-            let qth = DEPAIR pth
-            let qtm = concl <| Choice.get qth
+            let! qth = DEPAIR pth
+            let qtm = concl qth
             let rth = rev_itlist (C(curry MK_COMB)) (CONJUNCTS(ASSUME qtm)) (REFL f)
-            let tth = IMP_ANTISYM_RULE (DISCH atm qth) (DISCH qtm rth)
+            let tth = IMP_ANTISYM_RULE (DISCH atm (Choice.result qth)) (DISCH qtm rth)
             let uth = GENL args (GENL args' tth)
-            return! PROVE_HYP eth (SIMPLE_CHOOSE fn uth)
+            return! PROVE_HYP (Choice.result eth) (SIMPLE_CHOOSE fn uth)
         }
 
     fun ax -> 
@@ -1652,7 +1662,7 @@ let prove_constructors_distinct =
                     choice {
                         let! tm1 = rand l
                         let! tm2 = mk_eq(l, r)
-                        return list_mk_forall(frees tm1, tm2)
+                        return! list_mk_forall(frees tm1, tm2)
                     }) ls nums
 
             let! eth = prove_recursive_functions_exist ax (list_mk_conj defs)
@@ -2092,7 +2102,8 @@ let define_type_raw =
                     |> Option.toChoiceWithError "find")
             
             let! tm1 = rand l1
-            let inst0 = list_mk_abs (gargs0, list_mk_comb(fst(strip_comb tm1), xargs)), vc0
+            let! tm2 = list_mk_abs (gargs0, list_mk_comb(fst(strip_comb tm1), xargs))
+            let inst0 = tm2, vc0
             let vc1, wargs1 = strip_comb r1
             let con1, vargs1 = strip_comb tm1
 
@@ -2116,7 +2127,8 @@ let define_type_raw =
                     |> Option.toChoiceWithError "find")
             
             let! tm2 = rand l0    
-            let inst1 = list_mk_abs (gargs1, list_mk_comb(fst(strip_comb tm2), xargs)), vc1
+            let! tm3 = list_mk_abs (gargs1, list_mk_comb(fst(strip_comb tm2), xargs))
+            let inst1 = tm3, vc1
             return inst0, inst1
             }
 
@@ -2391,7 +2403,7 @@ let define_type_raw =
                     let vs, bod = strip_forall tm
                     let! tm1 = lhs bod
                     let! rdeb = rand tm1
-                    let rdef = list_mk_abs(vs, rdeb)
+                    let! rdef = list_mk_abs(vs, rdeb)
                     let! (newname, _) = dest_var(genvar bool_ty)
                     let! ty1 = type_of rdef
                     let! def = mk_eq(mk_var(newname, ty1), rdef)

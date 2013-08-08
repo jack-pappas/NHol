@@ -921,7 +921,7 @@ let ABBREV_TAC tm : tactic =
         choice {
             let! cvs, t = dest_eq tm
             let v, vs = strip_comb cvs
-            let rs = list_mk_abs (vs, t)
+            let! rs = list_mk_abs (vs, t)
             let! eq = mk_eq(rs, v)
             let th1 =  itlist (fun v th -> CONV_RULE (LAND_CONV BETA_CONV) (AP_THM th v)) (rev vs) (ASSUME eq)
             let th2 = SIMPLE_CHOOSE v (SIMPLE_EXISTS v (GENL vs th1))
