@@ -631,7 +631,8 @@ let instantiate_casewise_recursion,
       DISCH_THEN(MP_TAC << AP_TERM (parse_term @"EVEN")) |>THEN<|
       REWRITE_TAC[EVEN_MULT; EVEN_ADD; ARITH; EVEN])
     let allsimps = 
-     itlist (fun x y -> Choice.get <| mk_rewrites false x y) [EQ_ADD_RCANCEL; EQ_ADD_LCANCEL;
+     Choice.List.fold (fun acc x -> mk_rewrites false x acc) 
+      [EQ_ADD_RCANCEL; EQ_ADD_LCANCEL;
        EQ_ADD_RCANCEL_0; EQ_ADD_LCANCEL_0;
        LSYM EQ_ADD_RCANCEL_0; LSYM EQ_ADD_LCANCEL_0;
        EQ_MULT_RCANCEL; EQ_MULT_LCANCEL;
@@ -657,37 +658,48 @@ let instantiate_casewise_recursion,
     let false_tm = (parse_term @"F") in 
     let and_tm = (parse_term @"(/\)")
     let eq_refl = EQT_INTRO(SPEC_ALL EQ_REFL)
-    fun tm ->
-      let net = itlist (fun x y -> Choice.get <| net_of_thm false x y) allsimps (!basic_rectype_net)
-      let RECTYPE_ARITH_EQ_CONV =
-        TOP_SWEEP_CONV (REWRITES_CONV net) |>THENC<|
-        GEN_REWRITE_CONV DEPTH_CONV [AND_CLAUSES; OR_CLAUSES]
-      let SIMPLIFY_CASE_DISTINCTNESS_CLAUSE tm =
-        let avs,bod = strip_forall tm
-        let ant,cons = Choice.get <| dest_imp bod
-        let ath = RECTYPE_ARITH_EQ_CONV ant
-        let atm = Choice.get <| rand(concl <| Choice.get ath)
-        let bth = 
-         CONJ ath (if atm = false_tm then REFL cons
-                    else DISCH atm
-                          (PURE_REWRITE_CONV[eq_refl; ASSUME atm] cons))
-        let cth = 
-            choice { 
-                return! simp1 bth
-            }
-            |> Choice.bindError (function
-                | Failure _ -> 
-                    choice { 
-                        return! simp2 bth
-                    }
-                    |> Choice.bindError (function
-                            | Failure _ -> simp3 bth
-                            | e -> Choice.error e)
-                | e -> Choice.error e)
 
-        itlist MK_FORALL avs cth
-      (DEPTH_BINOP_CONV and_tm SIMPLIFY_CASE_DISTINCTNESS_CLAUSE |>THENC<|
-       GEN_REWRITE_CONV DEPTH_CONV [FORALL_SIMP; AND_CLAUSES]) tm in
+    fun tm -> 
+        choice {
+        let! allsimps = allsimps
+        let! net = Choice.List.fold (fun acc x -> net_of_thm false x acc) (!basic_rectype_net) allsimps
+
+        let RECTYPE_ARITH_EQ_CONV = TOP_SWEEP_CONV(REWRITES_CONV net)
+                                    |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [AND_CLAUSES; OR_CLAUSES]
+
+        let SIMPLIFY_CASE_DISTINCTNESS_CLAUSE tm = 
+            choice {
+            let avs, bod = strip_forall tm
+            let! ant, cons = dest_imp bod
+            let! ath = RECTYPE_ARITH_EQ_CONV ant
+            let! atm = rand(concl ath)
+            let bth = 
+                CONJ (Choice.result ath) 
+                         (if atm = false_tm then REFL cons
+                          else 
+                              DISCH atm (PURE_REWRITE_CONV [eq_refl; ASSUME atm] cons))
+            let cth = 
+                choice { 
+                    return! simp1 bth 
+                } 
+                |> Choice.bindError(function 
+                        | Failure _ -> 
+                            choice { 
+                                return! simp2 bth 
+                            } 
+                            |> Choice.bindError(function 
+                                    | Failure _ -> simp3 bth
+                                    | e -> Choice.error e)
+                        | e -> Choice.error e)
+            return! itlist MK_FORALL avs cth
+            }
+
+        return! 
+            (DEPTH_BINOP_CONV and_tm SIMPLIFY_CASE_DISTINCTNESS_CLAUSE
+             |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [FORALL_SIMP; AND_CLAUSES]) tm
+        }
+       
+       in
 
 (* ------------------------------------------------------------------------- *)
 (* Simplify an existential question about a pattern.                         *)
@@ -731,54 +743,87 @@ let instantiate_casewise_recursion,
                 |> THEN <| MATCH_MP_TAC EQ_IMP
                 |> THEN <| AP_TERM_TAC
                 |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
+
       let HACK_PROFORMA n th = 
-          if n <= 1 then th
+        choice {
+          if n <= 1 then 
+              return! th
           else 
               let mkname i = "_P" + string i
-              let ty = end_itlist (fun s t -> Choice.get <| mk_type("prod", [s; t])) (map (mk_vartype << mkname) (1 -- n))
+              let! ty = Choice.List.reduceBack (fun s t -> mk_type("prod", [s; t])) (map (mk_vartype << mkname) (1 -- n))
               let conv i = 
                   let name = "x" + string i
                   let cnv = ALPHA_CONV(mk_var(name, mk_vartype(mkname i)))
                   fun tm -> 
-                  if is_abs tm && name_of(Choice.get <| bndvar tm) <> name then cnv tm
-                  else failwith "conv"
+                    choice {
+                      let! tm1 = bndvar tm
+                      if is_abs tm && name_of tm1 <> name then 
+                          return! cnv tm
+                      else 
+                          return! Choice.failwith "conv"
+                    }
               let convs = FIRST_CONV(map conv (1 -- n))
               let th1 = INST_TYPE [ty, (parse_type @"P")] th
               let th2 = REWRITE_RULE [FORALL_PAIR_THM] th1
               let th3 = REWRITE_RULE [elemma0; elemma1] th2
-              CONV_RULE (REDEPTH_CONV convs) th3
+              return! CONV_RULE (REDEPTH_CONV convs) th3
+        }
+
       let EACK_PROFORMA n th = 
-          if n <= 1 then th
+        choice {
+          if n <= 1 then 
+              return! th
           else 
               let mkname i = "_Q" + string i
-              let ty = end_itlist (fun s t -> Choice.get <| mk_type("prod", [s; t])) (map (mk_vartype << mkname) (1 -- n))
+              let! ty = Choice.List.reduceBack (fun s t -> mk_type("prod", [s; t])) (map (mk_vartype << mkname) (1 -- n))
               let conv i = 
                   let name = "t" + string i
                   let cnv = ALPHA_CONV(mk_var(name, mk_vartype(mkname i)))
                   fun tm -> 
-                  if is_abs tm && name_of(Choice.get <| bndvar tm) <> name then cnv tm
-                  else failwith "conv"
+                    choice {
+                      let! tm1 = bndvar tm
+                      if is_abs tm && name_of tm1 <> name then 
+                          return! cnv tm
+                      else 
+                          return! Choice.failwith "conv"
+                    }
+
               let convs = FIRST_CONV(map conv (1 -- n))
               let th1 = INST_TYPE [ty, (parse_type @"Q")] th
               let th2 = REWRITE_RULE [EXISTS_PAIR_THM] th1
               let th3 = REWRITE_RULE [elemma1] th2
               let th4 = REWRITE_RULE [FORALL_PAIR_THM] th3
-              CONV_RULE (REDEPTH_CONV convs) th4
+              return! CONV_RULE (REDEPTH_CONV convs) th4
+         }
       HACK_PROFORMA, EACK_PROFORMA in
 
 (* ------------------------------------------------------------------------- *)
 (* Hack and apply.                                                           *)
 (* ------------------------------------------------------------------------- *)
 
-  let APPLY_PROFORMA_TAC th (asl,w as gl) =
-    let vs = fst(Choice.get <| dest_gabs(Choice.get <| body(Choice.get <| rand w)))
-    let n = 1 + length(fst(splitlist (Choice.toOption << dest_pair) vs))
-    (MATCH_MP_TAC(HACK_PROFORMA n th) |>THEN<| BETA_TAC) gl in
+  let APPLY_PROFORMA_TAC th (asl, w as gl) = 
+    choice {
+      let! tm1 = rand w
+      let! tm2 = body tm1
+      let! (vs, _) = dest_gabs(tm2)
+      let n = 1 + length(fst(splitlist (Choice.toOption << dest_pair) vs))
+      return!
+          (MATCH_MP_TAC(HACK_PROFORMA n th)
+           |> THEN <| BETA_TAC) gl
+    }
+    
+  in
 
-  let is_pattern p n tm =
-    try let f,args = strip_comb(snd(strip_exists (Choice.get <| body(Choice.get <| body tm))))
-        is_const f && name_of f = p && length args = n
-    with Failure _ -> false in
+  let is_pattern p n tm = 
+      choice { 
+          let! tm1 = body tm
+          let! tm2 = body tm1
+          let f, args = strip_comb(snd(strip_exists tm2))
+          return is_const f && name_of f = p && length args = n
+      }
+      |> Choice.fill false
+    
+  in
 
   let SIMPLIFY_MATCH_WELLDEFINED_TAC =
     let pth0 = 
@@ -801,48 +846,71 @@ let instantiate_casewise_recursion,
     | _ -> true in
 
   let MAIN_ADMISS_TAC(asl, w as gl) = 
+    choice {
       let had, args = strip_comb w
-      if not(is_const had) then failwith "ADMISS_TAC"
+      if not(is_const had) then 
+          return! Choice.failwith "ADMISS_TAC"
       else 
-          let f, fbod = Choice.get <| dest_abs(last args)
-          let xtup, bod = Choice.get <| dest_gabs fbod
+          let! f, fbod = dest_abs(last args)
+          let! xtup, bod = dest_gabs fbod
           let hop, args = strip_comb bod
           match (name_of had, name_of hop) with
-          | "superadmissible", "COND" -> APPLY_PROFORMA_TAC SUPERADMISSIBLE_COND gl
+          | "superadmissible", "COND" -> 
+               return! APPLY_PROFORMA_TAC SUPERADMISSIBLE_COND gl
           | "superadmissible", "_MATCH" when name_of(repeat (Choice.toOption << rator) (last args)) = "_SEQPATTERN" -> 
-              (APPLY_PROFORMA_TAC SUPERADMISSIBLE_MATCH_SEQPATTERN
-               |> THEN <| CONV_TAC(ONCE_DEPTH_CONV EXISTS_PAT_CONV)) gl
+              return! 
+                  (APPLY_PROFORMA_TAC SUPERADMISSIBLE_MATCH_SEQPATTERN
+                   |> THEN <| CONV_TAC(ONCE_DEPTH_CONV EXISTS_PAT_CONV)) gl
           | "superadmissible", "_MATCH" when is_pattern "_UNGUARDED_PATTERN" 2 (last args) -> 
-              let n = length(fst(strip_exists(Choice.get <| body(Choice.get <| body(last args)))))
+              let! tm1 = body(last args)
+              let! tm2 = body tm1
+              let n = length(fst(strip_exists tm2))
               let th = EACK_PROFORMA n SUPERADMISSIBLE_MATCH_UNGUARDED_PATTERN
-              (APPLY_PROFORMA_TAC th
-               |> THEN <| CONJ_TAC
-               |> THENL <| [SIMPLIFY_MATCH_WELLDEFINED_TAC; ALL_TAC]) gl
+              return!
+                  (APPLY_PROFORMA_TAC th
+                   |> THEN <| CONJ_TAC
+                   |> THENL <| [SIMPLIFY_MATCH_WELLDEFINED_TAC; ALL_TAC]) gl
           | "superadmissible", "_MATCH" when is_pattern "_GUARDED_PATTERN" 3 (last args) -> 
-              let n = length(fst(strip_exists(Choice.get <| body(Choice.get <| body(last args)))))
+              let! tm1 = body(last args)
+              let! tm2 = body tm1
+              let n = length(fst(strip_exists(tm2)))
               let th = EACK_PROFORMA n SUPERADMISSIBLE_MATCH_GUARDED_PATTERN
-              (APPLY_PROFORMA_TAC th
-               |> THEN <| CONJ_TAC
-               |> THENL <| [SIMPLIFY_MATCH_WELLDEFINED_TAC; ALL_TAC]) gl
+              return!
+                  (APPLY_PROFORMA_TAC th
+                   |> THEN <| CONJ_TAC
+                   |> THENL <| [SIMPLIFY_MATCH_WELLDEFINED_TAC; ALL_TAC]) gl
           // Choice.get is safe to use after is_*
           | "superadmissible", _ when is_comb bod && Choice.get <| rator bod = f -> 
-              APPLY_PROFORMA_TAC SUPERADMISSIBLE_TAIL gl
-          | "admissible", "sum" -> APPLY_PROFORMA_TAC ADMISSIBLE_SUM gl
-          | "admissible", "nsum" -> APPLY_PROFORMA_TAC ADMISSIBLE_NSUM gl
-          | "admissible", "MAP" -> APPLY_PROFORMA_TAC ADMISSIBLE_MAP gl
+              return! APPLY_PROFORMA_TAC SUPERADMISSIBLE_TAIL gl
+          | "admissible", "sum" -> 
+              return! APPLY_PROFORMA_TAC ADMISSIBLE_SUM gl
+          | "admissible", "nsum" -> 
+              return! APPLY_PROFORMA_TAC ADMISSIBLE_NSUM gl
+          | "admissible", "MAP" -> 
+              return! APPLY_PROFORMA_TAC ADMISSIBLE_MAP gl
           | "admissible", "_MATCH" when name_of(repeat (Choice.toOption << rator) (last args)) = "_SEQPATTERN" -> 
-              (APPLY_PROFORMA_TAC ADMISSIBLE_MATCH_SEQPATTERN
-               |> THEN <| CONV_TAC(ONCE_DEPTH_CONV EXISTS_PAT_CONV)) gl
-          | "admissible", "_MATCH" -> APPLY_PROFORMA_TAC ADMISSIBLE_MATCH gl
-          | "admissible", "_UNGUARDED_PATTERN" -> APPLY_PROFORMA_TAC ADMISSIBLE_UNGUARDED_PATTERN gl
-          | "admissible", "_GUARDED_PATTERN" -> APPLY_PROFORMA_TAC ADMISSIBLE_GUARDED_PATTERN gl
-          | "admissible", _ when is_abs bod -> APPLY_PROFORMA_TAC ADMISSIBLE_LAMBDA gl
+              return!
+                  (APPLY_PROFORMA_TAC ADMISSIBLE_MATCH_SEQPATTERN
+                   |> THEN <| CONV_TAC(ONCE_DEPTH_CONV EXISTS_PAT_CONV)) gl
+          | "admissible", "_MATCH" -> 
+              return! APPLY_PROFORMA_TAC ADMISSIBLE_MATCH gl
+          | "admissible", "_UNGUARDED_PATTERN" -> 
+              return! APPLY_PROFORMA_TAC ADMISSIBLE_UNGUARDED_PATTERN gl
+          | "admissible", "_GUARDED_PATTERN" -> 
+              return! APPLY_PROFORMA_TAC ADMISSIBLE_GUARDED_PATTERN gl
+          | "admissible", _ when is_abs bod -> 
+              return! APPLY_PROFORMA_TAC ADMISSIBLE_LAMBDA gl
           // Choice.get is safe to use after is_*
           | "admissible", _ when is_comb bod && Choice.get <| rator bod = f -> 
-              if free_in f (Choice.get <| rand bod) then APPLY_PROFORMA_TAC ADMISSIBLE_NEST gl
-              else APPLY_PROFORMA_TAC ADMISSIBLE_BASE gl
-          | "admissible", _ when is_comb bod && headonly f bod -> APPLY_PROFORMA_TAC ADMISSIBLE_COMB gl
-          | _ -> failwith "MAIN_ADMISS_TAC"
+              if free_in f (Choice.get <| rand bod) then 
+                  return! APPLY_PROFORMA_TAC ADMISSIBLE_NEST gl
+              else 
+                  return! APPLY_PROFORMA_TAC ADMISSIBLE_BASE gl
+          | "admissible", _ when is_comb bod && headonly f bod -> 
+               return! APPLY_PROFORMA_TAC ADMISSIBLE_COMB gl
+          | _ -> 
+               return! Choice.failwith "MAIN_ADMISS_TAC"
+    }
     
     in
 
@@ -870,118 +938,154 @@ let instantiate_casewise_recursion,
           let conv0 = REWR_CONV pth0
           let conv1 = REWR_CONV pth1
           let rec conv tm = 
-              try 
-                  conv0 tm
-              with
-              | Failure _ -> 
-                  let th = conv1 tm
-                  CONV_RULE (funpow 2 RAND_CONV conv) th
+              conv0 tm
+              |> Choice.bindError (function
+                    | Failure _ -> 
+                          let th = conv1 tm
+                          CONV_RULE (funpow 2 RAND_CONV conv) th
+                    | e -> Choice.error e)
           conv
       let LAMBDA_PAIR_CONV = 
+        
           let rewr1 = GEN_REWRITE_RULE I [GSYM FORALL_PAIR_THM]
           let rewr2 = GEN_REWRITE_CONV I [FUN_EQ_THM]
           fun parms tm -> 
-          let parm = end_itlist (curry(Choice.get << mk_pair)) parms
-          let x, bod = Choice.get <| dest_abs tm
-          let tm' = Choice.get <| mk_gabs(parm, Choice.get <| vsubst [parm, x] bod)
-          let th1 = BETA_CONV(Choice.get <| mk_comb(tm, parm))
-          let th2 = GEN_BETA_CONV(Choice.get <| mk_comb(tm', parm))
-          let th3 = TRANS th1 (SYM th2)
-          let th4 = itlist (fun v th -> rewr1(GEN v th)) (butlast parms) (GEN (last parms) th3)
-          EQ_MP (SYM(rewr2(Choice.get <| mk_eq(tm, tm')))) th4
+            choice {
+              let parm = end_itlist (curry (Choice.get << mk_pair)) parms
+              let! x, bod = dest_abs tm
+              let! tm1 = vsubst [parm, x] bod
+              let! tm' = mk_gabs(parm, tm1)
+              let! tm2 = mk_comb(tm, parm)
+              let th1 = BETA_CONV tm2
+              let! tm3 = mk_comb(tm', parm)
+              let th2 = GEN_BETA_CONV tm3
+              let th3 = TRANS th1 (SYM th2)
+              let th4 = itlist (fun v th -> rewr1(GEN v th)) (butlast parms) (GEN (last parms) th3)
+              let! tm4 = mk_eq(tm, tm')
+              return! EQ_MP (SYM(rewr2 tm4)) th4
+            }
+
       let FORALL_PAIR_CONV = 
           let rule = GEN_REWRITE_RULE RAND_CONV [GSYM FORALL_PAIR_THM]
           let rec depair l t = 
               match l with
               | [v] -> REFL t
               | v :: vs -> rule(BINDER_CONV (depair vs) t)
-              | [] -> failwith "depair: Unhandled case."
+              | [] -> Choice.failwith "depair: Unhandled case."
+
           fun parm parms -> 
-          let p = mk_var("P", Choice.get <| mk_fun_ty (Choice.get <| type_of parm) bool_ty)
-          let tm = list_mk_forall(parms, Choice.get <| mk_comb(p, parm))
-          GEN p (SYM(depair parms tm))
+              let p = mk_var("P", Choice.get <| mk_fun_ty (Choice.get <| type_of parm) bool_ty)
+              let tm = list_mk_forall(parms, Choice.get <| mk_comb(p, parm))
+              GEN p (SYM(depair parms tm))
+
       let ELIM_LISTOPS_CONV = 
           PURE_REWRITE_CONV [PAIRWISE;
                              ALL;
                              GSYM CONJ_ASSOC;
                              AND_CLAUSES]
           |> THENC <| TOP_DEPTH_CONV GEN_BETA_CONV
+
       let tuple_function_existence tm = 
-          let f, def = Choice.get <| dest_exists tm
-          let domtys0, ranty0 = splitlist (Choice.toOption << dest_fun_ty) (Choice.get <| type_of f)
+        choice {
+          let! f, def = dest_exists tm
+          let! ty1 = type_of f
+          let domtys0, ranty0 = splitlist (Choice.toOption << dest_fun_ty) ty1
           let nargs = 
               itlist (max << length << snd << strip_comb << Choice.get << lhs << snd << strip_forall) 
                   (conjuncts(snd(strip_forall def))) 0
+
           let domtys, midtys = chop_list nargs domtys0
-          let ranty = itlist (fun ty -> Choice.get << mk_fun_ty ty) midtys ranty0
-          if length domtys <= 1 then ASSUME tm
+          let! ranty = Choice.List.fold (fun acc ty -> mk_fun_ty ty acc) ranty0 midtys
+          if length domtys <= 1 then 
+              return! ASSUME tm
           else 
-              let dty = end_itlist (fun ty1 ty2 -> Choice.get <| mk_type("prod", [ty1; ty2])) domtys
-              let f' = 
-                  Choice.get 
-                  <| variant (frees tm) (mk_var(fst(Choice.get <| dest_var f), Choice.get <| mk_fun_ty dty ranty))
+              let! dty = Choice.List.reduceBack (fun ty1 ty2 -> mk_type("prod", [ty1; ty2])) domtys
+              let! (tm1, _) = dest_var f
+              let! tm2 = mk_fun_ty dty ranty
+              let! f' = variant (frees tm) (mk_var(tm1, tm2))
               let gvs = map genvar domtys
-              let f'' = list_mk_abs(gvs, Choice.get <| mk_comb(f', end_itlist (curry(Choice.get << mk_pair)) gvs))
-              let def' = Choice.get <| subst [f'', f] def
-              let th1 = EXISTS (tm, f'') (ASSUME def')
+              let! tm3 = mk_comb(f', end_itlist (curry(Choice.get << mk_pair)) gvs)
+              let f'' = list_mk_abs(gvs, tm3)
+              let! def' = subst [f'', f] def
+              let! th1 = EXISTS (tm, f'') (ASSUME def')
               let bth = BETAS_CONV(list_mk_comb(f'', gvs))
-              let th2 = GEN_REWRITE_CONV TOP_DEPTH_CONV [bth] (hd(hyp <| Choice.get th1))
-              SIMPLE_CHOOSE f' (PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th2))) th1)
+              let th2 = GEN_REWRITE_CONV TOP_DEPTH_CONV [bth] (hd(hyp th1))
+              return! SIMPLE_CHOOSE f' (PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th2))) (Choice.result th1))
+         }
+
       let pinstantiate_casewise_recursion def = 
-          try 
-              PART_MATCH Choice.result EXISTS_REFL def
-          with
-          | Failure _ -> 
-              let f, bod = Choice.get <| dest_exists def
-              let cjs = conjuncts bod
-              let eqs = map (snd << strip_forall) cjs
-              let lefts, rights = unzip(map (Choice.get << dest_eq) eqs)
-              let arglists = map (snd << strip_comb) lefts
-              let parms0 = freesl(unions arglists)
-              let parms = 
-                  if parms0 <> [] then parms0
-                  else [genvar aty]
-              let parm = end_itlist (curry(Choice.get << mk_pair)) parms
-              let ss = map (fun a -> Choice.get <| mk_gabs(parm, end_itlist (curry(Choice.get << mk_pair)) a)) arglists
-              let ts = map (fun a -> Choice.get <| mk_abs(f, Choice.get <| mk_gabs(parm, a))) rights
-              let clauses = Choice.get <| mk_flist(map2 (curry(Choice.get << mk_pair)) ss ts)
-              let pth = ISPEC clauses RECURSION_SUPERADMISSIBLE
-              let FIDDLE_CONV = 
-                  (LAND_CONV << LAND_CONV << BINDER_CONV << RAND_CONV << LAND_CONV << GABS_CONV << RATOR_CONV << LAND_CONV 
-                   << ABS_CONV)
-              let th0 = UNDISCH(CONV_RULE (FIDDLE_CONV(LAMBDA_PAIR_CONV parms)) pth)
-              let th1 = EQ_MP (GEN_ALPHA_CONV f (concl <| Choice.get th0)) th0
-              let rewr_forall_th = REWR_CONV(FORALL_PAIR_CONV parm parms)
-              let th2 = CONV_RULE (BINDER_CONV(LAND_CONV(GABS_CONV rewr_forall_th)
-                                               |> THENC <| EXPAND_PAIRED_ALL_CONV)) th1
-              let f2, bod2 = Choice.get <| dest_exists(concl <| Choice.get th2)
-              let ths3 = 
-                  map (CONV_RULE(COMB2_CONV (funpow 2 RAND_CONV GEN_BETA_CONV) (RATOR_CONV BETA_CONV
-                                                                                |> THENC <| GEN_BETA_CONV)) << SPEC_ALL) 
-                      (CONJUNCTS(ASSUME bod2))
-              let ths4 = 
-                  map2 (fun th t -> 
-                      let avs, tbod = strip_forall t
-                      itlist GEN avs (PART_MATCH Choice.result th tbod)) ths3 cjs
-              let th5 = SIMPLE_EXISTS f (end_itlist CONJ ths4)
-              let th6 = PROVE_HYP th2 (SIMPLE_CHOOSE f th5)
-              let th7 = (RAND_CONV
-                             (COMB2_CONV (RAND_CONV(LAND_CONV(GABS_CONV(BINDER_CONV(BINDER_CONV(rewr_forall_th)
-                                                                                    |> THENC <| rewr_forall_th))))) 
-                                  (LAND_CONV(funpow 2 GABS_CONV (BINDER_CONV(BINDER_CONV(rewr_forall_th)
-                                                                             |> THENC <| rewr_forall_th)))))
-                         |> THENC <| ELIM_LISTOPS_CONV)(hd(hyp <| Choice.get th6))
-              let th8 = PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th7))) th6
-              let wfasm, cdasm = Choice.get <| dest_conj(hd(hyp <| Choice.get th8))
-              let th9 = PROVE_HYP (CONJ (ASSUME wfasm) (ASSUME cdasm)) th8
-              let th10 = SIMPLIFY_WELLDEFINEDNESS_CONV cdasm
-              let th11 = PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th10))) th9
-              PROVE_HYP TRUTH th11
+          PART_MATCH Choice.result EXISTS_REFL def
+          |> Choice.bindError (function
+              | Failure _ -> 
+                choice {
+                  let! f, bod = dest_exists def
+                  let cjs = conjuncts bod
+                  let eqs = map (snd << strip_forall) cjs
+                  let! eqs' = Choice.List.map dest_eq eqs
+                  let lefts, rights = unzip eqs'
+                  let arglists = map (snd << strip_comb) lefts
+                  let parms0 = freesl(unions arglists)
+                  let parms = 
+                      if parms0 <> [] then parms0
+                      else [genvar aty]
+                  let parm = end_itlist (curry(Choice.get << mk_pair)) parms
+
+                  let! ss = Choice.List.map (fun a -> 
+                                choice {
+                                    let tm1 = end_itlist (curry(Choice.get << mk_pair)) a
+                                    return! mk_gabs(parm, tm1)
+                                }) arglists
+
+                  let! ts = Choice.List.map (fun a -> 
+                                choice {
+                                    let! tm1 = mk_gabs(parm, a)
+                                    return! mk_abs(f, tm1)
+                                }) rights
+
+                  let! clauses = mk_flist(map2 (curry(Choice.get << mk_pair)) ss ts)
+                  let pth = ISPEC clauses RECURSION_SUPERADMISSIBLE
+                  let FIDDLE_CONV = 
+                      (LAND_CONV << LAND_CONV << BINDER_CONV << RAND_CONV << LAND_CONV << GABS_CONV << RATOR_CONV << LAND_CONV 
+                       << ABS_CONV)
+                  let! th0 = UNDISCH(CONV_RULE (FIDDLE_CONV(LAMBDA_PAIR_CONV parms)) pth)
+                  let th1 = EQ_MP (GEN_ALPHA_CONV f (concl th0)) (Choice.result th0)
+                  let rewr_forall_th = REWR_CONV(FORALL_PAIR_CONV parm parms)
+                  let! th2 = CONV_RULE (BINDER_CONV(LAND_CONV(GABS_CONV rewr_forall_th)
+                                                   |> THENC <| EXPAND_PAIRED_ALL_CONV)) th1
+                  let! f2, bod2 = dest_exists(concl th2)
+                  let ths3 = 
+                      map (CONV_RULE(COMB2_CONV (funpow 2 RAND_CONV GEN_BETA_CONV) (RATOR_CONV BETA_CONV
+                                                                                    |> THENC <| GEN_BETA_CONV)) << SPEC_ALL) 
+                          (CONJUNCTS(ASSUME bod2))
+
+                  let ths4 = 
+                      map2 (fun th t -> 
+                          let avs, tbod = strip_forall t
+                          itlist GEN avs (PART_MATCH Choice.result th tbod)) ths3 cjs
+                  let th5 = SIMPLE_EXISTS f (end_itlist CONJ ths4)
+                  let! th6 = PROVE_HYP (Choice.result th2) (SIMPLE_CHOOSE f th5)
+                  let th7 = (RAND_CONV
+                                 (COMB2_CONV (RAND_CONV(LAND_CONV(GABS_CONV(BINDER_CONV(BINDER_CONV(rewr_forall_th)
+                                                                                        |> THENC <| rewr_forall_th))))) 
+                                      (LAND_CONV(funpow 2 GABS_CONV (BINDER_CONV(BINDER_CONV(rewr_forall_th)
+                                                                                 |> THENC <| rewr_forall_th)))))
+                             |> THENC <| ELIM_LISTOPS_CONV)(hd(hyp th6))
+                  let! th8 = PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th7))) (Choice.result th6)
+                  let wfasm, cdasm = Choice.get <| dest_conj(hd(hyp th8))
+                  let th9 = PROVE_HYP (CONJ (ASSUME wfasm) (ASSUME cdasm)) (Choice.result th8)
+                  let th10 = SIMPLIFY_WELLDEFINEDNESS_CONV cdasm
+                  let th11 = PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th10))) th9
+                  return! PROVE_HYP TRUTH th11
+               }
+              | e -> Choice.error e)
+
       fun etm -> 
-          let eth = tuple_function_existence etm
-          let dtm = hd(hyp <| Choice.get eth)
+        choice {
+          let! eth = tuple_function_existence etm
+          let dtm = hd(hyp eth)
           let dth = pinstantiate_casewise_recursion dtm
-          PROVE_HYP dth eth
+          return! PROVE_HYP dth (Choice.result eth)
+        }
       
       in
 
@@ -991,44 +1095,56 @@ let instantiate_casewise_recursion,
 
   let pure_prove_recursive_function_exists = 
       let break_down_admissibility th1 = 
-          if hyp <| Choice.get th1 = [] then th1
+        choice {
+          let! th1 = th1
+          if hyp th1 = [] then 
+              return th1
           else 
-              let def = concl <| Choice.get th1
-              let f, bod = Choice.get <| dest_exists def
+              let def = concl th1
+              let! f, bod = dest_exists def
               let cjs = conjuncts bod
               let eqs = map (snd << strip_forall) cjs
-              let lefts, rights = unzip(map (Choice.get << dest_eq) eqs)
+              let! eqs' = Choice.List.map dest_eq eqs
+              let lefts, rights = unzip eqs'
               let arglists = map (snd << strip_comb) lefts
               let parms0 = freesl(unions arglists)
               let parms = 
                   if parms0 <> [] then parms0
                   else [genvar aty]
-              let wfasm = Option.get <| find is_exists (hyp <| Choice.get th1)
-              let ord, bod = Choice.get <| dest_exists wfasm
+              let! wfasm = find is_exists (hyp th1) |> Option.toChoiceWithError "find"
+              let! ord, bod = dest_exists wfasm
               let SIMP_ADMISS_TAC = 
                   REWRITE_TAC [LET_DEF; LET_END_DEF]
                   |> THEN <| REPEAT ADMISS_TAC
-                  |> THEN <| TRY(W(fun (asl, w) -> 
-                                     let v = fst(Choice.get <| dest_forall w)
-                                     X_GEN_TAC v
-                                     |> THEN <| MAP_EVERY (fun v -> TRY(GEN_REWRITE_TAC I [FORALL_PAIR_THM])
-                                                                    |> THEN <| X_GEN_TAC v) parms
-                                     |> THEN <| CONV_TAC(TOP_DEPTH_CONV GEN_BETA_CONV)
-                                     |> THEN <| MAP_EVERY (fun v -> SPEC_TAC(v, v)) (rev parms @ [v])))
+                  |> THEN <| TRY(W(fun (asl, w) gl -> 
+                                    choice {
+                                    let! (v, _) = dest_forall w
+                                    return!
+                                        (X_GEN_TAC v
+                                         |> THEN <| MAP_EVERY (fun v -> TRY(GEN_REWRITE_TAC I [FORALL_PAIR_THM])
+                                                                        |> THEN <| X_GEN_TAC v) parms
+                                         |> THEN <| CONV_TAC(TOP_DEPTH_CONV GEN_BETA_CONV)
+                                         |> THEN <| MAP_EVERY (fun v -> SPEC_TAC(v, v)) (rev parms @ [v])) gl
+                                    }))
                   |> THEN <| PURE_REWRITE_TAC [FORALL_SIMP]
                   |> THEN <| W(fun (asl, w) -> MAP_EVERY (fun t -> SPEC_TAC(t, t)) (subtract (frees w) [ord]))
                   |> THEN <| W(fun (asl, w) -> ACCEPT_TAC(ASSUME w))
-              let th2 = prove(bod, SIMP_ADMISS_TAC)
-              let th3 = SIMPLE_EXISTS ord th2
-              let allasms = hyp <| Choice.get th3
-              let wfasm = Choice.get <| lhand(concl <| Choice.get th2)
+              let! th2 = prove(bod, SIMP_ADMISS_TAC)
+              let! th3 = SIMPLE_EXISTS ord (Choice.result th2)
+              let allasms = hyp th3
+              let! wfasm = lhand(concl th2)
               let th4 = ASSUME(list_mk_conj(wfasm :: subtract allasms [wfasm]))
-              let th5 = SIMPLE_CHOOSE ord (itlist PROVE_HYP (CONJUNCTS th4) th3)
-              PROVE_HYP th5 th1
+              let th5 = SIMPLE_CHOOSE ord (itlist PROVE_HYP (CONJUNCTS th4) (Choice.result th3))
+              return! PROVE_HYP th5 (Choice.result th1)
+          }
       fun dtm -> 
-          let th = break_down_admissibility(instantiate_casewise_recursion dtm)
-          if concl <| Choice.get th = dtm then th
-          else failwith "prove_general_recursive_function_exists: sanity"
+        choice {
+          let! th = break_down_admissibility(instantiate_casewise_recursion dtm)
+          if concl th = dtm then 
+              return th
+          else 
+              return! Choice.failwith "prove_general_recursive_function_exists: sanity"
+        }
       
     in
 
@@ -1040,50 +1156,78 @@ let instantiate_casewise_recursion,
       let prove_depth_measure_exists = 
           let num_ty = (parse_type @"num")
           fun tyname -> 
-          let _, _, sth = assoc tyname (!inductive_type_store) |> Option.getOrFailWith "find"
-          let ty, zty = 
-              Choice.get 
-              <| dest_fun_ty
-                     (Choice.get <| type_of(fst(Choice.get <| dest_exists(snd(strip_forall(concl <| Choice.get sth))))))
-          let rth = INST_TYPE [num_ty, zty] sth
-          let avs, bod = strip_forall(concl <| Choice.get rth)
-          let ev, cbod = Choice.get <| dest_exists bod
-          let process_clause k t = 
-              let avs, eq = strip_forall t
-              let l, r = Choice.get <| dest_eq eq
-              let fn, cargs = Choice.get <| dest_comb l
-              let con, args = strip_comb cargs
-              let bargs = filter (fun t -> Choice.get <| type_of t = ty) args
-              let r' = 
-                  list_mk_binop (parse_term @"(+):num->num->num") 
-                      (Choice.get(mk_small_numeral k) :: map (curry (Choice.get << mk_comb) fn) bargs)
-              list_mk_forall(avs, Choice.get <| mk_eq(l, r'))
-          let cjs = conjuncts cbod
-          let def = map2 process_clause (1 -- length cjs) cjs
-          prove_recursive_functions_exist sth (list_mk_conj def)
+            choice {
+              let! _, _, sth = assoc tyname (!inductive_type_store) |> Option.toChoiceWithError "find"
+              let! sth = sth
+              let! (tm1, _) = dest_exists(snd(strip_forall(concl sth)))
+              let! ty1 = type_of tm1
+              let! ty, zty = dest_fun_ty ty1
+              let! rth = INST_TYPE [num_ty, zty] (Choice.result sth)
+              let avs, bod = strip_forall(concl rth)
+              let! ev, cbod = dest_exists bod
+              let process_clause k t = 
+                choice {
+                  let avs, eq = strip_forall t
+                  let! l, r = dest_eq eq
+                  let! fn, cargs = dest_comb l
+                  let con, args = strip_comb cargs
+                  let! bargs = Choice.List.filter (fun t ->
+                                   choice {
+                                        let! ty1 = type_of t
+                                        return ty1 = ty
+                                   }) args
+                  let r' = 
+                      list_mk_binop (parse_term @"(+):num->num->num") 
+                          (Choice.get(mk_small_numeral k) :: map (curry (Choice.get << mk_comb) fn) bargs)
+
+                  let! tm2 = mk_eq(l, r')
+                  return list_mk_forall(avs, tm1)
+                }
+              let cjs = conjuncts cbod
+              let! def = Choice.List.map2 process_clause (1 -- length cjs) cjs
+              return! prove_recursive_functions_exist (Choice.result sth) (list_mk_conj def)
+            }
+
       let INDUCTIVE_MEASURE_THEN tac (asl, w) = 
-          let ev, bod = Choice.get <| dest_exists w
-          let ty = fst(Choice.get <| dest_type(fst(Choice.get <| dest_fun_ty(Choice.get <| type_of ev))))
-          let th = prove_depth_measure_exists ty
-          let ev', bod' = Choice.get <| dest_exists(concl <| Choice.get th)
-          let th' = INST_TYPE (Choice.get <| type_match (Choice.get <| type_of ev') (Choice.get <| type_of ev) []) th
-          (MP_TAC th'
-           |> THEN <| MATCH_MP_TAC MONO_EXISTS
-           |> THEN <| GEN_TAC
-           |> THEN <| DISCH_THEN(fun th -> REWRITE_TAC [th])
-           |> THEN <| tac)(asl, w)
+        choice {
+          let! ev, bod = dest_exists w
+          let! ty1 = type_of ev
+          let! (ty2, _) = dest_fun_ty ty1
+          let! (ty, _) = dest_type ty2
+          let! th = prove_depth_measure_exists ty
+          let! ev', bod' = dest_exists(concl th)
+          let! ty3 = type_of ev'
+          let! ty4 = type_of ev
+          let! ty5 = type_match ty3 ty4 []
+          let th' = INST_TYPE ty5 (Choice.result th)
+          return!
+              (MP_TAC th'
+               |> THEN <| MATCH_MP_TAC MONO_EXISTS
+               |> THEN <| GEN_TAC
+               |> THEN <| DISCH_THEN(fun th -> REWRITE_TAC [th])
+               |> THEN <| tac) (asl, w)
+        }
+
       let CONSTANT_MEASURE_THEN = 
           let one_tm = (parse_term @"1")
           fun tac (asl, w) -> 
-          let ev, bod = Choice.get <| dest_exists w
-          let ty = fst(Choice.get <| dest_fun_ty(Choice.get <| type_of ev))
-          (EXISTS_TAC(Choice.get <| mk_abs(genvar ty, one_tm))
-           |> THEN <| tac)(asl, w)
+            choice {
+              let! ev, bod = dest_exists w
+              let! ty1 = type_of ev
+              let! (ty, _) = dest_fun_ty ty1
+              let! tm1 = mk_abs(genvar ty, one_tm)
+
+              return!
+                  (EXISTS_TAC tm1
+                   |> THEN <| tac) (asl, w)
+            }
+
       let GUESS_MEASURE_THEN tac = 
           (EXISTS_TAC(parse_term @"\n. n + 1")
            |> THEN <| tac)
           |> ORELSE <| (INDUCTIVE_MEASURE_THEN tac)
           |> ORELSE <| CONSTANT_MEASURE_THEN tac
+
       let pth_lexleft = 
           prove((parse_term @"(?r. WF(r) /\
               ?s. WF(s) /\
@@ -1092,6 +1236,7 @@ let instantiate_casewise_recursion,
                 REPEAT STRIP_TAC
                 |> THEN <| EXISTS_TAC(parse_term @"\(x1:A,y1:B) (x2:A,y2:B). r x1 x2 \/ (x1 = x2) /\ s y1 y2")
                 |> THEN <| ASM_SIMP_TAC [WF_LEX])
+
       let pth_lexright = 
           prove((parse_term @"(?r. WF(r) /\
               ?s. WF(s) /\
@@ -1109,8 +1254,10 @@ let instantiate_casewise_recursion,
                                |> THEN <| MATCH_MP_TAC EQ_IMP
                                |> THEN <| AP_TERM_TAC)
                 |> THEN <| REWRITE_TAC [FUN_EQ_THM; FORALL_PAIR_THM])
+
       let pth_measure = 
           prove((parse_term @"(?m:A->num. P(MEASURE m)) ==> ?r:A->A->bool. WF(r) /\ P r"), MESON_TAC [WF_MEASURE])
+
       let rec GUESS_WF_THEN tac (asl, w) = 
           ((MATCH_MP_TAC pth_lexleft
             |> THEN <| GUESS_WF_THEN(GUESS_WF_THEN tac))
@@ -1120,27 +1267,36 @@ let instantiate_casewise_recursion,
                          |> THEN <| REWRITE_TAC [MEASURE; MEASURE_LE]
                          |> THEN <| REWRITE_TAC [FORALL_PAIR_THM]
                          |> THEN <| GUESS_MEASURE_THEN tac))(asl, w)
+
       let PRE_GUESS_TAC = 
           CONV_TAC(BINDER_CONV(DEPTH_BINOP_CONV (parse_term @"(/\)") (TRY_CONV SIMPLIFY_WELLDEFINEDNESS_CONV
                                                                       |> THENC <| TRY_CONV FORALL_UNWIND_CONV)))
       let GUESS_ORDERING_TAC = 
           let false_tm = (parse_term @"\x:A y:A. F")
-          W(fun (asl, w) -> 
-              let ty = fst(Choice.get <| dest_fun_ty(Choice.get <| type_of(fst(Choice.get <| dest_exists w))))
-              EXISTS_TAC(Choice.get <| inst [ty, aty] false_tm)
-              |> THEN <| REWRITE_TAC [WF_FALSE]
-              |> THEN <| NO_TAC)
+          W(fun (asl, w) gl -> 
+             choice {
+             let! (tm1, _) = dest_exists w
+             let! ty1 = type_of tm1
+             let! (ty, _) = dest_fun_ty ty1
+             let! tm2 = inst [ty, aty] false_tm
+             return!
+                 (EXISTS_TAC tm2
+                  |> THEN <| REWRITE_TAC [WF_FALSE]
+                  |> THEN <| NO_TAC) gl
+             })
           |> ORELSE <| GUESS_WF_THEN(REWRITE_TAC [FORALL_PAIR_THM]
                                      |> THEN <| ARITH_TAC)
+
       fun etm -> 
-      let th = pure_prove_recursive_function_exists etm
-      try 
-          let wtm = Option.get <| find is_exists (hyp <| Choice.get th)
-          let wth = prove(wtm, PRE_GUESS_TAC
-                               |> THEN <| GUESS_ORDERING_TAC)
-          PROVE_HYP wth th
-      with
-      | Failure _ -> th
+          let th = pure_prove_recursive_function_exists etm
+          choice { 
+              let! th' = th
+              let! wtm = find is_exists (hyp th') |> Option.toChoiceWithError "find"
+              let wth = prove(wtm, PRE_GUESS_TAC
+                                   |> THEN <| GUESS_ORDERING_TAC)
+              return! PROVE_HYP wth th
+          }
+          |> Choice.bindError (function Failure _ -> th | e -> Choice.error e)
   
   in
 
@@ -1155,43 +1311,63 @@ let instantiate_casewise_recursion,
 /// Defines a general recursive function.
 let define = 
     let close_definition_clauses tm = 
+        choice {
         let avs, bod = strip_forall tm
         let cjs = conjuncts bod
-        let fs = 
-            try 
-                map (repeat(Choice.toOption << rator) << Choice.get << lhs << snd << strip_forall) cjs
-            with
-            | Failure _ -> failwith "close_definition_clauses: non-equation"
-        if length(setify fs) <> 1 then failwith "close_definition_clauses: defining multiple functions"
+        let! fs = 
+            Choice.List.map (Choice.map (repeat(Choice.toOption << rator)) << lhs << snd << strip_forall) cjs
+            |> Choice.mapError (fun e -> nestedFailure e "close_definition_clauses: non-equation")
+
+        if length(setify fs) <> 1 then 
+            return! Choice.failwith "close_definition_clauses: defining multiple functions"
         else 
             let f = hd fs
-            if mem f avs then failwith "close_definition_clauses: fn quantified"
+            if mem f avs then 
+                return! Choice.failwith "close_definition_clauses: fn quantified"
             else 
                 let do_clause t = 
+                    choice {
                     let lvs, bod = strip_forall t
-                    let fvs = subtract (frees(Choice.get <| lhs bod)) (f :: lvs)
-                    SPECL fvs (ASSUME(list_mk_forall(fvs, t)))
+                    let! tm1 = lhs bod
+                    let fvs = subtract (frees tm1) (f :: lvs)
+                    return! SPECL fvs (ASSUME(list_mk_forall(fvs, t)))
+                    }
+
                 let ths = map do_clause cjs
-                let ajs = map (hd << hyp << Choice.get) ths
+                let! ajs = Choice.List.map (Choice.map (hd << hyp)) ths
                 let th = ASSUME(list_mk_conj ajs)
-                f, itlist GEN avs (itlist PROVE_HYP (CONJUNCTS th) (end_itlist CONJ ths))
+                let! th' = itlist GEN avs (itlist PROVE_HYP (CONJUNCTS th) (end_itlist CONJ ths)) 
+                return f, th'
+        }
     fun tm -> 
-    let tm' = snd(strip_forall tm)
-    try 
-        let th, th' = 
-            tryfind (fun th -> Some(th, PART_MATCH Choice.result th tm')) (!the_definitions) 
-            |> Option.getOrFailWith "tryfind"
-        if (Choice.isResult << PART_MATCH Choice.result th')(concl <| Choice.get th) then 
-            (warn true "Benign redefinition"
-             th')
-        else failwith ""
-    with
-    | Failure _ -> 
-        let f, th = close_definition_clauses tm
-        let etm = Choice.get <| mk_exists(f, hd(hyp <| Choice.get th))
-        let th1 = prove_general_recursive_function_exists etm
-        let th2 = new_specification [fst(Choice.get <| dest_var f)] th1
-        let g = Choice.get <| mk_mconst(Choice.get <| dest_var f)
-        let th3 = PROVE_HYP th2 (INST [g, f] th)
-        the_definitions := th3 :: (!the_definitions)
-        th3
+        let tm' = snd(strip_forall tm)
+        choice { 
+            let! th, th' = 
+                Choice.List.tryPick (fun th -> 
+                    choice {
+                        let! th = th
+                        let! th' = PART_MATCH Choice.result (Choice.result th) tm' 
+                        return Some(th, Choice.result th')
+                    }) (!the_definitions) 
+                |> Choice.bind (Option.toChoiceWithError "tryfind")
+            if (Choice.isResult << PART_MATCH Choice.result th')(concl th) then 
+                warn true "Benign redefinition"
+                return! th'
+            else 
+                return! Choice.failwith ""
+        }
+        |> Choice.bindError (function 
+            | Failure _ -> 
+                choice {
+                    let! f, th = close_definition_clauses tm
+                    let! etm = mk_exists(f, hd(hyp th))
+                    let th1 = prove_general_recursive_function_exists etm
+                    let! (s1, _) = dest_var f
+                    let th2 = new_specification [s1] th1
+                    let! sht = dest_var f
+                    let! g = mk_mconst sht
+                    let th3 = PROVE_HYP th2 (INST [g, f] (Choice.result th))
+                    the_definitions := th3 :: (!the_definitions)
+                    return! th3
+                }
+            | e -> Choice.error e)
