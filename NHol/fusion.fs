@@ -56,7 +56,7 @@ module Hol_kernel =
             | Comb(t1, t2) -> "Comb (" + t1.ToString() + ", " + t2.ToString() + ")"
             | Abs(t1, t2) -> 
                 "Abs (\"" + t1.ToString() + "\", " + t2.ToString() + ")"
-    
+
     type thm0 =
         | Sequent of term list * term
         override this.ToString() =
@@ -64,7 +64,10 @@ module Hol_kernel =
             | Sequent(tlist, t) -> 
                 "Sequent (" + tlist.ToString() + ", " + t.ToString() + ")"
 
-    //type thm = Protected<thm0>
+#if BUGGY
+#else
+    type thm = Protected<thm0>
+#endif
     
     (* ------------------------------------------------------------------------- *)
     (* List of current type constants with their arities.                        *)
