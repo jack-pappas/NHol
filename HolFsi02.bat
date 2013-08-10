@@ -6,7 +6,8 @@ fsi^
   --lib:NHol^
   --define:FSI_VER_2^
   --define:USE^
-  --use:system.fsx^
+  --use:init.fsx^
+  --use:system.fs^
   --use:lib.fs^
   --use:fusion.fs^
   --use:basics.fs^
