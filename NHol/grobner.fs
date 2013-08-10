@@ -61,6 +61,8 @@ open calc_num
 open normalizer
 #endif
 
+logger.Trace("Entering grobner.fs")
+
 
 (* ------------------------------------------------------------------------- *)
 (* Type for recording history, i.e. how a polynomial was obtained.           *)

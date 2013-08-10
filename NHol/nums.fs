@@ -55,6 +55,8 @@ open quot
 //open pair
 #endif
 
+logger.Trace("Entering nums.fs")
+
 
 let result = new_type("ind", 0)
 

@@ -53,6 +53,8 @@ open canon
 open meson
 #endif
 
+logger.Trace("Entering quot.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Given a type name "ty" and a curried binary relation R, this defines      *)
 (* a new type "ty" of R-equivalence classes. The abstraction and             *)

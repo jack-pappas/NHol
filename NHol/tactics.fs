@@ -48,6 +48,8 @@ open bool
 open drule
 #endif
 
+logger.Trace("Entering tactics.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* The common case of trivial instantiations.                                *)
 (* ------------------------------------------------------------------------- *)

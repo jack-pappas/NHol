@@ -47,6 +47,8 @@ open ind_defs
 open ``class``
 #endif
 
+logger.Trace("Entering trivia.fs")
+
 parse_as_infix("o", (26, "right"))
 
 (* ------------------------------------------------------------------------- *)

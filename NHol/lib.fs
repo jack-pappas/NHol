@@ -34,12 +34,16 @@ open System
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
-open NHol
-open system
+
 open ExtCore.Control
 open ExtCore.Control.Collections
 
+open NHol
+open system
+
 #endif
+
+logger.Trace("Entering lib.fs")
 
 //
 type Protected<'T> = Choice<'T, exn>

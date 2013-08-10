@@ -66,6 +66,8 @@ open realax
 open calc_int
 #endif
 
+logger.Trace("Entering realarith.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Some lemmas needed now just to drive the decision procedure.              *)
 (* ------------------------------------------------------------------------- *)

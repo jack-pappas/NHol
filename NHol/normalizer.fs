@@ -59,6 +59,8 @@ open arith
 open calc_num
 #endif
 
+logger.Trace("Entering normalizer.fs")
+
 
 /// Produces normalizer functions over a ring or even a semiring.
 let SEMIRING_NORMALIZERS_CONV = 

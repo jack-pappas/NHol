@@ -36,6 +36,8 @@ open fusion.Hol_kernel
 open basics
 #endif
 
+logger.Trace("Entering nets.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Term nets are a finitely branching tree structure; at each level we       *)
 (* have a set of branches and a set of "values". Linearization is            *)
