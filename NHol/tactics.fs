@@ -1316,14 +1316,15 @@ let ANTS_TAC =
 (* ------------------------------------------------------------------------- *)
 
 /// Prints a goal to formatter.
-let pp_print_goal fmt gl = 
+let pp_print_goal fmt (gl : goal) = 
     let string3 n = 
         if n < 10
         then "  " + string n
         elif n < 100
         then " " + string n
         else string n
-    let pp_print_hyp fmt n (s, th) = 
+    let pp_print_hyp fmt n (s, th : Protected<thm0>) =
+        let th = ExtCore.Choice.bindOrRaise th
         Format.pp_open_hbox fmt ()
         Format.pp_print_string fmt (string3 n)
         Format.pp_print_string fmt  " ["
@@ -1364,22 +1365,23 @@ fsi.AddPrinter string_of_goal
 #endif
 
 /// Prints a goalstack to formatter.
-let pp_print_goalstack fmt gs = 
-    let pp_print_goalstate fmt k gs = 
+let pp_print_goalstack fmt gs =
+    let pp_print_goalstate fmt k (gs : goalstate0) = 
         let (_, gl, _) = gs
         let n = length gl
         let s = 
-            if n = 0
-            then "No subgoals"
-            else 
-                (string k) + " subgoal" + (if k > 1 then "s" else "") 
-                + " (" + (string n) + " total)"
+            if n = 0 then "No subgoals"
+            else
+                (string k) + " subgoal" + (if k > 1 then "s" else "") + " (" + (string n) + " total)"
         Format.print_string s
         Format.print_newline()
-        if gl = []
-        then ()
-        else do_list (print_goal << C el gl) (rev(0 -- (k - 1)))
+        if not <| List.isEmpty gl then
+            do_list (print_goal << C el gl) (rev(0 -- (k - 1)))
+
     let pp_print_goalstates fmt (l : goalstate list) =
+        // TEMP : Un-protect the goalstates.
+        let l = l |> List.map ExtCore.Choice.bindOrRaise
+
         // OPTIMIZE : Use pattern-matching here -- it's faster than checking the length
         // of the list, since we don't need to traverse the entire list.
         match l.Length with
