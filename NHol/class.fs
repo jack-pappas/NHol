@@ -202,7 +202,7 @@ extend_basic_rewrites [SELECT_REFL]
 let the_type_definitions = ref([] : ((string * string * string) * (thm0 * thm0)) list)
 
 /// Introduces a new type in bijection with a nonempty subset of an existing type.
-let new_type_definition tyname (absname, repname) th = 
+let new_type_definition tyname (absname, repname) (th : Protected<thm0>) : Protected<thm0> = 
     choice { 
         let! th', tth' =
             assoc (tyname, absname, repname) (!the_type_definitions)

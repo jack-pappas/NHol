@@ -92,7 +92,7 @@ let EXISTS_EQUATION =
              |> THEN <| EXISTS_TAC(parse_term @"t:A")
              |> THEN <| FIRST_ASSUM MATCH_MP_TAC
              |> THEN <| REFL_TAC)
-    fun tm th -> 
+    fun tm (th : Protected<thm0>) -> 
         choice {
             let! l, r = dest_eq tm
             let! tm' = Choice.map concl th
@@ -102,7 +102,7 @@ let EXISTS_EQUATION =
             let th3 = EQ_MP (SYM th1) th
             let th4 = GEN l (DISCH tm th3)
             return! MP th2 th4
-        }
+        } : Protected<thm0>
 
 (* ========================================================================= *)
 (* Part 1: The main part of the inductive definitions package.               *)
@@ -110,7 +110,7 @@ let EXISTS_EQUATION =
 (* ========================================================================= *)
 
 /// Deduce inductive definitions properties from an explicit assignment.
-let derive_nonschematic_inductive_relations = 
+let derive_nonschematic_inductive_relations : conv = 
     let getconcl tm = 
         let bod = repeat (Choice.toOption << Choice.map snd << dest_forall) tm
         choice {
@@ -525,19 +525,19 @@ let prove_monotonicity_hyps =
         |> THEN <| REPEAT CONJ_TAC
         |> THEN <| MONO_TAC
     let prove_mth t = prove(t, tac)
-    fun th -> 
+    fun (th : Protected<thm0>) -> 
         choice {
             let! tms = Choice.map hyp th
             let mths = mapfilter (Choice.toOption << Choice.map Choice.result << prove_mth) (filter (not << is_eq) tms)
             return! itlist PROVE_HYP mths th
-        }
+        } : Protected<thm0>
 
 (* ========================================================================= *)
 (* Part 3: The final user wrapper, with schematic variables added.           *)
 (* ========================================================================= *)
 
 /// List of all definitions introduced so far.
-let the_inductive_definitions = ref []
+let the_inductive_definitions : (Protected<thm0> * Protected<thm0> * Protected<thm0>) list ref = ref []
 
 // prove_inductive_relations_exist: Prove existence of inductively defined relations without defining them.
 // new_inductive_definition: Attempt to prove monotonicity hypotheses of theorem automatically.
@@ -566,7 +566,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
                 return! MP th1 th0
             }
 
-        fun th -> 
+        fun (th : Protected<thm0>) -> 
             choice {
                 let! tms = Choice.map hyp th
                 let defs, others = partition is_eq tms
@@ -584,14 +584,14 @@ let prove_inductive_relations_exist, new_inductive_definition =
                     return! th1
             }
 
-    let derive_existence th = 
+    let derive_existence (th : Protected<thm0>) = 
         choice {
             let! tms = Choice.map hyp th
             let defs = filter is_eq tms
             return! itlist EXISTS_EQUATION defs th
         }
 
-    let make_definitions th = 
+    let make_definitions (th : Protected<thm0>) = 
         choice {
             let! tms = Choice.map hyp th
             let defs = filter is_eq tms
@@ -654,9 +654,9 @@ let prove_inductive_relations_exist, new_inductive_definition =
             let! fvs, th1 = prove_inductive_properties tm
             let th2 = generalize_schematic_variables true fvs th1
             return! derive_existence th2
-        }
+        } : Protected<thm0>
 
-    let new_inductive_definition tm =          
+    let new_inductive_definition tm : Protected<thm0> * Protected<thm0> * Protected<thm0> =          
         let th = tryfind (Choice.toOption << find_redefinition tm) (!the_inductive_definitions)
                  |> Option.toChoiceWithError "tryfind"
         warn true "Benign redefinition of inductive predicate"
@@ -684,7 +684,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
 (* ------------------------------------------------------------------------- *)
 
 /// Derive stronger induction theorem from inductive definition.
-let derive_strong_induction = 
+let derive_strong_induction : Protected<thm0> * Protected<thm0> -> Protected<thm0> = 
     let dest_ibod tm = 
         choice {
             let avs, ibod = strip_forall tm

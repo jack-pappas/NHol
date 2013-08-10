@@ -745,7 +745,7 @@ let ONCE_REWRITE_RULE thl =
     CONV_RULE (ONCE_REWRITE_CONV thl)
 
 /// Rewrites a theorem including the theorem's assumptions as rewrites.
-let PURE_ASM_REWRITE_RULE thl (th : Protected<thm0>) =
+let PURE_ASM_REWRITE_RULE thl (th : Protected<thm0>) : Protected<thm0> =
     choice {
     let! th = th
     let tms = hyp th
@@ -755,7 +755,7 @@ let PURE_ASM_REWRITE_RULE thl (th : Protected<thm0>) =
     }
 
 /// Rewrites a theorem including built-in rewrites and the theorem's assumptions.
-let ASM_REWRITE_RULE thl (th : Protected<thm0>) = 
+let ASM_REWRITE_RULE thl (th : Protected<thm0>) : Protected<thm0> = 
     choice {
     let! th = th
     let tms = hyp th
@@ -765,7 +765,7 @@ let ASM_REWRITE_RULE thl (th : Protected<thm0>) =
     }
 
 /// Rewrites a theorem once, including the theorem's assumptions as rewrites.
-let PURE_ONCE_ASM_REWRITE_RULE thl (th : Protected<thm0>) =
+let PURE_ONCE_ASM_REWRITE_RULE thl (th : Protected<thm0>) : Protected<thm0> =
     choice {
     let! th = th
     let tms = hyp th
@@ -774,7 +774,7 @@ let PURE_ONCE_ASM_REWRITE_RULE thl (th : Protected<thm0>) =
     return! PURE_ONCE_REWRITE_RULE (assumptions @ thl) (Choice.result th)
     }
 
-let ONCE_ASM_REWRITE_RULE thl (th : Protected<thm0>) = 
+let ONCE_ASM_REWRITE_RULE thl (th : Protected<thm0>) : Protected<thm0> = 
     choice {
     let! th = th
     let tms = hyp th
@@ -824,12 +824,11 @@ let (ONCE_ASM_REWRITE_TAC : Protected<thm0> list -> tactic) =
 (* ------------------------------------------------------------------------- *)
 
 /// General simplification with given strategy and simpset and theorems.
-let GEN_SIMPLIFY_CONV (strat : strategy) ss lev thl =
-    fun tm ->
-        choice {
-        let! ss' = Choice.List.fold (flip AUGMENT_SIMPSET) ss thl
-        return! TRY_CONV (strat ss' lev) tm
-        }
+let GEN_SIMPLIFY_CONV (strat : strategy) ss lev thl tm : Protected<thm0> =
+    choice {
+    let! ss' = Choice.List.fold (flip AUGMENT_SIMPSET) ss thl
+    return! TRY_CONV (strat ss' lev) tm
+    }
 
 /// General top-level simplification with arbitrary simpset.
 let ONCE_SIMPLIFY_CONV ss = 
@@ -848,7 +847,7 @@ let empty_ss =
     Simpset(empty_net, basic_prover, [], mk_rewrites true)
 
 /// Construct a straightforward simpset from a list of theorems.
-let basic_ss = 
+let basic_ss : _ -> Protected<simpset> = 
     let rewmaker = mk_rewrites true
     fun thl -> 
         choice {
@@ -867,7 +866,7 @@ let SIMP_CONV thl : conv =
         }
 
 /// Simplify a term repeatedly by conditional contextual rewriting, not using default simplications.
-let PURE_SIMP_CONV thl = 
+let PURE_SIMP_CONV thl : conv = 
     SIMPLIFY_CONV empty_ss thl
 
 /// Simplify a term once by conditional contextual rewriting.

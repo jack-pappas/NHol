@@ -279,14 +279,14 @@ let ABS_CONV (conv : conv) : conv =
     }
 
 /// Applies conversion to the body of a binder.
-let BINDER_CONV conv tm =
+let BINDER_CONV (conv : conv) tm =
     if is_abs tm then
         ABS_CONV conv tm
     else
         RAND_CONV (ABS_CONV conv) tm
 
 /// Applies a conversion to the top-level subterms of a term.
-let SUB_CONV conv tm = 
+let SUB_CONV (conv : conv) tm = 
     match tm with
     | Comb(_, _) ->
         COMB_CONV conv tm
@@ -296,7 +296,7 @@ let SUB_CONV conv tm =
         REFL tm
 
 /// Applies a conversion to both arguments of a binary operator.
-let BINOP_CONV conv tm : Protected<thm0> =
+let BINOP_CONV (conv : conv) tm : Protected<thm0> =
     choice {
     let! lop, r = dest_comb tm
     let! op, l = dest_comb lop
@@ -334,7 +334,7 @@ and private THENCQC (conv1 : conv) (conv2 : conv) tm : Protected<thm0> =
     }
     |> Choice.bindError (function Failure _ -> th1 | e -> Choice.error e)
 
-and private COMB_QCONV conv tm : Protected<thm0> = 
+and private COMB_QCONV (conv : conv) tm : Protected<thm0> = 
     dest_comb tm
     |> Choice.bind (fun (l, r) ->
         let v = 
@@ -347,26 +347,26 @@ and private COMB_QCONV conv tm : Protected<thm0> =
         v
         |> Choice.bindError (function Failure _ -> AP_TERM l (conv r) | e -> Choice.error e))
 
-let rec private REPEATQC conv tm = 
+let rec private REPEATQC (conv : conv) tm = 
     THENCQC conv (REPEATQC conv) tm
 
-let private SUB_QCONV conv tm = 
+let private SUB_QCONV (conv : conv) tm = 
     if is_abs tm then ABS_CONV conv tm
     else COMB_QCONV conv tm
 
-let rec private ONCE_DEPTH_QCONV conv tm = 
+let rec private ONCE_DEPTH_QCONV (conv : conv) tm = 
     (ORELSEC conv (SUB_QCONV(ONCE_DEPTH_QCONV conv))) tm
 
-and private DEPTH_QCONV conv tm = 
+and private DEPTH_QCONV (conv : conv) tm = 
     THENQC (SUB_QCONV(DEPTH_QCONV conv)) (REPEATQC conv) tm
 
-and private REDEPTH_QCONV conv tm = 
+and private REDEPTH_QCONV (conv : conv) tm = 
     THENQC (SUB_QCONV(REDEPTH_QCONV conv)) (THENCQC conv (REDEPTH_QCONV conv)) tm
 
-and private TOP_DEPTH_QCONV conv tm = 
+and private TOP_DEPTH_QCONV (conv : conv) tm = 
     THENQC (REPEATQC conv) (THENCQC (SUB_QCONV(TOP_DEPTH_QCONV conv)) (THENCQC conv (TOP_DEPTH_QCONV conv))) tm
 
-and private TOP_SWEEP_QCONV conv tm = 
+and private TOP_SWEEP_QCONV (conv : conv) tm = 
     THENQC (REPEATQC conv) (SUB_QCONV(TOP_SWEEP_QCONV conv)) tm
 
 /// Applies a conversion once to the first suitable sub-term(s) encountered in top-down order.

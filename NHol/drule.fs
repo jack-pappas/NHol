@@ -101,7 +101,7 @@ fsi.AddPrinter string_of_instantiation
 (* ------------------------------------------------------------------------- *)
 
 /// Creates an arbitrary theorem as an axiom (dangerous!)
-let mk_thm(asl, c) = 
+let mk_thm(asl, c) : Protected<thm0> = 
     choice {
         let! tm = Choice.List.fold (curry mk_imp) c (rev asl)
         let ax = new_axiom tm

@@ -461,12 +461,11 @@ let private NAME_GEN_TAC s gl =
         return! X_GEN_TAC (mk_var(s, ty)) gl
     }
 
-let private OBTAIN_THEN v ttac th = 
-    fun tm ->
-        choice {
-            let! ty = Choice.bind (Choice.map snd << Choice.bind dest_var << Choice.map fst << dest_exists << concl) th
-            return! X_CHOOSE_THEN (mk_var(v, ty)) ttac th tm
-        }
+let private OBTAIN_THEN v ttac (th : Protected<thm0>) tm : Protected<goalstate0> =
+    choice {
+        let! ty = Choice.bind (Choice.map snd << Choice.bind dest_var << Choice.map fst << dest_exists << concl) th
+        return! X_CHOOSE_THEN (mk_var(v, ty)) ttac th tm
+    }
 
 let private CONJ_LIST_TAC = end_itlist(fun t1 t2 -> CONJ_TAC
                                                     |> THENL <| [t1; t2])
@@ -477,10 +476,10 @@ let private NUM_DISJ_TAC n =
     else REPLICATE_TAC (n - 1) DISJ2_TAC
             |> THEN <| REPEAT DISJ1_TAC
 
-let private NAME_PULL_FORALL_CONV = 
+let private NAME_PULL_FORALL_CONV : string -> conv = 
     let SWAP_FORALL_CONV = REWR_CONV SWAP_FORALL_THM
-    let AND_FORALL_CONV = GEN_REWRITE_CONV I [AND_FORALL_THM]
-    let RIGHT_IMP_FORALL_CONV = GEN_REWRITE_CONV I [RIGHT_IMP_FORALL_THM]
+    let AND_FORALL_CONV = GEN_REWRITE_CONV id [AND_FORALL_THM]
+    let RIGHT_IMP_FORALL_CONV = GEN_REWRITE_CONV id [RIGHT_IMP_FORALL_THM]
     fun s -> 
         let rec PULL_FORALL tm = 
             choice {
