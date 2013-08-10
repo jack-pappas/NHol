@@ -156,7 +156,7 @@ let ``{AP_TERM tm th} applies a function to both sides of an equational theorem`
     // (~)
     let neg = Const ("~",Tyapp ("fun",[Tyapp ("bool",[]); Tyapp ("bool",[])]))
 
-    let actual = AP_TERM neg th
+    let actual = AP_TERM neg (Choice.result th)
 
     actual
     |> should equal expected
