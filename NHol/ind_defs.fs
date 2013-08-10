@@ -57,7 +57,7 @@ logger.Trace("Entering ind_defs.fs")
 (* ------------------------------------------------------------------------- *)
 
 /// Strip away a given number of arguments from a combination.
-let strip_ncomb = 
+let strip_ncomb : _ -> _ -> Protected<_> = 
     let rec strip(n, tm, acc) = 
         choice {
             if n < 1 then 
@@ -442,7 +442,7 @@ let monotonicity_theorems =
 (* ------------------------------------------------------------------------- *)
 
 /// Attempt to prove monotonicity theorem automatically.
-let MONO_TAC = 
+let MONO_TAC : goal -> Protected<goalstate0> = 
     let imp = (parse_term @"(==>)")
     let IMP_REFL = ITAUT(parse_term @"!p. p ==> p")
     let BACKCHAIN_TAC th = 

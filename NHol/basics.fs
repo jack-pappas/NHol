@@ -65,7 +65,7 @@ let dest_fun_ty ty : Protected<hol_type * hol_type> =
     }
 
 /// Tests if one type occurs in another.
-let rec occurs_in ty bigty =
+let rec occurs_in ty bigty : Protected<bool> =
     choice {
         // In order to preserve original behaviour, this function now returns Protected<bool>
         let! (_, tys0) = dest_type bigty
@@ -121,7 +121,7 @@ let body tm : Protected<term> =
 let list_mk_comb(h, t) = rev_itlist (C(curry (Choice.get << mk_comb))) t h
 
 /// Iteratively constructs abstractions.
-let list_mk_abs(vs, bod) = 
+let list_mk_abs(vs, bod) : Protected<term> = 
     Choice.List.fold (fun acc x -> mk_abs(x, acc)) bod vs
 
 /// Iteratively breaks apart combinations (function applications).
@@ -490,7 +490,7 @@ let mk_binop op tm1 : (term -> Protected<term>) =
 
 /// Makes an iterative application of a binary operator.
 // TODO : Modify this to use Choice.List.reduce/reduceBack.
-let list_mk_binop op = 
+let list_mk_binop op : term list -> Protected<term> = 
     Choice.List.reduceBack (mk_binop op)
 
 /// Repeatedly breaks apart an iterated binary operator into components.
@@ -706,7 +706,7 @@ let mk_gabs : term * term -> Protected<term> =
 
 /// Iteratively makes a generalized abstraction.
 // TODO : Modify this to use Choice.List.foldBack/fold.
-let list_mk_gabs(vs, bod) =
+let list_mk_gabs(vs, bod) : Protected<term> =
     Choice.List.fold (fun acc x -> mk_gabs(x, acc)) bod vs
 
 /// Breaks apart an iterated generalized or basic abstraction.

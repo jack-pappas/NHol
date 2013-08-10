@@ -161,7 +161,8 @@ let AND_DEF = new_basic_definition <| parse_term @"(/\) = \p q. (\f:bool->bool->
 let mk_conj = mk_binary "/\\"
 
 /// Constructs the conjunction of a list of terms.
-let list_mk_conj = Choice.List.reduceBack (curry mk_conj)
+let list_mk_conj : term list -> Protected<term> =
+    Choice.List.reduceBack (curry mk_conj)
 
 /// Introduces a conjunction.
 let CONJ = 
@@ -354,7 +355,7 @@ let FORALL_DEF = new_basic_definition <| parse_term @"(!) = \P:A->bool. P = \x. 
 let mk_forall = mk_binder "!"
 
 /// Iteratively constructs a universal quantification.
-let list_mk_forall(vs, bod) = 
+let list_mk_forall(vs, bod) : Protected<term> = 
     Choice.List.fold (fun acc x -> mk_forall(x, acc)) bod vs
 
 /// Specializes the conclusion of a theorem.
@@ -474,7 +475,7 @@ let EXISTS_DEF = new_basic_definition <| parse_term @"(?) = \P:A->bool. !q. (!x.
 let mk_exists = mk_binder "?"
 
 /// Multiply existentially quantifies both sides of an equation using the given variables.
-let list_mk_exists(vs, bod) = 
+let list_mk_exists(vs, bod) : Protected<term> = 
     Choice.List.fold (fun acc x -> mk_exists(x, acc)) bod vs
 
 /// Introduces existential quantification given a particular witness.
@@ -547,7 +548,8 @@ let OR_DEF = new_basic_definition <| parse_term @"(\/) = \p q. !r. (p ==> r) ==>
 let mk_disj = mk_binary "\\/"
 
 /// Constructs the disjunction of a list of terms.
-let list_mk_disj = Choice.List.reduceBack (curry mk_disj)
+let list_mk_disj : term list -> Protected<term> =
+    Choice.List.reduceBack (curry mk_disj)
 
 /// Introduces a right disjunct into the conclusion of a theorem.
 let DISJ1 = 

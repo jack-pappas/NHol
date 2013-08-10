@@ -457,7 +457,7 @@ let EXISTS_UNIQUE =
 (* of naming introduced variables and assumptions (from Marco Maggesi).      *)
 (* ------------------------------------------------------------------------- *)
 
-let private NAME_GEN_TAC s gl = 
+let private NAME_GEN_TAC s gl : Protected<goalstate0> = 
     choice {
         let! ty = (Choice.map snd << Choice.bind dest_var << Choice.map fst << dest_forall << snd) gl
         return! X_GEN_TAC (mk_var(s, ty)) gl
@@ -472,7 +472,7 @@ let private OBTAIN_THEN v ttac (th : Protected<thm0>) tm : Protected<goalstate0>
 let private CONJ_LIST_TAC = end_itlist(fun t1 t2 -> CONJ_TAC
                                                     |> THENL <| [t1; t2])
 
-let private NUM_DISJ_TAC n = 
+let private NUM_DISJ_TAC n : _ -> Protected<goalstate0> = 
     if n <= 0 then 
         fun _ -> Choice.failwith "NUM_DISJ_TAC"
     else REPLICATE_TAC (n - 1) DISJ2_TAC

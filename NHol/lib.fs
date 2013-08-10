@@ -218,7 +218,7 @@ module Choice =
 
     /// Iterates a function a fixed number of times.
     /// The iteration will be short-circuited if/when the function returns an error.
-    let rec funpow n f x =
+    let rec funpow n f x : Choice<'T, 'Error> =
         choice {
         if n < 1 then
             return x
@@ -371,7 +371,7 @@ let rec map2 f l1 l2 =
 (* ------------------------------------------------------------------------- *)
 
 /// Checks that a value satisfies a predicate.
-let check p x = 
+let check p x : Protected<_> = 
     if p x then Choice.result x
     else Choice.failwith "check"
 
@@ -1378,7 +1378,7 @@ let num_of_string =
                 return! num_of_stringlist two (rev bindigits)
             | decdigits ->
                 return! num_of_stringlist ten (rev decdigits)
-        }
+        } : Protected<_>
             
 (* ------------------------------------------------------------------------- *)
 (* Convenient conversion between files and (lists of) strings.               *)

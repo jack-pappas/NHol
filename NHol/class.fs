@@ -496,7 +496,7 @@ let is_cond tm =
     |> Choice.fill false
 
 /// Constructs a conditional term.
-let mk_cond(b, x, y) = 
+let mk_cond(b, x, y) : Protected<term> = 
     choice { 
         let! ty = type_of x
         let! c = mk_const("COND", [ty, aty])
@@ -507,7 +507,7 @@ let mk_cond(b, x, y) =
     |> Choice.mapError (fun e -> nestedFailure e "mk_cond");;
 
 /// Breaks apart a conditional into the three terms involved.
-let dest_cond tm = 
+let dest_cond tm : Protected<_> = 
     choice { 
         let! tm1, y = dest_comb tm
         let! tm2, x = dest_comb tm1

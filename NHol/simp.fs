@@ -290,7 +290,7 @@ let mk_rewrites : _ -> _ -> _ -> Protected<_> =
 (* ------------------------------------------------------------------------- *)
 
 /// Apply a prioritized conversion net to the term at the top level.
-let REWRITES_CONV (net : net<int * (term -> Choice<'T, exn>)>) tm =
+let REWRITES_CONV (net : net<int * (term -> Protected<'T>)>) tm : Protected<'T> =
     choice {
         let! pconvs = lookup tm net
         match tryfind (fun (_, cnv) -> Choice.toOption <| cnv tm) pconvs with
@@ -371,7 +371,7 @@ let basic_prover (strat : strategy) (Simpset(net, prover, provers, rewmaker) as 
 (* ------------------------------------------------------------------------- *)
 
 /// Add theorems to a simpset.
-let ss_of_thms thms (Simpset(net, prover, provers, rewmaker)) = 
+let ss_of_thms thms (Simpset(net, prover, provers, rewmaker)) : Protected<simpset> = 
     choice {
         let! cthms = Choice.List.fold (fun acc x -> rewmaker x acc) [] thms
         let! net' = Choice.List.fold (fun acc x -> net_of_thm true x acc) net cthms
@@ -379,14 +379,14 @@ let ss_of_thms thms (Simpset(net, prover, provers, rewmaker)) =
     }
 
 /// Add a new conversion to a simpset.
-let ss_of_conv keytm conv (Simpset(net, prover, provers, rewmaker)) = 
+let ss_of_conv keytm conv (Simpset(net, prover, provers, rewmaker)) : Protected<simpset> = 
     choice {
         let! net' = net_of_conv keytm conv net
         return Simpset(net', prover, provers, rewmaker)
     }
 
 /// Add congruence rules to a simpset.
-let ss_of_congs thms (Simpset(net, prover, provers, rewmaker)) = 
+let ss_of_congs thms (Simpset(net, prover, provers, rewmaker)) : Protected<simpset> = 
     choice {
         let! net' = Choice.List.fold (fun acc x -> net_of_cong x acc) net thms
         return Simpset(net', prover, provers, rewmaker)
@@ -409,7 +409,7 @@ let ss_of_maker newmaker (Simpset(net, prover, provers, _)) =
 (* ------------------------------------------------------------------------- *)
 
 /// Augment context of a simpset with a list of theorems.
-let AUGMENT_SIMPSET (cth : Protected<thm0>) (Simpset(net, prover, provers, rewmaker)) = 
+let AUGMENT_SIMPSET (cth : Protected<thm0>) (Simpset(net, prover, provers, rewmaker)) : Protected<simpset> = 
     choice {
         let provers' = map (C augment [cth]) provers
         let! cthms = rewmaker cth []
@@ -645,22 +645,22 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
             let! canon_thl = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
             rewrites := canon_thl
             do! rehash_convnet()
-        }
+        } : Protected<unit>
 
     let extend_basic_rewrites thl =
         choice {
             let! canon_thl = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
             rewrites := canon_thl @ !rewrites
             do! rehash_convnet()
-        }
+        } : Protected<unit>
 
     let basic_rewrites() = !rewrites
 
-    let set_basic_convs cnvs =
+    let set_basic_convs cnvs : Protected<unit> =
         conversions := cnvs
         rehash_convnet()
 
-    let extend_basic_convs(name, patcong) =
+    let extend_basic_convs(name, patcong) : Protected<unit> =
         conversions := (name, patcong) :: filter (fun (name', _) -> name <> name') !conversions
         rehash_convnet()
 
@@ -676,7 +676,7 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
 // set_basic_congs: Change the set of basic congruences used by the simplifier.
 // extend_basic_congs: Extends the set of congruence rules used by the simplifier.
 // basic_congs: Lists the congruence rules used by the simplifier.
-let set_basic_congs, extend_basic_congs, basic_congs =
+let set_basic_congs, (extend_basic_congs : _ -> Protected<unit>), basic_congs =
     let congs = ref([] : thm0 list)
     (fun thl -> congs := thl),
     (fun (thl : Protected<_> list) ->
