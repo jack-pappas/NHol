@@ -118,7 +118,7 @@ module Choice =
         /// Applies a destructor in right-associative mode a specified number of times.
         let rec nsplit dest clist x = 
             choice {
-                if clist = [] then 
+                if List.isEmpty clist then
                     return [], x
                 else 
                     let! l, r = dest x
@@ -441,6 +441,7 @@ let rec rev_itlist2 f l1 l2 b =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies a binary destructor repeatedly in left-associative mode.
+// NOTE : This is similar to Seq.unfold.
 let rec splitlist dest x = 
     match dest x with
     | Some (l, r) ->
@@ -449,6 +450,7 @@ let rec splitlist dest x =
     | None -> ([], x)
 
 /// Applies a binary destructor repeatedly in right-associative mode.
+// NOTE : This is similar to Seq.unfold.
 let rev_splitlist dest = 
     let rec rsplist ls x = 
         match dest x with
@@ -473,7 +475,8 @@ let striplist dest =
 /// Applies a destructor in right-associative mode a specified number of times.
 // OPTIMIZE : It seems like this could be simplified by using one of the State.List functions from ExtCore.
 let rec nsplit dest clist x = 
-    if clist = [] then [], x
+    if List.isEmpty clist then
+        [], x
     else 
         let l, r = dest x
         let ll, y = nsplit dest (tl clist) r
@@ -491,10 +494,9 @@ let rec replicate x n =
 
 /// Gives a finite list of integers between the given bounds.
 // OPTIMIZE : Make this an alias for [m..n]
-let rec (--) = 
-    fun m n -> 
-        if m > n then []
-        else m :: ((m + 1) -- n)
+let rec (--) m n = 
+    if m > n then []
+    else m :: ((m + 1) -- n)
 
 (* ------------------------------------------------------------------------- *)
 (* Various useful list operations.                                           *)

@@ -53,10 +53,14 @@ let genvar =
 (* ------------------------------------------------------------------------- *)
 
 /// Break apart a function type into domain and range.
-let dest_fun_ty ty : Protected<hol_type * hol_type> = 
+let dest_fun_ty ty : Protected<hol_type * hol_type> =
+    choice {
     match ty with
-    | Tyapp("fun", [ty1; ty2]) -> Choice.result (ty1, ty2)
-    | _ -> Choice.failwith "dest_fun_ty"
+    | Tyapp("fun", [ty1; ty2]) ->
+        return ty1, ty2
+    | _ ->
+        return! Choice.failwith "dest_fun_ty"
+    }
 
 /// Tests if one type occurs in another.
 let rec occurs_in ty bigty =
@@ -163,9 +167,9 @@ let mk_binary s =
 /// Pick a list of variants of variables, avoiding a list of variables and each other.
 let rec variants av vs : Protected<term list> =
     choice {
-        if vs = [] then 
+        if List.isEmpty vs then
             return []
-        else 
+        else
             let! vh = variant av (hd vs)
             let! vhs = variants (vh :: av) (tl vs)
             return vh :: vhs
@@ -176,7 +180,7 @@ let rec variants av vs : Protected<term list> =
 (* ------------------------------------------------------------------------- *)
 
 /// Determines the variables used, free or bound, in a given term.
-let variables : term -> Protected<term list> = 
+let variables : term -> Protected<term list> =
     let rec vars(acc, tm) =
         choice {
         if is_var tm then
@@ -287,7 +291,7 @@ let rec type_match vty cty sofar : Protected<(hol_type * hol_type) list> =
         let! vop, vargs = dest_type vty
         let! cop, cargs = dest_type cty
         if vop = cop then
-            return! Choice.List.foldBack2 (fun x y acc -> type_match x y acc) vargs cargs sofar
+            return! Choice.List.foldBack2 type_match vargs cargs sofar
         else
             return! Choice.failwith "type_match"
     }
@@ -306,7 +310,7 @@ let mk_mconst(c, ty) : Protected<term> =
         if tc = ty then
             return con
         else
-            return! Choice.fail ()
+            return! Choice.failwith "mk_mconst"
     }
     |> Choice.mapError (fun e ->
         nestedFailure e "mk_const: generic type cannot be instantiated")
@@ -339,11 +343,13 @@ let list_mk_icomb cname args : Protected<term> =
     choice {
         let! ty1 = get_const_type cname
         let! atys, _ = Choice.List.nsplit dest_fun_ty args ty1
-        let! tyin = Choice.List.foldBack2 (fun g a acc -> 
-                        choice {
-                            let! tya = type_of a
-                            return! type_match g tya acc
-                        }) atys args []
+        let! tyin =
+            (atys, args, [])
+            |||> Choice.List.foldBack2 (fun g a acc -> 
+                choice {
+                let! tya = type_of a
+                return! type_match g tya acc
+                })
         let! tm1 = mk_const(cname, tyin)
         return list_mk_comb(tm1, args)
     }
@@ -548,8 +554,10 @@ let dest_neg tm : Protected<term> =
     choice {
     let! n, p = dest_comb tm
     let! s, _ = dest_const n
-    if s = "~" then return p
-    else return! Choice.fail ()
+    if s = "~" then
+        return p
+    else
+        return! Choice.fail ()
     }
     |> Choice.mapError (fun e -> nestedFailure e "dest_neg")
 
