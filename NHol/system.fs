@@ -25,14 +25,16 @@ limitations under the License.
 
 module NHol.system
 
+open NLog
+
 let configureNLog () =
-  // If you copy or move this be sure to verify directory path is correct
-  // because __SOURCE_DIRECTORY__ may change.
-  let projectPath = __SOURCE_DIRECTORY__ + ".\..\NHol"
-  let configPath = projectPath + @"\NLog.config"
-  printfn "NLog config path: %s" configPath
-  let xmlConfig = new NLog.Config.XmlLoggingConfiguration(configPath)
-  NLog.LogManager.Configuration <- xmlConfig
+    // If you copy or move this be sure to verify directory path is correct
+    // because __SOURCE_DIRECTORY__ may change.
+    NLog.LogManager.Configuration <-
+        let projectPath = __SOURCE_DIRECTORY__ + ".\..\NHol"
+        let configPath = projectPath + @"\NLog.config"
+        printfn "NLog config path: %s" configPath
+        NLog.Config.XmlLoggingConfiguration (configPath)
 
 // Note: How to set Layout property in F#
 // If you look at C# examples of setting the layout property it will look like
@@ -68,38 +70,53 @@ let configureNLog () =
 // don't be surpised if the function fails related to the
 // __SOURCE_DIRECTORY__ value changing.
 
-let configureNLogPrgramatically () =
-  printfn "configureNLogPrgramatically called in NLogExample.fsx."
-  let config = new NLog.Config.LoggingConfiguration()
-  // Log to file
-  let fileTarget = new NLog.Targets.FileTarget()
-  let projectPath = __SOURCE_DIRECTORY__
-  let filePath = projectPath + @"log.txt"
-  let layout = new NLog.Layouts.SimpleLayout(filePath)
-  fileTarget.FileName <- layout
-  fileTarget.Name <- "file"
-  fileTarget.AutoFlush <- true
-  let simpleLayout = new NLog.Layouts.SimpleLayout("${time} ${callsite} ${level} ${message}")
-  let (layout : NLog.Layouts.Layout) = simpleLayout :> NLog.Layouts.Layout
-  fileTarget.Layout <- layout
-  config.AddTarget("file", fileTarget)
-  let rule1 = new NLog.Config.LoggingRule("*",NLog.LogLevel.Trace,fileTarget)
-  config.LoggingRules.Add(rule1)
-  // Log to console
-  let consoleTarget = new NLog.Targets.ConsoleTarget()
-  consoleTarget.Name <- "console"
-  let simpleLayout = new NLog.Layouts.SimpleLayout("${time} ${callsite} ${level} ${message}")
-  let (layout : NLog.Layouts.Layout) = simpleLayout :> NLog.Layouts.Layout
-  consoleTarget.Layout <- layout
-  config.AddTarget("console", consoleTarget)
-  let rule2 = new NLog.Config.LoggingRule("*",NLog.LogLevel.Trace,consoleTarget)
-  config.LoggingRules.Add(rule2)
-  NLog.LogManager.Configuration <- config
+let configureNLogProramatically () =
+    printfn "configureNLogProramatically called in NLogExample.fsx."
+    NLog.LogManager.Configuration <-
+        /// The logging configuration object.
+        let config = NLog.Config.LoggingConfiguration()
+
+        // Log to file
+        use fileTarget =
+            let fileTarget = new NLog.Targets.FileTarget()
+        
+            fileTarget.Name <- "file"
+            fileTarget.AutoFlush <- true
+            fileTarget.FileName <-
+                let projectPath = __SOURCE_DIRECTORY__
+                let filePath = projectPath + @"log.txt"
+                new NLog.Layouts.SimpleLayout(filePath)
+            fileTarget.Layout <-
+                NLog.Layouts.SimpleLayout "${time} ${callsite} ${level} ${message}"
+                :> NLog.Layouts.Layout
+
+            fileTarget
+
+        config.AddTarget ("file", fileTarget)
+        NLog.Config.LoggingRule ("*", NLog.LogLevel.Trace, fileTarget)
+        |> config.LoggingRules.Add
+
+        // Log to console
+        use consoleTarget =
+            let consoleTarget = new NLog.Targets.ConsoleTarget()
+            consoleTarget.Name <- "console"
+            consoleTarget.Layout <-
+                NLog.Layouts.SimpleLayout "${time} ${callsite} ${level} ${message}"
+                :> NLog.Layouts.Layout
+            consoleTarget
+
+        config.AddTarget ("console", consoleTarget)
+        NLog.Config.LoggingRule ("*", NLog.LogLevel.Trace, consoleTarget)
+        |> config.LoggingRules.Add
+    
+        // Return the configuration object.
+        config
 
 let printNLogConfig () = 
   let targets = NLog.LogManager.Configuration.AllTargets
   let rec processTargets targets acc =
     match targets with
+    | [] -> List.rev acc
     | target :: tl ->
       match (target : NLog.Targets.Target) with
       | :? NLog.Targets.FileTarget as fileTarget -> 
@@ -139,11 +156,14 @@ let printNLogConfig () =
           let name = target.Name
           let acc = ("[" + name + "]") :: acc
           processTargets tl acc
-    | [] -> List.rev acc
+    
+
   let rules = NLog.LogManager.Configuration.LoggingRules
+
   let listToString (list : string list) =
       let rec processList list acc =
         match list with
+        | [] -> "[" + acc + "]"
         | (item : string) :: tl ->
             match acc with
             | "" -> 
@@ -152,10 +172,12 @@ let printNLogConfig () =
             | _ -> 
                 let acc = acc + ", " + item
                 processList tl acc
-        | [] -> "[" + acc + "]"
+        
       processList list ""
+
   let rec processRules rules acc =
     match rules with
+    | [] -> List.rev acc
     | (rule : NLog.Config.LoggingRule) :: tl ->
         let name = "name: " + rule.LoggerNamePattern
         let levels = "levels: " + (rule.Levels 
@@ -173,11 +195,11 @@ let printNLogConfig () =
         let final = "final: " + rule.Final.ToString()
         let acc = ("[" + name + ", " + levels + ", " + targets + ", " + filters + ", " + final + "]") :: acc
         processRules tl acc
-    | [] -> List.rev acc
-  let targetList =  targets |> Seq.cast |> Seq.toList
-  let targetTextList = (processTargets targetList []) |> listToString
-  let ruleList =  rules |> Seq.cast |> Seq.toList
-  let ruleTextList = (processRules ruleList []) |> listToString
+    
+  let targetList =  Seq.toList targets
+  let targetTextList = processTargets targetList [] |> listToString
+  let ruleList = Seq.toList rules
+  let ruleTextList = processRules ruleList [] |> listToString
   printfn "targets: %A" targetTextList
   printfn "rules: %A" ruleTextList
 
