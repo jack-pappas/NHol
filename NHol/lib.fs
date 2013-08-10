@@ -277,14 +277,19 @@ module Option =
 (* Combinators.                                                              *)
 (* ------------------------------------------------------------------------- *)
 
-(* OPTIMIZE :   The functions below should (probably) all be inlined; alternatively,
-                some can be replaced (used as aliases for) F# intrinsic functions. *)
-let curry f x y = f(x, y)
-let uncurry f (x, y) = f x y
-let I x = x
-let K x y = x
-let C f x y = f y x
-let W f x = f x x
+let inline curry f x y = f(x, y)
+let inline uncurry f (x, y) = f x y
+/// Identity function.
+[<Obsolete("This function is deprecated. Use the built-in F# 'id' function instead.")>]
+let inline I x = x
+/// Returns the first of the two applied arguments.
+let inline K x y = x
+// TODO : Replace with 'flip' from ExtCore.
+/// Given a function taking two arguments, returns a new function which calls
+/// the original function but swaps the order in which the arguments are applied.
+let inline C f x y = f y x
+/// Applies the argument to the function twice.
+let inline W f x = f x x
 let (||>>) = fun f g (x, y) -> (f x, g y)
 
 (* ------------------------------------------------------------------------- *)
