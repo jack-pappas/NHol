@@ -16,12 +16,22 @@ limitations under the License.
 
 *)
 
+// Note: To use this with F# Interactive within Visual Studio 2010
+// In Visual Studio menu: Tool -> Options -> F# Tools -> F# Interactive
+// For F# Interactive Options add --define:FSI_VER_2
+#if FSI_VER_2
+#r "./../packages/FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
+#r "./../packages/FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
+#r "./../packages/FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
+#r "./../packages/ExtCore.0.8.32/lib/net40/ExtCore.dll"
+#else
 #I "./../packages"
 
 #r "FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
 #r "FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
 #r "FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
-#r "ExtCore.0.8.29/lib/net40/ExtCore.dll"
+#r "ExtCore.0.8.32/lib/net40/ExtCore.dll"
+#endif
 
 // Disable "Incomplete pattern matches on this expression." warnings.
 // Some of these are true warnings, but should be fixed in the code.
@@ -42,9 +52,12 @@ limitations under the License.
 open FSharp.Compatibility.OCaml;;
 open FSharp.Compatibility.OCaml.Num;;
 
+#if FSI_VER_2
+#r @"./../packages/NLog.2.0.1.2/lib/net40/NLog.dll"
+#else
 // Change from package to NHol solution. Not NHol project.
-#I @"./../../NHol"
-#r @"./NHol/bin/Debug/NLog.dll"     // Use part of directory in name to help VS Intellisense.
+#r @"NLog.2.0.1.2/lib/net40/NLog.dll"
+#endif
 
 // Configure and intialize NLog for logging
 
