@@ -86,4 +86,5 @@ _NuGetBuild/*
 
 # NLog logs
 *.Nlog.txt
+NHol/log.txt
 
