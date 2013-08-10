@@ -31,6 +31,7 @@ open ExtCore.Control
 open ExtCore.Control.Collections
 
 open NHol
+open system
 open lib
 #endif
 

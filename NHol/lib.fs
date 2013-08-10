@@ -34,7 +34,8 @@ open System
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
-
+open NHol
+open system
 open ExtCore.Control
 open ExtCore.Control.Collections
 
@@ -393,7 +394,7 @@ exception Unchanged
 (* ------------------------------------------------------------------------- *)
 
 /// List iteration function. Applies a binary function between adjacent elements of a list.
-// OPTIMIZE : Make this an alias for List.fold.
+// OPTIMIZE : Make this an alias for List.foldBack.
 let rec itlist f l b = 
     match l with
     | [] -> b
@@ -465,6 +466,7 @@ let striplist dest =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies a destructor in right-associative mode a specified number of times.
+// OPTIMIZE : It seems like this could be simplified by using one of the State.List functions from ExtCore.
 let rec nsplit dest clist x = 
     if clist = [] then [], x
     else 
@@ -555,7 +557,6 @@ let mapfilter f l =
     List.choose f l
 
 /// Returns the first element of a list which satisfies a predicate.
-// OPTIMIZE : Make this an alias for List.tryFind.
 let find p l =
     List.tryFind p l
 

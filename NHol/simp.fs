@@ -32,6 +32,7 @@ open ExtCore.Control
 open ExtCore.Control.Collections
 
 open NHol
+open system
 open lib
 open fusion
 open fusion.Hol_kernel

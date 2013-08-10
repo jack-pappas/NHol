@@ -29,6 +29,7 @@ open FSharp.Compatibility.OCaml.Num
 open ExtCore.Control
 
 open NHol
+open system
 open lib
 open fusion
 open fusion.Hol_kernel
@@ -152,8 +153,10 @@ let finished input =
 (* The basic lexical classes: identifiers, strings and reserved words.       *)
 (* ------------------------------------------------------------------------- *)
 
-type lexcode = 
+type lexcode =
+    /// Identifier.
     | Ident of string
+    /// Reserved keyword.
     | Resword of string
 
 (* ------------------------------------------------------------------------- *)

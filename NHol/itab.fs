@@ -30,6 +30,7 @@ open FSharp.Compatibility.OCaml.Num
 open ExtCore.Control
 
 open NHol
+open system
 open lib
 open fusion
 open fusion.Hol_kernel

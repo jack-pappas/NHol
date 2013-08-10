@@ -32,6 +32,7 @@ open ExtCore.Control
 open ExtCore.Control.Collections
 
 open NHol
+open system
 open lib
 open fusion
 open fusion.Hol_kernel
@@ -52,7 +53,7 @@ let ignore_constant_varstruct = ref true
 (* It can be treated as an error, result in a warning, or neither of those.  *)
 (* ------------------------------------------------------------------------- *)
 
-/// Determined if user is warned about invented type variables.
+/// Determines if user is warned about invented type variables.
 let type_invention_warning = ref true
 
 /// Determines if invented type variables are treated as an error.
@@ -195,10 +196,13 @@ let hide_constant, unhide_constant, is_hidden =
 (* The type of pretypes.                                                     *)
 (* ------------------------------------------------------------------------- *)
 
-type pretype = 
-    | Utv of string                     (* User type variable         *)
-    | Ptycon of string * pretype list   (* Type constructor           *)
-    | Stv of int                        (* System type variable       *)
+type pretype =
+    /// User type variable.
+    | Utv of string
+    /// Type constructor.
+    | Ptycon of string * pretype list
+    /// System type variable.
+    | Stv of int
 
 (* ------------------------------------------------------------------------- *)
 (* Dummy pretype for the parser to stick in before a proper typing pass.     *)
@@ -224,12 +228,17 @@ let rec pretype_of_type ty : Protected<pretype> =
 (* Preterm syntax.                                                           *)
 (* ------------------------------------------------------------------------- *)
 
-type preterm = 
-    | Varp of string * pretype      (* Variable           - v      *)
-    | Constp of string * pretype    (* Constant           - c      *)
-    | Combp of preterm * preterm    (* Combination        - f x    *)
-    | Absp of preterm * preterm     (* Lambda-abstraction - \x. t  *)
-    | Typing of preterm * pretype   (* Type constraint    - t : ty *)
+type preterm =
+    /// <summary>Variable (<c>v</c>)</summary>
+    | Varp of string * pretype
+    /// <summary>Constant (<c>c</c>)</summary>
+    | Constp of string * pretype
+    /// <summary>Combination (<c>f x</c>)</summary>
+    | Combp of preterm * preterm
+    /// <summary>Lambda-abstraction (<c>\x. t</c>)</summary>
+    | Absp of preterm * preterm
+    /// <summary>Type constraint (<c>t : ty</c>)</summary>
+    | Typing of preterm * pretype
 
 (* ------------------------------------------------------------------------- *)
 (* Convert term to preterm.                                                  *)
@@ -736,4 +745,3 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
         }
 
     type_of_pretype, term_of_preterm, retypecheck
-

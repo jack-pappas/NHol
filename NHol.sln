@@ -20,6 +20,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tutorial", "Tutorial", "{BD
 		Tutorial\hol.fsx = Tutorial\hol.fsx
 		Tutorial\holBasics.fsx = Tutorial\holBasics.fsx
 		Tutorial\theorems_proofs.fsx = Tutorial\theorems_proofs.fsx
+		Tutorial\NLogExample.fsx = Tutorial\NLogExample.fsx
 	EndProjectSection
 EndProject
 Global
