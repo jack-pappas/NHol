@@ -29,13 +29,13 @@ open FsUnit
 let ``{mk_primed_var avoid v} returns a variant of v, adding primes, so the new name is not in the avoid list``() =
 
     mk_primed_var [Var ("x", aty)] (Var ("x", aty))
-    |> should equal (Var ("x'", aty))
+    |> assertEqual (Choice.result <| Var ("x'", aty))
 
 [<Test>]
 let ``{mk_primed_var avoid v} avoids variables of the same name and different types``() =
 
     mk_primed_var [Var ("x", Tyvar "num")] (Var ("x", aty))
-    |> should equal (Var ("x'", aty))
+    |> assertEqual (Choice.result <| Var ("x'", aty))
 
 [<Test>]
 let ``{mk_primed_var avoid v} avoids constant names``() =
@@ -48,7 +48,7 @@ let ``{mk_primed_var avoid v} avoids constant names``() =
     the_term_constants := ["=",Tyapp("fun",[aty;Tyapp("fun",[aty;bool_ty])])]
 
     actual
-    |> should equal expected
+    |> assertEqual (Choice.result expected)
 
 (* BETA_CONV tests *)
 
@@ -78,7 +78,7 @@ let ``{BETA_CONV tm} performs a simple beta conversion``() =
     let actual = BETA_CONV tm
 
     actual
-    |> should equal expected
+    |> assertEqual (Choice.result expected)
 
 [<Test>]
 let ``{AP_TERM tm th} applies a function to both sides of an equational theorem``() =
@@ -159,4 +159,4 @@ let ``{AP_TERM tm th} applies a function to both sides of an equational theorem`
     let actual = AP_TERM neg (Choice.result th)
 
     actual
-    |> should equal expected
+    |> assertEqual (Choice.result expected)

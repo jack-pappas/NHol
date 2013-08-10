@@ -32,7 +32,7 @@ open FsUnit
 let ``{types} returns a list of all the type constructors declared``() =
 
     types ()
-    |> should equal [("bool",0); ("fun",2)]
+    |> assertEqual [("bool",0); ("fun",2)]
 
 (* get_type_arity tests *)
 
@@ -41,7 +41,7 @@ let ``{get_type_arity} when applied to the name of a type constructor returns it
 
     get_type_arity "bool"
     |> evaluate
-    |> should equal 0
+    |> assertEqual 0
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "find")>]
@@ -49,7 +49,7 @@ let ``{get_type_arity} fails if there is no type constructor of that name``() =
 
     get_type_arity "nocon"
     |> evaluate
-    |> should equal 0
+    |> assertEqual 0
 
 (* new_type tests *)
 
@@ -65,7 +65,7 @@ let ``{new_type {"t",n}} declares a new {n}-ary type constructor called {t}``() 
     the_type_constants := [("bool",0); ("fun",2)]
 
     actual
-    |> should equal expected
+    |> assertEqual expected
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "new_type: type bool has already been declared")>]
@@ -82,7 +82,7 @@ let ``{mk_type} constructs a type, other than a variable type``() =
 
     mk_type ("bool",[])
     |> evaluate
-    |> should equal (Tyapp ("bool", []))
+    |> assertEqual (Tyapp ("bool", []))
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "mk_type: type set has not been defined")>]
@@ -106,7 +106,7 @@ let ``{mk_type} fails if if the type is known but the length of the list of argu
 let ``{mk_vartype "A"} returns a type variable {:A}``() =
 
     mk_vartype "Test"
-    |> should equal (Tyvar "Test")
+    |> assertEqual (Tyvar "Test")
 
 (* dest_type tests *)
 
@@ -115,7 +115,7 @@ let ``{dest_type} breaks apart a type``() =
 
     dest_type (Tyapp ("fun", [Tyvar "A"; Tyvar "B"]))
     |> evaluate
-    |> should equal ("fun", [Tyvar "A"; Tyvar "B"])
+    |> assertEqual ("fun", [Tyvar "A"; Tyvar "B"])
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "dest_type: type variable not a constructor")>]
@@ -132,7 +132,7 @@ let ``{dest_vartype} breaks a type variable down to its name``() =
 
     dest_vartype (Tyvar "A")
     |> evaluate
-    |> should equal "A"
+    |> assertEqual "A"
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "dest_vartype: type constructor not a variable")>]
@@ -148,13 +148,13 @@ let ``{dest_vartype} fails if the type is not a type variable``() =
 let ``{is_type ty} returns {true} if {ty} is a base type or constructed by an outer type constructor``() =
 
     is_type (Tyapp ("fun", [Tyvar "A"; Tyvar "B"]))
-    |> should equal true
+    |> assertEqual true
 
 [<Test>]
 let ``{is_type ty} returns {false} if {ty} is a type variable``() =
 
     is_type (Tyvar "A")
-    |> should equal false
+    |> assertEqual false
 
 (* is_vartype tests *)
 
@@ -162,13 +162,13 @@ let ``{is_type ty} returns {false} if {ty} is a type variable``() =
 let ``{is_vartype ty} returns {true} if {ty} is a type variable``() =
 
     is_vartype (Tyvar "A")
-    |> should equal true
+    |> assertEqual true
 
 [<Test>]
 let ``{is_vartype ty} returns {false} if {ty} is not a type variable``() =
 
     is_vartype (Tyapp ("fun", [Tyvar "A"; Tyvar "B"]))
-    |> should equal false
+    |> assertEqual false
 
 (* tyvars tests *)
 
@@ -176,7 +176,7 @@ let ``{is_vartype ty} returns {false} if {ty} is not a type variable``() =
 let ``{tyvars}, when applied to a type, returns a list, possibly empty, of the type  variables``() =
 
     tyvars (Tyapp ("fun", [Tyvar "A"; Tyapp ("fun", [Tyvar "A"; Tyvar "B"])]))
-    |> should equal [Tyvar "A";Tyvar "B"]
+    |> assertEqual [Tyvar "A";Tyvar "B"]
 
 (* constants tests *)
 
@@ -184,7 +184,7 @@ let ``{tyvars}, when applied to a type, returns a list, possibly empty, of the t
 let ``{constants} returns a list of all the constants that have been defined so far``() =
 
     constants ()
-    |> should equal [("=", Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))]
+    |> assertEqual [("=", Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))]
 
 (* get_const_type tests *)
 
@@ -193,7 +193,7 @@ let ``{get_const_type "c"} returns the generic type of {c}, if {c} is a constant
 
     get_const_type "="
     |> evaluate
-    |> should equal (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
+    |> assertEqual (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "find")>]
@@ -216,7 +216,7 @@ let ``{new_constant {"c",:ty}} makes {c} a constant with most general type {ty}`
     the_term_constants := ["=",Tyapp("fun",[aty;Tyapp("fun",[aty;bool_ty])])]
 
     actual
-    |> should equal expected
+    |> assertEqual expected
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "new_constant: constant = has already been declared")>]
@@ -233,7 +233,7 @@ let ``{type_of} returns the type of a term``() =
 
     type_of (Const ("=",Tyapp("fun",[aty;Tyapp("fun",[aty;bool_ty])])))
     |> evaluate
-    |> should equal (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
+    |> assertEqual (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
 
 (* inst tests *)
 
@@ -262,7 +262,7 @@ let ``{inst [ty1,tv1; _ ; tyn,tvn] t} will systematically replace each type vari
 
     actual
     |> evaluate
-    |> should equal expected
+    |> assertEqual expected
 
 (* REFL tests *)
 
@@ -295,7 +295,7 @@ let ``{REFL} maps any term {t} to the corresponding theorem {|- t = t}``() =
 
     REFL input
     |> evaluate
-    |> should equal expected
+    |> assertEqual expected
 
 
 
