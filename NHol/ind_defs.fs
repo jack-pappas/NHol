@@ -50,6 +50,8 @@ open simp
 open theorems
 #endif
 
+logger.Trace("Entering ind_defs.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Strip off exactly n arguments from combination.                           *)
 (* ------------------------------------------------------------------------- *)

@@ -65,6 +65,8 @@ open grobner
 open realax
 #endif
 
+logger.Trace("Entering calc_int.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Syntax operations on integer constants of type ":real".                   *)
 (* ------------------------------------------------------------------------- *)

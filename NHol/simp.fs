@@ -48,6 +48,8 @@ open tactics
 open itab
 #endif
 
+logger.Trace("Entering simp.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Generalized conversion (conversion plus a priority).                      *)
 (* ------------------------------------------------------------------------- *)

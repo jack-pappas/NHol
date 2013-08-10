@@ -59,6 +59,8 @@ open arith
 //open wf
 #endif
 
+logger.Trace("Entering calc_num.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Simple rule to get rid of NUMERAL constant.                               *)
 (* ------------------------------------------------------------------------- *)

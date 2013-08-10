@@ -73,6 +73,8 @@ open iterate
 open cart
 #endif
 
+logger.Trace("Entering define.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Constant supporting casewise definitions.                                 *)
 (* ------------------------------------------------------------------------- *)

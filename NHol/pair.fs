@@ -54,6 +54,8 @@ open meson
 open quot
 #endif
 
+logger.Trace("Entering pair.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Constants implementing (or at least tagging) syntactic sugar.             *)
 (* ------------------------------------------------------------------------- *)

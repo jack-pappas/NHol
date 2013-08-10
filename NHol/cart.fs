@@ -72,6 +72,8 @@ open sets
 open iterate
 #endif
 
+logger.Trace("Entering cart.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Association of a number with an indexing type.                            *)
 (* ------------------------------------------------------------------------- *)

@@ -64,6 +64,8 @@ open calc_int
 open realarith
 #endif
 
+logger.Trace("Entering real.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Additional commutativity properties of the inclusion map.                 *)
 (* ------------------------------------------------------------------------- *)

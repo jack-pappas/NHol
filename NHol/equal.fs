@@ -41,6 +41,8 @@ open preterm
 open parser
 #endif
 
+logger.Trace("Entering equal.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Type abbreviation for conversions.                                        *)
 (* ------------------------------------------------------------------------- *)

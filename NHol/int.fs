@@ -69,6 +69,8 @@ open real
 open calc_rat
 #endif
 
+logger.Trace("Entering int.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Representing predicate. The "is_int" variant is useful for backwards      *)
 (* compatibility with former definition of "is_int" constant, now removed.   *)

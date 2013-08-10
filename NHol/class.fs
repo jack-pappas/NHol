@@ -48,6 +48,8 @@ open theorems
 open ind_defs
 #endif
 
+logger.Trace("Entering class.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Eta-axiom, corresponding conversion, and extensionality.                  *)
 (* ------------------------------------------------------------------------- *)

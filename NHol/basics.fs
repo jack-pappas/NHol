@@ -36,6 +36,8 @@ open fusion
 open fusion.Hol_kernel
 #endif
 
+logger.Trace("Entering basics.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Create probably-fresh variable                                            *)
 (* ------------------------------------------------------------------------- *)

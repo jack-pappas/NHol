@@ -56,6 +56,8 @@ open quot
 open nums
 #endif
 
+logger.Trace("Entering recursion.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Prove existence of recursive function. The inner "raw" version requires   *)
 (* exact correspondence with recursion theorem; "canon" requires the         *)

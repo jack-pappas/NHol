@@ -63,6 +63,8 @@ open grobner
 open ind_types
 #endif
 
+logger.Trace("Entering lists.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Standard tactic for list induction using MATCH_MP_TAC list_INDUCT         *)
 (* ------------------------------------------------------------------------- *)

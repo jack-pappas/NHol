@@ -68,6 +68,8 @@ open realarith
 open real
 #endif
 
+logger.Trace("Entering calc_rat.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Constant for decimal fractions written #xxx.yyy                           *)
 (* ------------------------------------------------------------------------- *)

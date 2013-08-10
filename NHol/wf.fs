@@ -57,6 +57,8 @@ open recursion
 open arith
 #endif
 
+logger.Trace("Entering wf.fs")
+
 parse_as_infix("<<", (12, "right"))
 
 (* ------------------------------------------------------------------------- *)

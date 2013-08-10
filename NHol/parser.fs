@@ -39,6 +39,8 @@ open printer
 open preterm
 #endif
 
+logger.Trace("Entering parser.fs")
+
 (* TODO :   Re-name operators and functions for parser-combinators (below) to the
             equivalents from fparsec:
                 http://www.quanttec.com/fparsec/reference/primitives.html

@@ -71,6 +71,8 @@ open int
 open sets
 #endif
 
+logger.Trace("Entering iterate.fs")
+
 prioritize_num() |> Choice.ignoreOrRaise;;
 
 (* ------------------------------------------------------------------------- *)

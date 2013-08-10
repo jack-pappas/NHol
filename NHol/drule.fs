@@ -46,6 +46,8 @@ open equal
 open bool
 #endif
 
+logger.Trace("Entering drule.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Type of instantiations, with terms, types and higher-order data.          *)
 (* ------------------------------------------------------------------------- *)

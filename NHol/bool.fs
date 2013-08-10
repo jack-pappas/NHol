@@ -42,6 +42,8 @@ open parser
 open equal
 #endif
 
+logger.Trace("Entering bool.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Set up parse status of basic and derived logical constants.               *)
 (* ------------------------------------------------------------------------- *)
