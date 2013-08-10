@@ -1,8 +1,11 @@
-:: Tell system location of fsi.exe
-set path="C:\Program Files (x86)\Microsoft SDKs\F#\3.0\Framework\v4.0"
+:: F# Interactive version 2.x
+
+set path="C:\Program Files (x86)\Microsoft F#\v4.0"
 
 fsi^
   --lib:NHol^
+  --define:FSI_VER_2^
+  --define:USE^
   --use:init.fsx^
   --use:system.fs^
   --use:lib.fs^
@@ -47,3 +50,5 @@ fsi^
   --use:define.fs^
   --use:help.fs^
   --use:database.fs
+
+
