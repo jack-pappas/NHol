@@ -4,6 +4,8 @@ set path="C:\Program Files (x86)\Microsoft SDKs\F#\3.0\Framework\v4.0"
 
 fsi^
   --lib:NHol^
+  --define:DEBUG^
+  --define:TRACE^
   --define:USE^
   --use:init.fsx^
   --use:system.fs^

@@ -4,6 +4,8 @@ set path="C:\Program Files (x86)\Microsoft F#\v4.0"
 
 fsi^
   --lib:NHol^
+  --define:DEBUG^
+  --define:TRACE^
   --define:FSI_VER_2^
   --define:USE^
   --use:init.fsx^
