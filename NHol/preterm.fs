@@ -630,7 +630,9 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
                             match unify (Some ptm) env ty' ty with
                             | Success x -> Some (cont x)
                             | Error _ -> None)
-                    |> Option.getOrFailWith "tryfind"
+                    |> Option.toChoiceWith "tryfind"
+                    // TEMP : Until this function is modified to use Choice.
+                    |> ExtCore.Choice.bindOrFail
             | _ ->
                 failwith "resolve_interface: Unhandled case."
 
