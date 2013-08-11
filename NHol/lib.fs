@@ -853,18 +853,23 @@ let rec allpairs f l1 l2 =
 (* ------------------------------------------------------------------------- *)
 
 /// Prints a string and a following line break.
-let report s = 
+let report s =
     Format.print_string s
     Format.print_newline()
+
+    // Also log the message with NLog for completeness.
+    logger.Debug s
 
 (* ------------------------------------------------------------------------- *)
 (* Convenient function for issuing a warning.                                *)
 (* ------------------------------------------------------------------------- *)
 
 /// Prints out a warning string.
-let warn cond s = 
+let warn cond s =
     if cond then report("Warning: " + s)
-    else ()
+    
+    // Also log the warning with NLog, regardless of whether the condition is set.
+    logger.Warn s
 
 (* ------------------------------------------------------------------------- *)
 (* Flags to switch on verbose mode.                                          *)
@@ -882,7 +887,9 @@ let report_timing = ref true
 /// Output a string and newline if and only if 'verbose' flag is set.
 let remark s = 
     if !verbose then report s
-    else ()
+    
+    // Also log the message with NLog, regardless of whether the 'verbose' flag is set.
+    logger.Info s
 
 (* ------------------------------------------------------------------------- *)
 (* Time a function.                                                          *)
@@ -1269,10 +1276,12 @@ let (|=>) = fun x y -> (x |-> y) undefined
 (* ------------------------------------------------------------------------- *)
 
 /// Picks an arbitrary element from the graph of a finite partial function.
-let rec choose t = 
+let rec choose t =
     match t with
-    | Empty -> failwith "choose: completely undefined function"
-    | Leaf(h, l) -> hd l
+    | Empty ->
+        Choice.failwith "choose: completely undefined function"
+    | Leaf(h, l) ->
+        Choice.result <| hd l
     | Branch(b, p, t1, t2) -> choose t1
 
 (* ------------------------------------------------------------------------- *)

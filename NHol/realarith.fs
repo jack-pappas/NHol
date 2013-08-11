@@ -603,7 +603,7 @@ let REAL_LINEAR_PROVER =
                     if is_undefined e then 
                         return! linear_eqs(es, les, lts)
                     else 
-                        let x, c = choose(undefine one_tm e)
+                        let! x, c = choose(undefine one_tm e)
                         let xform(t, q as inp) = 
                             choice {
                                 let d = tryapplyd t x num_0
