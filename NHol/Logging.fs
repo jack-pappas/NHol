@@ -239,9 +239,28 @@ module Logging =
 //
 [<AutoOpen>]
 module Logger =
+    open Microsoft.FSharp.Core.Printf
     open NLog
 
     /// The standard logger for NHol.
     let logger = LogManager.GetLogger "file"
 
+    //
+    let inline debugf fmt : 'T =
+        ksprintf logger.Debug fmt
 
+    //
+    let inline tracef fmt : 'T =
+        ksprintf logger.Trace fmt
+
+    //
+    let inline errorf fmt : 'T =
+        ksprintf logger.Error fmt
+
+    //
+    let inline fatalf fmt : 'T =
+        ksprintf logger.Fatal fmt
+
+    //
+    let inline warnf fmt : 'T =
+        ksprintf logger.Warn fmt
