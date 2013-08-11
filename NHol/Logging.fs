@@ -22,18 +22,16 @@ limitations under the License.
 [<AutoOpen>]
 module NHol.Logging
 
-open System.Diagnostics
-open System.IO
-open Microsoft.FSharp.Core.Printf
-open NHol
-open NLog
-
 #endif
-
 
 // Log support functions
 [<RequireQualifiedAccess; CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Logging =
+    open System.Diagnostics
+    open System.IO
+    open Microsoft.FSharp.Core.Printf
+    open NLog
+
     //
     let configureNLog () =
         // If you copy or move this be sure to verify directory path is correct
@@ -145,7 +143,7 @@ module Logging =
             List.rev acc
         | (target : Targets.Target) :: tl ->
           match target with
-          | :? Targets.FileTarget as fileTarget -> 
+          | :? Targets.FileTarget as fileTarget ->
               let name = "name: " + target.Name
               let layout = "layout: " + toStringWithDefault "None" fileTarget.Layout
               let header = "header: " + toStringWithDefault "None" fileTarget.Header
@@ -158,7 +156,7 @@ module Logging =
               let lineEnding = "lineEnding: " + fileTarget.LineEnding.ToString()
               let acc = ("[" + name + ", " + layout + ", " + header + ", " + footer + ", " + autoFlush + ", " + createDirs + ", " + encoding + ", " + filename + ", " + keepFileOpen + ", " + lineEnding + "]") :: acc
               processTargets tl acc
-          | :? Targets.ConsoleTarget as consoleTarget -> 
+          | :? Targets.ConsoleTarget as consoleTarget ->
               let name = "name: " + target.Name
               let layout = "layout: " + toStringWithDefault "None" consoleTarget.Layout
               let header = "header: " + toStringWithDefault "None" consoleTarget.Header
@@ -173,12 +171,12 @@ module Logging =
               let footer = "footer: " + toStringWithDefault "None" targetWithHeaders.Footer
               let acc = ("[" + name + ", " + layout + ", " + header + ", " + footer + "]") :: acc
               processTargets tl acc
-          | :? Targets.TargetWithLayout as targetWithLayout -> 
+          | :? Targets.TargetWithLayout as targetWithLayout ->
               let name = "name: " + target.Name
               let layout = "layout: " + toStringWithDefault "None" targetWithLayout.Layout
               let acc = ("[" + name + ", " + layout + "]") :: acc
               processTargets tl acc
-          | _ -> 
+          | _ ->
               let name = target.Name
               let acc = ("[" + name + "]") :: acc
               processTargets tl acc
@@ -241,6 +239,8 @@ module Logging =
 //
 [<AutoOpen>]
 module Logger =
+    open NLog
+
     /// The standard logger for NHol.
     let logger = LogManager.GetLogger "file"
 
