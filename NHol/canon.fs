@@ -103,10 +103,10 @@ let (CONJ_ACI_RULE : conv) =
                 return! REFL p
             else
                 let! fn = mk_fun (ASSUME p) undefined
-                let th = use_fun fn p'
+                let! th = use_fun fn p'
                 let! fn' = mk_fun (ASSUME p') undefined
-                let th' = use_fun fn' p
-                return! IMP_ANTISYM_RULE (DISCH_ALL th) (DISCH_ALL th')
+                let! th' = use_fun fn' p
+                return! IMP_ANTISYM_RULE (DISCH_ALL (Choice.result th)) (DISCH_ALL (Choice.result th'))
         }
 
 /// Proves equivalence of two disjunctions containing same set of disjuncts.
