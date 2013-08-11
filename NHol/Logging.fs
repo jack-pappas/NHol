@@ -110,7 +110,7 @@ module Logging =
                 fileTarget
 
             config.AddTarget ("file", fileTarget)
-            Config.LoggingRule ("*", LogLevel.Trace, fileTarget)
+            Config.LoggingRule ("*", LogLevel.Debug, fileTarget)
             |> config.LoggingRules.Add
 
             // Log to console
