@@ -866,10 +866,11 @@ let report s =
 
 /// Prints out a warning string.
 let warn cond s =
-    if cond then report("Warning: " + s)
+    if cond then
+        report("Warning: " + s)
     
-    // Also log the warning with NLog, regardless of whether the condition is set.
-    logger.Warn s
+        // Also log the warning with NLog.
+        logger.Warn s
 
 (* ------------------------------------------------------------------------- *)
 (* Flags to switch on verbose mode.                                          *)
@@ -885,7 +886,7 @@ let report_timing = ref true
 (* ------------------------------------------------------------------------- *)
 
 /// Output a string and newline if and only if 'verbose' flag is set.
-let remark s = 
+let remark s =
     if !verbose then report s
     
     // Also log the message with NLog, regardless of whether the 'verbose' flag is set.
