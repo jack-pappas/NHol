@@ -228,7 +228,7 @@ let CONJ =
         let! th = INST [concl th1, p; concl th2, q] (Choice.result pth)
         let! foo1 = PROVE_HYP (Choice.result th1) (Choice.result th)
         return! PROVE_HYP (Choice.result th2) (Choice.result foo1)
-        }
+        } : Protected<thm0>
 
 /// Extracts left conjunct of theorem.
 let CONJUNCT1 =
@@ -263,16 +263,27 @@ let CONJUNCT1 =
 let CONJUNCT2 = 
     let P = parse_term @"P:bool"
     let Q = parse_term @"Q:bool"
-    let pth = 
-        let th1 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM AND_DEF <| parse_term @"P:bool")
-        let th2 = CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th1 <| parse_term @"Q:bool")
-        let th3 = EQ_MP th2 (ASSUME <| parse_term @"P /\ Q")
-        EQT_ELIM(BETA_RULE(AP_THM th3 <| parse_term @"\(p:bool) (q:bool). q"))
-    fun (th : Protected<thm0>) -> 
+    let pth =
         choice {
-            let! tm = Choice.map concl th
-            let! l, r = dest_conj tm
-            return! PROVE_HYP th (INST [l, P; r, Q] pth)
+        let! AND_DEF = AND_DEF
+        let! foo1 = AP_THM (Choice.result AND_DEF) <| parse_term @"P:bool"
+        let! th1 = CONV_RULE (RAND_CONV BETA_CONV) (Choice.result foo1)
+        let! foo2 = AP_THM (Choice.result th1) <| parse_term @"Q:bool"
+        let! th2 = CONV_RULE (RAND_CONV BETA_CONV) (Choice.result foo2)
+        let! foo3 = ASSUME <| parse_term @"P /\ Q"
+        let! th3 = EQ_MP (Choice.result th2) (Choice.result foo3)
+        let! foo4 = AP_THM (Choice.result th3) <| parse_term @"\(p:bool) (q:bool). q"
+        let! foo5 = BETA_RULE (Choice.result foo4)
+        return! EQT_ELIM (Choice.result foo5)
+        }
+    fun (th : Protected<thm0>) ->
+        choice {
+        let! pth = pth
+        let! th = th
+        let tm = concl th
+        let! l, r = dest_conj tm
+        let! foo1 = INST [l, P; r, Q] (Choice.result pth)
+        return! PROVE_HYP (Choice.result th) (Choice.result foo1)
         }
         |> Choice.mapError (fun e -> nestedFailure e "CONJUNCT2") : Protected<thm0>
 
@@ -301,18 +312,32 @@ let MP =
     let p = parse_term @"p:bool"
     let q = parse_term @"q:bool"
     let pth =
-        let th1 = BETA_RULE(AP_THM (AP_THM IMP_DEF p) q)
-        let th2 = EQ_MP th1 (ASSUME <| parse_term @"p ==> q")
-        CONJUNCT2(EQ_MP (SYM th2) (ASSUME <| parse_term @"p:bool"))
+        choice {
+        let! IMP_DEF = IMP_DEF
+        let! foo1 = AP_THM (Choice.result IMP_DEF) p
+        let! foo2 = AP_THM (Choice.result foo1) q
+        let! th1 = BETA_RULE (Choice.result foo2)
+        let! foo3 = ASSUME <| parse_term @"p ==> q"
+        let! th2 = EQ_MP (Choice.result th1) (Choice.result foo3)
+        let! foo4 = SYM (Choice.result th2)
+        let! foo5 = ASSUME <| parse_term @"p:bool"
+        let! foo6 = EQ_MP (Choice.result foo4) (Choice.result foo5)
+        return! CONJUNCT2 (Choice.result foo6)
+        }
     fun (ith : Protected<thm0>) (th : Protected<thm0>) -> 
         choice {
-            let! tm = Choice.map concl ith
-            let! ant, con = dest_imp tm
-            let! tm' = Choice.map concl th
-            if aconv ant tm' then 
-                return! PROVE_HYP th (PROVE_HYP ith (INST [ant, p; con, q] pth))
-            else 
-                return! Choice.failwith "MP: theorems do not agree"
+        let! pth = pth
+        let! ith = ith
+        let! th = th
+        let tm = concl ith
+        let! ant, con = dest_imp tm
+        let tm' = concl th
+        if aconv ant tm' then
+            let! foo1 = INST [ant, p; con, q] (Choice.result pth)
+            let! foo2 = PROVE_HYP (Choice.result ith) (Choice.result foo1)
+            return! PROVE_HYP (Choice.result th) (Choice.result foo2)
+        else 
+            return! Choice.failwith "MP: theorems do not agree"
         } : Protected<thm0>
 
 /// Discharges an assumption.
@@ -320,28 +345,38 @@ let DISCH =
     let p = parse_term @"p:bool"
     let q = parse_term @"q:bool"
     let pth =
-        
-        SYM(BETA_RULE(AP_THM (AP_THM IMP_DEF p) q))
-    fun a th -> 
         choice {
-            let th1 = CONJ (ASSUME a) th
-            let! tm1 = Choice.map concl th1
-            let th2 = CONJUNCT1(ASSUME tm1)
-            let th3 = DEDUCT_ANTISYM_RULE th1 th2
-            let! tm = Choice.map concl th
-            let th4 = INST [a, p; tm, q] pth
-            return! EQ_MP th4 th3
+        let! IMP_DEF = IMP_DEF
+        let! foo1 = AP_THM (Choice.result IMP_DEF) p
+        let! foo2 = AP_THM (Choice.result foo1) q
+        let! foo3 = BETA_RULE (Choice.result foo2)
+        return! SYM (Choice.result foo3)
+        }
+    fun a (th : Protected<thm0>) -> 
+        choice {
+        let! pth = pth
+        let! th = th
+        let! foo1 = ASSUME a
+        let! th1 = CONJ (Choice.result foo1) (Choice.result th)
+        let tm1 = concl th1
+        let! foo2 = ASSUME tm1
+        let! th2 = CONJUNCT1 (Choice.result foo2)
+        let! th3 = DEDUCT_ANTISYM_RULE (Choice.result th1) (Choice.result th2)
+        let tm = concl th
+        let! th4 = INST [a, p; tm, q] (Choice.result pth)
+        return! EQ_MP (Choice.result th4) (Choice.result th3)
         } : Protected<thm0>
 
 /// Discharges all hypotheses of a theorem.
 let rec DISCH_ALL (th : Protected<thm0>) : Protected<thm0> = 
     choice {
-        let! th' = th
-        match hyp th' with
-        | t :: _ ->
-            return! DISCH_ALL(DISCH t th) |> Choice.bindError (function Failure _ -> th | e -> Choice.error e) 
-        | _ -> 
-            return! th
+    let! th' = th
+    match hyp th' with
+    | t :: _ ->
+        // TODO : Un-nest this -- but make sure we propagate the error correctly to preserve the original behavior.
+        return! DISCH_ALL(DISCH t th) |> Choice.bindError (function Failure _ -> th | e -> Choice.error e) 
+    | _ -> 
+        return! th
     }
 
 /// Undischarges the antecedent of an implicative theorem.
@@ -370,7 +405,7 @@ let rec UNDISCH_ALL (th : Protected<thm0>) : Protected<thm0> =
     }
 
 /// Deduces equality of boolean terms from forward and backward implications.
-let IMP_ANTISYM_RULE (th1 : Protected<thm0>) (th2 : Protected<thm0>) =
+let IMP_ANTISYM_RULE (th1 : Protected<thm0>) (th2 : Protected<thm0>) : Protected<thm0> =
     choice {
     let! th1 = th1
     let! th2 = th2
@@ -380,7 +415,7 @@ let IMP_ANTISYM_RULE (th1 : Protected<thm0>) (th2 : Protected<thm0>) =
     }
 
 /// Adds an assumption to a theorem.
-let ADD_ASSUM tm th : Protected<thm0> =
+let ADD_ASSUM tm (th : Protected<thm0>) : Protected<thm0> =
     choice {
     let! th = th
     let! foo1 = DISCH tm (Choice.result th)
