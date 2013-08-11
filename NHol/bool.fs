@@ -1028,6 +1028,14 @@ let CONTR =
         let! th = th
         let tm' = concl th
         if tm' <> f_tm then
+            let sb = System.Text.StringBuilder ()
+            sb.AppendLine "CONTR Failed!" |> ignore
+            Microsoft.FSharp.Core.Printf.sprintf "tm' = %O" tm' |> sb.AppendLine |> ignore
+            sb.AppendLine "Stack Trace:" |> ignore
+            System.Diagnostics.StackTrace().ToString () |> sb.AppendLine |> ignore
+            logger.Debug (sb.ToString ())
+            sb.Clear () |> ignore
+
             return! Choice.failwith "CONTR"
         else
             // CLEAN : Rename these values to something sensible.
