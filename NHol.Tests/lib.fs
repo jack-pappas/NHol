@@ -1887,7 +1887,7 @@ let ``{choose f} picks an arbitrary pair of values from the graph of a fpf {f}: 
     let f = itlist I [1 |-> 2; 2 |-> 3; 3 |-> 4] undefined
 
     choose f
-    |> assertEqual (2, 3)
+    |> assertEqual (Choice1Of2 (2, 3))
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "choose: completely undefined function")>]
