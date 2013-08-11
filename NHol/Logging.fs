@@ -45,7 +45,7 @@ module Logging =
             false
         else
             Debug.WriteLine (
-                sprintf "NLog config path: %s" configPath)
+                sprintf "NLog config path: %s" configPath, "Logging")
             LogManager.Configuration <-
                 Config.XmlLoggingConfiguration (configPath)
             true
@@ -86,7 +86,7 @@ module Logging =
 
     let configureNLogProgramatically () =
         Debug.WriteLine (
-            sprintf "configureNLogProgramatically called in NLogExample.fsx.")
+            sprintf "configureNLogProgramatically called in NLogExample.fsx.", "Logging")
 
         LogManager.Configuration <-
             /// The logging configuration object.
@@ -233,6 +233,7 @@ module Logging =
     // Configure NLog
     let configure () =
         if not <| configureNLog () then
+            Debug.WriteLine ("Configuring NLog programmatically.", "Logging")
             configureNLogProgramatically ()
 
 
@@ -242,8 +243,13 @@ module Logger =
     open Microsoft.FSharp.Core.Printf
     open NLog
 
+    // When this module is opened, configure the logger.
+    do
+        Logging.configure ()
+
     /// The standard logger for NHol.
-    let logger = LogManager.GetLogger "file"
+    let logger =
+        LogManager.GetLogger "file"
 
     //
     let inline debugf fmt : 'T =
@@ -254,13 +260,17 @@ module Logger =
         ksprintf logger.Trace fmt
 
     //
+    let inline infof fmt : 'T =
+        ksprintf logger.Info fmt
+
+    //
+    let inline warnf fmt : 'T =
+        ksprintf logger.Warn fmt
+
+    //
     let inline errorf fmt : 'T =
         ksprintf logger.Error fmt
 
     //
     let inline fatalf fmt : 'T =
         ksprintf logger.Fatal fmt
-
-    //
-    let inline warnf fmt : 'T =
-        ksprintf logger.Warn fmt
