@@ -52,14 +52,14 @@ let ``el is equivalent to List.nth``() =
             lazy (el n xs = List.nth xs n)
 
 [<Test>]
-let ``itlist is equivalent to List.fold``() =
-    assertProp "itlist" <| fun xs ->
-        itlist (fun x acc -> acc - x) xs 0 = List.fold (fun acc x -> acc - x) 0 xs
+let ``itlist is equivalent to List.foldBack``() =
+    assertProp "itlist" <| fun (xs : string list) ->
+        itlist (fun x acc -> acc + x) xs "" = List.foldBack (fun x acc -> acc + x) xs ""
 
 [<Test>]
 let ``rev_itlist is equivalent to List.fold``() =
-    assertProp "rev_itlist" <| fun xs ->
-        rev_itlist (fun x acc -> x - acc) xs 0 = List.fold (fun acc x -> x - acc) 0 xs
+    assertProp "rev_itlist" <| fun (xs : string list) ->
+        rev_itlist (fun x acc -> acc + x) xs "" = List.fold (fun acc x -> acc + x) "" xs
 
 [<Test>]
 let ``end_itlist is equivalent to List.reduceBack on non-empty lists``() =
@@ -1894,6 +1894,7 @@ let ``{choose f} picks an arbitrary pair of values from the graph of a fpf {f}: 
 let ``{choose f} fails if {f} is the completely undefined function``() = 
 
     choose undefined
+    |> ExtCore.Choice.bindOrRaise
     |> ignore
 
 (* mem' tests *)
