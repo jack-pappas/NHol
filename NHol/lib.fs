@@ -43,7 +43,8 @@ open system
 
 #endif
 
-logger.Trace("Entering lib.fs")
+// Log module entry.
+tracef "Entering lib.fs"
 
 //
 type Protected<'T> = Choice<'T, exn>
