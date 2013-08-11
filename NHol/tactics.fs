@@ -1366,6 +1366,46 @@ let string_of_goal = print_to_string pp_print_goal
 fsi.AddPrinter string_of_goal
 #endif
 
+/// Prints a list of goals to formatter.
+let pp_print_list_goal fmt (al : goal list) =
+    let rec pp_print_list_goalInner fmt al =
+        match al with
+        | g :: tl ->
+            pp_print_goal fmt g
+            pp_print_break fmt 0 0
+            pp_print_list_goalInner fmt tl
+        | [] -> ()
+    if al.Length = 0
+    then pp_print_string fmt "No goals"
+    else
+        pp_open_hvbox fmt 0
+        pp_print_list_goalInner fmt al
+        pp_close_box fmt ()
+
+/// Print a list of goals to standard output, with no following newline.
+let print_list_goal = pp_print_list_goal std_formatter
+
+/// Converts a list of goals to a string representation.
+let string_of_list_goal = print_to_string pp_print_list_goal
+
+/// Prints a list of (term * term) to formatter.
+let pp_print_list_trmtrm fmt (al : (term * term) list) =
+    let rec pp_print_list_trmtrmInner fmt al =
+        match al with
+        | (trma,trmb) :: tl ->
+            pp_print_term fmt trma
+            pp_print_string fmt ", "
+            pp_print_term fmt trmb
+            pp_print_break fmt 0 0
+            pp_print_list_trmtrmInner fmt tl
+        | [] -> ()
+    if al.Length = 0
+    then pp_print_string fmt "No items"
+    else
+        pp_open_hvbox fmt 0
+        pp_print_list_trmtrmInner fmt al
+        pp_close_box fmt ()
+
 /// Prints a goalstack to formatter.
 let pp_print_goalstack fmt gs =
     let pp_print_goalstate fmt k (gs : goalstate0) = 

@@ -98,6 +98,54 @@ let string_of_instantiation = print_to_string pp_print_instantiation
 fsi.AddPrinter string_of_instantiation
 #endif
 
+/// Prints a ((int * term) list) to formatter.
+let pp_print_list_inttrm fmt (al : (int * term) list) =
+    let rec pp_print_list_inttrmInner fmt al =
+        match al with
+        | (inta,trmb) :: tl ->
+            pp_print_int fmt inta
+            pp_print_string fmt ", "
+            pp_print_term fmt trmb
+            pp_print_break fmt 0 0
+            pp_print_list_inttrmInner fmt tl
+        | [] -> ()
+    if al.Length = 0
+    then pp_print_string fmt "No items"
+    else
+        pp_open_hvbox fmt 0
+        pp_print_list_inttrmInner fmt al
+        pp_close_box fmt ()
+
+/// Prints a ((int * term) list) to the standard output.
+let print_list_inttrm = pp_print_list_inttrm std_formatter
+
+/// Converts a ((int * term) list) to a string representation.
+let string_of_list_inttrm = print_to_string pp_print_list_inttrm
+
+/// Prints a ((term * term) list) to formatter.
+let pp_print_list_trmtrm fmt (al : (term * term) list) =
+    let rec pp_print_list_trmtrmInner fmt al =
+        match al with
+        | (trma,trmb) :: tl ->
+            pp_print_term fmt trma
+            pp_print_string fmt ", "
+            pp_print_term fmt trmb
+            pp_print_break fmt 0 0
+            pp_print_list_trmtrmInner fmt tl
+        | [] -> ()
+    if al.Length = 0
+    then pp_print_string fmt "No items"
+    else
+        pp_open_hvbox fmt 0
+        pp_print_list_trmtrmInner fmt al
+        pp_close_box fmt ()
+
+/// Prints a ((term * term) list) to the standard output.
+let print_list_trmtrm = pp_print_list_trmtrm std_formatter
+
+/// Converts a ((term * term) list) to a string representation.
+let string_of_list_trmtrm = print_to_string pp_print_list_trmtrm
+
 (* ------------------------------------------------------------------------- *)
 (* The last recourse when all else fails!                                    *)
 (* ------------------------------------------------------------------------- *)
