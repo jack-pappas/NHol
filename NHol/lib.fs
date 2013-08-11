@@ -60,7 +60,7 @@ let (|Failure|_|)(exn : exn) =
 
 /// Creates a Failure exception with the specified message and the given exception
 /// as the Failure's InnerException.
-let inline nestedFailure innerException message =
+let inline nestedFailure innerException message : exn =
     exn (message, innerException)
 
 /// Like failwith, but nests the specified exception within the failure exception.
