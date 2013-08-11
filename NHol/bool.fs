@@ -1026,7 +1026,10 @@ let CONTR =
         choice {
         let! pth = pth
         let! th = th
+        logger.Debug (Logging.alignedNameValue "tm" (string_of_term tm))
         let tm' = concl th
+        logger.Debug (Logging.alignedNameValue "tm'" (string_of_term tm'))
+        logger.Debug (Logging.alignedNameValue "f_tm" (string_of_term f_tm))
         if tm' <> f_tm then
             let sb = System.Text.StringBuilder ()
             sb.AppendLine "CONTR Failed!" |> ignore
