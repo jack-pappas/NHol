@@ -284,7 +284,7 @@ module Option =
 let inline curry f x y = f(x, y)
 let inline uncurry f (x, y) = f x y
 /// Identity function.
-[<Obsolete("This function is deprecated. Use the built-in F# 'id' function instead.")>]
+[<Obsolete("Use the 'id' function instead.")>]
 let inline I x = x
 /// Returns the first of the two applied arguments.
 let inline K x y = x
@@ -498,7 +498,7 @@ let rec replicate x n =
 
 /// Gives a finite list of integers between the given bounds.
 // OPTIMIZE : Make this an alias for [m..n]
-let rec (--) m n = 
+let rec (--) m n =
     if m > n then []
     else m :: ((m + 1) -- n)
 
@@ -563,22 +563,24 @@ let rec partition p l =
              else yes, h :: no)
 
 /// Applies a function to every element of a list, returning a list of results for those elements for which application succeeds.
-// OPTIMIZE : Make this an alias for List.choose.
-let mapfilter f l =
+[<Obsolete("Use 'List.choose' instead.")>]
+let inline mapfilter f l =
     List.choose f l
 
 /// Returns the first element of a list which satisfies a predicate.
-let find p l =
+[<Obsolete("Use 'List.tryFind' instead.")>]
+let inline find p l =
     List.tryFind p l
 
 /// Returns the result of the first successful application of a function to the elements of a list.
-// OPTIMIZE : Make this an alias for List.tryPick.
-let tryfind f l =
+[<Obsolete("Use 'List.tryPick' instead.")>]
+let inline tryfind f l =
     List.tryPick f l
 
 /// Flattens a list of lists into one long list.
 // OPTIMIZE : Make this an alias for List.concat.
-let flat l = itlist (@) l []
+let flat l =
+    itlist (@) l []
 
 /// Separates the first element of a list to satisfy a predicate from the rest of the list.
 // OPTIMIZE : Rewrite this function using ListZipper from ExtCore.
@@ -592,8 +594,8 @@ let rec remove p l =
             |> Option.map (fun (y, n) -> (y, h :: n))
 
 /// Chops a list into two parts at a specified point.
-// OPTIMIZE : Make this an alias for List.take.
-let chop_list n l = 
+[<Obsolete("Use 'List.take' instead.")>]
+let inline chop_list n l = 
     List.take n l
 
 /// Returns position of given element in list.
@@ -689,7 +691,7 @@ let rec unzip = function
 let rec shareout pat all =
     if pat = [] then []
     else 
-        let l, r = chop_list (length(hd pat)) all
+        let l, r = List.take (length(hd pat)) all
         l :: (shareout (tl pat) r)
 
 (* ------------------------------------------------------------------------- *)
@@ -701,9 +703,9 @@ let rec shareout pat all =
 let rec do_list f l = 
     match l with
     | [] -> ()
-    | (h :: t) -> 
-        (f h
-         do_list f t)
+    | h :: t -> 
+        f h
+        do_list f t
 
 (* ------------------------------------------------------------------------- *)
 (* Sorting.                                                                  *)

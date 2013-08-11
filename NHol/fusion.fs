@@ -728,20 +728,23 @@ module Hol_kernel =
             elif compare x2 t2 = 0 then 1
             else ordav oenv x1 x2
     
-    let rec orda env tm1 tm2 = 
+    let rec orda env tm1 tm2 =
+        // (fun (x, y) -> x = y) is equivalent to (uncurry (=))
         if tm1 == tm2 && forall (fun (x, y) -> x = y) env then 0
         else 
-            match (tm1, tm2) with
-            | Var(x1, ty1), Var(x2, ty2) -> ordav env tm1 tm2
-            | Const(x1, ty1), Const(x2, ty2) -> compare tm1 tm2
-            | Comb(s1, t1), Comb(s2, t2) -> 
-                let c = orda env s1 s2
-                if c <> 0 then c
-                else orda env t1 t2
-            | Abs(Var(_, ty1) as x1, t1), Abs(Var(_, ty2) as x2, t2) -> 
-                let c = compare ty1 ty2
-                if c <> 0 then c
-                else orda ((x1, x2) :: env) t1 t2
+            match tm1, tm2 with
+            | Var(x1, ty1), Var(x2, ty2) ->
+                ordav env tm1 tm2
+            | Const(x1, ty1), Const(x2, ty2) ->
+                compare tm1 tm2
+            | Comb(s1, t1), Comb(s2, t2) ->
+                match orda env s1 s2 with
+                | 0 -> orda env t1 t2
+                | c -> c
+            | Abs(Var(_, ty1) as x1, t1), Abs(Var(_, ty2) as x2, t2) ->
+                match compare ty1 ty2 with
+                | 0 -> orda ((x1, x2) :: env) t1 t2
+                | c -> c
             | Const(_, _), _ -> -1
             | _, Const(_, _) -> 1
             | Var(_, _), _ -> -1
@@ -754,36 +757,36 @@ module Hol_kernel =
     let alphaorder = orda []
     
     /// Union of two sets of terms up to alpha-equivalence.
-    let rec term_union l1 l2 = 
-        match (l1, l2) with
-        | ([], l2) -> l2
-        | (l1, []) -> l1
-        | (h1 :: t1, h2 :: t2) -> 
+    let rec term_union l1 l2 =
+        match l1, l2 with
+        | [], l2 -> l2
+        | l1, [] -> l1
+        | h1 :: t1, h2 :: t2 -> 
             let c = alphaorder h1 h2
             if c = 0 then h1 :: (term_union t1 t2)
             elif c < 0 then h1 :: (term_union t1 l2)
             else h2 :: (term_union l1 t2)
     
-    let rec term_remove t l = 
+    let rec term_remove t l =
         match l with
-        | s :: ss -> 
+        | [] -> l
+        | s :: ss ->
             let c = alphaorder t s
-            if c > 0 then 
+            if c > 0 then
                 let ss' = term_remove t ss
                 if ss' == ss then l
                 else s :: ss'
             elif c = 0 then ss
             else l
-        | [] -> l
     
-    let rec term_image f l = 
+    let rec term_image f l =
         match l with
-        | h :: t -> 
+        | [] -> l
+        | h :: t ->
             let h' = f h
             let t' = term_image f t
             if h' == h && t' == t then l
             else term_union [h'] t'
-        | [] -> l
     
     (* ------------------------------------------------------------------------- *)
     (* Basic theorem destructors.                                                *)
@@ -810,53 +813,51 @@ module Hol_kernel =
         }
 
     /// Uses transitivity of equality on two equational theorems.
-    let TRANS (thm1 : Protected<thm0>) (thm2 : Protected<thm0>) : Protected<thm0> = 
-        let TRANS (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
-            choice {
-            match (c1, c2) with
-            | Comb((Comb(Const("=", _), _) as eql), m1), Comb(Comb(Const("=", _), m2), r) when alphaorder m1 m2 = 0 -> 
-                return Sequent(term_union asl1 asl2, Comb(eql, r))
-            | _ ->
-                return! Choice.failwith "TRANS"
-            }
-        Choice.bind2 TRANS thm1 thm2
+    let TRANS (thm1 : Protected<thm0>) (thm2 : Protected<thm0>) : Protected<thm0> =
+        choice {
+        let! (Sequent(asl1, eq)) = thm1
+        let! (Sequent(asl2, c)) = thm2
+        match eq, c with
+        | Comb((Comb(Const("=", _), _) as eql), m1), Comb(Comb(Const("=", _), m2), r) when alphaorder m1 m2 = 0 -> 
+            return Sequent(term_union asl1 asl2, Comb(eql, r))
+        | _ ->
+            return! Choice.failwith "TRANS"
+        }
     
     (* ------------------------------------------------------------------------- *)
     (* Congruence properties of equality.                                        *)
     (* ------------------------------------------------------------------------- *)
 
     /// Proves equality of combinations constructed from equal functions and operands.
-    let MK_COMB(thm1 : Protected<thm0>, thm2 : Protected<thm0>) : Protected<thm0> =
-        let MK_COMB(Sequent(asl1, c1), Sequent(asl2, c2)) = 
-            choice {
-                match (c1, c2) with
-                | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) ->
-                    let! ty1 = type_of l1
-                    let! ty2 = type_of l2
-                    match ty1 with
-                    | Tyapp("fun", [ty; _]) when compare ty ty2 = 0 -> 
-                        let! tm = safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2))
-                        return Sequent(term_union asl1 asl2, tm)
-                    | _ -> 
-                        return! Choice.failwith "MK_COMB: types do not agree"
-                | _ -> 
-                    return! Choice.failwith "MK_COMB: not both equations"
-            }
-            |> Choice.mapError (fun e -> nestedFailure e "MK_COMB: not both equations")
-        Choice.bind2 (curry MK_COMB) thm1 thm2
+    let MK_COMB (thm1 : Protected<thm0>, thm2 : Protected<thm0>) : Protected<thm0> =
+        choice {
+        let! (Sequent(asl1, eq)) = thm1
+        let! (Sequent(asl2, c)) = thm2
+        match eq, c with
+        | Comb(Comb(Const("=", _), l1), r1), Comb(Comb(Const("=", _), l2), r2) ->
+            let! ty1 = type_of l1
+            let! ty2 = type_of l2
+            match ty1 with
+            | Tyapp("fun", [ty; _]) when compare ty ty2 = 0 ->
+                let! tm = safe_mk_eq (Comb(l1, l2)) (Comb(r1, r2))
+                return Sequent(term_union asl1 asl2, tm)
+            | _ ->
+                return! Choice.failwith "MK_COMB: types do not agree"
+        | _ ->
+            return! Choice.failwith "MK_COMB: not both equations"
+        }
     
     /// Abstracts both sides of an equation.
     let ABS v (thm : Protected<thm0>) : Protected<thm0> =
-        let ABS v (Sequent(asl, c)) = 
-            choice {
-                match (v, c) with
-                | Var(_, _), Comb(Comb(Const("=", _), l), r) when not(exists (vfree_in v) asl) ->
-                    let! tm = safe_mk_eq (Abs(v, l)) (Abs(v, r))
-                    return Sequent(asl, tm)
-                | _ -> 
-                    return! Choice.failwith "ABS"
-            }
-        Choice.bind (ABS v) thm
+        choice {
+        let! (Sequent(asl, c)) = thm
+        match v, c with
+        | Var(_, _), Comb(Comb(Const("=", _), l), r) when not(exists (vfree_in v) asl) ->
+            let! tm = safe_mk_eq (Abs(v, l)) (Abs(v, r))
+            return Sequent(asl, tm)
+        | _ ->
+            return! Choice.failwith "ABS"
+        }
     
     (* ------------------------------------------------------------------------- *)
     (* Trivial case of lambda calculus beta-conversion.                          *)
@@ -889,26 +890,26 @@ module Hol_kernel =
     
     /// Equality version of the Modus Ponens rule.
     let EQ_MP (thm1 : Protected<thm0>) (thm2 : Protected<thm0>) : Protected<thm0> =
-        let EQ_MP (Sequent(asl1, eq)) (Sequent(asl2, c)) =
-            choice {
-            match eq with
-            | Comb(Comb(Const("=", _), l), r) when alphaorder l c = 0 -> 
-                return Sequent(term_union asl1 asl2, r)
-            | _ ->
-                return! Choice.failwith "EQ_MP"
-            }
-        Choice.bind2 EQ_MP thm1 thm2
+        choice {
+        let! (Sequent(asl1, eq)) = thm1
+        let! (Sequent(asl2, c)) = thm2
+        match eq with
+        | Comb(Comb(Const("=", _), l), r) when alphaorder l c = 0 -> 
+            return Sequent(term_union asl1 asl2, r)
+        | _ ->
+            return! Choice.failwith "EQ_MP"
+        }
     
     /// Deduces logical equivalence from deduction in both directions.
     let DEDUCT_ANTISYM_RULE (thm1 : Protected<thm0>) (thm2 : Protected<thm0>) : Protected<thm0> =
-        let DEDUCT_ANTISYM_RULE (Sequent(asl1, c1)) (Sequent(asl2, c2)) =
-            choice {
-            let asl1' = term_remove c2 asl1
-            let asl2' = term_remove c1 asl2
-            let! tm = safe_mk_eq c1 c2
-            return Sequent(term_union asl1' asl2', tm)
-            }
-        Choice.bind2 DEDUCT_ANTISYM_RULE thm1 thm2
+        choice {
+        let! (Sequent(asl1, eq)) = thm1
+        let! (Sequent(asl2, c)) = thm2
+        let asl1' = term_remove c asl1
+        let asl2' = term_remove eq asl2
+        let! tm = safe_mk_eq eq c
+        return Sequent(term_union asl1' asl2', tm)
+        }
     
     (* ------------------------------------------------------------------------- *)
     (* Type and term instantiation.                                              *)
@@ -916,19 +917,29 @@ module Hol_kernel =
 
     /// Instantiates types in a theorem.
     let INST_TYPE (theta : (hol_type * hol_type) list) (thm : Protected<thm0>) : Protected<thm0> =
-        let INST_TYPE theta (Sequent(asl, c)) : Protected<thm0> =
+        choice {
+        let! (Sequent(asl, c)) = thm
+        let inst_fun = inst theta
+        // TODO : Modify term_image so it works with functions returning a Protected<_> value.
+        let! foo1 =
             Choice.attempt <| fun () ->
-                let inst_fun : term -> term = Choice.get << inst theta
-                Sequent(term_image inst_fun asl, inst_fun c)
-        Choice.bind (INST_TYPE theta) thm
+                term_image (inst_fun >> ExtCore.Choice.bindOrRaise) asl
+        let! foo2 = inst_fun c
+        return Sequent(foo1, foo2)
+        }
     
     /// Instantiates free variables in a theorem.
     let INST theta (thm : Protected<thm0>) : Protected<thm0> =
-        let INST theta (Sequent(asl, c)) : Protected<thm0> =
+        choice {
+        let! (Sequent(asl, c)) = thm
+        let inst_fun = vsubst theta
+        // TODO : Modify term_image so it works with functions returning a Protected<_> value.
+        let! foo1 =
             Choice.attempt <| fun () ->
-                let inst_fun : term -> term = Choice.get << vsubst theta
-                Sequent(term_image inst_fun asl, inst_fun c)
-        Choice.bind (INST theta) thm
+                term_image (inst_fun >> ExtCore.Choice.bindOrRaise) asl
+        let! foo2 = inst_fun c
+        return Sequent(foo1, foo2)
+        }
     
     (* ------------------------------------------------------------------------- *)
     (* Handling of axioms.                                                       *)
@@ -966,11 +977,11 @@ module Hol_kernel =
         choice {
         match tm with
         | Comb(Comb(Const("=", _), Var(cname, ty)), r) ->
-            if not(freesin [] r) then
+            if not <| freesin [] r then
                 return! Choice.failwith "new_definition: term not closed"
             else
                 let! ty' = type_vars_in_term r
-                if not(subset ty' (tyvars ty)) then 
+                if not <| subset ty' (tyvars ty) then 
                     return! Choice.failwith "new_definition: Type variables not reflected in constant"
                 else
                     do! new_constant(cname, ty)
@@ -980,7 +991,7 @@ module Hol_kernel =
                         let! tm = safe_mk_eq c r
                         return Sequent([], tm)
                         }
-                    the_definitions := dth :: (!the_definitions)
+                    the_definitions := dth :: !the_definitions
                     return dth
         | _ ->
             return! Choice.failwith "new_basic_definition"
@@ -1000,6 +1011,9 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Introduces a new type in bijection with a nonempty subset of an existing type.
+    // TODO : Rewrite this -- it should use the 'choice' workflow, and the function should return
+    // Protected<thm0 * thm0>; we can create a wrapper which simply calls this and returns the
+    // current type signature (Protected<thm0> * Protected<thm0>) for compatibility purposes.
     let new_basic_type_definition tyname (absname, repname) (thm : Protected<thm0>) : Protected<thm0> * Protected<thm0> =
         match thm with
         | Success (Sequent(asl, c)) ->
@@ -1064,7 +1078,7 @@ let is_eq tm =
     | _ -> false
 
 /// Constructs an equation.
-let mk_eq = 
+let mk_eq =
     let eq = mk_const("=", [])
     fun (l, r) ->
         choice {

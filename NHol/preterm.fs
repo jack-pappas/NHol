@@ -90,114 +90,118 @@ let remove_interface sym =
     the_interface := ``interface``
 
 /// Remove a specific overload/interface mapping for an identifier.
-let reduce_interface(sym, tm) : Protected<_> = 
-    let namty = 
+let reduce_interface(sym, tm) : Protected<_> =
+    choice {
+    let! namty = 
         dest_const tm
         |> Choice.bindError (function Failure _ -> dest_var tm | e -> Choice.error e)
-    match namty with
-    | Success namty ->
-        the_interface := filter ((<>)(sym, namty)) !the_interface
-        Choice.result ()
-    | Error ex ->
-        Choice.error ex
+    the_interface := filter ((<>)(sym, namty)) !the_interface
+    return ()
+    }
 
 /// Map identifier to specific underlying constant.
 let override_interface(sym, tm) : Protected<_> =
-    let namty =
+    choice {
+    let! namty =
         dest_const tm
         |> Choice.bindError (function Failure _ -> dest_var tm | e -> Choice.error e)
-
-    match namty with
-    | Success namty ->
-        let ``interface`` = filter ((<>) sym << fst) !the_interface
-        the_interface := (sym, namty) :: ``interface``
-        Choice.result ()
-    | Error ex ->
-        Choice.error ex
+    let ``interface`` = filter ((<>) sym << fst) !the_interface
+    the_interface := (sym, namty) :: ``interface``
+    return ()
+    }
 
 /// Overload a symbol so it may denote a particular underlying constant.
 let overload_interface(sym, tm) : Protected<_> =
-    let gty =
+    choice {
+    let! gty =
+        choice {
         match assoc sym !the_overload_skeletons with
         | Some x ->
-            Choice.result x
+            return x
         | None ->
             let msg = Microsoft.FSharp.Core.Printf.sprintf "symbol \"%s\" is not overloadable" sym
-            Choice.failwith msg
+            return! Choice.failwith msg
+        }
 
-    gty
-    |> Choice.bind (fun gty ->
-        match dest_const tm |> Choice.bindError (function Failure _ -> dest_var tm | e -> Choice.error e) with
-        | Success ((name, ty) as namty) ->
-            match type_match gty ty [] with
-            | Error ex ->
-                Choice.nestedFailwith ex  "Not an instance of type skeleton"
-            | Success _ ->
-                let ``interface`` = filter ((<>)(sym, namty)) !the_interface
-                the_interface := (sym, namty) :: ``interface``
-                Choice.result ()
-        | Error ex ->
-            Choice.error ex)
+    let! ((name, ty) as namty) =
+        dest_const tm
+        |> Choice.bindError (function Failure _ -> dest_var tm | e -> Choice.error e)
+
+    let! _ =
+        type_match gty ty []
+        |> Choice.mapError (fun ex ->
+            nestedFailure ex "Not an instance of type skeleton")
+
+    let ``interface`` = filter ((<>)(sym, namty)) !the_interface
+    the_interface := (sym, namty) :: ``interface``
+    return ()
+    }
 
 /// Give overloaded constants involving a given type priority in operator overloading.
 let prioritize_overload ty : Protected<unit> =
     !the_overload_skeletons
     |> Choice.List.iter (fun (s, gty) ->
         choice {
-            let! var_tm =
-                !the_interface
-                |> Choice.List.tryFind (fun (s', (n, t)) ->
-                    choice {
-                        let! tys = type_match gty t []
-                        return s' = s && mem ty (map fst tys)
-                    })
-                |> Choice.bind (Option.toChoiceWithError "find")
-                |> Choice.map (snd >> mk_var)
+        let! var_tm =
+            !the_interface
+            |> Choice.List.tryFind (fun (s', (n, t)) ->
+                choice {
+                let! tys = type_match gty t []
+                return s' = s && mem ty (map fst tys)
+                })
+            |> Choice.bind (Option.toChoiceWithError "find")
+            |> Choice.map (snd >> mk_var)
 
-            return! overload_interface(s, var_tm)
+        return! overload_interface(s, var_tm)
         }
         |> Choice.bindError (function 
-                | Failure _ ->
-                    // NOTE: currently do nothing to handle failures
-                    System.Diagnostics.Debug.WriteLine "An unhandled error occurred in the 'prioritize_overload' function."
-                    Choice.result ()
-                | e -> Choice.error e))
+            | Failure _ ->
+                // NOTE: currently do nothing to handle failures
+                System.Diagnostics.Debug.WriteLine "An unhandled error occurred in the 'prioritize_overload' function."
+                Choice.result ()
+            | e -> Choice.error e))
 
 (* ------------------------------------------------------------------------- *)
 (* Type abbreviations.                                                       *)
 (* ------------------------------------------------------------------------- *)
 
-// new_type_abbrev: Sets up a new type abbreviation.
-// remove_type_abbrev: Removes use of name as a type abbreviation.
-// type_abbrevs: Lists all current type abbreviations.
-let new_type_abbrev, remove_type_abbrev, type_abbrevs = 
-    let the_type_abbreviations = ref([] : (string * hol_type) list)
-    let remove_type_abbrev s =
-        the_type_abbreviations := filter (fun (s', _) -> s' <> s) !the_type_abbreviations
-    let new_type_abbrev(s, ty) =
-        remove_type_abbrev s
-        the_type_abbreviations := merge (<) [s, ty] !the_type_abbreviations
-    let type_abbrevs() = !the_type_abbreviations
-    new_type_abbrev, remove_type_abbrev, type_abbrevs
+let private the_type_abbreviations = ref([] : (string * hol_type) list)
+
+/// Removes use of name as a type abbreviation.
+let remove_type_abbrev s =
+    the_type_abbreviations := filter (fun (s', _) -> s' <> s) !the_type_abbreviations
+
+/// Sets up a new type abbreviation.
+let new_type_abbrev(s, ty) =
+    remove_type_abbrev s
+    the_type_abbreviations := merge (<) [s, ty] !the_type_abbreviations
+
+/// Lists all current type abbreviations.
+let type_abbrevs() = !the_type_abbreviations
 
 (* ------------------------------------------------------------------------- *)
 (* Handle constant hiding.                                                   *)
 (* ------------------------------------------------------------------------- *)
 
-// hide_constant: Restores recognition of a constant by the quotation parser.
-// unhide_constant: Disables recognition of a constant by the quotation parser.
-// is_hidden: Determines whether a constant is hidden.
-let hide_constant, unhide_constant, is_hidden = 
-    let hcs = ref([] : string list)
-    let hide_constant c = hcs := union [c] !hcs
-    let unhide_constant c = hcs := subtract !hcs [c]
-    let is_hidden c = mem c !hcs
-    hide_constant, unhide_constant, is_hidden
+let private hcs : string list ref = ref []
+
+/// Restores recognition of a constant by the quotation parser.
+let hide_constant c =
+    hcs := union [c] !hcs
+
+/// Disables recognition of a constant by the quotation parser.
+let unhide_constant c =
+    hcs := subtract !hcs [c]
+
+/// Determines whether a constant is hidden.
+let is_hidden c =
+    mem c !hcs
 
 (* ------------------------------------------------------------------------- *)
 (* The type of pretypes.                                                     *)
 (* ------------------------------------------------------------------------- *)
 
+/// The type of pretypes.
 type pretype =
     /// User type variable.
     | Utv of string
@@ -220,9 +224,9 @@ let dpty = Ptycon("", [])
 /// Converts a type into a pretype.
 let rec pretype_of_type ty : Protected<pretype> = 
     choice {
-        let! con, args = dest_type ty
-        let! ps = Choice.List.map pretype_of_type args
-        return Ptycon(con, ps)
+    let! con, args = dest_type ty
+    let! ps = Choice.List.map pretype_of_type args
+    return Ptycon(con, ps)
     }
     |> Choice.bindError (function Failure _ -> dest_vartype ty |> Choice.map Utv | e -> Choice.error e)
 
@@ -230,6 +234,7 @@ let rec pretype_of_type ty : Protected<pretype> =
 (* Preterm syntax.                                                           *)
 (* ------------------------------------------------------------------------- *)
 
+/// Preterm syntax.
 type preterm =
     /// <summary>Variable (<c>v</c>)</summary>
     | Varp of string * pretype
@@ -293,7 +298,7 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
     let new_type_var() = 
         let n = !tyv_num
         tyv_num := n + 1
-        Stv(n)
+        Stv n
     
     let pmk_cv(s, pty) =
         match get_const_type s with
@@ -335,12 +340,13 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
     (* Convert type to pretype with new Stvs for all type variables.           *)
     (* ----------------------------------------------------------------------- *)
 
-    let pretype_instance ty = 
-        let gty = Choice.get <| pretype_of_type ty
-        // TODO : Modify this to use Choice.List.map.
-        let tyvs = map (Choice.get << pretype_of_type) (tyvars ty)
+    let pretype_instance ty : Protected<pretype> =
+        choice {
+        let! gty = pretype_of_type ty
+        let! tyvs = Choice.List.map pretype_of_type (tyvars ty)
         let subs = map (fun tv -> new_type_var(), tv) tyvs
-        pretype_subst subs gty
+        return pretype_subst subs gty
+        }
 
     (* ----------------------------------------------------------------------- *)
     (* Get a new instance of a constant's generic type modulo interface.       *)
@@ -398,8 +404,8 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
             | Ptycon(_, args) -> flat(map free_stvs args)
         setify << free_stvs
 
-    let string_of_pretype stvs =
-        let rec type_of_pretype' ns pt =
+    let string_of_pretype stvs : _ -> Protected<_> =
+        let rec type_of_pretype' ns pt : Protected<_> =
             choice {
                 match pt with
                 | Stv n ->
@@ -468,54 +474,54 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
     (* Unification of types                                                    *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec istrivial ptm env x = 
-        fun v ->
+    let rec istrivial ptm env x v =
+        choice {
+        match v with 
+        | Stv y as t ->
+            if y = x then 
+                return true
+            else
+                if defined env y then
+                    // Option.get is safe to use here
+                    return! istrivial ptm env x (Option.get <| apply env y)
+                else
+                    return false
+        | Ptycon(f, args) as t
+            when Choice.List.exists (istrivial ptm env x) args = Choice1Of2 true ->
+            let! errorString = string_of_ty_error env ptm
+            return! Choice.failwith errorString
+        | Ptycon _
+        | Utv _ ->
+            return false
+        } : Protected<bool>
+
+    let unify ptm env ty1 ty2 : Protected<_> = 
+        let rec unify env v = 
             choice {
             match v with 
-            | Stv y as t ->
-                if y = x then 
-                    return true
+            | [] -> 
+                return env
+            | (ty1, ty2, _) :: oth when ty1 = ty2 ->
+                return! unify env oth
+            | (Ptycon(f, fargs), Ptycon(g, gargs), ptm) :: oth -> 
+                if f = g && length fargs = length gargs then
+                    return! unify env (map2 (fun x y -> x, y, ptm) fargs gargs @ oth)
                 else
-                    if defined env y then
-                        // Option.get is safe to use here
-                        return! istrivial ptm env x (Option.get <| apply env y)
-                    else
-                        return false
-            | Ptycon(f, args) as t when Choice.List.exists (istrivial ptm env x) args = Choice1Of2 true ->
-                let! errorString = string_of_ty_error env ptm
-                return! Choice.failwith errorString
-            | (Ptycon _ | Utv _) ->
-                return false
-            } : Protected<bool>
-
-    let unify ptm env ty1 ty2 = 
-        let rec unify env = 
-            fun v ->
-                choice {
-                match v with 
-                | [] -> 
-                    return env
-                | (ty1, ty2, _) :: oth when ty1 = ty2 ->
-                    return! unify env oth
-                | (Ptycon(f, fargs), Ptycon(g, gargs), ptm) :: oth -> 
-                    if f = g && length fargs = length gargs then
-                        return! unify env (map2 (fun x y -> x, y, ptm) fargs gargs @ oth)
-                    else
-                        let! errorString = string_of_ty_error env ptm
-                        return! Choice.failwith errorString
-                | (Stv x, t, ptm) :: oth -> 
-                    if defined env x then
-                        // Option.get is safe to use here
-                        return! unify env ((Option.get <| apply env x, t, ptm) :: oth)
-                    else
-                        let! cond = istrivial ptm env x t  
-                        return! unify (if cond  then env else (x |-> t) env) oth
-                | (t, Stv x, ptm) :: oth ->
-                    return! unify env ((Stv x, t, ptm) :: oth)
-                | (_, _, ptm) :: oth ->
                     let! errorString = string_of_ty_error env ptm
                     return! Choice.failwith errorString
-                }
+            | (Stv x, t, ptm) :: oth -> 
+                if defined env x then
+                    // Option.get is safe to use here
+                    return! unify env ((Option.get <| apply env x, t, ptm) :: oth)
+                else
+                    let! cond = istrivial ptm env x t  
+                    return! unify (if cond  then env else (x |-> t) env) oth
+            | (t, Stv x, ptm) :: oth ->
+                return! unify env ((Stv x, t, ptm) :: oth)
+            | (_, _, ptm) :: oth ->
+                let! errorString = string_of_ty_error env ptm
+                return! Choice.failwith errorString
+            }
 
         unify env [ty1, ty2, Option.map (fun t -> t, ty1, ty2) ptm]
 
@@ -523,9 +529,11 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
     (* Attempt to attach a given type to a term, performing unifications.      *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec typify ty (ptm, venv, uenv) =
+    let rec typify ty (ptm, venv, uenv) : Protected<_> =
         choice {
             //printfn "typify --> %A:%A:%A:%A" ty ptm venv uenv 
+            // OPTIMIZE : Create active patterns for the first two cases which memoize
+            // the result of the (possibly) costly function called both in the guard and the body.
             match ptm with
             | Varp(s, _) when Option.isSome <| assoc s venv ->
                 let! ty' =
@@ -542,18 +550,20 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
             
             | Varp(s, _) -> 
                 warn (s <> "" && isnum s) "Non-numeral begins with a digit"
-                if not(is_hidden s) && Choice.isResult <| get_generic_type s then 
-                    let pty = pretype_instance(Choice.get <| get_generic_type s)
+                // OPTIMIZE : Use a pattern match here instead of && so 'get_generic_type' isn't called twice.
+                if not(is_hidden s) && Choice.isResult <| get_generic_type s then
+                    let! foo1 = get_generic_type s
+                    let! pty = pretype_instance foo1
                     let ptm = Constp(s, pty)
                     let! fn = unify (Some ptm) uenv pty ty
                     return ptm, [], fn
                 else 
                     let ptm = Varp(s, ty)
-                    if Choice.isError <| get_var_type s then
+                    match get_var_type s with
+                    | Error _ ->
                         return ptm, [s, ty], uenv
-                    else 
-                        let! ty1 = get_var_type s
-                        let pty = pretype_instance ty1
+                    | Success ty1 ->
+                        let! pty = pretype_instance ty1
                         let! fn = unify (Some ptm) uenv pty ty
                         return ptm, [s, ty], fn
 
@@ -596,7 +606,7 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
     (* ----------------------------------------------------------------------- *)
 
     // TODO : Re-implement this function to use the ChoiceCont or ReaderChoiceCont workflow from ExtCore.
-    let resolve_interface ptm cont env =
+    let resolve_interface ptm cont env : Protected<_> =
         let rec resolve_interface ptm cont env = 
             match ptm with
             | Combp(f, x) ->
@@ -609,14 +619,17 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
                 let maps = filter (fun (s', _) -> s' = s) !the_interface
                 if List.isEmpty maps then
                     cont env
-                else 
+                else
                     maps
-                    |> tryfind (fun (_, (_, ty')) -> 
-                        let ty' = pretype_instance ty'
-                        // TODO: revise this
-                        match unify (Some ptm) env ty' ty with
-                        | Success x -> Some (cont x)
-                        | Error _ -> None)
+                    |> List.tryPick (fun (_, (_, ty')) ->
+                        match pretype_instance ty' with
+                        | Error _ ->
+                            None
+                        | Success ty' ->
+                            // TODO: revise this
+                            match unify (Some ptm) env ty' ty with
+                            | Success x -> Some (cont x)
+                            | Error _ -> None)
                     |> Option.getOrFailWith "tryfind"
             | _ ->
                 failwith "resolve_interface: Unhandled case."
@@ -628,34 +641,35 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
     (* Hence apply throughout a preterm.                                       *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec solve_preterm env ptm = 
+    let rec solve_preterm env ptm : Protected<preterm> = 
         choice {
-            match ptm with
-            | Varp(s, ty) -> 
-                let! pt1 = solve env ty
-                return Varp(s, pt1)
-            | Combp(f, x) -> 
-                let! f' = solve_preterm env f
-                let! x' = solve_preterm env x
-                return Combp(f', x')
-            | Absp(v, bod) -> 
-                let! v' = solve_preterm env v
-                let! bod' = solve_preterm env bod
-                return Absp(v', bod')
-            | Constp(s, ty) -> 
-                let! tys = solve env ty
-                return!
-                    choice { 
-                        let! _, (c', _) =
-                            find (fun (s', (c', ty')) -> 
-                                s = s' && Choice.isResult <| unify None env (pretype_instance ty') ty) !the_interface
-                            |> Option.toChoiceWithError "find"
+        match ptm with
+        | Varp(s, ty) -> 
+            let! pt1 = solve env ty
+            return Varp(s, pt1)
+        | Combp(f, x) -> 
+            let! f' = solve_preterm env f
+            let! x' = solve_preterm env x
+            return Combp(f', x')
+        | Absp(v, bod) -> 
+            let! v' = solve_preterm env v
+            let! bod' = solve_preterm env bod
+            return Absp(v', bod')
+        | Constp(s, ty) -> 
+            let! tys = solve env ty
+            return!
+                choice { 
+                    let! _, (c', _) =
+                        !the_interface
+                        |> List.tryFind (fun (s', (c', ty')) ->
+                            s = s' && Choice.isResult <| unify None env (Choice.get <| pretype_instance ty') ty)
+                        |> Option.toChoiceWithError "find"
 
-                        return pmk_cv(c', tys)
-                    }
-                    |> Choice.bindError (function Failure _ -> Choice.result <| Constp(s, tys) | e -> Choice.error e)
-            | _ -> 
-                return! Choice.failwith "solve_preterm: Unhandled case."
+                    return pmk_cv(c', tys)
+                }
+                |> Choice.bindError (function Failure _ -> Choice.result <| Constp(s, tys) | e -> Choice.error e)
+        | _ -> 
+            return! Choice.failwith "solve_preterm: Unhandled case."
         }
 
     (* ----------------------------------------------------------------------- *)
@@ -668,15 +682,15 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
     (* Pretype <-> type conversion; -> flags system type variable translation. *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec type_of_pretype ty =
+    let rec type_of_pretype ty : Protected<hol_type> =
         choice {
             match ty with
             | Stv n -> 
                 stvs_translated := true
                 let s = "?" + (string n)
-                return mk_vartype(s)
-            | Utv(v) -> 
-                return mk_vartype(v)
+                return mk_vartype s
+            | Utv v -> 
+                return mk_vartype v
             | Ptycon(con, args) -> 
                 let! tms = Choice.List.map type_of_pretype args
                 return! mk_type(con, tms)
@@ -689,61 +703,61 @@ let (type_of_pretype : _ -> Protected<_>), (term_of_preterm : _ -> Protected<_>)
     let term_of_preterm = 
         let rec term_of_preterm ptm = 
             choice {
-                match ptm with
-                | Varp(s, pty) -> 
-                    let! pt1 = type_of_pretype pty
-                    return mk_var(s, pt1)
-                | Constp(s, pty) -> 
-                    let! pt1 = type_of_pretype pty
-                    return! mk_mconst(s, pt1)
-                | Combp(l, r) -> 
-                    let! l' = term_of_preterm l
-                    let! r' = term_of_preterm r
-                    return! mk_comb(l', r')
-                | Absp(v, bod) -> 
-                    let! v' = term_of_preterm v
-                    let! bod' = term_of_preterm bod
-                    return! mk_gabs(v', bod')
-                | Typing(ptm, pty) -> 
-                    return! term_of_preterm ptm
+            match ptm with
+            | Varp(s, pty) -> 
+                let! pt1 = type_of_pretype pty
+                return mk_var(s, pt1)
+            | Constp(s, pty) -> 
+                let! pt1 = type_of_pretype pty
+                return! mk_mconst(s, pt1)
+            | Combp(l, r) -> 
+                let! l' = term_of_preterm l
+                let! r' = term_of_preterm r
+                return! mk_comb(l', r')
+            | Absp(v, bod) -> 
+                let! v' = term_of_preterm v
+                let! bod' = term_of_preterm bod
+                return! mk_gabs(v', bod')
+            | Typing(ptm, pty) -> 
+                return! term_of_preterm ptm
             }
 
         let report_type_invention() = 
             choice {
-                if !stvs_translated then 
-                    if !type_invention_error then 
-                        do! Choice.failwith "typechecking error (cannot infer type of variables)"
-                    else 
-                        warn !type_invention_warning "inventing type variables"
+            if !stvs_translated then 
+                if !type_invention_error then 
+                    do! Choice.failwith "typechecking error (cannot infer type of variables)"
+                else 
+                    warn !type_invention_warning "inventing type variables"
             }
 
         fun ptm -> 
             choice {
-                stvs_translated := false
-                let! tm = term_of_preterm ptm
-                do! report_type_invention()
-                return tm
-            }
+            stvs_translated := false
+            let! tm = term_of_preterm ptm
+            do! report_type_invention()
+            return tm
+            } : Protected<_>
 
     (* ----------------------------------------------------------------------- *)
     (* Overall typechecker: initial typecheck plus overload resolution pass.   *)
     (* ----------------------------------------------------------------------- *)
 
-    let retypecheck venv ptm = 
-        choice { 
-            let ty = new_type_var()
+    let retypecheck venv ptm =
+        choice {
+        let ty = new_type_var()
 
-            let! ptm', _, env = 
-                typify ty (ptm, venv, undefined)
-                |> Choice.mapError (fun e ->
-                    nestedFailure e "typechecking error (initial type assignment)")
+        let! ptm', _, env = 
+            typify ty (ptm, venv, undefined)
+            |> Choice.mapError (fun e ->
+                nestedFailure e "typechecking error (initial type assignment)")
 
-            let! env' = 
-                resolve_interface ptm' id env
-                |> Choice.mapError (fun e ->
-                    nestedFailure e "typechecking error (overload resolution)")
+        let! env' = 
+            resolve_interface ptm' id env
+            |> Choice.mapError (fun e ->
+                nestedFailure e "typechecking error (overload resolution)")
 
-            return! solve_preterm env' ptm'
-        }
+        return! solve_preterm env' ptm'
+        } : Protected<_>
 
     type_of_pretype, term_of_preterm, retypecheck
