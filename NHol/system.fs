@@ -27,7 +27,7 @@ open NHol
 #endif
 
 // Log entry to this module.
-
+tracef "Entering system.fs"
 
 (*
 
@@ -78,4 +78,4 @@ fsi.AddPrinter print_num
 *)
 
 // Output a message
-logger.Trace "Exiting system.fs"
+tracef "Exiting system.fs"
