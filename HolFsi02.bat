@@ -9,6 +9,7 @@ fsi^
   --define:FSI_VER_2^
   --define:USE^
   --use:init.fsx^
+  --use:Logging.fs^
   --use:system.fs^
   --use:lib.fs^
   --use:fusion.fs^

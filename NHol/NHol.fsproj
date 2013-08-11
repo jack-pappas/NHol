@@ -52,6 +52,7 @@
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
     <None Include="init.fsx" />
+    <Compile Include="Logging.fs" />
     <Compile Include="system.fs" />
     <Compile Include="lib.fs" />
     <Compile Include="fusion.fs" />

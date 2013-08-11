@@ -8,6 +8,7 @@ fsi^
   --define:TRACE^
   --define:USE^
   --use:init.fsx^
+  --use:Logging.fs^
   --use:system.fs^
   --use:lib.fs^
   --use:fusion.fs^
