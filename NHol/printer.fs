@@ -791,6 +791,52 @@ let string_of_term = print_to_string pp_print_term
 /// Converts a HOL theorem to a string representation.
 let string_of_thm = print_to_string pp_print_thm
 
+/// Prints a term list to formatter.
+let pp_print_list_term fmt (al : term list) =
+    let rec pp_print_list_termInner fmt al =
+        match al with
+        | typa :: tl ->
+            pp_print_term fmt typa
+            pp_print_break fmt 0 0
+            pp_print_list_termInner fmt tl
+        | [] -> ()
+    if al.Length = 0
+    then pp_print_string fmt "No items"
+    else
+        pp_open_hvbox fmt 0
+        pp_print_list_termInner fmt al
+        pp_close_box fmt ()
+
+/// Prints a term list to the standard output.
+let print_list_term = pp_print_list_term std_formatter
+
+/// Converts a term list to a string representation.
+let string_of_list_term = print_to_string pp_print_list_term
+
+/// Prints a ((hol_type * hol_type) list) to formatter.
+let pp_print_list_typtyp fmt (al : (hol_type * hol_type) list) =
+    let rec pp_print_list_typtypInner fmt al =
+        match al with
+        | (typa,typb) :: tl ->
+            pp_print_type fmt typa
+            pp_print_string fmt ", "
+            pp_print_type fmt typb
+            pp_print_break fmt 0 0
+            pp_print_list_typtypInner fmt tl
+        | [] -> ()
+    if al.Length = 0
+    then pp_print_string fmt "No items"
+    else
+        pp_open_hvbox fmt 0
+        pp_print_list_typtypInner fmt al
+        pp_close_box fmt ()
+
+/// Prints a ((hol_type * hol_type) list) to the standard output.
+let print_list_typtyp = pp_print_list_typtyp std_formatter
+
+/// Converts a ((hol_type * hol_type) list) to a string representation.
+let string_of_list_typtyp = print_to_string pp_print_list_typtyp
+
 (* ------------------------------------------------------------------------- *)
 (* Install all the printers.                                                 *)
 (* ------------------------------------------------------------------------- *)

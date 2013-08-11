@@ -235,6 +235,10 @@ module Logging =
         if not <| configureNLog () then
             configureNLogProgramatically ()
 
+    let alignedNameValue (name : string) (value : string) : string =
+        let nameFieldWidth = 15
+        let padding = String.replicate (nameFieldWidth - name.Length) " "
+        Printf.sprintf "%s: %s %s" name padding value
 
 //
 [<AutoOpen>]
