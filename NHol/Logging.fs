@@ -241,6 +241,14 @@ module Logging =
         let padding = String.replicate (nameFieldWidth - name.Length) " "
         Printf.sprintf "%s: %s %s" name padding value
 
+    // Pause for user to press any key to resume.
+    // Show optional message
+    let pause msg =
+        if not <| String.isEmpty (msg)
+        then printfn "%s" msg
+        printfn "%s" "Press any key to continue."
+        System.Console.ReadKey()
+
 //
 [<AutoOpen>]
 module Logger =
