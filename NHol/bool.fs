@@ -1031,14 +1031,16 @@ let CONTR =
         logger.Debug (Logging.alignedNameValue "tm'" (string_of_term tm'))
         logger.Debug (Logging.alignedNameValue "f_tm" (string_of_term f_tm))
         if tm' <> f_tm then
-            let sb = System.Text.StringBuilder ()
-            sb.AppendLine "CONTR Failed!" |> ignore
-            Microsoft.FSharp.Core.Printf.sprintf "tm' = %O" tm' |> sb.AppendLine |> ignore
-            sb.AppendLine "Stack Trace:" |> ignore
-            System.Diagnostics.StackTrace().ToString () |> sb.AppendLine |> ignore
-            logger.Debug (sb.ToString ())
-            sb.Clear () |> ignore
-
+            Logging.pause ""
+//            let sb = System.Text.StringBuilder ()
+//            sb.AppendLine "CONTR Failed!" |> ignore
+//            Microsoft.FSharp.Core.Printf.sprintf "tm' = %O" tm' |> sb.AppendLine |> ignore
+//            sb.AppendLine "Stack Trace:" |> ignore
+//            System.Diagnostics.StackTrace().ToString () |> sb.AppendLine |> ignore
+//            logger.Debug (sb.ToString ())
+//            sb.Clear () |> ignore
+            
+            logger.DebugException("CONTR Failed!", new Exception())
             return! Choice.failwith "CONTR"
         else
             // CLEAN : Rename these values to something sensible.
