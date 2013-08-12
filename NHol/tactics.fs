@@ -1338,7 +1338,7 @@ let pp_print_goal fmt (gl : goal) =
          then (Format.pp_print_string fmt (" (" + s + ")"))
          else ())
         Format.pp_close_box fmt ()
-        Format.print_newline()
+        Format.pp_print_newline fmt ()
     let rec pp_print_hyps fmt n asl = 
         if asl = []
         then ()
@@ -1415,10 +1415,10 @@ let pp_print_goalstack fmt gs =
             if n = 0 then "No subgoals"
             else
                 (string k) + " subgoal" + (if k > 1 then "s" else "") + " (" + (string n) + " total)"
-        Format.print_string s
-        Format.print_newline()
+        Format.pp_print_string fmt s
+        Format.pp_print_newline fmt ()
         if not <| List.isEmpty gl then
-            do_list (print_goal << C el gl) (rev(0 -- (k - 1)))
+            do_list (pp_print_goal fmt << C el gl) (rev(0 -- (k - 1)))
 
     let pp_print_goalstates fmt (l : goalstate list) =
         // TEMP : Un-protect the goalstates.
@@ -1428,7 +1428,7 @@ let pp_print_goalstack fmt gs =
         // of the list, since we don't need to traverse the entire list.
         match l.Length with
         | 0 ->
-            Format.print_string "Empty goalstack"
+            Format.pp_print_string fmt "Empty goalstack"
         | 1 -> 
             let gs = hd l
             pp_print_goalstate fmt 1 gs
