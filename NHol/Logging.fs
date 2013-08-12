@@ -247,7 +247,7 @@ module Logging =
         if not <| String.isEmpty (msg)
         then printfn "%s" msg
         printfn "%s" "Press any key to continue."
-        System.Console.ReadKey()
+        System.Console.ReadKey() |> ignore
 
 //
 [<AutoOpen>]
