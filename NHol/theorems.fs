@@ -77,6 +77,7 @@ let EQ_SYM_EQ =
          |> THEN <| MATCH_ACCEPT_TAC EQ_SYM)
 
 let EQ_TRANS = 
+    logger.Info("Entering EQ_TRANS")
     prove
         ((parse_term @"!(x:A) y z. (x = y) /\ (y = z) ==> (x = z)"), 
          REPEAT STRIP_TAC

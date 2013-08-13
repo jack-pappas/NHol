@@ -450,9 +450,9 @@ let INSTANTIATE_ALL : instantiation -> Protected<thm0> -> Protected<thm0> =
                 let rhyps = union tyrel tmrel
                 let! th1 =
                     // TODO : Modify this to use Choice.List.fold/foldBack.
-                    rev_itlist DISCH rhyps (Choice.result th)
+                    Choice.List.fold (fun acc x -> DISCH x (Choice.result acc)) th rhyps
                 let! th2 = INSTANTIATE i (Choice.result th1)
-                return! funpow (length rhyps) UNDISCH (Choice.result th2)
+                return! Choice.funpow (length rhyps) (UNDISCH << Choice.result) th2
         }
     
     inst
