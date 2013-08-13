@@ -89,7 +89,7 @@ let equals_goal ((a, w) : goal) ((a', w') : goal) =
 (*   f(@) [A1@ |- g1@; ...; An@ |- gn@] = A@ |- g@                           *)
 (* ------------------------------------------------------------------------- *)
 
-type justification = instantiation -> Protected<thm0> list -> Protected<thm0>
+type justification = instantiation -> thm0 list -> Protected<thm0>
 
 /// Prints a justification signature to formatter.
 let pp_print_justification fmt (just : justification) =
@@ -257,7 +257,7 @@ let (VALID : tactic -> tactic) =
     fun tac (asl, w) -> 
         choice {
             let! ((mvs, i), gls, just as res) = tac(asl, w)
-            let ths = map fake_thm gls
+            let! ths = Choice.List.map fake_thm gls
             let! thm = just null_inst ths
             let asl', w' = dest_thm thm
             let asl'', w'' = inst_goal i (asl, w)
@@ -311,10 +311,13 @@ let THEN, THENL =
             | _, _ -> return! Choice.failwith "seqapply: Length mismatch"
         }
 
-    let justsequence just1 just2 insts2 i ths = 
-        just1 (compose_insts insts2 i) (just2 i ths)
+    let justsequence just1 just2 insts2 i ths =
+        choice { 
+            let! ths = Choice.List.map id (just2 i ths)
+            return! just1 (compose_insts insts2 i) ths
+        }
 
-    let tacsequence ((mvs1, insts1), gls1, just1) tacl : goalstate = 
+    let tacsequence ((mvs1, insts1), gls1, just1 : justification) tacl : goalstate = 
         choice {
             let! ((mvs2, insts2), gls2, just2) = seqapply tacl gls1
             let jst = justsequence just1 just2 insts2
@@ -370,7 +373,7 @@ let (NO_TAC : tactic) = FAIL_TAC "NO_TAC"
 let (ALL_TAC : tactic) = 
     let fun1 x y =
         match (x, y) with
-        | (_, [th]) -> th
+        | (_, [th]) -> Choice.result th
         | _ -> Choice.failwith "ALL_TAC.fun1: Unhandled case."
     fun g -> 
         choice {
@@ -482,7 +485,7 @@ let FIRST_TCL ttcll =
 let (LABEL_TAC : string -> thm_tactic) = 
     let fun1 l =
         match l with
-        | [a] -> a
+        | [a] -> Choice.result a
         | _ -> Choice.failwith "LABEL_TAC.fun1: Unhandled case."
     fun s thm ((asl : (string * Protected<thm0>) list), (w : term)) ->
         choice {
@@ -648,7 +651,7 @@ let (CONV_TAC : conv -> tactic) =
             else 
                 let fun1 l =
                     match l with
-                    | [a] -> a
+                    | [a] -> Choice.result a
                     | _ -> Choice.failwith "CONV_TAC.fun1: Unhandled case."
                 let! th' = SYM (Choice.result th)
                 let just = 
@@ -693,7 +696,7 @@ let (ABS_TAC : tactic) =
                 fun i tl -> 
                     let fun1 l =
                         match l with
-                        | [a] -> a
+                        | [a] -> Choice.result a
                         | _ -> Choice.failwith "ABS_TAC.fun1: Unhandled case."
                     choice {
                         let! ath = ABS v (fun1 tl)
@@ -714,8 +717,6 @@ let (MK_COMB_TAC : tactic) =
                 choice {
                     match l with
                     | [a1; a2] -> 
-                        let! a1 = a1
-                        let! a2 = a2
                         return (a1, a2)
                     | _ -> 
                         return! Choice.failwith "MK_COMB_TAC.fun1: Unhandled case."
@@ -806,7 +807,7 @@ let (DISCH_TAC : tactic) =
             let th1 = ASSUME ant
             let fun1 l =
                 match l with
-                | [a] -> a
+                | [a] -> Choice.result a
                 | _ -> Choice.failwith "DISCH_TAC.fun1: Unhandled case."
             let just i thl = 
                 choice {
@@ -822,7 +823,7 @@ let (DISCH_TAC : tactic) =
                 choice { 
                     let fun2 l =
                         match l with
-                        | [a] -> a
+                        | [a] -> Choice.result a
                         | _ -> Choice.failwith "DISCH_TAC.fun2: Unhandled case."
                     let! ant = dest_neg w
                     let! th1 = ASSUME ant
@@ -843,7 +844,7 @@ let (DISCH_TAC : tactic) =
 let (MP_TAC : thm_tactic) = 
     let fun1 l =
         match l with
-        | [a] -> a
+        | [a] -> Choice.result a
         | _ -> Choice.failwith "MP_TAC.fun1: Unhandled case."
     fun thm (asl, w) -> 
         choice {
@@ -866,7 +867,7 @@ let (EQ_TAC : tactic) =
         choice {
             let fun1 l =
                 match l with
-                | [th1; th2] -> IMP_ANTISYM_RULE th1 th2
+                | [th1; th2] -> IMP_ANTISYM_RULE (Choice.result th1) (Choice.result th2)
                 | _ -> Choice.failwith "EQ_TAC.fun1: Unhandled case."
             let! l, r = dest_eq w
             let! tm1 = mk_imp(l, r)
@@ -883,7 +884,7 @@ let (UNDISCH_TAC : term -> tactic) =
         choice {
             let fun1 l =
                 match l with
-                | [a] -> a
+                | [a] -> Choice.result a
                 | _ -> Choice.failwith "UNDISCH_TAC.fun1: Unhandled case."
             let! sthm, asl' = 
                 remove (fun (_, asm) -> 
@@ -910,7 +911,7 @@ let (SPEC_TAC : term * term -> tactic) =
         choice {
             let fun1 l =
                 match l with
-                | [a] -> a
+                | [a] -> Choice.result a
                 | _ -> Choice.failwith "LABEL_TAC.fun1: Unhandled case."
             let! tm1 = subst [x, t] w
             let! tm2 = mk_forall(x, tm1)
@@ -956,7 +957,7 @@ let X_GEN_TAC x' : tactic =
                     let afn = CONV_RULE (GEN_ALPHA_CONV x)
                     let fun1 l =
                         match l with
-                        | [a] -> a
+                        | [a] -> Choice.result a
                         | _ -> Choice.failwith "X_GEN_TAC.fun1: Unhandled case."
                     let! tm = vsubst [x', x] bod
                     let just =
@@ -996,7 +997,7 @@ let X_CHOOSE_TAC x' (xth : Protected<thm0>) : tactic =
             else 
                 let fun1 l =
                     match l with
-                    | [a] -> a
+                    | [a] -> Choice.result a
                     | _ -> Choice.failwith "X_CHOOSE_TAC.fun1: Unhandled case."
                 let just =
                     fun i tl -> 
@@ -1018,7 +1019,7 @@ let EXISTS_TAC t : tactic =
             do! tactic_type_compatibility_check "EXISTS_TAC" v t
             let fun1 l =
                 match l with
-                | [a] -> a
+                | [a] -> Choice.result a
                 | _ -> Choice.failwith "EXISTS_TAC.fun1: Unhandled case."
             let! tm = vsubst [t, v] bod
             let just =
@@ -1065,7 +1066,7 @@ let (CONJ_TAC : tactic) =
         choice {
         let fun1 l =
             match l with
-            | [th1; th2] -> CONJ th1 th2
+            | [th1; th2] -> CONJ (Choice.result th1) (Choice.result th2)
             | _ -> Choice.failwith "CONJ_TAC.fun1: Unhandled case."
         let! l, r = dest_conj w
         let just =
@@ -1080,7 +1081,7 @@ let (DISJ1_TAC : tactic) =
         choice {
         let fun1 l =
             match l with
-            | [a] -> a
+            | [a] -> Choice.result a
             | _ -> Choice.failwith "DISJ1_TAC.fun1: Unhandled case."
         let! l, r = dest_disj w
         let just =
@@ -1101,7 +1102,7 @@ let (DISJ2_TAC : tactic) =
         choice {
         let fun1 l =
             match l with
-            | [a] -> a
+            | [a] -> Choice.result a
             | _ -> Choice.failwith "DISJ2_TAC.fun1: Unhandled case."
         let! l, r = dest_disj w
         let just =
@@ -1119,9 +1120,15 @@ let (DISJ2_TAC : tactic) =
 let (DISJ_CASES_TAC : thm_tactic) = 
     fun dth ->         
         let fun1 l i =
-            match l with
-            | [th1; th2] -> DISJ_CASES (INSTANTIATE_ALL i dth) th1 th2
-            | _ -> Choice.failwith "DISJ_CASES_TAC.fun1: Unhandled case."
+            choice {
+                match l with
+                | [th1; th2] -> 
+                    let! dth = dth
+                    let! th = INSTANTIATE_ALL i (Choice.result dth)
+                    return! DISJ_CASES (Choice.result th) (Choice.result th1) (Choice.result th2)
+                | _ -> 
+                    return! Choice.failwith "DISJ_CASES_TAC.fun1: Unhandled case."
+            }
         let v = 
             choice {
                 let! dth = dth
@@ -1136,7 +1143,7 @@ let (DISJ_CASES_TAC : thm_tactic) =
                 let! l, r, thl, thr = v
                 let just =
                     fun i tl -> fun1 tl i
-                let! _ = just null_inst []
+                
                 return (null_meta, [("", Choice.result thl) :: asl, w; ("", Choice.result thr) :: asl, w], just)            
             }
             |> Choice.mapError (fun e -> nestedFailure e "DISJ_CASES_TAC: Failure.")
@@ -1182,10 +1189,11 @@ let (MATCH_MP_TAC : thm_tactic) =
                 let tm = concl th
                 let avs, bod = strip_forall tm
                 let! ant, con = dest_imp bod
-                let th1 = SPECL avs (ASSUME tm)
-                let th2 = UNDISCH th1
+                let! th1 = SPECL avs (ASSUME tm)
+                let! th2 = UNDISCH (Choice.result th1)
                 let evs = filter (fun v -> vfree_in v ant && not(vfree_in v con)) avs
-                let! th3 = itlist SIMPLE_CHOOSE evs (DISCH tm th2)
+                let! th2' = DISCH tm (Choice.result th2)
+                let! th3 = itlist SIMPLE_CHOOSE evs (Choice.result th2')
                 let! tm3 = Choice.map (hd << hyp) (Choice.result th3)
                 let! th4 = UNDISCH (Choice.result th3)
                 let! th5 = DISCH tm3 (Choice.result th4)
@@ -1202,7 +1210,7 @@ let (MATCH_MP_TAC : thm_tactic) =
                 let! sth = sth 
                 let fun1 l =
                     match l with
-                    | [a] -> a
+                    | [a] -> Choice.result a
                     | _ -> Choice.failwith "MATCH_MP_TAC.fun1: Unhandled case."
                 let! xth = match_fun w
                 let tm1 = concl xth
@@ -1379,7 +1387,7 @@ let SUBGOAL_THEN : term -> thm_tactic -> tactic =
             let just =
                 fun i l -> 
                     choice {
-                        let! th1 = hd l
+                        let th1 = hd l
                         let! th2 = just i (tl l)
                         return! PROVE_HYP (Choice.result th1) (Choice.result th2)
                     }
@@ -1423,7 +1431,7 @@ let (X_META_EXISTS_TAC : term -> tactic) =
             else 
                 let fun1 l =
                     match l with
-                    | [a] -> a
+                    | [a] -> Choice.result a
                     | _ -> Choice.failwith "X_META_EXISTS_TAC.fun1: Unhandled case."
                 let! v, bod = dest_exists w
                 let! tm = vsubst [t, v] bod
@@ -1456,9 +1464,9 @@ let META_SPEC_TAC : term -> Protected<thm0> -> tactic =
         choice {
             let fun1 l =
                 match l with
-                | [a] -> a
+                | [a] -> Choice.result a
                 | _ -> Choice.failwith "MATCH_MP_TAC.fun1: Unhandled case."
-            let sth = SPEC t thm
+            let! sth = SPEC t thm
             let just =
                 fun i tl -> 
                     choice {
@@ -1466,7 +1474,7 @@ let META_SPEC_TAC : term -> Protected<thm0> -> tactic =
                         let! th1 = SPEC tm1 thm
                         return! PROVE_HYP (Choice.result th1) (fun1 tl)
                     }
-            return (([t], null_inst), [(("", sth) :: asl), w], just)            
+            return (([t], null_inst), [(("", Choice.result sth) :: asl), w], just)            
         }
 
 (* ------------------------------------------------------------------------- *)
@@ -1696,10 +1704,13 @@ let by : tactic -> refinement =
             let inst' = compose_insts inst newinst
             let gls' = subgls @ map (inst_goal newinst) ogls
             let just' i ths = 
+                choice {
                 let i' = compose_insts inst' i
                 let cths, oths = chop_list n ths
-                let sths = (subjust i cths) :: oths
-                just i' sths
+                let! th = subjust i cths
+                let sths = th :: oths
+                return! just i' sths
+                }
             return ((mvs', inst'), gls', just')
         }
 
@@ -1746,7 +1757,7 @@ let (mk_goalstate : goal -> goalstate) =
             if ty = bool_ty then 
                 let fun1 l =
                     match l with
-                    | [a] -> a
+                    | [a] -> Choice.result a
                     | _ -> Choice.failwith "mk_goalstate.fun1: Unhandled case."
                 let just =
                     fun inst tl -> 
