@@ -228,7 +228,9 @@ let new_type_definition tyname (absname, repname) (th : Protected<thm0>) : Prote
                 the_type_definitions := ((tyname, absname, repname), (th, tth)) :: (!the_type_definitions)
                 return tth
             }
-        | e -> Choice.error e
+        | e ->
+            logger.Error(Printf.sprintf "%O" e) 
+            Choice.error e
         );;
 
 (* ------------------------------------------------------------------------- *)

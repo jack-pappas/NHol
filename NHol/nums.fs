@@ -363,3 +363,6 @@ let new_specification =
                             specification_counter := !specification_counter +/ Int(length names)
                             sth)
         }
+        |> Choice.mapError (fun e ->
+            logger.Error(Printf.sprintf "%O" e)
+            e)

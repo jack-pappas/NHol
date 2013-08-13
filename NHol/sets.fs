@@ -4042,3 +4042,6 @@ let new_inductive_set =
             let insert_in_rule = REWRITE_RULE pvars'
             return insert_in_rule th_rules, insert_in_rule th_induct, insert_in_rule th_cases
         }
+        |> Choice.mapError (fun e ->
+            logger.Error(Printf.sprintf "%O" e)
+            e)

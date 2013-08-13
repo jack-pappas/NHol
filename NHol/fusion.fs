@@ -110,6 +110,7 @@ module Hol_kernel =
     let new_type(name, arity) : Protected<unit> =
         if Choice.isResult <| get_type_arity name then
             let msg = sprintf "new_type: type %s has already been declared" name
+            logger.Error(msg)
             Choice.failwith msg
         else
             the_type_constants := (name, arity) :: !the_type_constants
@@ -237,8 +238,10 @@ module Hol_kernel =
 
     /// Declares a new constant.
     let new_constant(name, ty) : Protected<unit> =
-        if Choice.isResult <| get_const_type name then 
-            Choice.failwith("new_constant: constant " + name + " has already been declared")
+        if Choice.isResult <| get_const_type name then
+            let msg = "new_constant: constant " + name + " has already been declared"
+            logger.Error(msg) 
+            Choice.failwith msg
         else 
             Choice.result (the_term_constants := (name, ty) :: (!the_term_constants))
     
@@ -961,6 +964,9 @@ module Hol_kernel =
         else
             return! Choice.failwith "new_axiom: Not a proposition"
         }
+        |> Choice.mapError (fun e ->
+            logger.Error(Printf.sprintf "%O" e)
+            e)
     
     (* ------------------------------------------------------------------------- *)
     (* Handling of (term) definitions.                                           *)
@@ -975,27 +981,30 @@ module Hol_kernel =
     /// Makes a simple new definition of the form 'c = t'.
     let new_basic_definition tm : Protected<thm0> =
         choice {
-        match tm with
-        | Comb(Comb(Const("=", _), Var(cname, ty)), r) ->
-            if not <| freesin [] r then
-                return! Choice.failwith "new_definition: term not closed"
-            else
-                let! ty' = type_vars_in_term r
-                if not <| subset ty' (tyvars ty) then 
-                    return! Choice.failwith "new_definition: Type variables not reflected in constant"
+            match tm with
+            | Comb(Comb(Const("=", _), Var(cname, ty)), r) ->
+                if not <| freesin [] r then
+                    return! Choice.failwith "new_definition: term not closed"
                 else
-                    do! new_constant(cname, ty)
-                    let c = Const(cname, ty)
-                    let! dth =
-                        choice {
-                        let! tm = safe_mk_eq c r
-                        return Sequent([], tm)
-                        }
-                    the_definitions := dth :: !the_definitions
-                    return dth
-        | _ ->
-            return! Choice.failwith "new_basic_definition"
+                    let! ty' = type_vars_in_term r
+                    if not <| subset ty' (tyvars ty) then 
+                        return! Choice.failwith "new_definition: Type variables not reflected in constant"
+                    else
+                        do! new_constant(cname, ty)
+                        let c = Const(cname, ty)
+                        let! dth =
+                            choice {
+                            let! tm = safe_mk_eq c r
+                            return Sequent([], tm)
+                            }
+                        the_definitions := dth :: !the_definitions
+                        return dth
+            | _ ->
+                return! Choice.failwith "new_basic_definition"
         }
+        |> Choice.mapError (fun e ->
+            logger.Error(Printf.sprintf "%O" e)
+            e)
 
     (* ------------------------------------------------------------------------- *)
     (* Handling of type definitions.                                             *)

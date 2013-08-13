@@ -269,25 +269,30 @@ let new_definition =
             warn true "Benign redefinition"
             return! GEN_ALL(GENL avs th')
         }
-        |> Choice.bindError (fun _ ->
-            choice {
-                let! l, r = dest_eq def
-                let fn, args = strip_comb l
-                let! tms = Choice.List.map depair args
-                let gargs, reps = (I ||>> unions) (unzip tms)
-                let l' = list_mk_comb(fn, gargs)
-                let! r' = subst reps r
-                let! tm1 = mk_eq(l', r')
-                let th1 = new_definition tm1
-                let slist = zip args gargs
-                let th2 = INST slist (SPEC_ALL th1)
-                let! xreps = Choice.List.map (subst slist << fst) reps
-                let threps = map (SYM << PURE_REWRITE_CONV [FST; SND]) xreps
-                let th3 = TRANS th2 (SYM(SUBS_CONV threps r))
-                let th4 = GEN_ALL(GENL avs th3)
-                the_definitions := th4 :: (!the_definitions)
-                return! th4
-            })
+        |> Choice.bindError (function
+            | Failure _ ->
+                choice {
+                    let! l, r = dest_eq def
+                    let fn, args = strip_comb l
+                    let! tms = Choice.List.map depair args
+                    let gargs, reps = (I ||>> unions) (unzip tms)
+                    let l' = list_mk_comb(fn, gargs)
+                    let! r' = subst reps r
+                    let! tm1 = mk_eq(l', r')
+                    let th1 = new_definition tm1
+                    let slist = zip args gargs
+                    let th2 = INST slist (SPEC_ALL th1)
+                    let! xreps = Choice.List.map (subst slist << fst) reps
+                    let threps = map (SYM << PURE_REWRITE_CONV [FST; SND]) xreps
+                    let th3 = TRANS th2 (SYM(SUBS_CONV threps r))
+                    let th4 = GEN_ALL(GENL avs th3)
+                    the_definitions := th4 :: (!the_definitions)
+                    return! th4
+                }
+            | e -> Choice.error e)
+        |> Choice.mapError (fun e ->
+                logger.Error(Printf.sprintf "%O" e)
+                e)
 
 (* ------------------------------------------------------------------------- *)
 (* A few more useful definitions.                                            *)

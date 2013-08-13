@@ -1132,3 +1132,6 @@ let new_definition tm : Protected<thm0> =
         let rvs = filter (not << C mem avs) largs
         return! itlist GEN rvs (itlist GEN avs th2)
     }
+    |> Choice.mapError (fun e ->
+        logger.Error(Printf.sprintf "%O" e)
+        e)

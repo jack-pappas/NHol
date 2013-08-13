@@ -226,3 +226,6 @@ let new_recursive_definition =
                 the_recursive_definitions := th :: (!the_recursive_definitions)
                 return! th
             })
+        |> Choice.mapError (fun e ->
+            logger.Error(Printf.sprintf "%O" e)
+            e)

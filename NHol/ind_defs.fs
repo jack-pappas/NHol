@@ -676,6 +676,9 @@ let prove_inductive_relations_exist, new_inductive_definition =
                 the_inductive_definitions := thtr :: (!the_inductive_definitions)
                 return thtr
             }
+            |> Choice.mapError (fun e ->
+                    logger.Error(Printf.sprintf "%O" e)
+                    e)
             // We return three exceptions in case of errors. It's still better than raising exceptions directly.
             |> Choice.getOrFailure3 "new_inductive_definition"
 
