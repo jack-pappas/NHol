@@ -370,13 +370,14 @@ let DISCH =
 /// Discharges all hypotheses of a theorem.
 let rec DISCH_ALL (th : Protected<thm0>) : Protected<thm0> = 
     choice {
-    let! th' = th
-    match hyp th' with
+    let! th = th
+    match hyp th with
     | t :: _ ->
-        // TODO : Un-nest this -- but make sure we propagate the error correctly to preserve the original behavior.
-        return! DISCH_ALL(DISCH t th) |> Choice.bindError (function Failure _ -> th | e -> Choice.error e) 
+        let! th1 = DISCH t (Choice.result th)
+        return! DISCH_ALL(Choice.result th1) 
+                |> Choice.bindError (function Failure _ -> Choice.result th | e -> Choice.error e) 
     | _ -> 
-        return! th
+        return th
     }
 
 /// Undischarges the antecedent of an implicative theorem.

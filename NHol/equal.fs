@@ -105,45 +105,71 @@ let BETA_CONV tm : Protected<thm0> =
 
 /// Applies a function to both sides of an equational theorem.
 let AP_TERM tm th : Protected<thm0> = 
-    MK_COMB (REFL tm, th)
+    choice {
+        let! th = th
+        let! th1 = REFL tm
+        return! MK_COMB (Choice.result th1, Choice.result th)
+    }
     |> Choice.mapError (fun e -> nestedFailure e "AP_TERM")
 
 /// Proves equality of equal functions applied to a term.
 let AP_THM th tm : Protected<thm0> = 
-    MK_COMB (th, REFL tm)
+    choice {
+        let! th = th
+        let! th1 = REFL tm
+        return! MK_COMB (Choice.result th, Choice.result th1)
+    }
     |> Choice.mapError (fun e -> nestedFailure e "AP_THM")
 
 /// Swaps left-hand and right-hand sides of an equation.
 let SYM (th : Protected<thm0>) : Protected<thm0> = 
     choice {
-        let! tm = Choice.map concl th
+        let! th = th
+        let tm = concl th
         let! l, r = dest_eq tm
-        let lth = REFL l
+        let! lth = REFL l
         let! tm' = rator tm
         let! tm'' = rator tm'
-        return! EQ_MP (MK_COMB(AP_TERM tm'' th, lth)) lth
+        let! th0 = AP_TERM tm'' (Choice.result th)
+        let! th1 = MK_COMB(Choice.result th0, Choice.result lth)
+        return! EQ_MP (Choice.result th1) (Choice.result lth)
     }
 
 /// Proves equality of lpha-equivalent terms.
 let ALPHA tm1 tm2 : Protected<thm0> = 
-    TRANS (REFL tm1) (REFL tm2)
+    choice {
+        let! th1 = REFL tm1
+        let! th2 = REFL tm2
+        return! TRANS (Choice.result th1) (Choice.result th2)
+    }
     |> Choice.mapError (fun e -> nestedFailure e "ALPHA")
 
 /// Renames the bound variable of a lambda-abstraction.
 let ALPHA_CONV v tm : Protected<thm0> =
-    alpha v tm
-    |> Choice.bind (ALPHA tm)
+    choice {
+        let! tm1 = alpha v tm
+        return! ALPHA tm tm1
+    }
 
 /// Renames the bound variable of an abstraction or binder.
 let GEN_ALPHA_CONV v tm = 
-    if is_abs tm then ALPHA_CONV v tm
-    else
-        dest_comb tm
-        |> Choice.bind (fun (b, abs) ->  
-            AP_TERM b (ALPHA_CONV v abs))
+    choice {
+        if is_abs tm then 
+            return! ALPHA_CONV v tm
+        else
+            let! (b, abs) = dest_comb tm
+            let! th1 = ALPHA_CONV v abs
+            return! AP_TERM b (Choice.result th1)
+    }
 
 /// Compose equational theorems with binary operator.
-let MK_BINOP op (lth, rth) = MK_COMB(AP_TERM op lth, rth)
+let MK_BINOP op (lth, rth) = 
+    choice {
+        let! lth = lth
+        let! rth = rth
+        let! th1 = AP_TERM op lth
+        return! MK_COMB(Choice.result th1, Choice.result rth)
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Terminal conversion combinators.                                          *)
@@ -166,10 +192,10 @@ let THENC (conv1 : conv) (conv2 : conv) : conv =
     choice {
         let! th1 = conv1 t
         let! t' = rand <| concl th1
-        let th2 = conv2 t'
+        let! th2 = conv2 t'
         return!
             let th1 = Choice.result th1 in
-            TRANS th1 th2
+            TRANS th1 (Choice.result th2)
     }
 
 /// Applies the first of two conversions that succeeds.
@@ -255,30 +281,29 @@ let COMB_CONV = W COMB2_CONV
 /// Applies a conversion to the body of an abstraction.
 let ABS_CONV (conv : conv) : conv = 
     fun tm ->
-    choice {
-    let! v, bod = dest_abs tm
-    let th = conv bod
-    return!
-        ABS v th
-        |> Choice.bindError (function 
-            | Failure _ ->
-                choice {
-                let! tv = type_of v
-                let gv = genvar tv
-                let! gbod = vsubst [gv, v] bod
-                let! gth = ABS gv (conv gbod)
-                let gtm = concl gth
-                let! l, r = dest_eq gtm
-                let! v' = variant (frees gtm) v
-                let! l' = alpha v' l
-                let! r' = alpha v' r
-                let! tm' = mk_eq(l', r')
-                return!
-                    let gth = Choice.result gth in
-                    EQ_MP (ALPHA gtm tm') gth
-                }
-            | e -> Choice.error e)
-    }
+        choice {
+        let! v, bod = dest_abs tm
+        let! th = conv bod
+        return!
+            ABS v (Choice.result th)
+            |> Choice.bindError (function 
+                | Failure _ ->
+                    choice {
+                    let! tv = type_of v
+                    let gv = genvar tv
+                    let! gbod = vsubst [gv, v] bod
+                    let! gth = ABS gv (conv gbod)
+                    let gtm = concl gth
+                    let! l, r = dest_eq gtm
+                    let! v' = variant (frees gtm) v
+                    let! l' = alpha v' l
+                    let! r' = alpha v' r
+                    let! tm' = mk_eq(l', r')
+                    let! th1 = ALPHA gtm tm'
+                    return! EQ_MP (Choice.result th1) (Choice.result gth)
+                    }
+                | e -> Choice.error e)
+        }
 
 /// Applies conversion to the body of a binder.
 let BINDER_CONV (conv : conv) tm =
@@ -316,38 +341,49 @@ let BINOP_CONV (conv : conv) tm : Protected<thm0> =
 (* ------------------------------------------------------------------------- *)
 
 let rec private THENQC (conv1 : conv) (conv2 : conv) tm : Protected<thm0> = 
-    let v = 
-        let th1 = conv1 tm
-        choice { 
-            let! tm = Choice.bind (rand << concl) th1
-            let th2 = conv2 tm
-            return! TRANS th1 th2
-        }
-        |> Choice.bindError (function Failure _ -> th1 | e -> Choice.error e)
-    v
+    choice { 
+        let! th1 = conv1 tm
+        return! 
+            choice { 
+                let! tm = rand <| concl th1
+                let! th2 = conv2 tm
+                return! TRANS (Choice.result th1) (Choice.result th2)
+            }
+            |> Choice.bindError (function Failure _ -> Choice.result th1 | e -> Choice.error e)
+    }
     |> Choice.bindError (function Failure _ -> conv2 tm | e -> Choice.error e)
 
 and private THENCQC (conv1 : conv) (conv2 : conv) tm : Protected<thm0> =
     let th1 = conv1 tm
     choice { 
-        let! tm = Choice.bind (rand << concl) th1
-        let th2 = conv2 tm
-        return! TRANS th1 th2
+        let! th1 = th1
+        let! tm = rand <| concl th1
+        let! th2 = conv2 tm
+        return! TRANS (Choice.result th1) (Choice.result th2)
     }
     |> Choice.bindError (function Failure _ -> th1 | e -> Choice.error e)
 
 and private COMB_QCONV (conv : conv) tm : Protected<thm0> = 
-    dest_comb tm
-    |> Choice.bind (fun (l, r) ->
-        let v = 
-            let th1 = conv l
-            let v' = 
-                let th2 = conv r
-                MK_COMB(th1, th2)
-            v'
-            |> Choice.bindError (function Failure _ -> AP_THM th1 r | e -> Choice.error e)
-        v
-        |> Choice.bindError (function Failure _ -> AP_TERM l (conv r) | e -> Choice.error e))
+    choice {
+        let! (l, r) = dest_comb tm
+        return!
+            choice {
+                let! th1 = conv l
+                return!
+                    choice {
+                        let! th2 = conv r
+                        return! MK_COMB(Choice.result th1, Choice.result th2)
+                    }
+                    |> Choice.bindError (function Failure _ -> AP_THM (Choice.result th1) r | e -> Choice.error e)
+            }
+            |> Choice.bindError (function 
+                | Failure _ -> 
+                    choice {
+                        let! r' = conv r
+                        return! AP_TERM l (Choice.result r')
+                    }
+                | e -> Choice.error e)
+    }
 
 let rec private REPEATQC (conv : conv) tm = 
     THENCQC conv (REPEATQC conv) tm
@@ -438,11 +474,18 @@ let PAT_CONV =
             let rat = rator pat
             let ran = rand pat
             fun tm -> 
-                (rat, ran) 
-                ||> Choice.bind2 (fun rat ran -> COMB2_CONV (PCONV xs rat conv) (PCONV xs ran conv) tm)
+                choice {
+                    let! rat = rat
+                    let! ran = ran
+                    return! COMB2_CONV (PCONV xs rat conv) (PCONV xs ran conv) tm
+                }
         else
             let tm' = body pat 
-            fun tm -> tm' |> Choice.bind (fun tm' -> ABS_CONV(PCONV xs tm' conv) tm)
+            fun tm -> 
+                choice {
+                    let! tm' = tm'
+                    return! ABS_CONV(PCONV xs tm' conv) tm
+                }
     fun pat -> 
         let xs, pbod = strip_abs pat
         PCONV xs pbod
@@ -454,10 +497,12 @@ let PAT_CONV =
 /// Symmetry conversion.
 let SYM_CONV tm : Protected<thm0> = 
     choice {
-        let th1 = SYM(ASSUME tm)
-        let! tm' = Choice.map concl th1
-        let th2 = SYM(ASSUME tm')
-        return! DEDUCT_ANTISYM_RULE th2 th1
+        let! th1' = ASSUME tm
+        let! th1 = SYM(Choice.result th1')
+        let tm' = concl th1
+        let! th2' = ASSUME tm'
+        let! th2 = SYM(Choice.result th2')
+        return! DEDUCT_ANTISYM_RULE (Choice.result th2) (Choice.result th1)
     }
     |> Choice.mapError (fun e -> nestedFailure e "SYM_CONV")
 
@@ -467,9 +512,12 @@ let SYM_CONV tm : Protected<thm0> =
 
 /// Conversion to a rule.
 let CONV_RULE (conv : conv) (th : Protected<thm0>) : Protected<thm0> =
-    th
-    |> Choice.map concl
-    |> Choice.bind (fun tm -> EQ_MP (conv tm) th)
+    choice {
+        let! th = th
+        let tm = concl th
+        let! th1 = conv tm
+        return! EQ_MP (Choice.result th1) (Choice.result th)
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Substitution conversion.                                                  *)
@@ -514,14 +562,15 @@ let SUBS ths = CONV_RULE(SUBS_CONV ths)
 (* ------------------------------------------------------------------------- *)
 
 let private ALPHA_HACK (th : Protected<thm0>) : conv = 
-    let tm0 = Choice.bind (lhand << concl) th
     fun tm ->
         choice {
-        let! tm' = tm0
-        if tm' = tm then
-            return! th
+        let! th = th
+        let! tm0 = lhand <| concl th
+        if tm0 = tm then
+            return th
         else
-            return! TRANS (ALPHA tm tm') th
+            let! th1 = ALPHA tm tm0
+            return! TRANS (Choice.result th1) (Choice.result th)
         }
 
 /// A cacher for conversions.
@@ -529,20 +578,22 @@ let CACHE_CONV (conv : conv) : conv =
     // NOTE : This is not thread-safe!
     let net = ref empty_net
     fun tm ->
-        lookup tm !net
-        |> Choice.bind (fun fs ->
-            tryfind (fun f -> Choice.toOption <| f tm) fs
-            |> Option.toChoiceWithError "tryfind"
-            |> Choice.bindError (function
-                | Failure _ ->
-                    let th = conv tm
-                    match enter [] (tm, ALPHA_HACK th) !net with
-                    | Success n ->
-                        net := n
-                    | Error ex ->
-                        // NOTE: currently do nothing in case of error
-                        System.Diagnostics.Debug.WriteLine "An unhandled error occurred in CACHE_CONV."
-                        System.Diagnostics.Debug.WriteLine ("Message: " + ex.Message)
-                        ()
-                    th
-                | e -> Choice.error e))
+        choice {
+            let! fs = lookup tm !net
+            return!
+                tryfind (fun f -> Choice.toOption <| f tm) fs
+                |> Option.toChoiceWithError "tryfind"
+                |> Choice.bindError (function
+                    | Failure _ ->
+                        let th = conv tm
+                        match enter [] (tm, ALPHA_HACK th) !net with
+                        | Success n ->
+                            net := n
+                        | Error ex ->
+                            // NOTE: currently do nothing in case of error
+                            System.Diagnostics.Debug.WriteLine "An unhandled error occurred in CACHE_CONV."
+                            System.Diagnostics.Debug.WriteLine ("Message: " + ex.Message)
+                            ()
+                        th
+                    | e -> Choice.error e)
+        }
