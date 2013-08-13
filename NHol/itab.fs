@@ -57,8 +57,8 @@ let UNIFY_ACCEPT_TAC mvs (th : Protected<thm0>) : tactic =
         choice {
         let! th' = th
         let! insts = term_unify mvs (concl th') w
-        let th'' = INSTANTIATE insts th
-        return (([], insts), [], (fun i [] -> INSTANTIATE i th''))
+        let! th'' = INSTANTIATE insts th
+        return (([], insts), [], (fun i [] -> INSTANTIATE i (Choice.result th'')))
         }
 
 (* ------------------------------------------------------------------------- *)
@@ -74,8 +74,8 @@ let ITAUT_TAC =
     let IMPLICATE t : Protected<thm0> =
         choice {
         let! t' = dest_neg t
-        let th1 = AP_THM NOT_DEF t'
-        return! CONV_RULE (RAND_CONV BETA_CONV) th1
+        let! th1 = AP_THM NOT_DEF t'
+        return! CONV_RULE (RAND_CONV BETA_CONV) (Choice.result th1)
         }
 
     let RIGHT_REVERSIBLE_TAC = 
@@ -92,8 +92,9 @@ let ITAUT_TAC =
               CHOOSE_TAC;                                                 (* exists *)
               (fun th gl -> 
                    choice { 
-                       let! tm = Choice.map concl th
-                       return! ASSUME_TAC(EQ_MP (IMPLICATE tm) th) gl 
+                       let! th = th
+                       let tm = concl th
+                       return! ASSUME_TAC(EQ_MP (IMPLICATE tm) (Choice.result th)) gl 
                    });                                                    (* not    *)
               (CONJUNCTS_THEN' MP_TAC << uncurry CONJ << EQ_IMP_RULE) ]   (* iff    *)
         |> Option.toChoiceWithError "tryfind"
@@ -102,10 +103,12 @@ let ITAUT_TAC =
         let meta_spec_tac th : tactic =
             fun gl ->
                 choice {
-                    let! (tm, _) = Choice.bind (dest_forall << concl) th
+                    let! th = th
+                    let tm0 = concl th
+                    let! (tm, _) = dest_forall tm0
                     let! ty = type_of tm
                     let gv = genvar ty
-                    return! (META_SPEC_TAC gv th
+                    return! (META_SPEC_TAC gv (Choice.result th)
                              |> THEN <| ITAUT_TAC (gv :: mvs) (n - 2)
                              |> THEN <| NO_TAC) gl
                 }
@@ -113,7 +116,9 @@ let ITAUT_TAC =
         let x_meta_exists_tac : tactic =
             fun gl ->
                 choice {
-                     let! gv = (Choice.map genvar << Choice.bind type_of << Choice.map fst << dest_exists << snd) gl
+                     let! (tm1, _) = dest_exists <| snd gl
+                     let! ty1 = type_of tm1
+                     let gv = genvar ty1
                      return! (X_META_EXISTS_TAC gv
                               |> THEN <| ITAUT_TAC (gv :: mvs) (n - 2)
                               |> THEN <| NO_TAC) gl
@@ -122,14 +127,20 @@ let ITAUT_TAC =
         let subgoal_then : thm_tactic = 
             fun th gl -> 
                 choice {
-                    let! (tm, _) = (Choice.bind dest_imp << Choice.map concl) th
-                    return! (SUBGOAL_THEN tm (fun ath -> ASSUME_TAC(MP th ath))
+                    let! th = th
+                    let tm0 = concl th
+                    let! (tm, _) = dest_imp tm0
+                    return! (SUBGOAL_THEN tm (fun ath gl -> 
+                                choice {
+                                    let! ath = ath
+                                    return! ASSUME_TAC(MP (Choice.result th) (Choice.result ath)) gl
+                                })
                              |> THEN <| ITAUT_TAC mvs (n - 1)
                              |> THEN <| NO_TAC) gl
                 }
                 
-        if n <= 0
-        then Choice.failwith "ITAUT_TAC: Too deep"
+        if n <= 0 then 
+            Choice.failwith "ITAUT_TAC: Too deep"
         else 
             ((FIRST_ASSUM(UNIFY_ACCEPT_TAC mvs))
              |> ORELSE <| (ACCEPT_TAC TRUTH)
