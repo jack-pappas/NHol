@@ -857,9 +857,6 @@ let report s =
     Format.print_string s
     Format.print_newline()
 
-    // Also log the message with NLog for completeness.
-    logger.Debug s
-
 (* ------------------------------------------------------------------------- *)
 (* Convenient function for issuing a warning.                                *)
 (* ------------------------------------------------------------------------- *)
@@ -870,7 +867,7 @@ let warn cond s =
         report("Warning: " + s)
     
         // Also log the warning with NLog.
-        logger.Warn s
+//        logger.Warn s
 
 (* ------------------------------------------------------------------------- *)
 (* Flags to switch on verbose mode.                                          *)
@@ -890,7 +887,7 @@ let remark s =
     if !verbose then report s
     
     // Also log the message with NLog, regardless of whether the 'verbose' flag is set.
-    logger.Info s
+//    logger.Info s
 
 (* ------------------------------------------------------------------------- *)
 (* Time a function.                                                          *)

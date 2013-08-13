@@ -1591,6 +1591,13 @@ let prove(t, tac) : Protected<thm0> =
             EQ_MP (Choice.result th') (Choice.result th)
             |> Choice.mapError (fun e -> nestedFailure e "prove: justification generated wrong theorem")
     }
+    |> function
+        | Success th ->
+            logger.Info(Printf.sprintf "Proved \"%s\"" (string_of_term t))
+            Choice.result th
+        | Error e ->
+            logger.Error(Printf.sprintf "Failed at proving \"%s\"" (string_of_term t))
+            Choice.error e
 
 (* ------------------------------------------------------------------------- *)
 (* Interactive "subgoal package" stuff.                                      *)

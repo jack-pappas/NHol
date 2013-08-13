@@ -1026,12 +1026,12 @@ let CONTR =
         choice {
         let! pth = pth
         let! th = th
-        logger.Debug (Logging.alignedNameValue "tm" (string_of_term tm))
+//        logger.Debug (Logging.alignedNameValue "tm" (string_of_term tm))
         let tm' = concl th
-        logger.Debug (Logging.alignedNameValue "tm'" (string_of_term tm'))
-        logger.Debug (Logging.alignedNameValue "f_tm" (string_of_term f_tm))
+//        logger.Debug (Logging.alignedNameValue "tm'" (string_of_term tm'))
+//        logger.Debug (Logging.alignedNameValue "f_tm" (string_of_term f_tm))
         if tm' <> f_tm then
-            Logging.pause ""
+//            Logging.pause ""
 //            let sb = System.Text.StringBuilder ()
 //            sb.AppendLine "CONTR Failed!" |> ignore
 //            Microsoft.FSharp.Core.Printf.sprintf "tm' = %O" tm' |> sb.AppendLine |> ignore
@@ -1040,7 +1040,7 @@ let CONTR =
 //            logger.Debug (sb.ToString ())
 //            sb.Clear () |> ignore
             
-            logger.DebugException("CONTR Failed!", new Exception())
+//            logger.DebugException("CONTR Failed!", new Exception())
             return! Choice.failwith "CONTR"
         else
             // CLEAN : Rename these values to something sensible.
