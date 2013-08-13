@@ -1545,7 +1545,7 @@ let INT_DIV_CONV, INT_REM_CONV =
 /// Performs one arithmetic or relational operation on integer literals of type :int.
 let INT_RED_CONV = 
     let gconv_net = 
-        Choice.List.fold (fun acc (term, conv) -> net_of_conv term conv acc) (basic_net())
+        Choice.List.foldBack (fun (term, conv) acc -> net_of_conv term conv acc) 
             [(parse_term @"x <= y"), INT_LE_CONV;
              (parse_term @"x < y"), INT_LT_CONV;
              (parse_term @"x >= y"), INT_GE_CONV;
@@ -1560,7 +1560,7 @@ let INT_RED_CONV =
              (parse_term @"x rem y"), INT_REM_CONV;
              (parse_term @"x pow n"), INT_POW_CONV;
              (parse_term @"max x y"), INT_MAX_CONV;
-             (parse_term @"min x y"), INT_MIN_CONV] 
+             (parse_term @"min x y"), INT_MIN_CONV] (basic_net())
     
     fun tm ->    
         choice {    

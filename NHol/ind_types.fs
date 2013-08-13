@@ -547,7 +547,7 @@ let define_type_raw_001 =
     let SCRUB_EQUATION eq (th, insts) = 
         choice {
             (*HA*)
-            let! eq' = Choice.List.fold (fun acc x -> subst x acc) eq (map (fun t -> [t]) insts)
+            let! eq' = Choice.List.foldBack (fun x acc -> subst x acc) (map (fun t -> [t]) insts) eq
             let! l, r = dest_eq eq'
             return (MP (INST [r, l] (DISCH eq' th)) (REFL r), (r, l) :: insts)
         }
@@ -631,9 +631,9 @@ let define_type_raw_001 =
                             }
                             |> Choice.bindError (fun _ -> Choice.result beps_tm)
 
-                        let! rarg = Choice.List.fold (fun acc x -> mk_binop fcons x acc) bottail rargs
+                        let! rarg = Choice.List.foldBack (fun x acc -> mk_binop fcons x acc) rargs bottail
                         let! tms = Choice.List.map type_of args
-                        let! conty = Choice.List.fold (fun acc ty -> mk_fun_ty ty acc) recty tms 
+                        let! conty = Choice.List.foldBack (fun ty acc -> mk_fun_ty ty acc) tms recty
 
                         let condef = 
                             list_mk_comb(constr, [Choice.get <| sucivate n; 
@@ -782,7 +782,7 @@ let define_type_raw_001 =
             let! tm3 = rand extm
             let th3 = EQ_MP (AP_THM th2 tm3) (Choice.result exth)
             let! tms4 = Choice.map hyp th3
-            let! th4, _ = Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (th3, []) tms4
+            let! th4, _ = Choice.List.foldBack (fun x acc -> SCRUB_EQUATION x acc) tms4 (th3, [])
             let mkname = "_mk_" + ename
             let destname = "_dest_" + ename
             let bij1, bij2 = new_basic_type_definition ename (mkname, destname) th4
@@ -1038,10 +1038,10 @@ let define_type_raw_001 =
 
             let th5 = itlist DISCH pasms th4
             let! tms2 = Choice.map hyp th5
-            let! th6, _ = Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (th5, []) tms2
+            let! th6, _ = Choice.List.foldBack (fun x acc -> SCRUB_EQUATION x acc) tms2 (th5, [])
             let th7 = UNDISCH_ALL th6
             let! tms3 = Choice.map hyp th7
-            let! (th8, _) = Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (th7, []) tms3
+            let! (th8, _) = Choice.List.foldBack (fun x acc -> SCRUB_EQUATION x acc) tms3 (th7, [])
             return! th8
         }
 
@@ -1133,9 +1133,9 @@ let define_type_raw_001 =
             let! pasms = Choice.List.filter (Choice.map (C mem (map fst consindex)) << lhand) tm1
             let fxth6 = itlist DISCH pasms fxth5
             let tms1 = itlist (union << hyp << Choice.get) conthms []
-            let! fxth7, _ = Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (fxth6, []) tms1
+            let! fxth7, _ = Choice.List.foldBack (fun x acc -> SCRUB_EQUATION x acc) tms1 (fxth6, [])
             let! fxth8 = UNDISCH_ALL fxth7
-            let! th1, _ = Choice.List.fold (fun acc x -> SCRUB_EQUATION x acc) (Choice.result fxth8, []) (subtract (hyp fxth8) eqs)
+            let! th1, _ = Choice.List.foldBack (fun x acc -> SCRUB_EQUATION x acc) (subtract (hyp fxth8) eqs) (Choice.result fxth8, [])
             return! th1
         }
 
@@ -1215,7 +1215,8 @@ let define_type_raw_001 =
                     let! sargs' = Choice.List.map (curry mk_comb s) indices
                     let allargs = cargs' @ rargs' @ sargs'
 
-                    let! funty = Choice.List.fold (fun acc ty -> type_of ty |> Choice.bind (fun ty -> mk_fun_ty ty acc)) zty allargs
+                    // NOTE: revise this
+                    let! funty = Choice.List.foldBack (fun ty acc -> type_of ty |> Choice.bind (fun ty -> mk_fun_ty ty acc)) allargs zty
                     
                     let! tm4 = lhand(concl cth)
                     let! (name, _) = dest_const(repeat (Choice.toOption << rator) tm4)
@@ -1237,7 +1238,7 @@ let define_type_raw_001 =
                 let! fcons = mk_const("FCONS", [ty, aty])
                 let! fnil = mk_const("FNIL", [ty, aty])
 
-                let! bigfun = Choice.List.fold (fun acc tm -> mk_binop fcons tm acc) fnil isocons
+                let! bigfun = Choice.List.foldBack (fun tm acc -> mk_binop fcons tm acc) isocons fnil
                 let! eth = ISPEC bigfun CONSTR_REC
 
                 let! rath = rath
@@ -1578,11 +1579,11 @@ let define_type_raw_002 =
                     let fth = itlist SIMPLE_EXISTS (map snd fnalist) (Choice.result eth)
                     let! dtms = Choice.List.map (Choice.map (hd << hyp)) fns'
                     let! gth = 
-                        Choice.List.fold (fun th e -> 
+                        Choice.List.foldBack (fun e th -> 
                             choice {
                                 let! l, r = dest_eq e
                                 return MP (INST [r, l] (DISCH e th)) (REFL r)
-                            }) fth dtms 
+                            }) dtms fth
 
                     let hth = PROVE_HYP (Choice.result jth) (itlist SIMPLE_CHOOSE evs gth)
                     let! xvs = 
@@ -1845,10 +1846,10 @@ let extend_rectype_net(tyname, (_, _, rth)) =
             }
             |> Choice.bindError (fun _ -> Choice.result [])
 
-        let! canon_thl = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] (ths1 @ ths2)
+        let! canon_thl = Choice.List.foldBack (fun x acc -> mk_rewrites false x acc) (ths1 @ ths2) []
         distinctness_store := map (fun th -> tyname, th) ths1 @ (!distinctness_store)
         injectivity_store := map (fun th -> tyname, th) ths2 @ (!injectivity_store)
-        let! tms = Choice.List.fold (fun acc x -> net_of_thm true x acc) (!basic_rectype_net) canon_thl
+        let! tms = Choice.List.foldBack (fun x acc -> net_of_thm true x acc) canon_thl (!basic_rectype_net)
         basic_rectype_net := tms
     }
 
@@ -2271,8 +2272,8 @@ let define_type_raw =
         // NOTE: add these arguments to propagate errors
         fun tm gl ->
             choice {
-                let! ths = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] [FUN_EQ_THM]
-                let! net = Choice.List.fold (fun acc x -> net_of_thm false x acc) (basic_net()) ths
+                let! ths = Choice.List.foldBack (fun x acc -> mk_rewrites false x acc) [FUN_EQ_THM] []
+                let! net = Choice.List.foldBack (fun x acc -> net_of_thm false x acc) ths (basic_net())
                 return! (CONV_RULE << GENERAL_REWRITE_CONV true TOP_DEPTH_CONV net) tm gl
             }
 

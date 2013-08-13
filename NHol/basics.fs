@@ -122,7 +122,7 @@ let list_mk_comb(h, t) = rev_itlist (C(curry (Choice.get << mk_comb))) t h
 
 /// Iteratively constructs abstractions.
 let list_mk_abs(vs, bod) : Protected<term> = 
-    Choice.List.fold (fun acc x -> mk_abs(x, acc)) bod vs
+    Choice.List.foldBack (fun x acc -> mk_abs(x, acc)) vs bod
 
 /// Iteratively breaks apart combinations (function applications).
 let strip_comb = rev_splitlist (Choice.toOption << dest_comb)
@@ -676,7 +676,7 @@ let mk_gabs : term * term -> Protected<term> =
         }
 
     let list_mk_forall(vars, bod) = 
-        Choice.List.fold (fun acc x -> mk_forall(x, acc)) bod vars
+        Choice.List.foldBack (fun x acc -> mk_forall(x, acc)) vars bod
 
     let mk_geq(t1, t2) = 
         choice {
@@ -705,9 +705,8 @@ let mk_gabs : term * term -> Protected<term> =
         }
 
 /// Iteratively makes a generalized abstraction.
-// TODO : Modify this to use Choice.List.foldBack/fold.
 let list_mk_gabs(vs, bod) : Protected<term> =
-    Choice.List.fold (fun acc x -> mk_gabs(x, acc)) bod vs
+    Choice.List.foldBack (fun x acc -> mk_gabs(x, acc)) vs bod
 
 /// Breaks apart an iterated generalized or basic abstraction.
 let strip_gabs = splitlist (Choice.toOption << dest_gabs)

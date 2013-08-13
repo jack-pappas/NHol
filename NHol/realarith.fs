@@ -310,12 +310,12 @@ let GEN_REAL_ARITH_001 =
 
     let MATCH_MP_RULE th = 
         let net = 
-            Choice.List.fold (fun acc th -> 
+            Choice.List.foldBack (fun th acc -> 
                 choice {
                     let! th = th
                     let! tm1 = lhand(concl th)
                     return! net_of_conv tm1 (PART_MATCH lhand (Choice.result th)) acc
-                }) empty_net (CONJUNCTS th) 
+                }) (CONJUNCTS th) empty_net
 
         fun th -> 
             choice {

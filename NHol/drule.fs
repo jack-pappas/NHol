@@ -153,7 +153,7 @@ let string_of_list_trmtrm = print_to_string pp_print_list_trmtrm
 /// Creates an arbitrary theorem as an axiom (dangerous!)
 let mk_thm(asl, c) : Protected<thm0> = 
     choice {
-        let! tm = Choice.List.fold (curry mk_imp) c (rev asl)
+        let! tm = Choice.List.foldBack (curry mk_imp) (rev asl) c
         let ax = new_axiom tm
         return! rev_itlist (fun t th -> MP th (ASSUME t)) (rev asl) ax
     }
@@ -569,13 +569,13 @@ let term_match : term list -> term -> term -> Protected<_> =
         }
 
     let get_type_insts insts acc =
-        insts
-        |> Choice.List.fold (fun sofar (t, x) ->
+        (insts, acc)
+        ||> Choice.List.foldBack (fun (t, x) sofar ->
             choice {
             let! dest_var_x = dest_var x
             let! type_of_t = type_of t
             return! type_match (snd dest_var_x) type_of_t sofar
-            }) acc
+            })
 
     let separate_insts (insts : (term * term) list) = 
         choice {
@@ -997,7 +997,7 @@ let HIGHER_REWRITE_CONV =
                     BETA_CONVS(length args)
                 else
                     let lr = dest_comb tm
-                    // NOTE: review this
+                    // NOTE: 
                     // The original version raises an exception in initialization
                     // We have to evaluate the function with some input in order to determine errors
                     fun tm ->
@@ -1121,13 +1121,14 @@ let new_definition tm : Protected<thm0> =
         let! def = mk_eq(lv, rtm)
         let! th1 = new_basic_definition def
         let! th2 = 
-            Choice.List.foldBack (fun tm acc -> 
+            // NOTE: this is rewritten from rev_itlist
+            Choice.List.fold (fun acc tm -> 
                 choice {
                     let! ith = AP_THM acc tm
                     let! tm1 = rand <| concl ith
                     let! th2 = BETA_CONV tm1
                     return TRANS (Choice.result ith) (Choice.result th2)
-                }) largs (Choice.result th1)
+                }) (Choice.result th1) largs
 
         let rvs = filter (not << C mem avs) largs
         return! itlist GEN rvs (itlist GEN avs th2)

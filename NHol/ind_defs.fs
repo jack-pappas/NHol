@@ -494,7 +494,7 @@ let MONO_TAC : goal -> Protected<goalstate0> =
     fun gl -> 
         choice {
             let! tacs = 
-                Choice.List.fold (fun acc th -> 
+                Choice.List.foldBack (fun th acc -> 
                         choice {
                             let! th = th
                             let! tm = Choice.funpow 2 rand (concl th)
@@ -507,8 +507,7 @@ let MONO_TAC : goal -> Protected<goalstate0> =
                                 |> Choice.fill ""
 
                             return (c, BACKCHAIN_TAC (Choice.result th) |> THEN <| REPEAT CONJ_TAC) :: acc
-                        }) ["", MONO_ABS_TAC] (!monotonicity_theorems) 
-
+                        }) (!monotonicity_theorems) ["", MONO_ABS_TAC]
             let MONO_STEP_TAC = REPEAT GEN_TAC
                                 |> THEN <| APPLY_MONOTAC tacs
             return! (REPEAT MONO_STEP_TAC
@@ -558,7 +557,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
                 let! l, r = dest_eq tm
                 let! lname, lty = dest_var l
                 // TODO: revise due to massive changes
-                let! tm1 = Choice.List.fold (fun acc x -> type_of x |> Choice.bind (fun y -> mk_fun_ty y acc)) lty vs
+                let! tm1 = Choice.List.foldBack (fun x acc -> type_of x |> Choice.bind (fun y -> mk_fun_ty y acc)) vs lty
                 let l' = mk_var(lname, tm1)
                 let! r' = list_mk_abs(vs, r)
                 let! tm2 = mk_eq(l', r')

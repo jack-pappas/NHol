@@ -516,7 +516,7 @@ let mk_forall = mk_binder "!"
 
 /// Iteratively constructs a universal quantification.
 let list_mk_forall(vs, bod) : Protected<term> = 
-    Choice.List.fold (fun acc x -> mk_forall(x, acc)) bod vs
+    Choice.List.foldBack (fun x acc -> mk_forall(x, acc)) vs bod
 
 /// Specializes the conclusion of a theorem.
 let SPEC =
@@ -668,7 +668,7 @@ let mk_exists = mk_binder "?"
 
 /// Multiply existentially quantifies both sides of an equation using the given variables.
 let list_mk_exists(vs, bod) : Protected<term> =
-    Choice.List.fold (fun acc x -> mk_exists(x, acc)) bod vs
+    Choice.List.foldBack (fun x acc -> mk_exists(x, acc)) vs bod
 
 /// Introduces existential quantification given a particular witness.
 let EXISTS =

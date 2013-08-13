@@ -800,7 +800,7 @@ let mk_list(tms, ty) =
             return nil
         else 
             let! cons = mk_const("CONS", [ty, aty])
-            return! Choice.List.fold (fun acc x -> mk_binop cons x acc) nil tms
+            return! Choice.List.foldBack (fun x acc -> mk_binop cons x acc) tms nil
     }
     |> Choice.mapError (fun e -> nestedFailure e "mk_list")
 

@@ -374,8 +374,8 @@ let basic_prover (strat : strategy) (Simpset(net, prover, provers, rewmaker) as 
 /// Add theorems to a simpset.
 let ss_of_thms thms (Simpset(net, prover, provers, rewmaker)) : Protected<simpset> = 
     choice {
-        let! cthms = Choice.List.fold (fun acc x -> rewmaker x acc) [] thms
-        let! net' = Choice.List.fold (fun acc x -> net_of_thm true x acc) net cthms
+        let! cthms = Choice.List.foldBack (fun x acc -> rewmaker x acc) thms []
+        let! net' = Choice.List.foldBack (fun x acc -> net_of_thm true x acc) cthms net
         return Simpset(net', prover, provers, rewmaker)
     }
 
@@ -389,7 +389,7 @@ let ss_of_conv keytm conv (Simpset(net, prover, provers, rewmaker)) : Protected<
 /// Add congruence rules to a simpset.
 let ss_of_congs thms (Simpset(net, prover, provers, rewmaker)) : Protected<simpset> = 
     choice {
-        let! net' = Choice.List.fold (fun acc x -> net_of_cong x acc) net thms
+        let! net' = Choice.List.foldBack (fun x acc -> net_of_cong x acc) thms net
         return Simpset(net', prover, provers, rewmaker)
     }
 
@@ -414,7 +414,7 @@ let AUGMENT_SIMPSET (cth : Protected<thm0>) (Simpset(net, prover, provers, rewma
     choice {
         let provers' = map (C augment [cth]) provers
         let! cthms = rewmaker cth []
-        let! net' = Choice.List.fold (fun acc x -> net_of_thm true x acc) net cthms
+        let! net' = Choice.List.foldBack (fun x acc -> net_of_thm true x acc) cthms net
         return Simpset(net', prover, provers', rewmaker)
     }
 
@@ -646,21 +646,21 @@ let set_basic_rewrites, extend_basic_rewrites, basic_rewrites, set_basic_convs, 
 
     let rehash_convnet() =
         choice {
-            let! nets = Choice.List.fold (fun acc (_, (pat,cnv)) -> net_of_conv pat cnv acc) empty_net !conversions
-            let! nets2 = Choice.List.fold (fun acc x -> net_of_thm true x acc) nets !rewrites
+            let! nets = Choice.List.foldBack (fun (_, (pat,cnv)) acc -> net_of_conv pat cnv acc) !conversions empty_net
+            let! nets2 = Choice.List.foldBack (fun x acc -> net_of_thm true x acc) !rewrites nets 
             return conv_net := nets2
         }
 
     let set_basic_rewrites thl =
         choice {
-            let! canon_thl = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
+            let! canon_thl = Choice.List.foldBack (fun x acc -> mk_rewrites false x acc) thl []
             rewrites := canon_thl
             do! rehash_convnet()
         } : Protected<unit>
 
     let extend_basic_rewrites thl =
         choice {
-            let! canon_thl = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
+            let! canon_thl = Choice.List.foldBack (fun x acc -> mk_rewrites false x acc) thl []
             rewrites := canon_thl @ !rewrites
             do! rehash_convnet()
         } : Protected<unit>
@@ -707,8 +707,8 @@ let set_basic_congs, (extend_basic_congs : _ -> Protected<unit>), basic_congs =
 let GENERAL_REWRITE_CONV rep (cnvl : conv -> conv) (builtin_net : gconv net) (thl : Protected<thm0> list) : conv = 
     fun tm ->
         choice {
-        let! thl_canon = Choice.List.fold (fun acc x -> mk_rewrites false x acc) [] thl
-        let! final_net = Choice.List.fold (fun acc x -> net_of_thm rep x acc) builtin_net thl_canon
+        let! thl_canon = Choice.List.foldBack (fun x acc -> mk_rewrites false x acc) thl []
+        let! final_net = Choice.List.foldBack (fun x acc -> net_of_thm rep x acc) thl_canon builtin_net
         let conv = REWRITES_CONV final_net
         return! cnvl conv tm
         }
@@ -839,7 +839,7 @@ let (ONCE_ASM_REWRITE_TAC : Protected<thm0> list -> tactic) =
 /// General simplification with given strategy and simpset and theorems.
 let GEN_SIMPLIFY_CONV (strat : strategy) ss lev thl tm : Protected<thm0> =
     choice {
-    let! ss' = Choice.List.fold (flip AUGMENT_SIMPSET) ss thl
+    let! ss' = Choice.List.foldBack (AUGMENT_SIMPSET) thl ss
     return! TRY_CONV (strat ss' lev) tm
     }
 
@@ -864,9 +864,9 @@ let basic_ss : _ -> Protected<simpset> =
     let rewmaker = mk_rewrites true
     fun thl -> 
         choice {
-        let! cthms = Choice.List.fold (fun acc x -> rewmaker x acc) [] thl
-        let! net' = Choice.List.fold (fun acc x -> net_of_thm true x acc) (basic_net()) cthms
-        let! net'' = Choice.List.fold (fun acc x -> net_of_cong x acc) net' (List.map Choice.result <| basic_congs()) 
+        let! cthms = Choice.List.foldBack (fun x acc -> rewmaker x acc) thl []
+        let! net' = Choice.List.foldBack (fun x acc -> net_of_thm true x acc) cthms (basic_net())
+        let! net'' = Choice.List.foldBack (fun x acc -> net_of_cong x acc) (List.map Choice.result <| basic_congs()) net'
         return Simpset(net'', basic_prover, [], rewmaker)
         }
 

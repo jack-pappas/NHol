@@ -634,7 +634,7 @@ let instantiate_casewise_recursion,
       DISCH_THEN(MP_TAC << AP_TERM (parse_term @"EVEN")) |>THEN<|
       REWRITE_TAC[EVEN_MULT; EVEN_ADD; ARITH; EVEN])
     let allsimps = 
-     Choice.List.fold (fun acc x -> mk_rewrites false x acc) 
+     Choice.List.foldBack (fun x acc -> mk_rewrites false x acc) 
       [EQ_ADD_RCANCEL; EQ_ADD_LCANCEL;
        EQ_ADD_RCANCEL_0; EQ_ADD_LCANCEL_0;
        LSYM EQ_ADD_RCANCEL_0; LSYM EQ_ADD_LCANCEL_0;
@@ -665,7 +665,7 @@ let instantiate_casewise_recursion,
     fun tm -> 
         choice {
         let! allsimps = allsimps
-        let! net = Choice.List.fold (fun acc x -> net_of_thm false x acc) (!basic_rectype_net) allsimps
+        let! net = Choice.List.foldBack (fun x acc -> net_of_thm false x acc) allsimps (!basic_rectype_net)
 
         let RECTYPE_ARITH_EQ_CONV = TOP_SWEEP_CONV(REWRITES_CONV net)
                                     |> THENC <| GEN_REWRITE_CONV DEPTH_CONV [AND_CLAUSES; OR_CLAUSES]
@@ -1003,7 +1003,7 @@ let instantiate_casewise_recursion,
                   (conjuncts(snd(strip_forall def))) 0
 
           let domtys, midtys = chop_list nargs domtys0
-          let! ranty = Choice.List.fold (fun acc ty -> mk_fun_ty ty acc) ranty0 midtys
+          let! ranty = Choice.List.foldBack (fun ty acc -> mk_fun_ty ty acc) midtys ranty0
           if length domtys <= 1 then 
               return! ASSUME tm
           else 

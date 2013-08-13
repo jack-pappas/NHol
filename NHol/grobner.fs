@@ -659,13 +659,13 @@ let RING_AND_IDEAL_CONV =
     let grobify_equations tm = 
       choice {
         let cjs = conjuncts tm
-        let! rawvars = Choice.List.fold (fun acc eq -> 
+        let! rawvars = Choice.List.foldBack (fun eq acc -> 
                         choice {
                             let! tm0 = lhand eq
                             let! tm1 = rand eq
                             let! tm2 = grobvars tm1 acc
                             return! grobvars tm0 tm2
-                        }) [] cjs
+                        }) cjs []
         let vars = sort (fun x y -> x < y) (setify rawvars)
         let! cjs' = Choice.List.map (grobify_equation vars) cjs
         return vars, cjs'
@@ -865,7 +865,7 @@ let RING_AND_IDEAL_CONV =
 
     let ideal tms tm = 
       choice {
-        let! rawvars = Choice.List.fold (fun acc x -> grobvars x acc) [] (tm :: tms)
+        let! rawvars = Choice.List.foldBack (fun x acc -> grobvars x acc) (tm :: tms) []
         let vars = sort (fun x y -> x < y) (setify rawvars)
         let! pols = Choice.List.map (grobify_term vars) tms
         let! pol = grobify_term vars tm
