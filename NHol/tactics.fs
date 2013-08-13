@@ -229,9 +229,16 @@ let _FALSITY_ = new_definition(parse_term @"_FALSITY_ = F")
 
 /// Create arbitrary theorem by adding additional `false' assumption.
 let mk_fthm = 
-    let pth() = UNDISCH(fst(EQ_IMP_RULE _FALSITY_))
+    let pth = UNDISCH(fst(EQ_IMP_RULE _FALSITY_))
     let qth = ASSUME(parse_term @"_FALSITY_")
-    fun (asl, c) -> PROVE_HYP qth (itlist ADD_ASSUM (rev asl) (CONTR c <| pth()))
+    fun (asl, c) -> 
+        choice {
+            let! pth = pth
+            let! qth = qth
+            let! th1 = CONTR c (Choice.result pth)
+            let! th2 = itlist ADD_ASSUM (rev asl) (Choice.result th1)
+            return! PROVE_HYP (Choice.result qth) (Choice.result th2)
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Validity checking of tactics. This cannot be 100% accurate without making *)
@@ -258,7 +265,8 @@ let (VALID : tactic -> tactic) =
             let maxasms = itlist (fun th -> union (insert (concl th) (hyp th))) asl'' []
             if aconv w' w'' && forall (fun t -> exists (aconv t) maxasms) (subtract asl' [false_tm]) then 
                 return res
-            else return! Choice.failwith "VALID: Invalid tactic"
+            else 
+                return! Choice.failwith "VALID: Invalid tactic"
         }
 
 (* ------------------------------------------------------------------------- *)
@@ -285,15 +293,14 @@ let THEN, THENL =
     let rec seqapply l1 l2 = 
         choice {
             match (l1, l2) with
-            | ([], []) -> return (null_meta, [], propagate_empty)
+            | ([], []) -> 
+                return (null_meta, [], propagate_empty)
             | ((tac : tactic) :: tacs), ((goal : goal) :: goals) ->
-                match tac goal with 
-                | Success ((mvs1, insts1), gls1, just1) ->
-                    let goals' = map (inst_goal insts1) goals
-                    let! ((mvs2, insts2), gls2, just2) = seqapply tacs goals'
-                    return ((union mvs1 mvs2, compose_insts insts1 insts2), gls1 @ gls2, 
-                            compose_justs (length gls1) just1 just2)
-                | Error e -> return! Choice.nestedFailwith e "seqapply: Erroneous goalstate"
+                let! ((mvs1, insts1), gls1, just1) = tac goal
+                let goals' = map (inst_goal insts1) goals
+                let! ((mvs2, insts2), gls2, just2) = seqapply tacs goals'
+                return ((union mvs1 mvs2, compose_insts insts1 insts2), gls1 @ gls2, 
+                        compose_justs (length gls1) just1 just2)
             | _, _ -> return! Choice.failwith "seqapply: Length mismatch"
         }
 
@@ -310,18 +317,23 @@ let THEN, THENL =
                 else jst
             return ((union mvs1 mvs2, compose_insts insts1 insts2), gls2, just)
         }
+
     let then_ : tactic -> tactic -> tactic = 
         fun tac1 tac2 g -> 
-            tac1 g
-            |> Choice.bind (fun (_, gls, _ as gstate) ->
-                tacsequence gstate (replicate tac2 (length gls)))
+            choice {
+                let! (_, gls, _ as gstate) = tac1 g
+                return! tacsequence gstate (replicate tac2 (length gls))
+            }
+
     let thenl_ : tactic -> tactic list -> tactic = 
         fun tac1 tac2l g -> 
-            tac1 g
-            |> Choice.bind (fun (_, gls, _ as gstate) ->
+            choice {
+                let! (_, gls, _ as gstate) = tac1 g
                 if gls = [] then 
-                    tacsequence gstate []
-                else tacsequence gstate tac2l)
+                    return! tacsequence gstate []
+                else 
+                    return! tacsequence gstate tac2l
+            }
     then_, thenl_
 
 /// Applies first tactic, and iff it fails, applies the second instead.
@@ -345,7 +357,10 @@ let (ALL_TAC : tactic) =
         match (x, y) with
         | (_, [th]) -> th
         | _ -> Choice.failwith "ALL_TAC.fun1: Unhandled case."
-    fun g -> Choice.result <| (null_meta, [g], fun1)
+    fun g -> 
+        choice {
+            return (null_meta, [g], fun1)
+        }
 
 /// Makes a tactic have no effect rather than fail.
 let TRY tac =
@@ -376,9 +391,10 @@ let (CHANGED_TAC : tactic -> tactic) =
     fun tac g -> 
         choice {
             let! (meta, gl, _ as gstate) = tac g
-            if meta = null_meta && length gl = 1 && equals_goal (hd gl) g
-            then return! Choice.failwith "CHANGED_TAC"
-            else return gstate
+            if meta = null_meta && length gl = 1 && equals_goal (hd gl) g then 
+                return! Choice.failwith "CHANGED_TAC"
+            else 
+                return gstate
         }
 
 /// Apply a tactic a specific number of times.
@@ -447,8 +463,15 @@ let (LABEL_TAC : string -> thm_tactic) =
         | [a] -> a
         | _ -> Choice.failwith "LABEL_TAC.fun1: Unhandled case."
     fun s thm ((asl : (string * Protected<thm0>) list), (w : term)) ->
-        Choice.result <| 
-            (null_meta, [(s, thm) :: asl, w], (fun i thml -> PROVE_HYP (INSTANTIATE_ALL i thm) (fun1 thml)))
+        choice {
+            return (null_meta, [(s, thm) :: asl, w], 
+                    (fun i thml -> 
+                        choice {
+                            let! th1 = INSTANTIATE_ALL i thm
+                            let! th2 = fun1 thml
+                            return! PROVE_HYP (Choice.result th1) (Choice.result th2)
+                        }))
+        }
 
 /// Adds an assumption to a goal.
 let ASSUME_TAC = LABEL_TAC ""
@@ -462,7 +485,9 @@ let (FIND_ASSUM : thm_tactic -> term -> tactic) =
     fun ttac t ((asl, w) as g) -> 
         choice {
             let! asl = Choice.List.map snd asl
-            return! ttac (Option.toChoiceWithError "find" <| find (fun th -> concl th = t) asl) g
+            let! th1 = find (fun th -> concl th = t) asl
+                       |> Option.toChoiceWithError "find"
+            return! ttac (Choice.result th1) g
         }
 
 /// Applies tactic generated from the first element of a goal's assumption list.
@@ -503,23 +528,27 @@ let (RULE_ASSUM_TAC : (Protected<thm0> -> Protected<thm0>) -> tactic) =
 /// Apply a theorem tactic to named assumption.
 let (USE_THEN : string -> thm_tactic -> tactic) = 
     fun s ttac (asl, w as gl) -> 
-        let th =            
-            match assoc s asl with
-            | Some thm -> thm
-            | None -> Choice.failwith ("USE_TAC: didn't find assumption " + s)
+        choice {
+            let! th =            
+                match assoc s asl with
+                | Some thm -> thm
+                | None -> Choice.failwith ("USE_TAC: didn't find assumption " + s)
 
-        ttac th gl
+            return! ttac (Choice.result th) gl
+        }
 
 /// Apply a theorem tactic to named assumption, removing the assumption.
 let (REMOVE_THEN : string -> thm_tactic -> tactic) = 
     fun s ttac (asl, w) -> 
-        let th =
+        choice {
+        let! th =
             match assoc s asl with
             | Some thm -> thm
             | None -> Choice.failwith ("USE_TAC: didn't find assumption " + s)
         let asl1, asl2 = chop_list (index s (map fst asl)) asl
         let asl' = asl1 @ tl asl2
-        ttac th (asl', w)
+        return! ttac (Choice.result th) (asl', w)
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* General tools to augment a required set of theorems with assumptions.     *)
@@ -559,9 +588,10 @@ let (ACCEPT_TAC : thm_tactic) =
         | _ -> Choice.failwith  "propagate_thm: Unhandled case."
     fun th (asl, w) -> 
         choice {
-            let! tm = Choice.map concl th
+            let! th = th
+            let tm = concl th
             if aconv tm w then 
-                return (null_meta, [], propagate_thm th)
+                return (null_meta, [], propagate_thm (Choice.result th))
             else 
                 return! Choice.failwith "ACCEPT_TAC"
         }
@@ -577,24 +607,30 @@ let (CONV_TAC : conv -> tactic) =
     let t_tm = parse_term @"T"
     fun conv ((asl, w) as g) ->
         choice {
-        let th = conv w
-        let! th' = th
-        let tm = concl th'
+        let! th = conv w
+        let tm = concl th
         if aconv tm w then
-            return! ACCEPT_TAC th g
+            return! ACCEPT_TAC (Choice.result th) g
         else 
             let! l, r = dest_eq tm
             if not(aconv l w) then
                 return! Choice.failwith "CONV_TAC: bad equation"
             elif r = t_tm then
-                return! ACCEPT_TAC (EQT_ELIM th) g
+                let! th1 = EQT_ELIM (Choice.result th)
+                return! ACCEPT_TAC (Choice.result th1) g
             else 
                 let fun1 l =
                     match l with
                     | [a] -> a
                     | _ -> Choice.failwith "CONV_TAC.fun1: Unhandled case."
-                let th' = SYM th
-                return (null_meta, [asl, r], fun i thml -> EQ_MP (INSTANTIATE_ALL i th') (fun1 thml))
+                let! th' = SYM (Choice.result th)
+                return (null_meta, [asl, r], 
+                        fun i thml -> 
+                            choice {
+                                let! th1 = INSTANTIATE_ALL i (Choice.result th')
+                                let! th2 = fun1 thml
+                                return! EQ_MP (Choice.result th1) (Choice.result th2)
+                            })
         }
 
 (* ------------------------------------------------------------------------- *)
@@ -606,7 +642,8 @@ let (REFL_TAC : tactic) =
     fun ((asl, w) as g) -> 
         choice {
             let! tm = rand w
-            return! ACCEPT_TAC (REFL tm) g
+            let! th1 = REFL tm
+            return! ACCEPT_TAC (Choice.result th1) g
         }
         |> Choice.mapError (fun e -> nestedFailure e "REFL_TAC")
 
@@ -631,10 +668,11 @@ let (ABS_TAC : tactic) =
                         | [a] -> a
                         | _ -> Choice.failwith "ABS_TAC.fun1: Unhandled case."
                     choice {
-                        let ath = ABS v (fun1 tl)
-                        let! tm = Choice.map concl ath
+                        let! ath = ABS v (fun1 tl)
+                        let tm = concl ath
                         let! tm1 = instantiate i w
-                        return! EQ_MP (ALPHA tm tm1) ath
+                        let! th1 = ALPHA tm tm1
+                        return! EQ_MP (Choice.result th1) (Choice.result ath)
                     })            
         }
         |> Choice.mapError (fun e -> nestedFailure e "ABS_TAC: Failure.")
@@ -644,18 +682,27 @@ let (MK_COMB_TAC : tactic) =
     fun (asl, gl) -> 
         choice { 
             let fun1 l =
-                match l with
-                | [a1; a2] -> (a1, a2)
-                | _ -> 
-                    let failVal = Choice.failwith "MK_COMB_TAC.fun1: Unhandled case."
-                    failVal, failVal
+                choice {
+                    match l with
+                    | [a1; a2] -> 
+                        let! a1 = a1
+                        let! a2 = a2
+                        return (a1, a2)
+                    | _ -> 
+                        return! Choice.failwith "MK_COMB_TAC.fun1: Unhandled case."
+                }
 
             let! l, r = dest_eq gl
             let! f, x = dest_comb l
             let! g, y = dest_comb r
             let! tm1 = mk_eq(f, g)
             let! tm2 = mk_eq(x, y)
-            return (null_meta, [asl, tm1; asl, tm2], fun _ tl -> MK_COMB (fun1 tl))            
+            return (null_meta, [asl, tm1; asl, tm2], 
+                    fun _ tl -> 
+                        choice {
+                            let! (th1, th2) = fun1 tl
+                            return! MK_COMB (Choice.result th1, Choice.result th2)
+                        })            
         } 
         |> Choice.mapError (fun e -> nestedFailure e "MK_COMB_TAC: Failure.")
 
@@ -699,16 +746,17 @@ let BETA_TAC =
 /// Use an equation to substitute "safely" in goal.
 let SUBST_VAR_TAC (th : Protected<thm0>) g : goalstate = 
     choice { 
-        let! asm, eq = Choice.map dest_thm th
+        let! th = th
+        let asm, eq = dest_thm th
         let! l, r = dest_eq eq
         if aconv l r then 
             return! ALL_TAC g
         elif not(subset (frees eq) (freesl asm)) then 
             return! Choice.failwith ""
         elif (is_const l || is_var l) && not(free_in l r) then 
-            return! SUBST_ALL_TAC th g
+            return! SUBST_ALL_TAC (Choice.result th) g
         elif (is_const r || is_var r) && not(free_in r l) then
-            return! SUBST_ALL_TAC (SYM th) g
+            return! SUBST_ALL_TAC (SYM (Choice.result th)) g
         else 
             return! Choice.failwith ""
     } 
@@ -733,7 +781,8 @@ let (DISCH_TAC : tactic) =
                     fun i thl -> 
                         choice {
                             let! tm1 = instantiate i ant
-                            return! DISCH tm1 (fun1 thl)
+                            let! th1 = fun1 thl
+                            return! DISCH tm1 (Choice.result th1)
                         })
         }
         |> Choice.bindError (function
@@ -744,12 +793,14 @@ let (DISCH_TAC : tactic) =
                         | [a] -> a
                         | _ -> Choice.failwith "DISCH_TAC.fun2: Unhandled case."
                     let! ant = dest_neg w
-                    let th1 = ASSUME ant
-                    return (null_meta, [("", th1) :: asl, f_tm], 
+                    let! th1 = ASSUME ant
+                    return (null_meta, [("", Choice.result th1) :: asl, f_tm], 
                             fun i thl -> 
                                 choice {
                                     let! tm1 = instantiate i ant
-                                    return! NOT_INTRO(DISCH tm1 (fun2 thl))
+                                    let! th2 = fun2 thl
+                                    let! th3 = DISCH tm1 (Choice.result th2)
+                                    return! NOT_INTRO(Choice.result th3)
                                 })
                 }
                 |> Choice.mapError (fun e -> nestedFailure e "DISCH_TAC")
@@ -763,9 +814,16 @@ let (MP_TAC : thm_tactic) =
         | _ -> Choice.failwith "MP_TAC.fun1: Unhandled case."
     fun thm (asl, w) -> 
         choice {
-            let! tm = Choice.map concl thm
+            let! thm = thm
+            let tm = concl thm
             let! tm' = mk_imp(tm, w)
-            return (null_meta, [asl, tm'], fun i thl -> MP (fun1 thl) (INSTANTIATE_ALL i thm))        
+            return (null_meta, [asl, tm'], 
+                    fun i thl -> 
+                        choice {
+                            let! th1 = fun1 thl
+                            let! th2 = INSTANTIATE_ALL i (Choice.result thm)
+                            return! MP (Choice.result th1) (Choice.result th2)
+                        })        
         }
 
 /// Reduces goal of equality of boolean terms to forward and backward implication.
@@ -797,9 +855,15 @@ let (UNDISCH_TAC : term -> tactic) =
                     | Success asm -> aconv (concl asm) tm
                     | Error _ -> false) asl
                 |> Option.toChoiceWithError "remove"
-            let thm = snd sthm
+            let! thm = snd sthm
             let! tm' = mk_imp(tm, w)
-            return (null_meta, [asl', tm'], fun i tl -> MP (fun1 tl) (INSTANTIATE_ALL i thm))
+            return (null_meta, [asl', tm'], 
+                    fun i tl -> 
+                        choice {
+                            let! th1 = fun1 tl
+                            let! th2 = INSTANTIATE_ALL i (Choice.result thm)
+                            return! MP (Choice.result th1) (Choice.result th2)
+                        })
         }
         |> Choice.mapError (fun e -> nestedFailure e "UNDISCH_TAC: Failure.")
 
@@ -813,7 +877,13 @@ let (SPEC_TAC : term * term -> tactic) =
                 | _ -> Choice.failwith "LABEL_TAC.fun1: Unhandled case."
             let! tm1 = subst [x, t] w
             let! tm2 = mk_forall(x, tm1)
-            return (null_meta, [asl, tm2], fun i tl -> SPEC (Choice.get <| instantiate i t) (fun1 tl))
+            return (null_meta, [asl, tm2], 
+                    fun i tl -> 
+                        choice {
+                            let! tm1 = instantiate i t
+                            let! th2 = fun1 tl
+                            return! SPEC tm1 (Choice.result th2)
+                        })
         }
         |> Choice.mapError (fun e -> nestedFailure e "SPEC_TAC: Failure.")
 
@@ -831,7 +901,7 @@ let private tactic_type_compatibility_check pfx e g : Protected<_> =
 /// Specializes a goal with the given variable.
 let X_GEN_TAC x' : tactic = 
     if not(is_var x') then
-        failwith "X_GEN_TAC: not a variable"
+        fun _ -> Choice.failwith "X_GEN_TAC: not a variable"
     else 
         fun (asl, w) ->
             choice {
@@ -851,14 +921,21 @@ let X_GEN_TAC x' : tactic =
                         | [a] -> a
                         | _ -> Choice.failwith "X_GEN_TAC.fun1: Unhandled case."
                     let! tm = vsubst [x', x] bod
-                    return (null_meta, [asl, tm], fun i tl -> afn (GEN x' (fun1 tl)))
+                    return (null_meta, [asl, tm], 
+                            fun i tl -> 
+                                choice {
+                                let! th1 = fun1 tl
+                                let! th2 = GEN x' (Choice.result th1)
+                                return! afn (Choice.result th2)
+                                })
             }
 
 /// Assumes a theorem, with existentially quantified variable replaced by a given witness.
 let X_CHOOSE_TAC x' (xth : Protected<thm0>) : tactic =
     let xth' =
         choice {
-            let! xtm = Choice.map concl xth
+            let! xth = xth
+            let xtm = concl xth
             let! x, bod = 
                 dest_exists xtm
                 |> Choice.mapError (fun e -> nestedFailure e "X_CHOOSE_TAC: not existential") 
@@ -870,8 +947,10 @@ let X_CHOOSE_TAC x' (xth : Protected<thm0>) : tactic =
         }
     fun (asl, w) -> 
         choice {
+            let! xth = xth
+            let! xth' = xth'
             let! asl' = Choice.List.map snd asl
-            let! tms = Choice.map thm_frees xth
+            let tms = thm_frees xth
             let avoids = itlist (union << frees << concl) asl' (union (frees w) tms)
             if mem x' avoids then
                 return! Choice.failwith "X_CHOOSE_TAC: invalid variable"
@@ -880,7 +959,13 @@ let X_CHOOSE_TAC x' (xth : Protected<thm0>) : tactic =
                     match l with
                     | [a] -> a
                     | _ -> Choice.failwith "X_CHOOSE_TAC.fun1: Unhandled case."
-                return (null_meta, [("", xth') :: asl, w], fun i tl -> CHOOSE (x', INSTANTIATE_ALL i xth) (fun1 tl))                
+                return (null_meta, [("", Choice.result xth') :: asl, w], 
+                        fun i tl -> 
+                            choice {
+                                let! th1 = INSTANTIATE_ALL i (Choice.result xth)
+                                let! th2 = fun1 tl
+                                return! CHOOSE (x', Choice.result th1) (Choice.result th2)
+                            })                
         }
 
 /// Reduces existentially quantified goal to one involving a specific witness.
@@ -901,7 +986,8 @@ let EXISTS_TAC t : tactic =
                         choice {
                             let! tm1 = instantiate i w
                             let! tm2 = instantiate i t
-                            return! EXISTS (tm1, tm2) (fun1 tl)
+                            let! th1 = fun1 tl
+                            return! EXISTS (tm1, tm2) (Choice.result th1)
                         })
         }
 
@@ -959,7 +1045,8 @@ let (DISJ1_TAC : tactic) =
                 fun i tl -> 
                     choice {
                         let! tm1 = instantiate i r
-                        return! DISJ1 (fun1 tl) tm1
+                        let! th1 = fun1 tl
+                        return! DISJ1 (Choice.result th1) tm1
                     })
         }
         |> Choice.mapError (fun e -> nestedFailure e "DISJ1_TAC: Failure.")
@@ -977,7 +1064,8 @@ let (DISJ2_TAC : tactic) =
                 fun i tl -> 
                     choice {
                         let! tm1 = instantiate i l
-                        return! DISJ2 tm1 (fun1 tl)
+                        let! th1 = fun1 tl
+                        return! DISJ2 tm1 (Choice.result th1)
                     })
         }
         |> Choice.mapError (fun e -> nestedFailure e "DISJ2_TAC: Failure.")
@@ -989,14 +1077,19 @@ let (DISJ_CASES_TAC : thm_tactic) =
             match l with
             | [th1; th2] -> DISJ_CASES (INSTANTIATE_ALL i dth) th1 th2
             | _ -> Choice.failwith "DISJ_CASES_TAC.fun1: Unhandled case."
-        let dtm = Choice.map concl dth
-        let lr = Choice.bind dest_disj dtm
-        let thl = lr |> Choice.bind (fun (l, _) -> ASSUME l)
-        let thr = lr |> Choice.bind (fun (_, r) -> ASSUME r)
+        let v = 
+            choice {
+                let! dth = dth
+                let dtm = concl dth
+                let! (l, r) = dest_disj dtm
+                let! thl = ASSUME l
+                let! thr = ASSUME r
+                return (l, r, thl, thr)
+            }
         fun (asl, w) -> 
             choice {
-                let! l, r = lr
-                return (null_meta, [("", thl) :: asl, w; ("", thr) :: asl, w], fun i tl -> fun1 tl i)            
+                let! l, r, thl, thr = v
+                return (null_meta, [("", Choice.result thl) :: asl, w; ("", Choice.result thr) :: asl, w], fun i tl -> fun1 tl i)            
             }
             |> Choice.mapError (fun e -> nestedFailure e "DISJ_CASES_TAC: Failure.")
 
@@ -1008,7 +1101,9 @@ let (CONTR_TAC : thm_tactic) =
         | _ -> Choice.failwith "CONTR_TAC.propagate_thm: Unhandled case."
     fun cth (asl, w) -> 
         choice { 
-            let th = CONTR w cth
+            let! cth = cth
+            // CAUTION: it's extremely weird that if I return early in case th is an error, ITAUT function doesn't terminate
+            let th = CONTR w (Choice.result cth)
             return (null_meta, [], propagate_thm th)
         }
         |> Choice.mapError (fun e -> nestedFailure e "CONTR_TAC: Failure.")
@@ -1021,8 +1116,9 @@ let (MATCH_ACCEPT_TAC : thm_tactic) =
         | _ -> Choice.failwith "MATCH_ACCEPT_TAC.propagate_thm: Unhandled case."
     let rawtac th (asl,w) =
         choice {
-            let ith = PART_MATCH Choice.result th w
-            return (null_meta, [], propagate_thm ith)
+            let! th = th
+            let! ith = PART_MATCH Choice.result (Choice.result th) w
+            return (null_meta, [], propagate_thm (Choice.result ith))
         }
         |> Choice.mapError (fun e -> nestedFailure e "ACCEPT_TAC")
     fun th -> REPEAT GEN_TAC |> THEN <| rawtac th
@@ -1032,15 +1128,20 @@ let (MATCH_MP_TAC : thm_tactic) =
     fun th -> 
         let sth = 
             choice { 
-                let! tm = Choice.map concl th
+                let! th = th
+                let tm = concl th
                 let avs, bod = strip_forall tm
                 let! ant, con = dest_imp bod
                 let th1 = SPECL avs (ASSUME tm)
                 let th2 = UNDISCH th1
                 let evs = filter (fun v -> vfree_in v ant && not(vfree_in v con)) avs
-                let th3 = itlist SIMPLE_CHOOSE evs (DISCH tm th2)
-                let! tm3 = Choice.map (hd << hyp) th3
-                return! MP (DISCH tm (GEN_ALL(DISCH tm3 (UNDISCH th3)))) th
+                let! th3 = itlist SIMPLE_CHOOSE evs (DISCH tm th2)
+                let! tm3 = Choice.map (hd << hyp) (Choice.result th3)
+                let! th4 = UNDISCH (Choice.result th3)
+                let! th5 = DISCH tm3 (Choice.result th4)
+                let! th6 = GEN_ALL (Choice.result th5)
+                let! th7 = DISCH tm (Choice.result th6)
+                return! MP (Choice.result th7) (Choice.result th)
             }
             |> Choice.mapError (fun e -> nestedFailure e "MATCH_MP_TAC: Bad theorem")
 
@@ -1053,10 +1154,16 @@ let (MATCH_MP_TAC : thm_tactic) =
                     match l with
                     | [a] -> a
                     | _ -> Choice.failwith "MATCH_MP_TAC.fun1: Unhandled case."
-                let xth = match_fun w
-                let! tm1 = Choice.map concl xth
+                let! xth = match_fun w
+                let tm1 = concl xth
                 let! (lant, _) = dest_imp tm1
-                return (null_meta, [asl, lant], fun i tl -> MP (INSTANTIATE_ALL i xth) (fun1 tl))
+                return (null_meta, [asl, lant], 
+                        fun i tl -> 
+                            choice {
+                                let! th1 = INSTANTIATE_ALL i (Choice.result xth)
+                                let! th2 = fun1 tl
+                                return! MP (Choice.result th1) (Choice.result th2)
+                            })
             }
             |> Choice.mapError (fun e -> nestedFailure e "MATCH_MP_TAC: No match")
 
@@ -1074,9 +1181,14 @@ let (CONJUNCTS_THEN2 : thm_tactic -> thm_tactic -> thm_tactic) =
                 let! (ti, gls, jfn) = (ttac1(ASSUME c1) |> THEN <| ttac2(ASSUME c2)) gl
                 
                 let jfn' i ths =
-                    let th1, th2 = CONJ_PAIR(INSTANTIATE_ALL i cth)
-                    PROVE_HYP th1 (PROVE_HYP th2 (jfn i ths))
-
+                    choice {
+                        let th1, th2 = CONJ_PAIR(INSTANTIATE_ALL i cth)
+                        let! th1 = th1
+                        let! th2 = th2
+                        let! th3 = jfn i ths
+                        let! th4 = PROVE_HYP (Choice.result th2) (Choice.result th3)
+                        return! PROVE_HYP (Choice.result th1) (Choice.result th4)
+                    }
                 return (ti, gls, jfn')                
             }
 
@@ -1190,14 +1302,16 @@ let (UNDISCH_THEN : term -> thm_tactic -> tactic) =
                     | Error _ -> false) asl
                 |> Option.toChoiceWithError "remove"
 
-            return! ttac (snd thp) (asl', w)
+            let! th = snd thp
+            return! ttac (Choice.result th) (asl', w)
         }
 
 /// Applies theorem-tactic to first assumption possible, extracting assumption.
 let FIRST_X_ASSUM ttac = 
     FIRST_ASSUM (fun th g -> 
         choice {
-            let! tm = Choice.map concl th
+            let! th = th
+            let tm = concl th
             return! UNDISCH_THEN tm ttac g
         })
 
@@ -1210,7 +1324,13 @@ let SUBGOAL_THEN : term -> thm_tactic -> tactic =
     fun wa ttac (asl, w) -> 
         choice {
             let! (meta, gl, just) = ttac (ASSUME wa) (asl, w)
-            return(meta, (asl, wa) :: gl, fun i l -> PROVE_HYP (hd l) (just i (tl l)))            
+            return(meta, (asl, wa) :: gl, 
+                   fun i l -> 
+                        choice {
+                            let! th1 = hd l
+                            let! th2 = just i (tl l)
+                            return! PROVE_HYP (Choice.result th1) (Choice.result th2)
+                        })            
         }
 
 /// Encloses the sub-proof of a named lemma.
@@ -1225,9 +1345,15 @@ let SUBGOAL_TAC s tm prfs =
 let (FREEZE_THEN : thm_tactical) = 
     fun ttac th (asl, w) -> 
         choice {
-            let! tm = Choice.map concl th
+            let! th = th
+            let tm = concl th
             let! (meta, gl, just) = ttac (ASSUME tm) (asl, w)
-            return(meta, gl, fun i l -> PROVE_HYP th (just i l))            
+            return(meta, gl, 
+                   fun i l -> 
+                        choice {
+                            let! th1 = just i l
+                            return! PROVE_HYP (Choice.result th) (Choice.result th1)
+                        })            
         }
 
 (* ------------------------------------------------------------------------- *)
@@ -1252,7 +1378,8 @@ let (X_META_EXISTS_TAC : term -> tactic) =
                             choice {
                                 let! tm1 = instantiate i w
                                 let! tm2 = instantiate i t
-                                return! EXISTS (tm1, tm2) (fun1 tl)
+                                let! th1 = fun1 tl
+                                return! EXISTS (tm1, tm2) (Choice.result th1)
                             })                
         }
         |> Choice.mapError (fun e -> nestedFailure e "X_META_EXISTS_TAC: Failure.")
@@ -1281,7 +1408,8 @@ let META_SPEC_TAC : term -> Protected<thm0> -> tactic =
                     fun i tl -> 
                         choice {
                             let! tm1 = instantiate i t
-                            return! PROVE_HYP (SPEC tm1 thm) (fun1 tl)
+                            let! th1 = SPEC tm1 thm
+                            return! PROVE_HYP (Choice.result th1) (fun1 tl)
                         })            
         }
 
@@ -1291,7 +1419,11 @@ let META_SPEC_TAC : term -> Protected<thm0> -> tactic =
 
 /// Proves goal by asserting it as an axiom.
 let (CHEAT_TAC : tactic) = 
-    fun (asl, w) -> ACCEPT_TAC (mk_thm([], w)) (asl, w)
+    fun (asl, w) -> 
+        choice {
+            let! th = mk_thm([], w)
+            return! ACCEPT_TAC (Choice.result th) (asl, w)
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Intended for time-consuming rules; delays evaluation till it sees goal.   *)
@@ -1299,7 +1431,10 @@ let (CHEAT_TAC : tactic) =
 
 /// Delay evaluation of theorem-producing function till needed.
 let RECALL_ACCEPT_TAC r a g = 
-    ACCEPT_TAC (time r a) g
+    choice {
+        let! th = time r a
+        return! ACCEPT_TAC (Choice.result th) g
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Split off antecedent of antecedent as a subgoal.                          *)
@@ -1492,24 +1627,25 @@ fsi.AddPrinter string_of_goalstate
 /// Converts a tactic to a refinement.
 let by : tactic -> refinement = 
     fun tac g ->
-        g
-        |> Choice.bind (fun ((mvs, inst), gls, just) -> 
-        if gls = [] then Choice.failwith "No goal set"
+        choice {
+        let! ((mvs, inst), gls, just) = g
+        if gls = [] then 
+            return! Choice.failwith "No goal set"
         else 
             let g = hd gls
             let ogls = tl gls
-            tac g
-            |> Choice.bind (fun ((newmvs, newinst), subgls, subjust) ->
-                let n = length subgls
-                let mvs' = union newmvs mvs
-                let inst' = compose_insts inst newinst
-                let gls' = subgls @ map (inst_goal newinst) ogls
-                let just' i ths = 
-                    let i' = compose_insts inst' i
-                    let cths, oths = chop_list n ths
-                    let sths = (subjust i cths) :: oths
-                    just i' sths
-                Choice.result <| ((mvs', inst'), gls', just')))
+            let! ((newmvs, newinst), subgls, subjust) = tac g
+            let n = length subgls
+            let mvs' = union newmvs mvs
+            let inst' = compose_insts inst newinst
+            let gls' = subgls @ map (inst_goal newinst) ogls
+            let just' i ths = 
+                let i' = compose_insts inst' i
+                let cths, oths = chop_list n ths
+                let sths = (subjust i cths) :: oths
+                just i' sths
+            return ((mvs', inst'), gls', just')
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Rotate the goalstate either way.                                          *)
@@ -1518,20 +1654,24 @@ let by : tactic -> refinement =
 /// Rotate a goalstate.
 let rotate : int -> refinement = 
     let rotate_p p =
-        p |> Choice.bind (fun (meta, sgs, just) ->
-                let sgs' = (tl sgs) @ [hd sgs]
-                let just' i ths = 
-                    let ths' = (last ths) :: (butlast ths)
-                    just i ths'
-                Choice.result <| (meta, sgs', just'))
+        choice {
+            let! (meta, sgs, just) = p
+            let sgs' = (tl sgs) @ [hd sgs]
+            let just' i ths = 
+                let ths' = (last ths) :: (butlast ths)
+                just i ths'
+            return (meta, sgs', just')
+        }
 
     let rotate_n n =
-        n |> Choice.bind (fun (meta, sgs, just) ->
-                let sgs' = (last sgs) :: (butlast sgs)
-                let just' i ths = 
-                    let ths' = (tl ths) @ [hd ths]
-                    just i ths'
-                Choice.result <| (meta, sgs', just'))
+        choice {
+            let! (meta, sgs, just) = n
+            let sgs' = (last sgs) :: (butlast sgs)
+            let just' i ths = 
+                let ths' = (tl ths) @ [hd ths]
+                just i ths'
+            return (meta, sgs', just')
+        }
 
     fun n -> 
         if n > 0
@@ -1552,7 +1692,12 @@ let (mk_goalstate : goal -> goalstate) =
                     match l with
                     | [a] -> a
                     | _ -> Choice.failwith "mk_goalstate.fun1: Unhandled case."
-                return (null_meta, [asl, w], (fun inst tl -> INSTANTIATE_ALL inst (fun1 tl))) 
+                return (null_meta, [asl, w], 
+                        fun inst tl -> 
+                            choice {
+                                let! th1 = fun1 tl
+                                return! INSTANTIATE_ALL inst (Choice.result th1)
+                            }) 
             else 
                 return! Choice.failwith "mk_goalstate: Non-boolean goal"
         }
@@ -1570,7 +1715,7 @@ let (TAC_PROOF : goal * tactic -> Protected<thm0>) =
                 let ex =
                     let msg =
                         let goalOrGoals = if List.length sgs = 1 then "goal" else "goals"
-                        Microsoft.FSharp.Core.Printf.sprintf "TAC_PROOF: %i unsolved %s" (List.length sgs) goalOrGoals
+                        Printf.sprintf "TAC_PROOF: %i unsolved %s" (List.length sgs) goalOrGoals
                     exn msg
                 if not <| isNull ex.Data then
                     ex.Data.["UnsolvedGoals"] <- sgs
@@ -1596,7 +1741,8 @@ let prove(t, tac) : Protected<thm0> =
             logger.Info(Printf.sprintf "Proved \"%s\"" (string_of_term t))
             Choice.result th
         | Error e ->
-            logger.Error(Printf.sprintf "Failed at proving \"%s\"" (string_of_term t))
+            logger.Error(Printf.sprintf "Failed at proving \"%s\"." (string_of_term t))
+            logger.Error(Printf.sprintf "Currently return %O" e)
             Choice.error e
 
 (* ------------------------------------------------------------------------- *)
