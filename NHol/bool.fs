@@ -288,9 +288,14 @@ let CONJUNCT2 =
         |> Choice.mapError (fun e -> nestedFailure e "CONJUNCT2") : Protected<thm0>
 
 /// Extracts both conjuncts of a conjunction.
-let CONJ_PAIR th = 
-    // TODO: this doesn't seem correct
-    CONJUNCT1 th, CONJUNCT2 th
+let CONJ_PAIR th : Protected<thm0> * Protected<thm0> = 
+    choice {
+        let! th = th
+        let! th1 = CONJUNCT1 (Choice.result th)
+        let! th2 = CONJUNCT2 (Choice.result th)
+        return Choice.result th1, Choice.result th2
+    }
+    |> Choice.getOrFailure2 "CONJ_PAIR"
 
 /// Recursively splits conjunctions into a list of conjuncts.
 let CONJUNCTS = striplist (fun th ->
