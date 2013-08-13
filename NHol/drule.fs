@@ -109,9 +109,9 @@ let pp_print_list_inttrm fmt (al : (int * term) list) =
             pp_print_break fmt 0 0
             pp_print_list_inttrmInner fmt tl
         | [] -> ()
-    if al.Length = 0
-    then pp_print_string fmt "No items"
-    else
+    if al.Length = 0 then 
+        pp_print_string fmt "No items"
+    else 
         pp_open_hvbox fmt 0
         pp_print_list_inttrmInner fmt al
         pp_close_box fmt ()
@@ -133,9 +133,9 @@ let pp_print_list_trmtrm fmt (al : (term * term) list) =
             pp_print_break fmt 0 0
             pp_print_list_trmtrmInner fmt tl
         | [] -> ()
-    if al.Length = 0
-    then pp_print_string fmt "No items"
-    else
+    if al.Length = 0 then 
+        pp_print_string fmt "No items"
+    else 
         pp_open_hvbox fmt 0
         pp_print_list_trmtrmInner fmt al
         pp_close_box fmt ()
@@ -166,13 +166,23 @@ let mk_thm(asl, c) : Protected<thm0> =
 let MK_CONJ = 
     let andtm = parse_term @"(/\)"
     fun eq1 eq2 ->
-        MK_COMB(AP_TERM andtm eq1, eq2)
+        choice {
+            let! eq1 = eq1
+            let! eq2 = eq2
+            let! th1 = AP_TERM andtm (Choice.result eq1)
+            return! MK_COMB(Choice.result th1, Choice.result eq2)
+        }
 
 /// Disjoin both sides of two equational theorems.
 let MK_DISJ = 
     let ortm = parse_term @"(\/)"
     fun eq1 eq2 ->
-        MK_COMB(AP_TERM ortm eq1, eq2)
+        choice {
+            let! eq1 = eq1
+            let! eq2 = eq2
+            let! th1 = AP_TERM ortm (Choice.result eq1)
+            return! MK_COMB(Choice.result th1, Choice.result eq2)
+        }
 
 /// Universally quantifies both sides of equational theorem.
 let MK_FORALL = 
@@ -193,7 +203,8 @@ let MK_EXISTS =
             let! tm = atm
             let! ty = type_of v
             let! tm' = inst [ty, aty] tm
-            return! AP_TERM tm' (ABS v th)
+            let! th1 = ABS v th
+            return! AP_TERM tm' (Choice.result th1)
         } : Protected<thm0>
 
 (* ------------------------------------------------------------------------- *)
@@ -205,11 +216,11 @@ let MP_CONV (cnv : conv) (th : Protected<thm0>) : Protected<thm0> =
     choice {
     let! th = th
     let! l, r = dest_imp <| concl th
-    let ath = cnv l
+    let! ath = cnv l
+    let! th1 = EQT_ELIM (Choice.result ath)
     return!
-        let th = Choice.result th in
-        MP th (EQT_ELIM ath)
-        |> Choice.bindError (function Failure _ -> MP th ath | e -> Choice.error e)
+        MP (Choice.result th) (Choice.result th1)
+        |> Choice.bindError (function Failure _ -> MP (Choice.result th) (Choice.result ath) | e -> Choice.error e)
     }    
 
 (* ------------------------------------------------------------------------- *)
@@ -331,39 +342,42 @@ let INSTANTIATE : instantiation -> Protected<thm0> -> Protected<thm0> =
             choice {
                 let! bv, bod = dest_abs tm
                 let! tm' = body pat
-                return! ABS bv (HO_BETAS bcs tm' bod)
+                let! th1 = HO_BETAS bcs tm' bod
+                return! ABS bv (Choice.result th1)
             }
             |> Choice.bindError (function
                 | Failure _ ->
+                choice {
                     let hop, args = strip_comb pat
-                    rev_assoc hop bcs
-                    |> Option.toChoiceWithError "find"
-                    |> Choice.bind (fun n ->
-                        if length args = n then
-                            BETAS_CONV n tm
-                        else
-                            Choice.fail ())
-                    |> Choice.bindError (function
-                        | Failure _ ->
-                            choice {
-                                let! lpat, rpat = dest_comb pat
-                                let! ltm, rtm = dest_comb tm
+                    let! n = rev_assoc hop bcs
+                             |> Option.toChoiceWithError "find"
+                
+                    if length args = n then
+                        return! BETAS_CONV n tm
+                    else
+                        return! Choice.fail ()
+                }
+                |> Choice.bindError (function
+                    | Failure _ ->
+                        choice {
+                            let! lpat, rpat = dest_comb pat
+                            let! ltm, rtm = dest_comb tm
                         
-                                let! lth = HO_BETAS bcs lpat ltm
-                                let! rth = HO_BETAS bcs rpat rtm
-                                return!
-                                    let lth = Choice.result lth in
-                                    let rth = Choice.result rth in
-                                    MK_COMB(lth, rth)
-                                    |> Choice.bindError (fun _ ->
-                                        AP_THM lth rtm)
-                                    |> Choice.bindError (fun _ ->
-                                        choice {
-                                        let! rth = HO_BETAS bcs rpat rtm
-                                        return! AP_TERM ltm (Choice.result rth)
-                                        })
-                            }
-                         | e -> Choice.error e)
+                            let! lth = HO_BETAS bcs lpat ltm
+                            let! rth = HO_BETAS bcs rpat rtm
+                            return!
+                                let lth = Choice.result lth in
+                                let rth = Choice.result rth in
+                                MK_COMB(lth, rth)
+                                |> Choice.bindError (fun _ ->
+                                    AP_THM lth rtm)
+                                |> Choice.bindError (fun _ ->
+                                    choice {
+                                    let! rth = HO_BETAS bcs rpat rtm
+                                    return! AP_TERM ltm (Choice.result rth)
+                                    })
+                        }
+                        | e -> Choice.error e)
                  | e -> Choice.error e)
 
     fun (bcs, tmin, tyin) th ->
@@ -700,47 +714,66 @@ let term_match : term list -> term -> term -> Protected<_> =
 /// Unify two terms.
 let term_unify : term list -> term -> term -> Protected<_> = 
     let augment1 sofar (s, x) = 
-        let s' = Choice.get <| subst sofar s
-        if vfree_in x s && not(s = x) then
-            failwith "augment_insts"
-        else (s', x)
+        choice {
+            let! s' = subst sofar s
+            if vfree_in x s && not(s = x) then
+                return! Choice.failwith "augment_insts"
+            else 
+                return (s', x)
+        }
 
-    let raw_augment_insts p insts =
-        p :: (map (augment1 [p]) insts)
+    let raw_augment_insts p insts : Protected<_> =
+        choice {
+            let! ps = Choice.List.map (augment1 [p]) insts
+            return p :: ps
+        }
 
     let augment_insts (t, v) insts =
-        let t' = Choice.get <| vsubst insts t
-        if t' = v then insts
-        elif vfree_in v t' then
-            failwith "augment_insts"
-        else raw_augment_insts (t', v) insts
+        choice {
+            let! t' = vsubst insts t
+            if t' = v then 
+                return insts
+            elif vfree_in v t' then
+                return! Choice.failwith "augment_insts"
+            else 
+                return! raw_augment_insts (t', v) insts
+        }
 
     let rec unify vars tm1 tm2 sofar = 
-        if tm1 = tm2 then sofar
-        elif is_var tm1 && mem tm1 vars then
-            match rev_assoc tm1 sofar with
-            | Some tm1' ->
-                unify vars tm1' tm2 sofar
-            | None ->
-                augment_insts (tm2, tm1) sofar
-        elif is_var tm2 && mem tm2 vars then
-            match rev_assoc tm2 sofar with
-            | Some tm2' ->
-                unify vars tm1 tm2' sofar
-            | None ->
-                augment_insts (tm1, tm2) sofar
-        elif is_abs tm1 then 
-            let tm1' = Choice.get <| body tm1
-            let tm2' = Choice.get <| subst [Choice.get <| bndvar tm1, Choice.get <| bndvar tm2] (Choice.get <| body tm2)
-            unify vars tm1' tm2' sofar
-        else 
-            let l1, r1 = Choice.get <| dest_comb tm1
-            let l2, r2 = Choice.get <| dest_comb tm2
-            unify vars l1 l2 (unify vars r1 r2 sofar)
+        choice {
+            if tm1 = tm2 then 
+                return sofar
+            elif is_var tm1 && mem tm1 vars then
+                match rev_assoc tm1 sofar with
+                | Some tm1' ->
+                    return! unify vars tm1' tm2 sofar
+                | None ->
+                    return! augment_insts (tm2, tm1) sofar
+            elif is_var tm2 && mem tm2 vars then
+                match rev_assoc tm2 sofar with
+                | Some tm2' ->
+                    return! unify vars tm1 tm2' sofar
+                | None ->
+                    return! augment_insts (tm1, tm2) sofar
+            elif is_abs tm1 then 
+                let! tm1' = body tm1
+                let! tm4 = bndvar tm1
+                let! tm5 = bndvar tm2
+                let! tm6 = body tm2
+                let! tm2' = subst [tm4, tm5] tm6
+                return! unify vars tm1' tm2' sofar
+            else 
+                let! l1, r1 = dest_comb tm1
+                let! l2, r2 = dest_comb tm2
+                let! tm3 = unify vars r1 r2 sofar
+                return! unify vars l1 l2 tm3
+        }
 
     fun vars tm1 tm2 -> 
-        Choice.attempt <| fun () ->
-            [], unify vars tm1 tm2 [], []
+        choice {
+            let! tms = unify vars tm1 tm2 []
+            return [], tms, []
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Modify bound variable names at depth. (Not very efficient...)             *)
@@ -843,29 +876,27 @@ let (PART_MATCH : (term -> Protected<_>) -> _ -> _ -> Protected<_>), (GEN_PART_M
                 let! (sth, bod, pbod, lconsts) = v
                 let bvms = match_bvs tm pbod []
                 let! abod = deep_alpha bvms bod
-                let ath = EQ_MP (ALPHA bod abod) sth
+                let! ath = EQ_MP (ALPHA bod abod) sth
                 let! tm1 = partfn abod
                 let! insts = term_match lconsts tm1 tm
-                let fth = INSTANTIATE insts ath
-                let! fth' = fth
-                let! ath' = ath
-                if hyp fth' <> hyp ath' then 
+                let! fth = INSTANTIATE insts (Choice.result ath)
+                if hyp fth <> hyp ath then 
                     return! Choice.failwith "PART_MATCH: instantiated hyps"
                 else 
-                    let! tm' = Choice.bind (partfn << concl) fth
+                    let! tm' = partfn <| concl fth
                     if compare tm' tm = 0 then 
-                        return! fth
+                        return fth
                     else 
                         return!
-                            SUBS [ALPHA tm' tm] fth
+                            SUBS [ALPHA tm' tm] (Choice.result fth)
                             |> Choice.mapError (fun e -> nestedFailure e "PART_MATCH: Sanity check failure")
             }
 
     let GEN_PART_MATCH partfn (th : Protected<thm0>) = 
         let v =
             choice {
-            let sth = SPEC_ALL th
-            let! bod = Choice.map concl sth
+            let! sth = SPEC_ALL th
+            let bod = concl sth
             let! pbod = partfn bod
             let! tm0 = Choice.map concl th
             let! tl = Choice.map hyp th
@@ -878,10 +909,12 @@ let (PART_MATCH : (term -> Protected<_>) -> _ -> _ -> Protected<_>), (GEN_PART_M
             let! (sth, bod, pbod, lconsts, fvs) = v
             let bvms = match_bvs tm pbod []
             let! abod = deep_alpha bvms bod
-            let! ath = EQ_MP (ALPHA bod abod) sth
+            let! th1 = ALPHA bod abod
+            let! ath = EQ_MP (Choice.result th1) (Choice.result sth)
             let! tm1 = partfn abod
             let! insts = term_match lconsts tm1 tm
-            let! eth = INSTANTIATE insts (GENL fvs (Choice.result ath))
+            let! th2 = GENL fvs (Choice.result ath)
+            let! eth = INSTANTIATE insts (Choice.result th2)
             let fth =
                 (fvs, eth)
                 ||> itlist (fun v th ->
@@ -950,74 +983,124 @@ let HIGHER_REWRITE_CONV =
 
         let rec free_beta v tm = 
             if is_abs tm then 
+                // Choice.get is safe to use here
                 let bv, bod = Choice.get <| dest_abs tm
                 if v = bv then
-                    failwith "unchanged"
+                    fun _ -> Choice.failwith "unchanged"
                 else
                     ABS_CONV(free_beta v bod)
             else
                 let op, args = strip_comb tm
                 if args = [] then
-                    failwith "unchanged"
+                    fun _ -> Choice.failwith "unchanged"
                 elif op = v then
                     BETA_CONVS(length args)
                 else
-                    let l, r = Choice.get <| dest_comb tm
-                    try 
-                        let lconv = free_beta v l
-                        try 
-                             let rconv = free_beta v r
-                             COMB2_CONV lconv rconv
-                        with Failure _ ->
-                            RATOR_CONV lconv
-                    with Failure _ ->
-                        RAND_CONV(free_beta v r)
+                    let lr = dest_comb tm
+                    // NOTE: review this
+                    // The original version raises an exception in initialization
+                    // We have to evaluate the function with some input in order to determine errors
+                    fun tm ->
+                        choice {
+                        let! (l, r) = lr
+                        return!
+                            choice { 
+                                let lconv = free_beta v l
+                                // Evaluate with tm to spot errors
+                                let! _ = lconv tm
+                                return!
+                                    choice { 
+                                        let rconv = free_beta v r
+                                        // Evaluate with tm to spot errors
+                                        let! _ = rconv tm
+                                        return! COMB2_CONV lconv rconv tm
+                                    }
+                                    |> Choice.bindError (function
+                                        | Failure _ ->
+                                            RATOR_CONV lconv tm
+                                        | e -> Choice.error e)
+                            }
+                            |> Choice.bindError (function
+                                | Failure _ ->
+                                    choice {
+                                        let conv = free_beta v r
+                                        // Evaluate with tm to spot errors
+                                        let! _ = conv tm
+                                        return! RAND_CONV conv tm
+                                    }
+                                | e -> Choice.error e)
+                        }
         free_beta
 
     let GINST (th : Protected<thm0>) =
-        let fvs =
-            let th' = Choice.get th
-            subtract (frees <| concl th') (freesl <| hyp th')
-        let gvs = map (genvar << Choice.get << type_of) fvs
-        INST (zip gvs fvs) th
+        choice {
+            let! th = th
+            let fvs = subtract (frees <| concl th) (freesl <| hyp th)
+            let! gvs = Choice.List.map (Choice.map genvar << type_of) fvs
+            return! INST (zip gvs fvs) (Choice.result th)
+        }
 
     let higher_rewrite_conv ths =
-        let thl = map (GINST << SPEC_ALL) ths
-        let concs = map (concl << Choice.get) thl
-        let lefts = map (Choice.get << lhs) concs
-        let preds, pats = unzip(map (Choice.get << dest_comb) lefts)
-        let beta_fns = map2 BETA_VAR preds concs
-        let ass_list = zip pats (zip preds (zip thl beta_fns))
-        let mnet = itlist (fun p n -> Choice.get <| enter [] (p, p) n) pats empty_net
+        let v = 
+            choice {
+                let! thl = Choice.List.map (GINST << SPEC_ALL) ths
+                let concs = map concl thl
+                let! lefts = Choice.List.map lhs concs
+                let! lefts' = Choice.List.map dest_comb lefts
+                let preds, pats = unzip lefts'
+                let beta_fns = map2 BETA_VAR preds concs
+                let ass_list = zip pats (zip preds (zip thl beta_fns))
+                let! mnet = Choice.List.foldBack (fun p n -> enter [] (p, p) n) pats empty_net
+                return (thl, ass_list, mnet)
+            }
+
         let look_fn t =
-            // CLEAN : Rename this value to something reasonable.
-            let foo1 = Choice.get <| lookup t mnet
-            foo1
-            |> mapfilter (fun p ->
-                if Choice.isResult <| term_match [] p t then
-                    Some p
-                else None) 
+            choice {
+                // CLEAN : Rename this value to something reasonable.
+                let! (thl, ass_list, mnet) = v
+                let! foo1 = lookup t mnet
+                return
+                    foo1
+                    |> mapfilter (fun p ->
+                        if Choice.isResult <| term_match [] p t then
+                            Some p
+                        else None) 
+            }
 
         fun top tm -> 
-            let pred t = not(look_fn t = []) && free_in t tm
-            let stm = 
-                if top then
-                    Choice.get <| find_term pred tm
-                else
-                    hd(sort free_in (Choice.get <| find_terms pred tm))
-            let pat = hd(look_fn stm)
-            let _, tmin, tyin = Choice.get <| term_match [] pat stm
-            let pred, (th, beta_fn) =
-                assoc pat ass_list
-                |> Option.getOrFailWith "find"
-            let gv = genvar(Choice.get <| type_of stm)
-            let abs = Choice.get <| mk_abs(gv, Choice.get <| subst [gv, stm] tm)
-            let _, tmin0, tyin0 = Choice.get <| term_match [] pred abs
-            CONV_RULE beta_fn (INST tmin (INST tmin0 (INST_TYPE tyin0 th)))
+            choice {
+                // NOTE: suppress errors in look_fn
+                let pred t = not(look_fn t = Choice.result []) && free_in t tm
+
+                let! (thl, ass_list, mnet) = v
+
+                let! stm = 
+                    choice {
+                    if top then
+                        return! find_term pred tm
+                    else
+                        let! tms = find_terms pred tm
+                        return hd(sort free_in tms)
+                    }
+                let! stm' = look_fn stm
+                let pat = hd stm'
+                let! _, tmin, tyin = term_match [] pat stm
+                let! pred, (th, beta_fn) =
+                    assoc pat ass_list
+                    |> Option.toChoiceWithError "find"
+                let! ty1 = type_of stm
+                let gv = genvar ty1
+                let! tm1 = subst [gv, stm] tm
+                let! abs = mk_abs(gv, tm1)
+                let! _, tmin0, tyin0 = term_match [] pred abs
+                let! th1 = INST_TYPE tyin0 (Choice.result th)
+                let! th2 = INST tmin0 (Choice.result th1)
+                let! th3 = INST tmin (Choice.result th2)
+                return! CONV_RULE beta_fn (Choice.result th3)
+            }
 
     fun ths top tm ->
-        (Choice.attemptNested <| fun () ->
-            higher_rewrite_conv ths top tm) : Protected<thm0>
+        higher_rewrite_conv ths top tm : Protected<thm0>
 
 (* ------------------------------------------------------------------------- *)
 (* Derived principle of definition justifying |- c x1 .. xn = t[x1,..,xn]    *)
@@ -1036,14 +1119,15 @@ let new_definition tm : Protected<thm0> =
             |> Choice.mapError (fun e -> nestedFailure e "new_definition: Non-variable in LHS pattern")
 
         let! def = mk_eq(lv, rtm)
-        let th1 = new_basic_definition def
+        let! th1 = new_basic_definition def
         let! th2 = 
             Choice.List.foldBack (fun tm acc -> 
                 choice {
-                    let ith = AP_THM acc tm
-                    let! tm1 = Choice.bind (rand << concl) ith
-                    return TRANS ith (BETA_CONV tm1)
-                }) largs th1
+                    let! ith = AP_THM acc tm
+                    let! tm1 = rand <| concl ith
+                    let! th2 = BETA_CONV tm1
+                    return TRANS (Choice.result ith) (Choice.result th2)
+                }) largs (Choice.result th1)
 
         let rvs = filter (not << C mem avs) largs
         return! itlist GEN rvs (itlist GEN avs th2)
