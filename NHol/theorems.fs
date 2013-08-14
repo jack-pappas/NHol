@@ -103,6 +103,7 @@ let BETA_THM =
          |> THEN <| REFL_TAC)
 
 let ABS_SIMP = 
+    logger.Info("Entering ABS_SIMP")
     prove
         ((parse_term @"!(t1:A) (t2:B). (\x. t1) t2 = t1"), 
          REPEAT GEN_TAC
@@ -201,6 +202,7 @@ do
             REWRITE_TAC [
                 EQT_INTRO(SPEC_ALL EQ_REFL);
                 IMP_CLAUSES])
+
     extend_basic_rewrites [
         REFL_CLAUSE;
         EQ_CLAUSES;
@@ -232,6 +234,7 @@ let EXISTS_UNIQUE_THM =
 (* ------------------------------------------------------------------------- *)
 (* Trivial instances of existence.                                           *)
 (* ------------------------------------------------------------------------- *)
+
 let EXISTS_REFL = 
     prove((parse_term @"!a:A. ?x. x = a"), 
           GEN_TAC
@@ -526,6 +529,7 @@ let private parse_fix =
                         | tac, [] -> tac
                         | tac, _ -> tac
                                     |> THEN <| REPEAT GEN_TAC
+
 let private parse_destruct = 
     let OBTAINL_THEN : string list -> thm_tactical = 
         EVERY_TCL << map OBTAIN_THEN
@@ -550,6 +554,7 @@ let private parse_destruct =
             |>> fst
         (label <|> obtain <|> paren) inp
     destruct
+
 let private parse_intro = 
     let number = 
         function 

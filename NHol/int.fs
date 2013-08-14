@@ -321,7 +321,7 @@ let int_sgn_th =
                            |> THEN <| ASM_REWRITE_TAC [])
          |> THEN <| MESON_TAC [is_int]);;
 #else
-    Sequent([], parse_term @"!x. real_of_int(int_sgn x) = real_sgn(real_of_int x)")
+    Choice.result <| Sequent([], parse_term @"!x. real_of_int(int_sgn x) = real_sgn(real_of_int x)")
 #endif
 
 let int_max = 

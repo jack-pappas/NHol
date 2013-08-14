@@ -164,7 +164,7 @@ let ITAUT_TAC =
     let rec ITAUT_ITERDEEP_TAC n gl = 
       // NOTE: ITAUT_TAC specifies n to be Int32.MaxValue
       // but we limit here for early termination
-      if n >= 10000 then
+      if n >= 10 then
         Choice.failwith "ITAUT_TAC: Too deep"
       else
         remark("Searching with limit " + (string n))
