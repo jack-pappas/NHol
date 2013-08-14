@@ -21,6 +21,8 @@ module Tests.NHol.equal
 
 open NHol.fusion.Hol_kernel
 open NHol.equal
+open NHol.parser
+open NHol.printer
 
 open NUnit.Framework
 open FsUnit
@@ -160,3 +162,39 @@ let ``{AP_TERM tm th} applies a function to both sides of an equational theorem`
 
     actual
     |> assertEqual (Choice.result expected)
+
+[<Test>]
+let ``{AP_THM th tm} proves equality of equal functions applied to a term``() =
+
+    parse_as_infix("=", (12, "right")) |> ignore
+    let given = ASSUME (parse_term @"(f:A->B) = (g:A->B)")
+    let actual = AP_THM given (parse_term @"(x:A)")
+    let expected = Sequent ([parse_term @"(f:A->B) = (g:A->B)"], parse_term @"((f:A->B) x) = ((g:A->B) x)")
+
+    actual
+    |> evaluate
+    |> should equal expected
+
+[<Test>]
+let ``{SYM th} swaps left-hand and right-hand sides of an equation``() =
+
+    parse_as_infix("=", (12, "right")) |> ignore
+    let given = ASSUME (parse_term @"t1:A = t2")
+    let actual = SYM given
+    let expected = Sequent ([parse_term @"t1:A = t2"], parse_term @"t2:A = t1")
+
+    actual
+    |> evaluate
+    |> should equal expected
+
+[<Test>]
+let ``{ALPHA tm1 tm2} Proves equality of alpha-equivalent terms``() =
+
+    parse_as_infix("=", (12, "right")) |> ignore
+    parse_as_binder "\\" |> ignore
+    let actual = ALPHA (parse_term @"\x:A. x") (parse_term @"\y:A. y")
+    let expected = Sequent ([], parse_term @"(\x:A. x) = (\y:A. y)")
+
+    actual
+    |> evaluate
+    |> should equal expected

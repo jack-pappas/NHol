@@ -20,6 +20,8 @@ limitations under the License.
 module Tests.NHol.fusion
 
 open NHol.fusion
+open NHol.parser
+open NHol.printer
 
 open NUnit.Framework
 open FsUnit
@@ -297,6 +299,17 @@ let ``{REFL} maps any term {t} to the corresponding theorem {|- t = t}``() =
     |> evaluate
     |> assertEqual expected
 
+[<Test>]
+let ``{EQ_MP th1 th2} equality version of modus ponens rule``() =
 
+    parse_as_infix("=", (12, "right"))|> ignore
+    let given1 = ASSUME (parse_term @"(p:bool) = (q:bool)")
+    let given2 = ASSUME (parse_term @"(p:bool)")
+    let actual = EQ_MP given1 given2
+    let expected = Sequent ([parse_term @"p:bool"; parse_term @"(p:bool) = (q:bool)"], parse_term @"q:bool")
+
+    actual
+    |> evaluate
+    |> should equal expected
 
 

@@ -51,6 +51,7 @@
     <Compile Include="preterm.fs" />
     <Compile Include="parser.fs" />
     <Compile Include="equal.fs" />
+    <Compile Include="bool.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ExtCore">
