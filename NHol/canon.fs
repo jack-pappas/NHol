@@ -1068,7 +1068,8 @@ let (ASM_FOL_TAC : tactic) =
                 return! BINOP_CONV (FOL_CONV hddata) tm
             else 
                 let op, args = strip_comb tm
-                let th = rev_itlist (C(curry MK_COMB)) (map (FOL_CONV hddata) args) (REFL op)
+                let! th' = REFL op
+                let th = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th' (map (FOL_CONV hddata) args) 
                 let! tm' = Choice.bind (rand << concl) th
                 let n = 
                     // OPTIMIZE : Replace the entire 'match' statement below with:

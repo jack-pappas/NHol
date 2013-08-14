@@ -118,7 +118,8 @@ let body tm : Protected<term> =
     |> Choice.mapError (fun e -> nestedFailure e "body: Not an abstraction")
 
 /// Iteratively constructs combinations (function applications).
-let list_mk_comb(h, t) = rev_itlist (C(curry (Choice.get << mk_comb))) t h
+let list_mk_comb(h, t) = 
+    Choice.List.fold (curry mk_comb) h t
 
 /// Iteratively constructs abstractions.
 let list_mk_abs(vs, bod) : Protected<term> = 
@@ -353,7 +354,7 @@ let list_mk_icomb cname args : Protected<term> =
                 return! type_match g tya acc
                 })
         let! tm1 = mk_const(cname, tyin)
-        return list_mk_comb(tm1, args)
+        return! list_mk_comb(tm1, args)
     }
 (* ------------------------------------------------------------------------- *)
 (* Free variables in assumption list and conclusion of a theorem.            *)
@@ -747,7 +748,7 @@ let mk_let(assigs, bod) : Protected<term> =
         let! tlb = type_of lbod
         let! (ty1, ty2) = dest_fun_ty tlb
         let! ltm = mk_const("LET", [ty1, aty; ty2, bty])
-        return list_mk_comb(ltm, lbod :: rights)
+        return! list_mk_comb(ltm, lbod :: rights)
     }
 
 (* ------------------------------------------------------------------------- *)

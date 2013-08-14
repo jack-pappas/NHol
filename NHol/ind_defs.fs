@@ -74,7 +74,8 @@ let strip_ncomb : _ -> _ -> Protected<_> =
 
 /// Apply and beta-reduce equational theorem with abstraction on RHS.
 let RIGHT_BETAS = 
-    rev_itlist (fun a -> CONV_RULE(RAND_CONV BETA_CONV) << C AP_THM a)
+    fun tms th ->
+        rev_itlist (fun a -> CONV_RULE(RAND_CONV BETA_CONV) << C AP_THM a) tms th
 
 (* ------------------------------------------------------------------------- *)
 (*      A, x = t |- P[x]                                                     *)
@@ -212,8 +213,10 @@ let derive_nonschematic_inductive_relations : conv =
                                             ) args
 
                         let th0 = MP (SPECL avs (ASSUME cls)) tth
-                        let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
-                        let th2 = EQ_MP (SYM th1) th0
+                        let! th1' = REFL rel
+                        // NOTE: revise order of arguments
+                        let! th1 = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th1' thl
+                        let th2 = EQ_MP (SYM (Choice.result th1)) th0
                         let th3 = INST yes (DISCH atm th2)
                         let! tm3 = Choice.bind (lhand << concl) th3
                         let! tm4 = Choice.funpow (length yes) rand tm3
@@ -238,8 +241,9 @@ let derive_nonschematic_inductive_relations : conv =
                                             }) ths
                                         |> Choice.bind (Option.toChoiceWithError "find")) args
                         let th0 = SPECL avs (ASSUME cls)
-                        let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
-                        let th2 = EQ_MP (SYM th1) th0
+                        let! th1' = REFL rel
+                        let! th1 = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th1' thl
+                        let th2 = EQ_MP (SYM (Choice.result th1)) th0
                         let th3 = INST yes (DISCH atm th2)
                         let! tm3 = Choice.bind (lhand << concl) th3
                         let! tm4 = Choice.funpow (length yes) rand tm3
@@ -467,9 +471,11 @@ let MONO_TAC : goal -> Protected<goalstate0> =
             let rnum = length vars - 1
             let! hd1, args1 = strip_ncomb rnum ant
             let! hd2, args2 = strip_ncomb rnum con
-            let th1 = rev_itlist (C AP_THM) args1 (BETA_CONV hd1)
-            let th2 = rev_itlist (C AP_THM) args1 (BETA_CONV hd2)
-            let th3 = MK_COMB(AP_TERM imp th1, th2)
+            let! hd1' = BETA_CONV hd1
+            let! th1 = Choice.List.fold (fun acc x -> AP_THM (Choice.result acc) x) hd1' args1
+            let! hd2' = BETA_CONV hd2
+            let! th2 = Choice.List.fold (fun acc x -> AP_THM (Choice.result acc) x) hd2' args1
+            let th3 = MK_COMB(AP_TERM imp (Choice.result th1), Choice.result th2)
             return! CONV_TAC (REWR_CONV th3) (asl, w)
         }
 
@@ -602,7 +608,8 @@ let prove_inductive_relations_exist, new_inductive_definition =
             let! tms1 = Choice.List.map (Choice.bind lhs << Choice.map concl) dths
             let! tms2 = Choice.List.map lhs defs
             let insts = zip tms1 tms2
-            return! rev_itlist (C MP) dths (INST insts (itlist DISCH defs th))
+            let! th1 = INST insts (itlist DISCH defs th)
+            return! Choice.List.fold (fun acc x -> MP (Choice.result acc) x) th1 dths
         }
 
     let unschematize_clauses clauses = 
@@ -756,7 +763,9 @@ let derive_strong_induction : Protected<thm0> * Protected<thm0> -> Protected<thm
                             let! tyr = type_of r
                             let! tys, ty = Choice.List.nsplit dest_fun_ty (1 -- n) tyr
                             let gvs = map genvar tys
-                            let! conj = mk_conj(list_mk_comb(r, gvs), list_mk_comb(p, gvs))
+                            let! tm1 = list_mk_comb(r, gvs)
+                            let! tm2 = list_mk_comb(p, gvs)
+                            let! conj = mk_conj(tm1, tm2)
                             return! list_mk_abs(gvs, conj)
                         }) ns prrs
 

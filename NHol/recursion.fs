@@ -156,7 +156,8 @@ let prove_recursive_functions_exist =
                 let! tms = Choice.funpow (length gvs) (Choice.map (hd << tl << snd) << dest_type) ty1
                 let lty = itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) gvs' tms
                 let fn' = genvar lty
-                let! tm1 = list_mk_abs(gvs, list_mk_comb(fn', gvs'))
+                let! tm0 = list_mk_comb(fn', gvs')
+                let! tm1 = list_mk_abs(gvs, tm0)
                 let! def = mk_eq(fn, tm1)
                 return (ASSUME def) :: acc
         }

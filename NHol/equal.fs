@@ -525,23 +525,25 @@ let CONV_RULE (conv : conv) (th : Protected<thm0>) : Protected<thm0> =
 
 /// Substitution conversion.
 let SUBS_CONV (ths : Protected<thm0> list) tm : Protected<thm0> = 
-    if List.isEmpty ths then
-        REFL tm
-    else
-        choice {
-        let! lefts = Choice.List.map (Choice.bind lhand << Choice.map concl) ths
-        let! gvs = Choice.List.map (Choice.map genvar << type_of) lefts
-        let! pat = subst (zip gvs lefts) tm
-        let! abs = list_mk_abs(gvs, pat)
-        let! th =
-            rev_itlist (fun y x -> CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(x, y))) 
-                ths (REFL abs)
-        let! tm' = rand <| concl th
-        if tm' = tm then
+    choice {
+        if List.isEmpty ths then
             return! REFL tm
         else
-            return th
-        }
+            let! ths' = Choice.List.map id ths
+            let! lefts = Choice.List.map (lhand << concl) ths'
+            let! gvs = Choice.List.map (Choice.map genvar << type_of) lefts
+            let! pat = subst (zip gvs lefts) tm
+            let! abs = list_mk_abs(gvs, pat)
+            let! th0 = REFL abs
+            let! th =
+                Choice.List.fold (fun x y -> 
+                    CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(Choice.result x, y))) th0 ths
+            let! tm' = rand <| concl th
+            if tm' = tm then
+                return! REFL tm
+            else
+                return th
+    }
     |> Choice.mapError (fun e -> nestedFailure e "SUBS_CONV")
 
 (* ------------------------------------------------------------------------- *)

@@ -635,7 +635,7 @@ let define_type_raw_001 =
                         let! tms = Choice.List.map type_of args
                         let! conty = Choice.List.foldBack (fun ty acc -> mk_fun_ty ty acc) tms recty
 
-                        let condef = 
+                        let! condef = 
                             list_mk_comb(constr, [Choice.get <| sucivate n; 
                                                   iarg; 
                                                   rarg])
@@ -664,7 +664,7 @@ let define_type_raw_001 =
                     choice {
                         let! left, right = dest_eq condef
                         let args, bod = strip_abs right
-                        let lapp = list_mk_comb(left, args)
+                        let! lapp = list_mk_comb(left, args)
                     
                         let! conds = 
                             Choice.List.foldBack2 (fun arg argty sofar -> 
@@ -843,7 +843,8 @@ let define_type_raw_001 =
                 assoc cpred consindex
                 |> Option.toChoiceWithError "find"
                 |> Choice.map fst
-            let! defbod = mk_comb(retmk, list_mk_comb(oldcon, newrights))
+            let! tm1 = list_mk_comb(oldcon, newrights)
+            let! defbod = mk_comb(retmk, tm1)
             let! defrt = list_mk_abs(newargs, defbod)
             let! expth = 
                 Choice.List.tryFind (fun th -> 
@@ -1222,7 +1223,8 @@ let define_type_raw_001 =
                     let! (name, _) = dest_const(repeat (Choice.toOption << rator) tm4)
                     let funname = name + "'"
                     let funarg = mk_var(funname, funty)
-                    return! list_mk_abs([i; r; s], list_mk_comb(funarg, allargs))
+                    let! tm5 = list_mk_comb(funarg, allargs)
+                    return! list_mk_abs([i; r; s], tm5)
                 }
 
     (* ----------------------------------------------------------------------- *)
@@ -1553,7 +1555,8 @@ let define_type_raw_002 =
                             let nty = itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) args' rty
                             let! (s, _) = dest_var fn
                             let fn' = mk_var(s, nty)
-                            let! tm2 = mk_comb(inl, list_mk_comb(fn', args'))
+                            let! tm1' = list_mk_comb(fn', args')
+                            let! tm2 = mk_comb(inl, tm1')
                             let! r' = list_mk_abs (args'', tm2)
                             return r', fn
                         }
@@ -1627,7 +1630,8 @@ let prove_constructors_injective =
             let! tm0 = list_mk_forall(args, dtm)
             let! eth = prove_recursive_functions_exist ax tm0
             let! args' = variants args args
-            let! atm = mk_eq(pat, list_mk_comb(f, args'))
+            let! atm0 = list_mk_comb(f, args')
+            let! atm = mk_eq(pat, atm0)
             let ath = ASSUME atm
             let bth = AP_TERM fn ath
             let! (_, tm1) = dest_exists(concl eth)
@@ -1636,7 +1640,8 @@ let prove_constructors_injective =
             let pth = TRANS (TRANS (SYM cth1) bth) cth2
             let! qth = DEPAIR pth
             let qtm = concl qth
-            let rth = rev_itlist (C(curry MK_COMB)) (CONJUNCTS(ASSUME qtm)) (REFL f)
+            let! th1 = REFL f
+            let rth = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th1 (CONJUNCTS(ASSUME qtm))
             let tth = IMP_ANTISYM_RULE (DISCH atm (Choice.result qth)) (DISCH qtm rth)
             let uth = GENL args (GENL args' tth)
             return! PROVE_HYP (Choice.result eth) (SIMPLE_CHOOSE fn uth)
@@ -1686,7 +1691,7 @@ let prove_constructors_distinct =
                             if is_numeral t then t, []
                             else strip_comb t
                         let! tms = variants args args
-                        return list_mk_comb(f, tms)
+                        return! list_mk_comb(f, tms)
                     }) pat
 
             let pairs = allopairs (curry (Choice.get << mk_eq)) pat pat'
@@ -1734,7 +1739,8 @@ let prove_cases_thm =
                 let rf, rargs = strip_comb r
                 if lf = rf then 
                     let! ths = Choice.List.map (Choice.map ASSUME << mk_eq) (zip rargs largs)
-                    let th1 = rev_itlist (C(curry MK_COMB)) ths (REFL lf)
+                    let! th0 = REFL lf
+                    let th1 = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th0 ths
                     let! tms = Choice.List.map (Choice.map concl) ths
                     return! itlist EXISTS_EQUATION tms (SYM th1)
                 else 
@@ -2114,7 +2120,8 @@ let define_type_raw =
                     |> Option.toChoiceWithError "find")
             
             let! tm1 = rand l1
-            let! tm2 = list_mk_abs (gargs0, list_mk_comb(fst(strip_comb tm1), xargs))
+            let! tm2' = list_mk_comb(fst(strip_comb tm1), xargs)
+            let! tm2 = list_mk_abs (gargs0, tm2')
             let inst0 = tm2, vc0
             let vc1, wargs1 = strip_comb r1
             let con1, vargs1 = strip_comb tm1
@@ -2139,7 +2146,8 @@ let define_type_raw =
                     |> Option.toChoiceWithError "find")
             
             let! tm2 = rand l0    
-            let! tm3 = list_mk_abs (gargs1, list_mk_comb(fst(strip_comb tm2), xargs))
+            let! tm3' = list_mk_comb(fst(strip_comb tm2), xargs)
+            let! tm3 = list_mk_abs (gargs1, tm3')
             let inst1 = tm3, vc1
             return inst0, inst1
             }

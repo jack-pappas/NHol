@@ -1017,7 +1017,8 @@ let instantiate_casewise_recursion,
               let! f'' = list_mk_abs(gvs, tm3)
               let! def' = subst [f'', f] def
               let! th1 = EXISTS (tm, f'') (ASSUME def')
-              let bth = BETAS_CONV(list_mk_comb(f'', gvs))
+              let! tm4 = list_mk_comb(f'', gvs)
+              let bth = BETAS_CONV(tm4)
               let th2 = GEN_REWRITE_CONV TOP_DEPTH_CONV [bth] (hd(hyp th1))
               return! SIMPLE_CHOOSE f' (PROVE_HYP (UNDISCH(snd(EQ_IMP_RULE th2))) (Choice.result th1))
          }

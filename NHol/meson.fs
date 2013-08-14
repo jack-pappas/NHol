@@ -291,14 +291,14 @@ let GEN_MESON_TAC =
             | Fnapp(f, args) -> 
                 let! hc = hol_of_const f
                 let! hts = Choice.List.map hol_of_term args
-                return list_mk_comb(hc, hts)
+                return! list_mk_comb(hc, hts)
         }
 
     let hol_of_atom(p, args) = 
         choice {
             let! hc = hol_of_const p
             let! hts = Choice.List.map hol_of_term args
-            return list_mk_comb(hc, hts)
+            return! list_mk_comb(hc, hts)
         }
 
     let hol_of_literal(p, args) = 
@@ -893,7 +893,9 @@ let GEN_MESON_TAC =
                 let ctys = fst(chop_list len atys)
                 let largs = map genvar ctys
                 let rargs = map genvar ctys
-                let th1 = rev_itlist (C(curry MK_COMB)) (map (ASSUME << Choice.get << mk_eq) (zip largs rargs)) (REFL tm)
+                let! th0 = (REFL tm)
+                let tms = map (ASSUME << Choice.get << mk_eq) (zip largs rargs)
+                let th1 = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th0 tms
                 let th2 = if pflag then eq_elim_RULE th1 else th1
                 let! tms = Choice.map hyp th2
                 return! itlist (fun e th -> CONV_RULE imp_elim_CONV (DISCH e th)) tms th2

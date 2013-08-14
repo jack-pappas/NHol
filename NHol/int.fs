@@ -2057,8 +2057,9 @@ let ARITH_RULE =
 
         let ibod = itlist (curry(Choice.get << mk_imp) << concl << Choice.get) pths bod
         let! gbod = subst (zip gvs nim) ibod
-        let th2 = INST (zip nim gvs) (INT_ARITH gbod)
-        let th3 = GENL avs (rev_itlist (C MP) pths th2)
+        let! th2 = INST (zip nim gvs) (INT_ARITH gbod)
+        let! th2' = Choice.List.fold (fun acc x -> MP (Choice.result acc) x) th2 pths
+        let th3 = GENL avs (Choice.result th2')
         return! EQ_MP (SYM (Choice.result th1)) th3
     }
 

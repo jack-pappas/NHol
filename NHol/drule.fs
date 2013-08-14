@@ -154,8 +154,8 @@ let string_of_list_trmtrm = print_to_string pp_print_list_trmtrm
 let mk_thm(asl, c) : Protected<thm0> = 
     choice {
         let! tm = Choice.List.foldBack (curry mk_imp) (rev asl) c
-        let ax = new_axiom tm
-        return! rev_itlist (fun t th -> MP th (ASSUME t)) (rev asl) ax
+        let! ax = new_axiom tm
+        return! Choice.List.fold (fun th t -> MP (Choice.result th) (ASSUME t)) ax (rev asl)
     }
 
 (* ------------------------------------------------------------------------- *)
@@ -680,7 +680,8 @@ let term_match : term list -> term -> term -> Protected<_> =
                                 let gvs = map fst ginsts
                                 let! abstm = list_mk_abs(gvs, ctm')
                                 let! vinsts = safe_inserta (abstm, vhop) insts
-                                let icpair = ctm', list_mk_comb(vhop', gvs)
+                                let! ctm'' = list_mk_comb(vhop', gvs)
+                                let icpair = ctm', ctm''
                                 return icpair :: vinsts
                             }
                         return! term_homatch lconsts tyins (ni, tl homs)

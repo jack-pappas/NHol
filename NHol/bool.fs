@@ -555,7 +555,10 @@ let SPEC =
 
 /// Specializes zero or more variables in the conclusion of a theorem.
 let SPECL tms th : Protected<thm0> =
-    rev_itlist SPEC tms th
+    choice {
+        let! th = th
+        return! Choice.List.fold (fun acc tm -> SPEC tm (Choice.result acc)) th tms
+    }
     |> Choice.mapError (fun e -> nestedFailure e "SPECL")
 
 /// Specializes the conclusion of a theorem, returning the chosen variant.

@@ -861,8 +861,8 @@ let REAL_FIELD =
           let! tm3 = rand(concl th1)
           let cjs = conjuncts tm3
           let ths = map core_rule cjs
-          let th2 = EQ_MP (SYM (Choice.result th1)) (end_itlist CONJ ths)
-          return! rev_itlist (C MP) hyps th2
+          let! th2 = EQ_MP (SYM (Choice.result th1)) (end_itlist CONJ ths)
+          return! Choice.List.fold (fun acc x -> MP (Choice.result acc) x) th2 hyps
       }
 
   fun tm -> 
