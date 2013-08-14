@@ -587,7 +587,7 @@ let REAL_INT_ABS_CONV =
 /// Performs one arithmetic or relational operation on integer literals of type :real.
 let REAL_INT_RED_CONV = 
     let gconv_net = 
-        Choice.List.fold (fun acc (term, conv) -> net_of_conv term conv acc) (basic_net())
+        Choice.List.foldBack (fun (term, conv) acc -> net_of_conv term conv acc) 
                                      [(parse_term @"x <= y"), REAL_INT_LE_CONV;
                                       (parse_term @"x < y"), REAL_INT_LT_CONV;
                                       (parse_term @"x >= y"), REAL_INT_GE_CONV;
@@ -600,7 +600,7 @@ let REAL_INT_RED_CONV =
                                       (parse_term @"x + y"), REAL_INT_ADD_CONV;
                                       (parse_term @"x - y"), REAL_INT_SUB_CONV;
                                       (parse_term @"x * y"), REAL_INT_MUL_CONV;
-                                      (parse_term @"x pow n"), REAL_INT_POW_CONV] 
+                                      (parse_term @"x pow n"), REAL_INT_POW_CONV] (basic_net())
     // NOTE: add arguments to propagate errors
     fun tm ->   
         choice {     

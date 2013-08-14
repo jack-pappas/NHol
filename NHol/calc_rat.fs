@@ -594,7 +594,7 @@ let REAL_RAT_MIN_CONV =
 /// Performs one arithmetic or relational operation on rational literals of type :real.
 let REAL_RAT_RED_CONV = 
     let gconv_net = 
-        Choice.List.fold (fun acc (term, conv) -> net_of_conv term conv acc) (basic_net())
+        Choice.List.foldBack (fun (term, conv) acc -> net_of_conv term conv acc) 
                                      [(parse_term @"x <= y"), REAL_RAT_LE_CONV;
                                       (parse_term @"x < y"), REAL_RAT_LT_CONV;
                                       (parse_term @"x >= y"), REAL_RAT_GE_CONV;
@@ -609,7 +609,7 @@ let REAL_RAT_RED_CONV =
                                       (parse_term @"x / y"), CHANGED_CONV REAL_RAT_DIV_CONV;
                                       (parse_term @"x pow n"), REAL_RAT_POW_CONV;
                                       (parse_term @"max x y"), REAL_RAT_MAX_CONV;
-                                      (parse_term @"min x y"), REAL_RAT_MIN_CONV] 
+                                      (parse_term @"min x y"), REAL_RAT_MIN_CONV] (basic_net())
     
     // NOTE: add this argument to propagate errors
     fun tm ->   
@@ -851,18 +851,18 @@ let REAL_FIELD =
           let! tms2 = Choice.List.map rand tms1
           let itms = setify tms2
           let hyps = map (fun t -> SPEC t REAL_MUL_RINV) itms
-          let! tm' = Choice.List.fold (fun acc th -> 
+          let! tm' = Choice.List.foldBack (fun th acc -> 
                         choice {
                             let! th = th
                             return! mk_imp(concl th, acc)
-                        }) tm hyps
+                        }) hyps tm
 
           let! th1 = setup_conv tm'
           let! tm3 = rand(concl th1)
           let cjs = conjuncts tm3
           let ths = map core_rule cjs
-          let th2 = EQ_MP (SYM (Choice.result th1)) (end_itlist CONJ ths)
-          return! rev_itlist (C MP) hyps th2
+          let! th2 = EQ_MP (SYM (Choice.result th1)) (end_itlist CONJ ths)
+          return! Choice.List.fold (fun acc x -> MP (Choice.result acc) x) th2 hyps
       }
 
   fun tm -> 

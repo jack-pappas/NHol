@@ -169,11 +169,10 @@ let lift_function =
                 let! rdef = list_mk_abs(newargs, def)
                 let! ty2 = type_of rdef
                 let ldef = mk_var(fname, ty2)
-                let dth = Choice.bind new_definition (mk_eq(ldef, rdef))
+                let! dth = Choice.bind new_definition (mk_eq(ldef, rdef))
                 let eth = 
-                    rev_itlist 
-                        (fun v th -> CONV_RULE (RAND_CONV BETA_CONV) (AP_THM th v)) 
-                        newargs dth
+                    Choice.List.fold 
+                        (fun th v -> CONV_RULE (RAND_CONV BETA_CONV) (AP_THM (Choice.result th) v)) dth newargs
 
                 let! targs = Choice.List.map (fun v -> mk_comb(eqv, v) |> Choice.bind (fun tm1 -> mk_comb(mk, tm1))) rvs
                 let dme_th = 

@@ -288,9 +288,14 @@ let CONJUNCT2 =
         |> Choice.mapError (fun e -> nestedFailure e "CONJUNCT2") : Protected<thm0>
 
 /// Extracts both conjuncts of a conjunction.
-let CONJ_PAIR th = 
-    // TODO: this doesn't seem correct
-    CONJUNCT1 th, CONJUNCT2 th
+let CONJ_PAIR th : Protected<thm0> * Protected<thm0> = 
+    choice {
+        let! th = th
+        let! th1 = CONJUNCT1 (Choice.result th)
+        let! th2 = CONJUNCT2 (Choice.result th)
+        return Choice.result th1, Choice.result th2
+    }
+    |> Choice.getOrFailure2 "CONJ_PAIR"
 
 /// Recursively splits conjunctions into a list of conjuncts.
 let CONJUNCTS = striplist (fun th ->
@@ -516,7 +521,7 @@ let mk_forall = mk_binder "!"
 
 /// Iteratively constructs a universal quantification.
 let list_mk_forall(vs, bod) : Protected<term> = 
-    Choice.List.fold (fun acc x -> mk_forall(x, acc)) bod vs
+    Choice.List.foldBack (fun x acc -> mk_forall(x, acc)) vs bod
 
 /// Specializes the conclusion of a theorem.
 let SPEC =
@@ -550,7 +555,10 @@ let SPEC =
 
 /// Specializes zero or more variables in the conclusion of a theorem.
 let SPECL tms th : Protected<thm0> =
-    rev_itlist SPEC tms th
+    choice {
+        let! th = th
+        return! Choice.List.fold (fun acc tm -> SPEC tm (Choice.result acc)) th tms
+    }
     |> Choice.mapError (fun e -> nestedFailure e "SPECL")
 
 /// Specializes the conclusion of a theorem, returning the chosen variant.
@@ -668,7 +676,7 @@ let mk_exists = mk_binder "?"
 
 /// Multiply existentially quantifies both sides of an equation using the given variables.
 let list_mk_exists(vs, bod) : Protected<term> =
-    Choice.List.fold (fun acc x -> mk_exists(x, acc)) bod vs
+    Choice.List.foldBack (fun x acc -> mk_exists(x, acc)) vs bod
 
 /// Introduces existential quantification given a particular witness.
 let EXISTS =

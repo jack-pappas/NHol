@@ -291,14 +291,14 @@ let GEN_MESON_TAC =
             | Fnapp(f, args) -> 
                 let! hc = hol_of_const f
                 let! hts = Choice.List.map hol_of_term args
-                return list_mk_comb(hc, hts)
+                return! list_mk_comb(hc, hts)
         }
 
     let hol_of_atom(p, args) = 
         choice {
             let! hc = hol_of_const p
             let! hts = Choice.List.map hol_of_term args
-            return list_mk_comb(hc, hts)
+            return! list_mk_comb(hc, hts)
         }
 
     let hol_of_literal(p, args) = 
@@ -893,7 +893,9 @@ let GEN_MESON_TAC =
                 let ctys = fst(chop_list len atys)
                 let largs = map genvar ctys
                 let rargs = map genvar ctys
-                let th1 = rev_itlist (C(curry MK_COMB)) (map (ASSUME << Choice.get << mk_eq) (zip largs rargs)) (REFL tm)
+                let! th0 = (REFL tm)
+                let tms = map (ASSUME << Choice.get << mk_eq) (zip largs rargs)
+                let th1 = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th0 tms
                 let th2 = if pflag then eq_elim_RULE th1 else th1
                 let! tms = Choice.map hyp th2
                 return! itlist (fun e th -> CONV_RULE imp_elim_CONV (DISCH e th)) tms th2
@@ -901,7 +903,7 @@ let GEN_MESON_TAC =
 
         fun tms -> 
             choice {
-                let! preds, funs = Choice.List.fold (fun acc x -> fm_consts x acc) ([], []) tms
+                let! preds, funs = Choice.List.foldBack (fun x acc -> fm_consts x acc) tms ([], [])
                 // NOTE: review this function
                 let! eqs0, noneqs = Choice.List.partition (fun (t, _) -> dest_const t |> Choice.map (fun (s, _) -> is_const t && s = "=")) preds
                 if eqs0 = [] then 
@@ -910,7 +912,7 @@ let GEN_MESON_TAC =
                     let pcongs = map (create_congruence_axiom true) noneqs
                     let fcongs = map (create_congruence_axiom false) funs
                     let! tms1 = Choice.List.map (Choice.map concl) (pcongs @ fcongs)
-                    let! preds1, _ = Choice.List.fold (fun acc x -> fm_consts x acc) ([], []) tms1
+                    let! preds1, _ = Choice.List.foldBack (fun x acc -> fm_consts x acc) tms1 ([], [])
                     let! eqs1 = Choice.List.filter (fun (t, _) -> 
                                     choice {
                                         let! (s, _) = dest_const t
@@ -1120,13 +1122,14 @@ let GEN_MESON_TAC =
                 else 
                     let! ths' = polymorph mconsts (hd ths)
                     let! tms1 = Choice.List.map (Choice.map concl) ths'
-                    let! mconsts' = Choice.List.fold (fun acc x -> grab_constants x acc) mconsts tms1
+                    let! mconsts' = Choice.List.foldBack (fun x acc -> grab_constants x acc) tms1 mconsts
                     return! polymorph_all mconsts' (tl ths) (union' equals_thm ths' acc)
             }
 
         fun ths (asl, w as gl) -> 
             choice {
-                let! mconsts = Choice.List.fold (fun acc (_, x) -> Choice.map concl x |> Choice.bind (fun x -> grab_constants x acc)) [] asl
+                // NOTE: revise this
+                let! mconsts = Choice.List.foldBack (fun (_, x) acc -> Choice.map concl x |> Choice.bind (fun x -> grab_constants x acc)) asl []
                 let! ths' = polymorph_all mconsts ths []
                 return! MAP_EVERY ASSUME_TAC ths' gl
             }

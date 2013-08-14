@@ -153,9 +153,9 @@ let string_of_list_trmtrm = print_to_string pp_print_list_trmtrm
 /// Creates an arbitrary theorem as an axiom (dangerous!)
 let mk_thm(asl, c) : Protected<thm0> = 
     choice {
-        let! tm = Choice.List.fold (curry mk_imp) c (rev asl)
-        let ax = new_axiom tm
-        return! rev_itlist (fun t th -> MP th (ASSUME t)) (rev asl) ax
+        let! tm = Choice.List.foldBack (curry mk_imp) (rev asl) c
+        let! ax = new_axiom tm
+        return! Choice.List.fold (fun th t -> MP (Choice.result th) (ASSUME t)) ax (rev asl)
     }
 
 (* ------------------------------------------------------------------------- *)
@@ -450,9 +450,9 @@ let INSTANTIATE_ALL : instantiation -> Protected<thm0> -> Protected<thm0> =
                 let rhyps = union tyrel tmrel
                 let! th1 =
                     // TODO : Modify this to use Choice.List.fold/foldBack.
-                    rev_itlist DISCH rhyps (Choice.result th)
+                    Choice.List.fold (fun acc x -> DISCH x (Choice.result acc)) th rhyps
                 let! th2 = INSTANTIATE i (Choice.result th1)
-                return! funpow (length rhyps) UNDISCH (Choice.result th2)
+                return! Choice.funpow (length rhyps) (UNDISCH << Choice.result) th2
         }
     
     inst
@@ -569,13 +569,13 @@ let term_match : term list -> term -> term -> Protected<_> =
         }
 
     let get_type_insts insts acc =
-        insts
-        |> Choice.List.fold (fun sofar (t, x) ->
+        (insts, acc)
+        ||> Choice.List.foldBack (fun (t, x) sofar ->
             choice {
             let! dest_var_x = dest_var x
             let! type_of_t = type_of t
             return! type_match (snd dest_var_x) type_of_t sofar
-            }) acc
+            })
 
     let separate_insts (insts : (term * term) list) = 
         choice {
@@ -680,7 +680,8 @@ let term_match : term list -> term -> term -> Protected<_> =
                                 let gvs = map fst ginsts
                                 let! abstm = list_mk_abs(gvs, ctm')
                                 let! vinsts = safe_inserta (abstm, vhop) insts
-                                let icpair = ctm', list_mk_comb(vhop', gvs)
+                                let! ctm'' = list_mk_comb(vhop', gvs)
+                                let icpair = ctm', ctm''
                                 return icpair :: vinsts
                             }
                         return! term_homatch lconsts tyins (ni, tl homs)
@@ -997,7 +998,7 @@ let HIGHER_REWRITE_CONV =
                     BETA_CONVS(length args)
                 else
                     let lr = dest_comb tm
-                    // NOTE: review this
+                    // NOTE: 
                     // The original version raises an exception in initialization
                     // We have to evaluate the function with some input in order to determine errors
                     fun tm ->
@@ -1121,13 +1122,14 @@ let new_definition tm : Protected<thm0> =
         let! def = mk_eq(lv, rtm)
         let! th1 = new_basic_definition def
         let! th2 = 
-            Choice.List.foldBack (fun tm acc -> 
+            // NOTE: this is rewritten from rev_itlist
+            Choice.List.fold (fun acc tm -> 
                 choice {
                     let! ith = AP_THM acc tm
                     let! tm1 = rand <| concl ith
                     let! th2 = BETA_CONV tm1
                     return TRANS (Choice.result ith) (Choice.result th2)
-                }) largs (Choice.result th1)
+                }) (Choice.result th1) largs
 
         let rvs = filter (not << C mem avs) largs
         return! itlist GEN rvs (itlist GEN avs th2)

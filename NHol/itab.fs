@@ -162,6 +162,11 @@ let ITAUT_TAC =
              |> ORELSE <| (FIRST_ASSUM subgoal_then)) gl
 
     let rec ITAUT_ITERDEEP_TAC n gl = 
+      // NOTE: ITAUT_TAC specifies n to be Int32.MaxValue
+      // but we limit here for early termination
+      if n >= 10 then
+        Choice.failwith "ITAUT_TAC: Too deep"
+      else
         remark("Searching with limit " + (string n))
         ((ITAUT_TAC [] n
           |> THEN <| NO_TAC)

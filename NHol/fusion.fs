@@ -1020,55 +1020,58 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Introduces a new type in bijection with a nonempty subset of an existing type.
+
     // TODO : Rewrite this -- it should use the 'choice' workflow, and the function should return
     // Protected<thm0 * thm0>; we can create a wrapper which simply calls this and returns the
     // current type signature (Protected<thm0> * Protected<thm0>) for compatibility purposes.
-    let new_basic_type_definition tyname (absname, repname) (thm : Protected<thm0>) : Protected<thm0> * Protected<thm0> =
-        match thm with
-        | Success (Sequent(asl, c)) ->
+    let new_basic_type_definition tyname (absname, repname) (thm : Protected<thm0>) : Protected<thm0> * Protected<thm0> = 
+        choice {
+            let! (Sequent(asl, c)) = thm
             if exists (Choice.isResult << get_const_type) [absname; repname] then 
-                Choice.failwithPair "new_basic_type_definition: Constant(s) already in use"
+                return! Choice.failwith "new_basic_type_definition: Constant(s) already in use"
             elif not(asl = []) then 
-                Choice.failwithPair "new_basic_type_definition: Assumptions in theorem"
-            else
-                match dest_comb c with
-                | Error e -> 
-                    Choice.nestedFailwithPair e "new_basic_type_definition: Not a combination"
-                | Success(P, x) ->
-                    if not(freesin [] P) then 
-                        Choice.failwithPair "new_basic_type_definition: Predicate is not closed"
-                    else 
-                        match type_vars_in_term P with
-                        | Success tvs ->
-                            let tyvars = sort (<=) tvs
-                            match new_type(tyname, length tyvars) with
-                            | Success _ ->
-                                let aty = Tyapp(tyname, tyvars)
-                                match type_of x with
-                                | Success rty ->
-                                    let absty = Tyapp("fun", [rty; aty])
-                                    let repty = Tyapp("fun", [aty; rty])
-                                    match new_constant(absname, absty), new_constant(repname, repty) with
-                                    | Success _, Success _ ->
-                                        let abs = Const(absname, absty)
-                                        let rep = Const(repname, repty)
-                                        let a = Var("a", aty)
-                                        let r = Var("r", rty)
-                                        (mk_comb(rep, a) 
-                                         |> Choice.bind (fun b -> safe_mk_eq (Comb(abs, b)) a) 
-                                         |> Choice.map (fun tm -> Sequent([], tm))),
-                                        (mk_comb(abs, r)
-                                         |> Choice.bind (fun b1 -> mk_comb(rep, b1) |> Choice.bind (fun b2 -> safe_mk_eq b2 r))
-                                         |> Choice.bind (fun tm -> safe_mk_eq (Comb(P, r)) tm |> Choice.map (fun tm' -> Sequent([], tm'))))
-                                    | _ -> Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
-                                | Error ex -> 
-                                    (Choice.error ex, Choice.error ex)
-                            | Error _ -> 
-                                Choice.failwithPair "new_basic_type_definition: Type already defined"
-                        | Error ex -> 
-                            (Choice.error ex, Choice.error ex)
-        | Error _ ->
-            Choice.failwithPair "new_basic_type_definition: Erroneous theorem"
+                return! Choice.failwith "new_basic_type_definition: Assumptions in theorem"
+            else 
+                let! P, x = 
+                    choice {
+                        return! dest_comb c
+                    }
+                    |> Choice.mapError (fun e -> nestedFailure e "new_basic_type_definition: Not a combination")
+                if not(freesin [] P) then 
+                    return! Choice.failwith "new_basic_type_definition: Predicate is not closed"
+                else 
+                    let! tys = type_vars_in_term P
+                    let tyvars = sort (<=) tys
+                    let! _ = 
+                        choice { 
+                            return! new_type(tyname, length tyvars)
+                        }
+                        |> Choice.mapError (fun e -> nestedFailure e "new_basic_type_definition: Type already defined")
+                    let aty = Tyapp(tyname, tyvars)
+                    let! rty = type_of x
+                    let absty = Tyapp("fun", [rty; aty])
+                    let repty = Tyapp("fun", [aty; rty])
+
+                    do! new_constant(absname, absty)
+                    let abs = Const(absname, absty)
+
+                    do! new_constant(repname, repty)
+                    let rep = Const(repname, repty)
+
+                    let a = Var("a", aty)
+                    let r = Var("r", rty)
+
+                    let! tm1 = mk_comb(rep, a)
+                    let! tm2 = safe_mk_eq (Comb(abs, tm1)) a
+
+                    let! tm3 = mk_comb(abs, r)
+                    let! tm4 = mk_comb(rep, tm3)
+                    let! tm5 = safe_mk_eq tm4 r
+                    let! tm6 = safe_mk_eq (Comb(P, r)) tm5
+
+                    return Choice.result (Sequent([], tm2)), Choice.result (Sequent([], tm6))
+        }
+        |> Choice.getOrFailure2 "new_basic_type_definition"
 
 (* ------------------------------------------------------------------------- *)
 (* Stuff that didn't seem worth putting in.                                  *)

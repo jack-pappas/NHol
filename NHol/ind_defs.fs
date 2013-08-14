@@ -74,7 +74,8 @@ let strip_ncomb : _ -> _ -> Protected<_> =
 
 /// Apply and beta-reduce equational theorem with abstraction on RHS.
 let RIGHT_BETAS = 
-    rev_itlist (fun a -> CONV_RULE(RAND_CONV BETA_CONV) << C AP_THM a)
+    fun tms th ->
+        rev_itlist (fun a -> CONV_RULE(RAND_CONV BETA_CONV) << C AP_THM a) tms th
 
 (* ------------------------------------------------------------------------- *)
 (*      A, x = t |- P[x]                                                     *)
@@ -212,8 +213,10 @@ let derive_nonschematic_inductive_relations : conv =
                                             ) args
 
                         let th0 = MP (SPECL avs (ASSUME cls)) tth
-                        let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
-                        let th2 = EQ_MP (SYM th1) th0
+                        let! th1' = REFL rel
+                        // NOTE: revise order of arguments
+                        let! th1 = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th1' thl
+                        let th2 = EQ_MP (SYM (Choice.result th1)) th0
                         let th3 = INST yes (DISCH atm th2)
                         let! tm3 = Choice.bind (lhand << concl) th3
                         let! tm4 = Choice.funpow (length yes) rand tm3
@@ -238,8 +241,9 @@ let derive_nonschematic_inductive_relations : conv =
                                             }) ths
                                         |> Choice.bind (Option.toChoiceWithError "find")) args
                         let th0 = SPECL avs (ASSUME cls)
-                        let th1 = rev_itlist (C(curry MK_COMB)) thl (REFL rel)
-                        let th2 = EQ_MP (SYM th1) th0
+                        let! th1' = REFL rel
+                        let! th1 = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th1' thl
+                        let th2 = EQ_MP (SYM (Choice.result th1)) th0
                         let th3 = INST yes (DISCH atm th2)
                         let! tm3 = Choice.bind (lhand << concl) th3
                         let! tm4 = Choice.funpow (length yes) rand tm3
@@ -453,9 +457,11 @@ let MONO_TAC : goal -> Protected<goalstate0> =
                 let! ant, con = Choice.bind (dest_imp << concl) th1
                 let fun1 l =
                     match l with
-                    | [a] -> a
-                    | _ -> Choice.failwith "MONO_TAC.fun1: Unhandled case."       
-                return (null_meta, [asl, ant], fun i tl -> MATCH_MP (INSTANTIATE i th1) (fun1 tl))
+                    | [a] -> Choice.result a
+                    | _ -> Choice.failwith "MONO_TAC.fun1: Unhandled case."
+                let just =        
+                    fun i tl -> MATCH_MP (INSTANTIATE i th1) (fun1 tl)
+                return (null_meta, [asl, ant], just)
             }
 
     let MONO_ABS_TAC(asl, w) = 
@@ -465,9 +471,11 @@ let MONO_TAC : goal -> Protected<goalstate0> =
             let rnum = length vars - 1
             let! hd1, args1 = strip_ncomb rnum ant
             let! hd2, args2 = strip_ncomb rnum con
-            let th1 = rev_itlist (C AP_THM) args1 (BETA_CONV hd1)
-            let th2 = rev_itlist (C AP_THM) args1 (BETA_CONV hd2)
-            let th3 = MK_COMB(AP_TERM imp th1, th2)
+            let! hd1' = BETA_CONV hd1
+            let! th1 = Choice.List.fold (fun acc x -> AP_THM (Choice.result acc) x) hd1' args1
+            let! hd2' = BETA_CONV hd2
+            let! th2 = Choice.List.fold (fun acc x -> AP_THM (Choice.result acc) x) hd2' args1
+            let th3 = MK_COMB(AP_TERM imp (Choice.result th1), Choice.result th2)
             return! CONV_TAC (REWR_CONV th3) (asl, w)
         }
 
@@ -494,7 +502,7 @@ let MONO_TAC : goal -> Protected<goalstate0> =
     fun gl -> 
         choice {
             let! tacs = 
-                Choice.List.fold (fun acc th -> 
+                Choice.List.foldBack (fun th acc -> 
                         choice {
                             let! th = th
                             let! tm = Choice.funpow 2 rand (concl th)
@@ -507,8 +515,7 @@ let MONO_TAC : goal -> Protected<goalstate0> =
                                 |> Choice.fill ""
 
                             return (c, BACKCHAIN_TAC (Choice.result th) |> THEN <| REPEAT CONJ_TAC) :: acc
-                        }) ["", MONO_ABS_TAC] (!monotonicity_theorems) 
-
+                        }) (!monotonicity_theorems) ["", MONO_ABS_TAC]
             let MONO_STEP_TAC = REPEAT GEN_TAC
                                 |> THEN <| APPLY_MONOTAC tacs
             return! (REPEAT MONO_STEP_TAC
@@ -558,7 +565,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
                 let! l, r = dest_eq tm
                 let! lname, lty = dest_var l
                 // TODO: revise due to massive changes
-                let! tm1 = Choice.List.fold (fun acc x -> type_of x |> Choice.bind (fun y -> mk_fun_ty y acc)) lty vs
+                let! tm1 = Choice.List.foldBack (fun x acc -> type_of x |> Choice.bind (fun y -> mk_fun_ty y acc)) vs lty
                 let l' = mk_var(lname, tm1)
                 let! r' = list_mk_abs(vs, r)
                 let! tm2 = mk_eq(l', r')
@@ -601,7 +608,8 @@ let prove_inductive_relations_exist, new_inductive_definition =
             let! tms1 = Choice.List.map (Choice.bind lhs << Choice.map concl) dths
             let! tms2 = Choice.List.map lhs defs
             let insts = zip tms1 tms2
-            return! rev_itlist (C MP) dths (INST insts (itlist DISCH defs th))
+            let! th1 = INST insts (itlist DISCH defs th)
+            return! Choice.List.fold (fun acc x -> MP (Choice.result acc) x) th1 dths
         }
 
     let unschematize_clauses clauses = 
@@ -755,7 +763,9 @@ let derive_strong_induction : Protected<thm0> * Protected<thm0> -> Protected<thm
                             let! tyr = type_of r
                             let! tys, ty = Choice.List.nsplit dest_fun_ty (1 -- n) tyr
                             let gvs = map genvar tys
-                            let! conj = mk_conj(list_mk_comb(r, gvs), list_mk_comb(p, gvs))
+                            let! tm1 = list_mk_comb(r, gvs)
+                            let! tm2 = list_mk_comb(p, gvs)
+                            let! conj = mk_conj(tm1, tm2)
                             return! list_mk_abs(gvs, conj)
                         }) ns prrs
 

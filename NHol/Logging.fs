@@ -38,14 +38,20 @@ module Logging =
         // because __SOURCE_DIRECTORY__ may change.
         let configPath =
             let projectPath = __SOURCE_DIRECTORY__ + ".\..\NHol"
-            projectPath + @"\NLog.config"
+            let configPath = projectPath + @"\NLog.config"
+            // Remove .\..\ from path
+            System.IO.Path.GetFullPath configPath
 
         if not <| File.Exists configPath then
             // TODO : Print message about config path not being found, so it doesn't just fail silently.
             false
         else
+#if INTERACTIVE
+            printfn "NLog config path: %s" configPath
+#else
             Debug.WriteLine (
                 sprintf "NLog config path: %s" configPath, "Logging")
+#endif
             LogManager.Configuration <-
                 Config.XmlLoggingConfiguration (configPath)
             true
@@ -85,9 +91,6 @@ module Logging =
     // __SOURCE_DIRECTORY__ value changing.
 
     let configureNLogProgramatically () =
-        Debug.WriteLine (
-            sprintf "configureNLogProgramatically called in NLogExample.fsx.", "Logging")
-
         LogManager.Configuration <-
             /// The logging configuration object.
             let config = Config.LoggingConfiguration()
@@ -225,29 +228,57 @@ module Logging =
       let ruleList = Seq.toList rules
       let ruleTextList = processRules ruleList [] |> listToString
       
+#if INTERACTIVE
+      printfn "targets: %s" targetTextList
+      printfn "rules: %s" ruleTextList
+#else
       Debug.WriteLine (
         sprintf "targets: %A" targetTextList)
       Debug.WriteLine (
         sprintf "rules: %A" ruleTextList)
+#endif
 
     // Configure NLog
     let configure () =
         if not <| configureNLog () then
+#if INTERACTIVE
+            printfn "Configuring NLog programmatically."
+#else
             Debug.WriteLine ("Configuring NLog programmatically.", "Logging")
+#endif
             configureNLogProgramatically ()
 
     let alignedNameValue (name : string) (value : string) : string =
         let nameFieldWidth = 15
         let padding = String.replicate (nameFieldWidth - name.Length) " "
+#if INTERACTIVE
+        sprintf "%s: %s %s\n" name padding value
+#else
         Printf.sprintf "%s: %s %s" name padding value
+#endif
 
     // Pause for user to press any key to resume.
     // Show optional message
     let pause msg =
+        // TODO: Figure out if console attached to call correct routine.
+#if USE
+        // Note: We have a console so ReadKey will  work.
         if not <| String.isEmpty (msg)
         then printfn "%s" msg
         printfn "%s" "Press any key to continue."
         System.Console.ReadKey() |> ignore
+#else
+#if INTERACTIVE
+        // Note: We don't have a console so ReadKey will not work.
+        if not <| String.isEmpty (msg)
+        then printfn "%s" msg
+        printfn "%s" "Press Enter to continue."
+        printfn "Note: Cursor must be on next line for this to work."
+        System.Console.ReadLine () |> ignore
+#else
+        ()  // Don't pause if running as a program.
+#endif
+#endif
 
 //
 [<AutoOpen>]

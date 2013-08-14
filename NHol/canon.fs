@@ -819,8 +819,8 @@ let SELECT_ELIM_TAC =
                 let th2 = DISCH_ALL(MP (ASSUME itm) th1)
                 let fvs = frees t
                 let! ty1 = type_of t
-                // NOTE: revise due to massivie changes
-                let! fty = Choice.List.fold (fun acc x -> type_of x |> Choice.bind (fun y -> mk_fun_ty y acc)) ty1 fvs
+                // NOTE: revise due to massive changes
+                let! fty = Choice.List.foldBack (fun x acc -> type_of x |> Choice.bind (fun y -> mk_fun_ty y acc)) fvs ty1
                 let fn = genvar fty
                 let! atm = list_mk_abs(fvs, t)
                 let! rawdef = mk_eq(fn, atm)
@@ -1041,7 +1041,7 @@ let (ASM_FOL_TAC : tactic) =
                         elif len > 0 then 
                             (cheads, insert (hop, len) vheads)
                         else sofar
-                    Choice.List.fold (fun acc x -> get_heads lconsts x acc) newheads args)))
+                    Choice.List.foldBack (fun x acc -> get_heads lconsts x acc) args newheads)))
 
     let get_thm_heads th sofar = 
         choice {
@@ -1068,7 +1068,8 @@ let (ASM_FOL_TAC : tactic) =
                 return! BINOP_CONV (FOL_CONV hddata) tm
             else 
                 let op, args = strip_comb tm
-                let th = rev_itlist (C(curry MK_COMB)) (map (FOL_CONV hddata) args) (REFL op)
+                let! th' = REFL op
+                let th = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th' (map (FOL_CONV hddata) args) 
                 let! tm' = Choice.bind (rand << concl) th
                 let n = 
                     // OPTIMIZE : Replace the entire 'match' statement below with:
@@ -1106,7 +1107,7 @@ let (ASM_FOL_TAC : tactic) =
 
     fun (asl, w as gl) -> 
         choice {
-            let! headsp = Choice.List.fold (fun acc (_, th) -> get_thm_heads th acc) ([], []) asl
+            let! headsp = Choice.List.foldBack (fun (_, th) acc -> get_thm_heads th acc) asl ([], [])
             return! RULE_ASSUM_TAC (CONV_RULE(GEN_FOL_CONV headsp)) gl
         }
 

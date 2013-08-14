@@ -276,7 +276,7 @@ let new_definition =
                     let fn, args = strip_comb l
                     let! tms = Choice.List.map depair args
                     let gargs, reps = (I ||>> unions) (unzip tms)
-                    let l' = list_mk_comb(fn, gargs)
+                    let! l' = list_mk_comb(fn, gargs)
                     let! r' = subst reps r
                     let! tm1 = mk_eq(l', r')
                     let th1 = new_definition tm1
@@ -363,7 +363,8 @@ let GEN_BETA_CONV =
                 let gcon = 
                     genvar(itlist ((fun ty -> Choice.get << mk_fun_ty ty) << Choice.get << type_of) avs tms)
 
-                let! tm2' = list_mk_abs(aargs @ gargs, list_mk_comb(gcon, avs))
+                let! tm1' = list_mk_comb(gcon, avs)
+                let! tm2' = list_mk_abs(aargs @ gargs, tm1')
                 let bth = INST [tm2', con'] sth
                 let cth = el n (CONJUNCTS(ASSUME(snd(strip_exists(concl <| Choice.get bth)))))
                 let dth = CONV_RULE (funpow (length avs) BINDER_CONV (RAND_CONV(BETAS_CONV))) cth

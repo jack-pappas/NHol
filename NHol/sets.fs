@@ -3307,7 +3307,7 @@ let mk_setenum =
         choice {
             let! insert_tm = inst [ty, aty] insert_atm
             let! nil_tm =inst [ty, aty] nil_atm
-            return! Choice.List.fold (fun acc x -> mk_binop insert_tm acc x) nil_tm l 
+            return! Choice.List.foldBack (fun x acc -> mk_binop insert_tm acc x) l nil_tm
         }
 
 /// Constructs an explicit set enumeration from a nonempty list of elements.

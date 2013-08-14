@@ -293,10 +293,10 @@ let new_specification =
     let check_distinct l = 
         choice { 
             let! v =
-                Choice.List.fold (fun res t -> 
+                Choice.List.foldBack (fun t res -> 
                     if mem t res
                     then Choice.fail()
-                    else Choice.result (t :: res)) [] l
+                    else Choice.result (t :: res)) l []
             return true
         }
         |> Choice.fill false

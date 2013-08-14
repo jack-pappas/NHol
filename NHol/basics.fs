@@ -118,11 +118,12 @@ let body tm : Protected<term> =
     |> Choice.mapError (fun e -> nestedFailure e "body: Not an abstraction")
 
 /// Iteratively constructs combinations (function applications).
-let list_mk_comb(h, t) = rev_itlist (C(curry (Choice.get << mk_comb))) t h
+let list_mk_comb(h, t) = 
+    Choice.List.fold (curry mk_comb) h t
 
 /// Iteratively constructs abstractions.
 let list_mk_abs(vs, bod) : Protected<term> = 
-    Choice.List.fold (fun acc x -> mk_abs(x, acc)) bod vs
+    Choice.List.foldBack (fun x acc -> mk_abs(x, acc)) vs bod
 
 /// Iteratively breaks apart combinations (function applications).
 let strip_comb = rev_splitlist (Choice.toOption << dest_comb)
@@ -353,7 +354,7 @@ let list_mk_icomb cname args : Protected<term> =
                 return! type_match g tya acc
                 })
         let! tm1 = mk_const(cname, tyin)
-        return list_mk_comb(tm1, args)
+        return! list_mk_comb(tm1, args)
     }
 (* ------------------------------------------------------------------------- *)
 (* Free variables in assumption list and conclusion of a theorem.            *)
@@ -676,7 +677,7 @@ let mk_gabs : term * term -> Protected<term> =
         }
 
     let list_mk_forall(vars, bod) = 
-        Choice.List.fold (fun acc x -> mk_forall(x, acc)) bod vars
+        Choice.List.foldBack (fun x acc -> mk_forall(x, acc)) vars bod
 
     let mk_geq(t1, t2) = 
         choice {
@@ -705,9 +706,8 @@ let mk_gabs : term * term -> Protected<term> =
         }
 
 /// Iteratively makes a generalized abstraction.
-// TODO : Modify this to use Choice.List.foldBack/fold.
 let list_mk_gabs(vs, bod) : Protected<term> =
-    Choice.List.fold (fun acc x -> mk_gabs(x, acc)) bod vs
+    Choice.List.foldBack (fun x acc -> mk_gabs(x, acc)) vs bod
 
 /// Breaks apart an iterated generalized or basic abstraction.
 let strip_gabs = splitlist (Choice.toOption << dest_gabs)
@@ -748,7 +748,7 @@ let mk_let(assigs, bod) : Protected<term> =
         let! tlb = type_of lbod
         let! (ty1, ty2) = dest_fun_ty tlb
         let! ltm = mk_const("LET", [ty1, aty; ty2, bty])
-        return list_mk_comb(ltm, lbod :: rights)
+        return! list_mk_comb(ltm, lbod :: rights)
     }
 
 (* ------------------------------------------------------------------------- *)

@@ -158,6 +158,7 @@ let (SELECT_CONV : conv) =
               |> THEN <| REFL_TAC)
     fun tm -> 
         choice { 
+            let! pth = pth
             // NOTE: we translate the exceptional cases to return false
             let is_epsok t = 
                 is_select t && 
@@ -172,7 +173,7 @@ let (SELECT_CONV : conv) =
             let! pickeps = find_term is_epsok tm
             let! abs = rand pickeps
             let! ty = Choice.bind type_of (bndvar abs)
-            return! CONV_RULE (LAND_CONV BETA_CONV) (PINST [ty, aty] [abs, P] pth)
+            return! CONV_RULE (LAND_CONV BETA_CONV) (PINST [ty, aty] [abs, P] (Choice.result pth))
         }
         |> Choice.mapError (fun e -> nestedFailure e "SELECT_CONV");;
 
