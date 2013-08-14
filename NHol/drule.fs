@@ -916,14 +916,13 @@ let (PART_MATCH : (term -> Protected<_>) -> _ -> _ -> Protected<_>), (GEN_PART_M
             let! insts = term_match lconsts tm1 tm
             let! th2 = GENL fvs (Choice.result ath)
             let! eth = INSTANTIATE insts (Choice.result th2)
-            let fth =
+            let! fth =
                 (fvs, eth)
-                ||> itlist (fun v th ->
+                ||> Choice.List.foldBack (fun v th ->
                     choice {
-                    let th = Choice.result th
-                    let! result = SPEC_VAR th
+                    let! result = SPEC_VAR (Choice.result th)
                     return snd result
-                    } |> Choice.get)
+                    })
             if hyp fth <> hyp ath then
                 return! Choice.failwith "PART_MATCH: instantiated hyps"
             else 

@@ -1242,8 +1242,7 @@ let (MATCH_MP_TAC : thm_tactic) =
         let match_fun = PART_MATCH (Choice.map snd << dest_imp) sth
 
         fun (asl, w) -> 
-            choice {
-                let! sth = sth 
+            choice { 
                 let fun1 l =
                     match l with
                     | [a] -> Choice.result a

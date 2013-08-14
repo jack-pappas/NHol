@@ -172,8 +172,8 @@ let net_of_thm rep (th : Protected<thm0>) (net : net<int * (term -> Protected<_>
                 return! enter lconsts (l, (1, REWR_CONV (Choice.result th))) net
         | Comb(Comb(_, t), Comb(Comb(Const("=", _), l), r)) -> 
             if rep && free_in l r then
-                let th' = DISCH t (EQT_INTRO(UNDISCH (Choice.result th)))
-                return! enter lconsts (l, (3, IMP_REWR_CONV th')) net
+                let! th' = DISCH t (EQT_INTRO(UNDISCH (Choice.result th)))
+                return! enter lconsts (l, (3, IMP_REWR_CONV (Choice.result th'))) net
             elif rep && matchable l r && matchable r l then
                 return! enter lconsts (l, (3, ORDERED_IMP_REWR_CONV term_order (Choice.result th))) net
             else
@@ -226,7 +226,12 @@ let mk_rewrites : _ -> _ -> _ -> Protected<_> =
     let IMP_EXISTS_RULE = 
         let cnv = 
             REWR_CONV(ITAUT(parse_term @"(!x. P x ==> Q) <=> (?x. P x) ==> Q"))
-        fun v th -> CONV_RULE cnv (GEN v th)
+        fun v th -> 
+            choice {
+                let! th = th
+                let! th1 = GEN v (Choice.result th)
+                return! CONV_RULE cnv (Choice.result th1)
+            }
 
     let collect_condition oldhyps (th : Protected<_>) : Protected<_> =
         choice {
@@ -241,9 +246,7 @@ let mk_rewrites : _ -> _ -> _ -> Protected<_> =
             let tms' = concl kth
             let! cond, eqn = dest_imp tms'
             let fvs = subtract (subtract (frees cond) (frees eqn)) (freesl oldhyps)
-            return!
-                let kth = Choice.result kth in
-                itlist IMP_EXISTS_RULE fvs kth
+            return! itlist IMP_EXISTS_RULE fvs (Choice.result kth)
         }
 
     let rec split_rewrites oldhyps cf th sofar : Protected<Protected<thm0> list> = 
@@ -265,7 +268,8 @@ let mk_rewrites : _ -> _ -> _ -> Protected<_> =
                     choice {
                     if cf then
                         return! collect_condition oldhyps (Choice.result th)
-                    else return th }
+                    else return th 
+                    }
                 return (Choice.result v) :: sofar
             elif is_neg tm then
                 let! th' = EQF_INTRO (Choice.result th)
@@ -299,8 +303,7 @@ let REWRITES_CONV (net : net<int * (term -> Protected<'T>)>) tm : Protected<'T> 
         return!
             tryfind (fun (_, cnv) -> Choice.toOption <| cnv tm) pconvs
             |> Option.toChoiceWithError "tryfind"
-            |> Choice.mapError (fun e ->
-                        nestedFailure e "REWRITES_CONV")
+            |> Choice.mapError (fun e -> nestedFailure e "REWRITES_CONV")
     }
 
 (* ------------------------------------------------------------------------- *)
@@ -363,7 +366,8 @@ let basic_prover (strat : strategy) (Simpset(net, prover, provers, rewmaker) as 
                 let! tth = 
                     tryfind (fun pr -> Choice.toOption <| apply_prover pr tm) provers
                     |> Option.toChoiceWithError "tryfind"
-                return! EQ_MP (SYM (Choice.result sth)) (Choice.result tth)
+                let! th1 = SYM (Choice.result sth)
+                return! EQ_MP (Choice.result th1) (Choice.result tth)
                 }
         | e -> Choice.error e)
 
@@ -493,8 +497,8 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                         let tm2 = concl eth'
                         return! GEN_PART_MATCH lhand (Choice.result th) tm2
                     }
-                let th'' = MP (Choice.result th') (Choice.result eth')
-                return! RUN_SUB_CONV strat ss lev triv' th''
+                let! th'' = MP (Choice.result th') (Choice.result eth')
+                return! RUN_SUB_CONV strat ss lev triv' (Choice.result th'')
             elif triv then
                 return! Choice.fail()
             else 
@@ -512,18 +516,22 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
             choice {
                 if is_comb tm then 
                     let! l, r = dest_comb tm
-                    let v = 
-                        let th1 = strat ss lev l
-                        let v' = 
-                            let th2 = strat ss lev r
-                            MK_COMB(th1, th2)
-                        v' |> Choice.bindError (fun _ -> AP_THM th1 r)
-                    return! v |> Choice.bindError (fun _ -> AP_TERM l (strat ss lev r))
+                    return!
+                      choice {
+                        let! th1 = strat ss lev l
+                        return!
+                            choice {
+                                let! th2 = strat ss lev r
+                                return! MK_COMB(Choice.result th1, Choice.result th2)
+                            }
+                            |> Choice.bindError (function Failure _ -> AP_THM (Choice.result th1) r | e -> Choice.error e)
+                      }
+                      |> Choice.bindError (function Failure _ -> AP_TERM l (strat ss lev r) | e -> Choice.error e)
                 elif is_abs tm then 
                     let! v, bod = dest_abs tm
                     let! th = strat ss lev bod
-                    let v' = ABS v (Choice.result th)
-                    return! v' |> Choice.bindError (fun _ ->
+                    return! ABS v (Choice.result th)
+                            |> Choice.bindError (fun _ ->
                                     choice {
                                         let! ty = type_of v
                                         let gv = genvar ty
@@ -535,7 +543,8 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                                         let! l' = alpha v' l
                                         let! r' = alpha v' r
                                         let! tm' = mk_eq(l', r')
-                                        return! EQ_MP (ALPHA gtm tm') (Choice.result gth)
+                                        let! th1 = ALPHA gtm tm'
+                                        return! EQ_MP (Choice.result th1) (Choice.result gth)
                                     })
                 else 
                     return! Choice.failwith "GEN_SUB_CONV"
@@ -553,15 +562,16 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
     let rec DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : Protected<thm0> = 
         choice {
             let! pconvs = lookup tm net
-            let v = 
+            return!
                 choice {
                     let! th1 = GEN_SUB_CONV DEPTH_SQCONV ss lev pconvs tm
                     let! tm1 = rand <| concl th1
                     let! pconvs1 = lookup tm1 net
-                    return! TRANS (Choice.result th1) (IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs1 tm1)
+                    let! th2 = IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs1 tm1
+                    return! TRANS (Choice.result th1) (Choice.result th2)
                             |> Choice.bindError (function Failure _ -> Choice.result th1 | e -> Choice.error e)
                 }
-            return! v |> Choice.bindError (function 
+                |> Choice.bindError (function 
                             | Failure _ -> IMP_REWRITES_CONV DEPTH_SQCONV ss lev pconvs tm
                             | e -> Choice.error e)
         }
@@ -574,20 +584,21 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                     let! th1 = GEN_SUB_CONV REDEPTH_SQCONV ss lev pconvs tm
                     let! tm1 = rand <| concl th1
                     let! pconvs1 = lookup tm1 net
-                    return! TRANS (Choice.result th1) (IMP_REWRITES_CONV REDEPTH_SQCONV ss lev pconvs1 tm1)
+                    let! th2 = IMP_REWRITES_CONV REDEPTH_SQCONV ss lev pconvs1 tm1
+                    return! TRANS (Choice.result th1) (Choice.result th2)
                             |> Choice.bindError (function Failure _ -> Choice.result th1 | e -> Choice.error e)
                 }
                 |> Choice.bindError (function 
                     | Failure _ -> IMP_REWRITES_CONV REDEPTH_SQCONV ss lev pconvs tm
                     | e -> Choice.error e)
 
-            let v = 
+            return! 
                 choice {
                     let! tm' = rand <| concl th
                     let! th' = REDEPTH_SQCONV ss lev tm'
                     return! TRANS (Choice.result th) (Choice.result th')
                 }
-            return! v |> Choice.bindError (function Failure _ -> Choice.result th | e -> Choice.error e)
+                |> Choice.bindError (function Failure _ -> Choice.result th | e -> Choice.error e)
         }
 
     let rec TOP_DEPTH_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : Protected<thm0> = 
@@ -598,30 +609,30 @@ let ONCE_DEPTH_SQCONV, DEPTH_SQCONV, REDEPTH_SQCONV, TOP_DEPTH_SQCONV, TOP_SWEEP
                 |> Choice.bindError (function 
                     | Failure _ -> GEN_SUB_CONV TOP_DEPTH_SQCONV ss lev pconvs tm
                     | e -> Choice.error e)
-            let v = 
+            return! 
                 choice {
                     let! tm1 = rand <| concl th1
                     let! th2 = TOP_DEPTH_SQCONV ss lev tm1
                     return! TRANS (Choice.result th1) (Choice.result th2)
                 }
-            return! v |> Choice.bindError (function Failure _ -> Choice.result th1 | e -> Choice.error e)
+                |> Choice.bindError (function Failure _ -> Choice.result th1 | e -> Choice.error e)
         }
 
     let rec TOP_SWEEP_SQCONV (Simpset(net, prover, provers, rewmaker) as ss) lev tm : Protected<thm0> = 
         choice {
             let! pconvs = lookup tm net
-            let v = 
+            return!
                 choice {
                     let! th1 = IMP_REWRITES_CONV TOP_SWEEP_SQCONV ss lev pconvs tm
-                    let v' = 
+                    return! 
                         choice {
                             let! tm1 = rand <| concl th1
                             let! th2 = TOP_SWEEP_SQCONV ss lev tm1
                             return! TRANS (Choice.result th1) (Choice.result th2)
                         }
-                    return! v' |> Choice.bindError (function Failure _ -> Choice.result th1 | e -> Choice.error e)
+                        |> Choice.bindError (function Failure _ -> Choice.result th1 | e -> Choice.error e)
                 }
-            return! v |> Choice.bindError (function
+                |> Choice.bindError (function
                             | Failure _ -> GEN_SUB_CONV TOP_SWEEP_SQCONV ss lev pconvs tm
                             | e -> Choice.error e)
         }
@@ -942,8 +953,10 @@ let ABBREV_TAC tm : tactic =
             let! th1 =  itlist (fun v th -> CONV_RULE (LAND_CONV BETA_CONV) (AP_THM th v)) (rev vs) (ASSUME eq)
             let! th2 = SIMPLE_CHOOSE v (SIMPLE_EXISTS v (GENL vs (Choice.result th1)))
             let! tm = mk_exists(v, eq)
-            let! th3 = PROVE_HYP (EXISTS (tm, rs) (REFL rs)) (Choice.result th2)
-            return (v, Choice.result th3)
+            let! th3 = REFL rs
+            let! th4 = EXISTS (tm, rs) (Choice.result th3)
+            let! th5 = PROVE_HYP (Choice.result th4) (Choice.result th2)
+            return (v, Choice.result th5)
         }
     fun (asl, w as gl) -> 
         choice {

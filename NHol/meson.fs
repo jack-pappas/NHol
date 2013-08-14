@@ -954,9 +954,9 @@ let GEN_MESON_TAC =
                     let tm = hd tms
                     let! gv = Choice.map genvar (type_of tm)
                     let! eq = mk_eq(gv, tm)
-                    let th' = CLAUSIFY(DISCH eq (SUBS [SYM(ASSUME eq)] th))
+                    let! th' = CLAUSIFY(DISCH eq (SUBS [SYM(ASSUME eq)] th))
                     let! tms' = Choice.List.map (subst [gv, tm]) (tl tms)
-                    return! BRAND tms' th'
+                    return! BRAND tms' (Choice.result th')
             }
 
         let BRAND_CONGS th = 
