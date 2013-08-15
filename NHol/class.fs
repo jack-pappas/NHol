@@ -624,10 +624,10 @@ let (COND_CASES_TAC : tactic) =
                  DISCH_THEN(fun th gl -> 
                          // NOTE: execute the tactics to check for failures
                          choice { 
-                             let th' = DENEG_RULE th
+                             let! th' = DENEG_RULE th
                              return!
-                                 (ASSUME_TAC th'
-                                  |> THEN <| SUBST1_TAC(EQT_INTRO th')) gl
+                                 (ASSUME_TAC (Choice.result th')
+                                  |> THEN <| SUBST1_TAC(EQT_INTRO (Choice.result th'))) gl
                          }
                          |> Choice.bindError (
                                 function 

@@ -381,8 +381,8 @@ let GEN_BETA_CONV =
                     choice {
                         let! ity = type_of a
                         let! tm1 = list_mk_abs(avs, a)
-                        let th = BETA_RULE(PINST [ity, zty] [tm1, gcon] fth)
-                        return! SYM(SPEC_ALL(SELECT_RULE th))
+                        let! th = BETA_RULE(PINST [ity, zty] [tm1, gcon] fth)
+                        return! SYM(SPEC_ALL(SELECT_RULE (Choice.result th)))
                     }
 
                 let ths = map mk_projector avs

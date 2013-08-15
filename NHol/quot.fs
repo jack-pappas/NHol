@@ -177,9 +177,9 @@ let lift_function =
                 let! targs = Choice.List.map (fun v -> mk_comb(eqv, v) |> Choice.bind (fun tm1 -> mk_comb(mk, tm1))) rvs
                 let dme_th = 
                     choice {
-                        let th = INST [eqvx, rtm] tybij2
-                        let! tm1 = Choice.bind (lhs << concl) th
-                        return! EQ_MP th (EXISTS (tm1, xtm) (REFL eqvx))
+                        let! th = INST [eqvx, rtm] tybij2
+                        let! tm1 = lhs <| concl th
+                        return! EQ_MP (Choice.result th) (EXISTS (tm1, xtm) (REFL eqvx))
                     }
 
                 let ith = INST (zip targs evs) eth
