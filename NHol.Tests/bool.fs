@@ -28,6 +28,32 @@ open NUnit.Framework
 open FsUnit
 
 [<Test>]
+let ``{PROVE_HYP} eliminates a provable assumption from a theorem``() =
+    
+    let given1 = Choice1Of2 (Sequent ([parse_term @"Gamma:bool"], parse_term @"p:bool"))
+    let given2 = Choice1Of2 (Sequent ([parse_term @"Delta:bool"; parse_term @"p:bool"], parse_term @"q:bool"))
+
+    let actual = PROVE_HYP given1 given2
+    let expected = Sequent ([parse_term @"Delta:bool"; parse_term @"Gamma:bool";], parse_term @"q:bool")
+
+    actual
+    |> evaluate
+    |> should equal expected
+
+[<Test>]
+let ``{PROVE_HYP} should return second theorem if conclusion of the first is not in the assuptions of the second``() =
+    
+    let given1 = Choice1Of2 (Sequent ([parse_term @"Gamma:bool"], parse_term @"p:bool"))
+    let given2 = Choice1Of2 (Sequent ([parse_term @"Delta:bool"], parse_term @"q:bool"))
+
+    let actual = PROVE_HYP given1 given2
+    let expected = Sequent ([parse_term @"Delta:bool"], parse_term @"q:bool")
+
+    actual
+    |> evaluate
+    |> should equal expected
+
+[<Test>]
 let ``{TRUTH} proves truth``() =
 
     let actual = TRUTH
