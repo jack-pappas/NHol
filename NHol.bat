@@ -9,6 +9,7 @@ set FSI_20= "C:\Program Files (x86)\Microsoft F#\v4.0\fsi.exe"
 
 :: Set variables which hold command-line arguments to be passed to F# Interactive.
 set fsi_args= --lib:NHol^
+  --define:FSI_VER_2^
   --define:DEBUG^
   --define:TRACE^
   --define:USE^
@@ -56,7 +57,7 @@ set fsi_args= --lib:NHol^
   --use:cart.fs^
   --use:define.fs^
   --use:help.fs^
-  --use:database.fs
+  --use:database.fs^
 
 :: Try to find the user's installation of F# Interactive.
 if exist %FSI_30% (
@@ -65,10 +66,18 @@ if exist %FSI_30% (
 
     :: Set the 'FSI' variable to the path for F# 3.0 Interactive.
     set FSI= %FSI_30%
+
+    set FSI_VER_FLAG = ""
 ) else (
 if exist %FSI_20% (
     :: VS 2010 / F# 2.0
     echo Using F# 2.0
+
+    :: Set the 'FSI' variable to the path for F# 2.0 Interactive.
+    set FSI= %FSI_20%
+
+	  
+    set FSI_VER_FLAG = "--define:FSI_VER_2"
 ) else (
     :: Unable to find the F# installation, so exit.
     echo Unable to find an installation of F# interactive at any known location.
@@ -78,4 +87,4 @@ if exist %FSI_20% (
 
 :: Load the NHol environment into the detected version of F# Interactive.
 echo Loading NHol into F# Interactive.
-%FSI% %fsi_args%
+%FSI% %fsi_args% %FSI_VER_FLAG%
