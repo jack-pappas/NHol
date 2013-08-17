@@ -25,7 +25,6 @@ open NHol.parser
 open NHol.printer
 
 open NUnit.Framework
-open FsUnit
 
 [<Test>]
 let ``{mk_primed_var avoid v} returns a variant of v, adding primes, so the new name is not in the avoid list``() =
@@ -173,7 +172,7 @@ let ``{AP_THM th tm} proves equality of equal functions applied to a term``() =
 
     actual
     |> evaluate
-    |> should equal expected
+    |> assertEqual expected
 
 [<Test>]
 let ``{SYM th} swaps left-hand and right-hand sides of an equation``() =
@@ -185,7 +184,7 @@ let ``{SYM th} swaps left-hand and right-hand sides of an equation``() =
 
     actual
     |> evaluate
-    |> should equal expected
+    |> assertEqual expected
 
 [<Test>]
 let ``{ALPHA tm1 tm2} Proves equality of alpha-equivalent terms``() =
@@ -197,4 +196,4 @@ let ``{ALPHA tm1 tm2} Proves equality of alpha-equivalent terms``() =
 
     actual
     |> evaluate
-    |> should equal expected
+    |> assertEqual expected

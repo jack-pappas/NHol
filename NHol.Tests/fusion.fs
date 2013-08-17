@@ -24,7 +24,6 @@ open NHol.parser
 open NHol.printer
 
 open NUnit.Framework
-open FsUnit
 
 // Note: Many of the next test cases came from the HOL Light reference manual
 
@@ -310,6 +309,6 @@ let ``{EQ_MP th1 th2} equality version of modus ponens rule``() =
 
     actual
     |> evaluate
-    |> should equal expected
+    |> assertEqual expected
 
 

@@ -22,7 +22,6 @@ module Tests.NHol.lib
 open NHol.lib
 
 open NUnit.Framework
-open FsUnit
 open FsCheck
 open FSharp.Compatibility.OCaml
 

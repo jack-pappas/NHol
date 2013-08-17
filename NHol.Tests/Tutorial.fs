@@ -20,7 +20,6 @@ limitations under the License.
 module Tests.NHol.Tutorial
 
 open NUnit.Framework
-open FsUnit
 
 open NHol.lib
 open NHol.fusion

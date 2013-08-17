@@ -25,7 +25,6 @@ open NHol.parser
 open NHol.printer
 
 open NUnit.Framework
-open FsUnit
 
 [<Test>]
 let ``{PROVE_HYP} eliminates a provable assumption from a theorem``() =
@@ -38,7 +37,7 @@ let ``{PROVE_HYP} eliminates a provable assumption from a theorem``() =
 
     actual
     |> evaluate
-    |> should equal expected
+    |> assertEqual expected
 
 [<Test>]
 let ``{PROVE_HYP} should return second theorem if conclusion of the first is not in the assuptions of the second``() =
@@ -51,7 +50,7 @@ let ``{PROVE_HYP} should return second theorem if conclusion of the first is not
 
     actual
     |> evaluate
-    |> should equal expected
+    |> assertEqual expected
 
 [<Test>]
 let ``{TRUTH} proves truth``() =
@@ -61,7 +60,7 @@ let ``{TRUTH} proves truth``() =
 
     actual
     |> evaluate
-    |> should equal expected
+    |> assertEqual expected
 
 [<Test>]
 let ``{EQT_ELIM th} eliminates equality with T``() =
@@ -73,4 +72,4 @@ let ``{EQT_ELIM th} eliminates equality with T``() =
 
     actual
     |> evaluate
-    |> should equal expected
+    |> assertEqual expected

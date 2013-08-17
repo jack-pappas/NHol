@@ -23,7 +23,6 @@ open NHol.fusion
 open NHol.nets
 
 open NUnit.Framework
-open FsUnit
 
 [<Test>]
 let ``{enter} insert a new element into a net``() =
@@ -48,7 +47,7 @@ let ``{enter} insert a new element into a net``() =
 
     actual
     |> evaluate
-    |> should equal expected
+    |> Unsafe.assertEqual expected
 
 //[<Test>]
 //let ``{lookup} looks up a term in a net and return possible matches``() =
@@ -72,7 +71,7 @@ let ``{enter} insert a new element into a net``() =
 //    let actual = lookup bTerm termNet
 //
 //    actual
-//    |> should equal bTerm
+//    |> Unsafe.assertEqual bTerm
 
 
 

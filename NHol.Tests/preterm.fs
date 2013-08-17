@@ -20,7 +20,7 @@ limitations under the License.
 module Tests.NHol.preterm
 
 open NUnit.Framework
-open FsUnit
+
 
 
 
