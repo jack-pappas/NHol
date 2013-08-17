@@ -47,7 +47,7 @@ let ``map2 is equivalent to List.map2``() =
 
 [<Test>]
 let ``el is equivalent to List.nth``() =
-    assertProp "chop_list" <| fun n xs ->
+    assertProp "el" <| fun n xs ->
         (n >= 0 && List.length xs > n) ==> 
             lazy (el n xs = List.nth xs n)
 
@@ -63,7 +63,7 @@ let ``rev_itlist is equivalent to List.fold``() =
 
 [<Test>]
 let ``end_itlist is equivalent to List.reduceBack on non-empty lists``() =
-    assertProp "end_itlist" <| fun (xs : int list) f ->
+    assertProp "end_itlist" <| fun (xs : string list) f ->
         xs <> [] ==> lazy (end_itlist f xs = List.reduceBack f xs)
 
 [<Test>]
@@ -121,10 +121,10 @@ let ``partition is equivalent to List.partition``() =
 
 // The `lazy` keyword is important in order to avoid early evaluation
 [<Test>]
-let ``find is equivalent to List.find``() =
+let ``find is equivalent to List.tryFind``() =
     assertProp "find" <| fun xs ->
-        List.exists (fun x -> x > 0) xs ==> 
-            lazy (find (fun x -> x > 0) xs = (Some <| List.find (fun x -> x > 0) xs))
+        List.exists (fun x -> x > 0) xs ==>
+            lazy (find (fun x -> x > 0) xs = List.tryFind (fun x -> x > 0) xs)
 
 [<Test>]
 let ``index is equivalent to List.findIndex``() =
@@ -140,7 +140,7 @@ let ``chop_list is equivalent to List.take``() =
 
 [<Test>]
 let ``flat is equivalent to List.concat``() =
-    assertProp "flat" <| fun xss ->
+    assertProp "flat" <| fun (xss : string list list) ->
         flat xss = List.concat xss
 
 [<Test>]
