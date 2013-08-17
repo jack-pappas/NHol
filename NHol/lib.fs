@@ -20,6 +20,7 @@ limitations under the License.
 
 #if USE
 open System
+open System.Diagnostics
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
