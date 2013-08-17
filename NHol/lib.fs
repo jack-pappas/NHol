@@ -446,7 +446,10 @@ let rec rev_itlist2 f l1 l2 b =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies a binary destructor repeatedly in left-associative mode.
-// NOTE : This is similar to Seq.unfold.
+// OPTIMIZE : Anywhere this function is called, and the state is discarded from the result,
+// we can immediately change to using List.unfold from ExtCore. To handle other call sites,
+// we could copy in the code for List.unfold from ExtCore and modify it to also return the
+// final state value, in which case it'd give identical results to this function.
 let rec splitlist dest x = 
     match dest x with
     | Some (l, r) ->
@@ -455,7 +458,10 @@ let rec splitlist dest x =
     | None -> ([], x)
 
 /// Applies a binary destructor repeatedly in right-associative mode.
-// NOTE : This is similar to Seq.unfold.
+// OPTIMIZE : Anywhere this function is called, and the state is discarded from the result,
+// we can immediately change to using List.unfoldBack from ExtCore. To handle other call sites,
+// we could copy in the code for List.unfoldBack from ExtCore and modify it to also return the
+// final state value, in which case it'd give identical results to this function.
 let rev_splitlist dest = 
     let rec rsplist ls x = 
         match dest x with
