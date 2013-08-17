@@ -397,7 +397,7 @@ let rec repeat f x =
 (* I should probably eliminate this and use pointer EQ tests instead.        *)
 (* ------------------------------------------------------------------------- *)
 
-exception Unchanged
+//exception Unchanged
 
 (* ------------------------------------------------------------------------- *)
 (* Various versions of list iteration.                                       *)
@@ -601,6 +601,8 @@ let inline chop_list n l =
 
 /// Returns position of given element in list.
 // OPTIMIZE : Make this an alias for List.findIndex.
+// Or, for more safety, modify this to return an option value, fix the call sites,
+// then make this an alias for List.tryFindIndex.
 let index x = 
     let rec ind n l = 
         match l with
