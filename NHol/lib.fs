@@ -31,6 +31,7 @@ open ExtCore.Control.Collections
 module NHol.lib
 
 open System
+open System.Diagnostics
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
@@ -327,7 +328,7 @@ let map f =
     mapf
 
 /// Computes the last element of a list.
-// OPTIMIZE : Make this an alias for List.last.
+// OPTIMIZE : Make this an alias for List.last (from ExtCore).
 let rec last l = 
     match l with
     | [x] -> x
@@ -335,7 +336,7 @@ let rec last l =
     | [] -> failwith "last"
 
 /// Computes the sub-list of a list consisting of all but the last element.
-// OPTIMIZE : Make this an alias for List.dropLast.
+// OPTIMIZE : Make this an alias for List.dropLast (from ExtCore).
 let rec butlast l = 
     match l with
     | [_] -> []
@@ -381,6 +382,7 @@ let check p x : Protected<_> =
 (* ------------------------------------------------------------------------- *)
 
 /// Iterates a function a fixed number of times.
+[<Obsolete("Use Choice.funpow instead.")>]
 let rec funpow n f x = 
     if n < 1 then x
     else funpow (n - 1) f (f x)
@@ -755,15 +757,43 @@ let setify s = uniq(sort (fun x y -> compare x y <= 0) s)
 (* ------------------------------------------------------------------------- *)
 
 /// Concatenates a list of strings into one string.
-// OPTIMIZE : Make this an alias for the String.concat function; a type annotation
-// will be necessary on the argument to keep the types the same.
-let implode l = itlist (+) l ""
+let implode (l : string list) : string =
+    // Preconditions
+    checkNonNull "l" l
+
+    // Pattern-match on the list to provide optimized implementations
+    // for lists with just a few elements.
+    match l with
+    | [] -> ""
+    | [x] -> x
+    | x :: [y] ->
+        System.String.Concat (x, y)
+    | x :: y :: [z] ->
+        System.String.Concat (x, y, z)
+    | w :: x :: y :: [z] ->
+        System.String.Concat (w, x, y, z)
+    | _ ->
+        // TODO : If it's not much slower, just use System.String.Join here instead to simplify things.
+        // System.String.Join ("", l)
+        let sb = System.Text.StringBuilder ()
+        let rec implode = function
+            | [] ->
+                sb.ToString ()
+            | (hd : string) :: tl ->
+                Debug.Assert (not <| isNull hd,
+                    "The string list contains at least one element which is a null string.")
+                sb.Append hd |> ignore
+                implode tl
+        implode l
 
 /// Converts a string into a list of single-character strings.
-let explode s = 
+let explode (s : string) : string list =
+    // Preconditions
+    checkNonNull "s" s
+
     let rec exap n l = 
         if n < 0 then l
-        else exap (n - 1) ((String.sub s n 1) :: l)
+        else exap (n - 1) ((s.[n].ToString()) :: l)
     exap (String.length s - 1) []
 
 (* ------------------------------------------------------------------------- *)
@@ -791,18 +821,16 @@ let num_2 = Int 2
 let num_10 = Int 10
 
 let pow2 (n:int) = 
-    if n < 0 
-        then 
-            let n' = System.Math.Abs(n)
-            (Int 1) / (power_num num_2 (Int n'))
-        else power_num num_2 (Int n)
+    if n < 0 then
+        let n' = System.Math.Abs(n)
+        (Int 1) / (power_num num_2 (Int n'))
+    else power_num num_2 (Int n)
 
-let pow10 (n:int) = 
-    if n < 0 
-        then 
-            let n' = System.Math.Abs(n)
-            (Int 1) / (power_num num_10 (Int n'))
-        else power_num num_10 (Int n)
+let pow10 (n:int) =
+    if n < 0 then 
+        let n' = System.Math.Abs(n)
+        (Int 1) / (power_num num_10 (Int n'))
+    else power_num num_10 (Int n)
 
 /// Returns numerator and denominator of normalized fraction.
 let numdom r =
