@@ -232,3 +232,79 @@ let ``{IMP_TRANS thm1 thm2} Implements the transitivity of implication``() =
     actual
     |> evaluate
     |> assertEqual expected
+
+// Test cases for SPEC* functions
+
+//
+
+[<Test>]
+let ``{DISJ1 thm term} Introduces a right disjunct into the conclusion of a theorem``() =
+    let actual = DISJ1 TRUTH <| parse_term @"F"
+    let expected = Sequent ([], parse_term @"T \/ F")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{DISJ2 term thm} Introduces a left disjunct into the conclusion of a theorem``() =
+    let actual = DISJ2 (parse_term @"F") TRUTH
+    let expected = Sequent ([], parse_term @"F \/ T")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{SIMPLE_DISJ_CASES thm1 thm2} Disjoins hypotheses of two theorems with same conclusion``() =
+    let ths = map (UNDISCH << TAUT) [parse_term @"~p ==> p ==> q"; parse_term @"q ==> p ==> q"]
+    match ths with
+    | [th1; th2] ->
+        let actual = SIMPLE_DISJ_CASES th1 th2
+        let expected = Sequent ([parse_term @"~p \/ q"], parse_term @"p ==> q")
+
+        actual
+        |> evaluate
+        |> assertEqual expected
+    | _ -> ()
+
+[<Test>]
+let ``{NOT_ELIM thm} Transforms |- ~t into |- t ==> F``() =
+    let th = UNDISCH(TAUT <| parse_term @"p ==> ~ ~p")
+    let actual = NOT_ELIM th
+    let expected = Sequent ([parse_term @"p:bool"], parse_term @"~p ==> F")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{NOT_INTRO thm} Transforms |- t ==> F into |- ~t``() =
+    let th = TAUT <| parse_term @"F ==> F"
+    let actual = NOT_INTRO th
+    let expected = Sequent ([], parse_term @"~F")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{EQF_INTRO thm} Converts negation to equality with F``() =
+    let th = ASSUME (parse_term @"~p")
+    let actual = EQF_INTRO th
+    let expected = Sequent ([parse_term @"~p"], parse_term @"p <=> F")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{EQF_ELIM thm} Replaces equality with F by negation``() =
+    let th = REFL (parse_term @"F")
+    let actual = EQF_ELIM th
+    let expected = Sequent ([], parse_term @"~F")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
