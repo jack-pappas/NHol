@@ -2,6 +2,7 @@
 :: latest version of F# Interactive (FSI) available on this machine.
 
 @echo off
+setlocal enabledelayedexpansion
 
 :: Get location of required dll: NHol.dll
 set NHOL_RELATIVE=NHol\bin\Debug\NHol.dll
@@ -13,7 +14,7 @@ set FSI_20= "C:\Program Files (x86)\Microsoft F#\v4.0\fsi.exe"
 
 :: Set variables which hold command-line arguments to be passed to F# Interactive.
 set fsi_args= --lib:NHol^
-  --define:FSI_VER_2^
+  fsi_ver^
   --define:DEBUG^
   --define:TRACE^
   --define:USE^
@@ -73,8 +74,8 @@ if exist %NHOL_ABSOLUTE% (
 
       :: Set the 'FSI' variable to the path for F# 3.0 Interactive.
       set FSI= %FSI_30%
+      set fsi_args=!fsi_args:fsi_ver=--define:FSI_VER_3!
 
-      set FSI_VER_FLAG = ""
    ) else (
       if exist %FSI_20% (
           :: VS 2010 / F# 2.0
@@ -82,8 +83,8 @@ if exist %NHOL_ABSOLUTE% (
 
           :: Set the 'FSI' variable to the path for F# 2.0 Interactive.
           set FSI= %FSI_20%
-	  
-          set FSI_VER_FLAG = "--define:FSI_VER_2"
+          set fsi_args=!fsi_args:fsi_ver=--define:FSI_VER_2!
+
       ) else (
           :: Unable to find the F# installation, so exit.
           echo Unable to find an installation of F# interactive at any known location.
@@ -109,4 +110,4 @@ exit
 
 :: Load the NHol environment into the detected version of F# Interactive.
 echo Loading NHol into F# Interactive.
-%FSI% %fsi_args% %FSI_VER_FLAG%
+%FSI% %fsi_args%
