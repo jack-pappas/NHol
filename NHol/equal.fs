@@ -86,7 +86,8 @@ let mk_primed_var : _ -> _ -> Protected<term> =
 (* ------------------------------------------------------------------------- *)
 
 /// General case of beta-conversion.
-let BETA_CONV tm : Protected<thm0> = 
+let BETA_CONV tm : Protected<thm0> =
+    logEntryExitProtected "BETA_CONV" <| fun () ->
     BETA tm
     |> Choice.bindError (function
         | Failure _ ->
@@ -104,7 +105,8 @@ let BETA_CONV tm : Protected<thm0> =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies a function to both sides of an equational theorem.
-let AP_TERM tm th : Protected<thm0> = 
+let AP_TERM tm th : Protected<thm0> =
+    logEntryExitProtected "AP_TERM" <| fun () ->
     choice {
         let! th = th
         let! th1 = REFL tm
@@ -113,7 +115,8 @@ let AP_TERM tm th : Protected<thm0> =
     |> Choice.mapError (fun e -> nestedFailure e "AP_TERM")
 
 /// Proves equality of equal functions applied to a term.
-let AP_THM th tm : Protected<thm0> = 
+let AP_THM th tm : Protected<thm0> =
+    logEntryExitProtected "AP_THM" <| fun () -> 
     choice {
         let! th = th
         let! th1 = REFL tm
@@ -122,7 +125,8 @@ let AP_THM th tm : Protected<thm0> =
     |> Choice.mapError (fun e -> nestedFailure e "AP_THM")
 
 /// Swaps left-hand and right-hand sides of an equation.
-let SYM (th : Protected<thm0>) : Protected<thm0> = 
+let SYM (th : Protected<thm0>) : Protected<thm0> =
+    logEntryExitProtected "SYM" <| fun () ->
     choice {
         let! th = th
         let tm = concl th
@@ -136,7 +140,8 @@ let SYM (th : Protected<thm0>) : Protected<thm0> =
     }
 
 /// Proves equality of lpha-equivalent terms.
-let ALPHA tm1 tm2 : Protected<thm0> = 
+let ALPHA tm1 tm2 : Protected<thm0> =
+    logEntryExitProtected "ALPHA" <| fun () ->
     choice {
         let! th1 = REFL tm1
         let! th2 = REFL tm2
@@ -146,13 +151,15 @@ let ALPHA tm1 tm2 : Protected<thm0> =
 
 /// Renames the bound variable of a lambda-abstraction.
 let ALPHA_CONV v tm : Protected<thm0> =
+    logEntryExitProtected "ALPHA_CONV" <| fun () ->
     choice {
         let! tm1 = alpha v tm
         return! ALPHA tm tm1
     }
 
 /// Renames the bound variable of an abstraction or binder.
-let GEN_ALPHA_CONV v tm = 
+let GEN_ALPHA_CONV v tm =
+    logEntryExitProtected "GEN_ALPHA_CONV" <| fun () ->
     choice {
         if is_abs tm then 
             return! ALPHA_CONV v tm
@@ -163,7 +170,8 @@ let GEN_ALPHA_CONV v tm =
     }
 
 /// Compose equational theorems with binary operator.
-let MK_BINOP op (lth, rth) = 
+let MK_BINOP op (lth, rth) =
+    logEntryExitProtected "MK_BINOP" <| fun () ->
     choice {
         let! lth = lth
         let! rth = rth
@@ -189,6 +197,7 @@ let ALL_CONV : conv = REFL
 /// Applies two conversions in sequence.
 let THENC (conv1 : conv) (conv2 : conv) : conv =
     fun t ->
+    logEntryExitProtected "THENC" <| fun () ->
     choice {
         let! th1 = conv1 t
         let! t' = rand <| concl th1
@@ -201,6 +210,7 @@ let THENC (conv1 : conv) (conv2 : conv) : conv =
 /// Applies the first of two conversions that succeeds.
 let ORELSEC (conv1 : conv) (conv2 : conv) : conv =
     fun t ->
+    logEntryExitProtected "ORELSEC" <| fun () ->
         conv1 t
         |> Choice.bindError (function Failure _ -> conv2 t | e -> Choice.error e)
 

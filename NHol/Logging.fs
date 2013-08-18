@@ -352,3 +352,36 @@ module Logger =
     //
     let inline fatalf fmt : 'T =
         ksprintf logger.Fatal fmt
+
+    //
+    let logEntryExit (functionName : string) (body : unit -> 'T) =
+        // Preconditions
+        checkNonNull "functionName" functionName
+        if String.isEmpty functionName then
+            invalidArg "functionName" "The function name is empty."
+
+        logger.Trace ("Entering {0}.", functionName)
+        
+        // TODO : Should we wrap this in a try/with (where the 'with' reraises the exn) so we can
+        // provide a better exit message in case the function raises an exception?
+        let result = body ()
+        logger.Trace ("Exiting {0}.", functionName)
+        result
+
+    //
+    let logEntryExitProtected (functionName : string) (body : unit -> Choice<'T, 'Error>) =
+        // Preconditions
+        checkNonNull "functionName" functionName
+        if String.isEmpty functionName then
+            invalidArg "functionName" "The function name is empty."
+
+        logger.Trace ("Entering {0}.", functionName)
+        
+        let result = body ()
+        match result with
+        | Choice1Of2 _ ->
+            logger.Trace ("Exiting {0}, returning a result value.", functionName)
+        | Choice2Of2 _ ->
+            logger.Trace ("Exiting {0}, returning an error value.", functionName)
+        result
+
