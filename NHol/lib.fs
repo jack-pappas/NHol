@@ -158,6 +158,7 @@ module Choice =
     let inline nestedFailwith innerException message : Choice<'T, exn> =
         Choice2Of2 <| nestedFailure innerException message
 
+    [<Obsolete("Uses of Choice.fail should be changed to Choice.failwith to provide better information when an error occurs.")>]
     let inline fail () : Choice<'T, exn> =
         failwith ""
 
