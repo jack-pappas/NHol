@@ -226,6 +226,7 @@ let MP_CONV (cnv : conv) (th : Protected<thm0>) : Protected<thm0> =
 (* ------------------------------------------------------------------------- *)
 (* Multiple beta-reduction (we use a slight variant below).                  *)
 (* ------------------------------------------------------------------------- *)
+
 /// Beta conversion over multiple arguments.
 let rec BETAS_CONV tm : Protected<thm0> =
     match tm with
