@@ -23,6 +23,8 @@ limitations under the License.
 /// Simplistic HOL Light prettyprinter, using the OCaml "Format" library.
 module NHol.printer
 
+open System.Diagnostics
+
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
@@ -44,47 +46,111 @@ logger.Trace("Entering printer.fs")
 (* Character discrimination.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
+/// Returns the ASCII code for the first (0th) character in a string.
 let inline private charcode (s : string) =
+    #if DEBUG
+    if String.length s <> 1 then
+        logger.Debug ("NHol.printer.charcode: The string should contain exactly one (1) character, but it contains {0} characters. (s = {1})",
+            String.length s, s)
+    #endif
     int s.[0]
 
+//
 let private ctable =
+    // OPTIMIZE :   Make sure these strings are compiled into literals.
+    //              They may need to be lifted out of this function into the module for that.
     let spaces = " \t\n\r"
     let separators = ",;"
     let brackets = "()[]{}"
     let symbs = "\\!@#$%^&*-+|\\<=>/?~.:"
     let alphas = "'abcdefghijklmnopqrstuvwxyz_ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     let nums = "0123456789"
-    let allchars = spaces + separators + brackets + symbs + alphas + nums
-    let csetsize = itlist (max << charcode) (explode allchars) 256
-    let ctable = Array.make csetsize 0
-    do_list (fun c -> Array.set ctable (charcode c) 1) (explode spaces)
-    do_list (fun c -> Array.set ctable (charcode c) 2) (explode separators)
-    do_list (fun c -> Array.set ctable (charcode c) 4) (explode brackets)
-    do_list (fun c -> Array.set ctable (charcode c) 8) (explode symbs)
-    do_list (fun c -> Array.set ctable (charcode c) 16) (explode alphas)
-    do_list (fun c -> Array.set ctable (charcode c) 32) (explode nums)
+    
+    let ctable =
+        let inline maxAsciiCode str =
+            // OPTIMIZE : Use String.reduce from a future version of ExtCore, instead of String.fold.
+            String.fold (fun x c -> max x (int c)) 0 str
+
+        maxAsciiCode spaces
+        |> max (maxAsciiCode separators)
+        |> max (maxAsciiCode brackets)
+        |> max (maxAsciiCode symbs)
+        |> max (maxAsciiCode alphas)
+        |> max (maxAsciiCode nums)
+        |> max 256
+        |> Array.zeroCreate
+
+    String.iter (fun c -> Array.set ctable (int c) 1) spaces
+    String.iter (fun c -> Array.set ctable (int c) 2) separators
+    String.iter (fun c -> Array.set ctable (int c) 4) brackets
+    String.iter (fun c -> Array.set ctable (int c) 8) symbs
+    String.iter (fun c -> Array.set ctable (int c) 16) alphas
+    String.iter (fun c -> Array.set ctable (int c) 32) nums
     ctable
 
+/// Checks that a string contains exactly one (1) character,
+/// and raises an exception if otherwise.
+let private checkStringIsSingleChar c =
+    if String.length c <> 1 then
+        let msg = sprintf "The string should contain exactly one (1) character, but it contains %i characters. (c = %s)" (String.length c) c
+        invalidArg "c" msg
+
 /// Tests if a one-character string is some kind of space.
-let isspace c = Array.get ctable (charcode c) = 1
+let isspace c =
+    // Preconditions
+#if BUGGY
+    checkStringIsSingleChar c
+#endif
+    Array.get ctable (charcode c) = 1
 
 /// Tests if a one-character string is a separator.
-let issep c = Array.get ctable (charcode c) = 2
+let issep c =
+    // Preconditions
+#if BUGGY
+    checkStringIsSingleChar c
+#endif
+    Array.get ctable (charcode c) = 2
 
 /// Tests if a one-character string is some kind of bracket.
-let isbra c = Array.get ctable (charcode c) = 4
+let isbra c =
+    // Preconditions
+#if BUGGY
+    checkStringIsSingleChar c
+#endif
+    Array.get ctable (charcode c) = 4
 
 /// Tests if a one-character string is a symbol other than bracket or separator.
-let issymb c = Array.get ctable (charcode c) = 8
+let issymb c =
+    // Preconditions
+#if BUGGY
+    checkStringIsSingleChar c
+#endif
+    Array.get ctable (charcode c) = 8
 
 /// Tests if a one-character string is alphabetic.
-let isalpha c = Array.get ctable (charcode c) = 16
+let isalpha c =
+    // Preconditions
+#if BUGGY
+    checkStringIsSingleChar c
+#endif
+    Array.get ctable (charcode c) = 16
 
 /// Tests if a one-character string is a decimal digit.
-let isnum c = Array.get ctable (charcode c) = 32
+let isnum c =
+    // Preconditions
+#if BUGGY
+    checkStringIsSingleChar c
+#endif
+    Array.get ctable (charcode c) = 32
 
 /// Tests if a one-character string is alphanumeric.
-let isalnum c = Array.get ctable (charcode c) >= 16
+let isalnum c =
+    // Preconditions
+#if BUGGY
+    checkStringIsSingleChar c
+#endif
+    Array.get ctable (charcode c) >= 16
+
 
 (* ------------------------------------------------------------------------- *)
 (* Reserved words.                                                           *)
@@ -187,15 +253,15 @@ let prefixes () =
 
 
 //
-let private infix_cmp (s, (x, a)) (t, (y, b)) =
-    x < y || x = y && a > b || x = y && a = b && s < t
-
-//
 let private infix_list : (string * (int * string)) list ref = ref []
 
 /// Removes string from the list of infix operators.
 let unparse_as_infix n =
     infix_list := filter (((<>) n) << fst) !infix_list
+
+//
+let private infix_cmp (s, (x, a)) (t, (y, b)) =
+    x < y || x = y && a > b || x = y && a = b && s < t
 
 /// Adds identifier to list of infixes, with given precedence and associativity.
 let parse_as_infix (n, d) =
@@ -345,18 +411,20 @@ let pp_print_qtype fmt ty =
 (* Allow the installation of user printers. Must fail quickly if N/A.        *)
 (* ------------------------------------------------------------------------- *)
 
-//
+// TODO :   This should (eventually) be modified to have the type (string * (term -> Protected<unit>)) list ref.
 let private user_printers : (string * (term -> unit)) list ref = ref []
 
-// install_user_printer: Install a user-defined printing function into the HOL Light term printer.
+/// Install a user-defined printing function into the HOL Light term printer.
 let install_user_printer pr =
     user_printers := pr :: !user_printers
 
-// delete_user_printer: Remove user-defined printer from the HOL Light term printing.
+/// Remove user-defined printer from the HOL Light term printing.
 let delete_user_printer s =
+    // TODO :   This function should be modified to remove the use of Option.get -- this function
+    //          will currently fail (raise an exn) if 's' is not in the list of user printers.
     user_printers := snd(Option.get <| remove (fun (s', _) -> s = s') !user_printers)
 
-// try_user_printer: Try user-defined printers on a term.
+/// Try user-defined printers on a term.
 let try_user_printer tm : Protected<unit> =
     !user_printers
     |> tryfind (fun (_, pr) ->
@@ -819,7 +887,7 @@ let pp_print_term =
 (* ------------------------------------------------------------------------- *)
 
 /// Prints a term with surrounding quotes to formatter.
-let pp_print_qterm fmt tm = 
+let pp_print_qterm fmt tm =
     pp_print_string fmt "`"
     pp_print_term fmt tm
     pp_print_string fmt "`"
@@ -829,7 +897,7 @@ let pp_print_qterm fmt tm =
 (* ------------------------------------------------------------------------- *)
 
 /// Prints a theorem to formatter.
-let pp_print_thm fmt th = 
+let pp_print_thm fmt th =
     let asl, tm = dest_thm th
     if not <| List.isEmpty asl then
         if !print_all_thm then
