@@ -44,15 +44,10 @@ logger.Trace("Entering printer.fs")
 (* Character discrimination.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
-// isspace: Tests if a one-character string is some kind of space.
-// issep: Tests if a one-character string is a separator.
-// isbra: Tests if a one-character string is some kind of bracket.
-// issymb: Tests if a one-character string is a symbol other than bracket or separator.
-// isalpha: Tests if a one-character string is alphabetic.
-// isnum: Tests if a one-character string is a decimal digit.
-// isalnum: Tests if a one-character string is alphanumeric.
-let isspace, issep, isbra, issymb, isalpha, isnum, isalnum = 
-    let charcode s = Char.code(String.get s 0)
+let inline private charcode (s : string) =
+    int s.[0]
+
+let private ctable =
     let spaces = " \t\n\r"
     let separators = ",;"
     let brackets = "()[]{}"
@@ -68,48 +63,73 @@ let isspace, issep, isbra, issymb, isalpha, isnum, isalnum =
     do_list (fun c -> Array.set ctable (charcode c) 8) (explode symbs)
     do_list (fun c -> Array.set ctable (charcode c) 16) (explode alphas)
     do_list (fun c -> Array.set ctable (charcode c) 32) (explode nums)
-    let isspace c = Array.get ctable (charcode c) = 1
-    let issep c = Array.get ctable (charcode c) = 2
-    let isbra c = Array.get ctable (charcode c) = 4
-    let issymb c = Array.get ctable (charcode c) = 8
-    let isalpha c = Array.get ctable (charcode c) = 16
-    let isnum c = Array.get ctable (charcode c) = 32
-    let isalnum c = Array.get ctable (charcode c) >= 16
-    isspace, issep, isbra, issymb, isalpha, isnum, isalnum
+    ctable
+
+/// Tests if a one-character string is some kind of space.
+let isspace c = Array.get ctable (charcode c) = 1
+
+/// Tests if a one-character string is a separator.
+let issep c = Array.get ctable (charcode c) = 2
+
+/// Tests if a one-character string is some kind of bracket.
+let isbra c = Array.get ctable (charcode c) = 4
+
+/// Tests if a one-character string is a symbol other than bracket or separator.
+let issymb c = Array.get ctable (charcode c) = 8
+
+/// Tests if a one-character string is alphabetic.
+let isalpha c = Array.get ctable (charcode c) = 16
+
+/// Tests if a one-character string is a decimal digit.
+let isnum c = Array.get ctable (charcode c) = 32
+
+/// Tests if a one-character string is alphanumeric.
+let isalnum c = Array.get ctable (charcode c) >= 16
 
 (* ------------------------------------------------------------------------- *)
 (* Reserved words.                                                           *)
 (* ------------------------------------------------------------------------- *)
 
-// reserve_words: Add given strings to the set of reserved words.
-// unreserve_words: Remove given strings from the set of reserved words.
-// is_reserved_word: Tests if a string is one of the reserved words.
-// reserved_words: Returns the list of reserved words.
-let reserve_words, unreserve_words, is_reserved_word, reserved_words = 
-    let reswords = 
-        ref ["(";
-             ")";
-             "[";
-             "]";
-             "{";
-             "}";
-             ":";
-             ";";
-             ".";
-             "|";
-             "let";
-             "in";
-             "and";
-             "if";
-             "then";
-             "else";
-             "match";
-             "with";
-             "function";
-             "->";
-             "when"]
-    (fun ns -> reswords := union (!reswords) ns), (fun ns -> reswords := subtract (!reswords) ns), 
-    (fun n -> mem n (!reswords)), (fun () -> !reswords)
+let private reswords = 
+    ref [
+        "(";
+        ")";
+        "[";
+        "]";
+        "{";
+        "}";
+        ":";
+        ";";
+        ".";
+        "|";
+        "let";
+        "in";
+        "and";
+        "if";
+        "then";
+        "else";
+        "match";
+        "with";
+        "function";
+        "->";
+        "when"]
+
+/// Add given strings to the set of reserved words.
+let reserve_words ns =
+    reswords := union !reswords ns
+
+/// Remove given strings from the set of reserved words.
+let unreserve_words ns =
+    reswords := subtract !reswords ns
+
+/// Tests if a string is one of the reserved words.
+let is_reserved_word n =
+    mem n !reswords
+
+/// Returns the list of reserved words.
+let reserved_words () =
+    !reswords
+
 
 (* ------------------------------------------------------------------------- *)
 (* Functions to access the global tables controlling special parse status.   *)
@@ -124,47 +144,81 @@ let reserve_words, unreserve_words, is_reserved_word, reserved_words =
 (* whether an identifier is symbolic.                                        *)
 (* ------------------------------------------------------------------------- *)
 
-// unparse_as_binder: Stops the quotation parser from treating a name as a binder.
-// parse_as_binder: Makes the quotation parser treat a name as a binder.
-// parses_as_binder: Tests if a string has binder status in the parser.
-// binders: Lists the binders.
-let unparse_as_binder, parse_as_binder, parses_as_binder, binders = 
-    let binder_list = ref([] : string list)
-    (fun n -> binder_list := subtract (!binder_list) [n]), (fun n -> binder_list := union (!binder_list) [n]), 
-    (fun n -> mem n (!binder_list)), (fun () -> !binder_list)
+let private binder_list : string list ref = ref []
 
-// unparse_as_prefix: Removes prefix status for an identifier.
-// parse_as_prefix: Gives an identifier prefix status.
-// is_prefix: Tests if an identifier has prefix status.
-// prefixes: Certain identifiers 'c' have prefix status, meaning that combinations of the form 'c f x' will
-//           be parsed as 'c (f x)' rather than the usual '(c f) x'. The call 'prefixes()' returns the list
-//           of all such identifiers.
-let unparse_as_prefix, parse_as_prefix, is_prefix, prefixes = 
-    let prefix_list = ref([] : string list)
-    (fun n -> prefix_list := subtract (!prefix_list) [n]), (fun n -> prefix_list := union (!prefix_list) [n]), 
-    (fun n -> mem n (!prefix_list)), (fun () -> !prefix_list)
+/// Stops the quotation parser from treating a name as a binder.
+let unparse_as_binder n =
+    binder_list := subtract !binder_list [n]
 
-// unparse_as_infix: Removes string from the list of infix operators.
-// parse_as_infix: Adds identifier to list of infixes, with given precedence and associativity.
-// get_infix_status: Get the precedence and associativity of an infix operator.
-// infixes: Lists the infixes currently recognized by the parser.
-let unparse_as_infix, parse_as_infix, get_infix_status, infixes = 
-    let cmp (s, (x, a)) (t, (y, b)) = x < y || x = y && a > b || x = y && a = b && s < t
-    let infix_list = ref([] : (string * (int * string)) list)
-    (fun n -> infix_list := filter (((<>) n) << fst) (!infix_list)), 
-    (fun (n, d) -> infix_list := sort cmp ((n, d) :: (filter (((<>) n) << fst) (!infix_list)))), 
-    (fun n -> assoc n !infix_list),
-    (fun () -> !infix_list)
+/// Makes the quotation parser treat a name as a binder.
+let parse_as_binder n =
+    binder_list := union !binder_list [n]
+
+/// Tests if a string has binder status in the parser.
+let parses_as_binder n =
+    mem n !binder_list
+
+/// Lists the binders.
+let binders () =
+    !binder_list
+
+
+let private prefix_list : string list ref = ref []
+
+/// Removes prefix status for an identifier.
+let unparse_as_prefix n =
+    prefix_list := subtract !prefix_list [n]
+
+/// Gives an identifier prefix status.
+let parse_as_prefix n =
+    prefix_list := union !prefix_list [n]
+
+/// Tests if an identifier has prefix status.
+let is_prefix n =
+    mem n !prefix_list
+
+/// <summary>
+/// Certain identifiers <c>c</c> have prefix status, meaning that combinations of the form
+/// <c>c f x</c> will be parsed as <c>c (f x)</c> rather than the usual <c>(c f) x</c>.
+/// The call <c>prefixes()</c> returns the list of all such identifiers.
+/// </summary>
+let prefixes () =
+    !prefix_list
+
+
+//
+let private infix_cmp (s, (x, a)) (t, (y, b)) =
+    x < y || x = y && a > b || x = y && a = b && s < t
+
+//
+let private infix_list : (string * (int * string)) list ref = ref []
+
+/// Removes string from the list of infix operators.
+let unparse_as_infix n =
+    infix_list := filter (((<>) n) << fst) !infix_list
+
+/// Adds identifier to list of infixes, with given precedence and associativity.
+let parse_as_infix (n, d) =
+    infix_list := sort infix_cmp ((n, d) :: (filter (((<>) n) << fst) !infix_list))
+
+/// Get the precedence and associativity of an infix operator.
+let get_infix_status n =
+    assoc n !infix_list
+
+/// Lists the infixes currently recognized by the parser.
+let infixes () =
+    !infix_list
+
 
 (* ------------------------------------------------------------------------- *)
 (* Interface mapping.                                                        *)
 (* ------------------------------------------------------------------------- *)
 
 /// List of active interface mappings.
-let the_interface = ref([] : (string * (string * hol_type)) list)
+let the_interface : (string * (string * hol_type)) list ref = ref []
 
 /// List of overload skeletons for all overloadable identifiers.
-let the_overload_skeletons = ref([] : (string * hol_type) list)
+let the_overload_skeletons : (string * hol_type) list ref = ref []
 
 open FSharp.Compatibility.OCaml.Format
 
@@ -182,7 +236,7 @@ let reverse_interface_mapping = ref true
 (* ------------------------------------------------------------------------- *)
 
 /// Determines which binary operators are printed with surrounding spaces.
-let unspaced_binops = 
+let unspaced_binops =
     ref [","; ".."; "$"]
 
 (* ------------------------------------------------------------------------- *)
@@ -190,7 +244,8 @@ let unspaced_binops =
 (* ------------------------------------------------------------------------- *)
 
 /// Determines which binary operators are line-broken to the left.
-let prebroken_binops = ref ["==>"]
+let prebroken_binops =
+    ref ["==>"]
 
 (* ------------------------------------------------------------------------- *)
 (* Force explicit indications of bound variables in set abstractions.        *)
@@ -228,58 +283,87 @@ let name_of tm =
 (* Printer for types.                                                        *)
 (* ------------------------------------------------------------------------- *)
 
-// pp_print_type: Prints a type (without colon or quotes) to formatter.
-// pp_print_qtype: Prints a type with initial colon and surrounding quotes to formatter.
-let pp_print_type, pp_print_qtype = 
-    let soc sep flag ss = 
-        if ss = [] then ""
-        else 
-            let s = end_itlist (fun s1 s2 -> s1 + sep + s2) ss
-            if flag then "(" + s + ")"
-            else s
-    let rec sot pr ty = 
-        match dest_vartype ty with
-        | Success s -> s
-        | Error _ -> 
-            match dest_type ty with
-            | Success ty' ->
-                match ty' with
-                | con, [] -> con
-                | "fun", [ty1; ty2] -> 
-                    soc "->" (pr > 0) [sot 1 ty1;
-                                       sot 0 ty2]
-                | "sum", [ty1; ty2] -> 
-                    soc "+" (pr > 2) [sot 3 ty1;
-                                      sot 2 ty2]
-                | "prod", [ty1; ty2] -> 
-                    soc "#" (pr > 4) [sot 5 ty1;
-                                      sot 4 ty2]
-                | "cart", [ty1; ty2] -> 
-                    soc "^" (pr > 6) [sot 6 ty1;
-                                      sot 7 ty2]
-                | con, args -> (soc "," true (map (sot 0) args)) + con
-            | Error _ -> "malformed type"
-    (fun fmt ty -> pp_print_string fmt (sot 0 ty)), (fun fmt ty -> pp_print_string fmt ("`:" + sot 0 ty + "`"))
+//
+let private soc sep flag ss =
+    if List.isEmpty ss then ""
+    else 
+        let s = end_itlist (fun s1 s2 -> s1 + sep + s2) ss
+        if flag then "(" + s + ")"
+        else s
+
+//
+let rec private sot pr ty : Protected<string> =
+    dest_vartype ty
+    |> Choice.bindError (fun _ ->
+        dest_type ty
+        |> Choice.mapError (fun e ->
+            nestedFailure e "sot: malformed type")
+        |> Choice.bind (fun ty' ->
+            choice {
+            match ty' with
+            | con, [] ->
+                return con
+            | "fun", [ty1; ty2] ->
+                let! sot_ty1 = sot 1 ty1
+                let! sot_ty2 = sot 0 ty2
+                return
+                    soc "->" (pr > 0) [sot_ty1;
+                                        sot_ty2]
+            | "sum", [ty1; ty2] ->
+                let! sot_ty1 = sot 3 ty1
+                let! sot_ty2 = sot 2 ty2
+                return
+                    soc "+" (pr > 2) [sot_ty1;
+                                        sot_ty2]
+            | "prod", [ty1; ty2] ->
+                let! sot_ty1 = sot 5 ty1
+                let! sot_ty2 = sot 4 ty2
+                return
+                    soc "#" (pr > 4) [sot_ty1;
+                                        sot_ty2]
+            | "cart", [ty1; ty2] ->
+                let! sot_ty1 = sot 6 ty1
+                let! sot_ty2 = sot 7 ty2
+                return
+                    soc "^" (pr > 6) [sot_ty1;
+                                        sot_ty2]
+            | con, args ->
+                let! foo1 = Choice.List.map (sot 0) args
+                return (soc "," true foo1) + con
+            }))
+
+/// Prints a type (without colon or quotes) to formatter.
+let pp_print_type fmt ty =
+    pp_print_string fmt (Choice.get <| sot 0 ty)
+
+/// Prints a type with initial colon and surrounding quotes to formatter.
+let pp_print_qtype fmt ty =
+    pp_print_string fmt ("`:" + (Choice.get <| sot 0 ty) + "`")
+
 
 (* ------------------------------------------------------------------------- *)
 (* Allow the installation of user printers. Must fail quickly if N/A.        *)
 (* ------------------------------------------------------------------------- *)
 
+//
+let private user_printers : (string * (term -> unit)) list ref = ref []
+
 // install_user_printer: Install a user-defined printing function into the HOL Light term printer.
+let install_user_printer pr =
+    user_printers := pr :: !user_printers
+
 // delete_user_printer: Remove user-defined printer from the HOL Light term printing.
+let delete_user_printer s =
+    user_printers := snd(Option.get <| remove (fun (s', _) -> s = s') !user_printers)
+
 // try_user_printer: Try user-defined printers on a term.
-let install_user_printer, delete_user_printer, (try_user_printer : term -> Protected<unit>) = 
-    let user_printers = ref([] : (string * (term -> unit)) list)
-    (fun pr ->
-        user_printers := pr :: !user_printers), 
-    (fun s ->
-        user_printers := snd(Option.get <| remove (fun (s', _) -> s = s') !user_printers)),
-    (fun tm ->
-        !user_printers
-        |> tryfind (fun (_, pr) ->
-            // NOTE: wrong use of Some, need to change this
-            Some <| pr tm)
-        |> Option.toChoiceWithError "find")
+let try_user_printer tm : Protected<unit> =
+    !user_printers
+    |> tryfind (fun (_, pr) ->
+        // TODO : wrong use of Some, need to change this
+        Some <| pr tm)
+    |> Option.toChoiceWithError "find"
+
 
 (* ------------------------------------------------------------------------- *)
 (* Printer for terms.                                                        *)
@@ -288,23 +372,23 @@ let install_user_printer, delete_user_printer, (try_user_printer : term -> Prote
 /// Prints a term (without quotes) to formatter.
 let pp_print_term =
     let reverse_interface(s0, ty0) =
-        if not(!reverse_interface_mapping) then s0
-        else 
-            match find (fun (s, (s', ty)) -> s' = s0 && Choice.isResult <| type_match ty ty0 []) (!the_interface) with
+        if not !reverse_interface_mapping then s0
+        else
+            match find (fun (s, (s', ty)) -> s' = s0 && Choice.isResult <| type_match ty ty0 []) !the_interface with
             | Some(s0', _) -> s0'
             | None -> s0
 
-    let rec DEST_BINARY c tm = 
-        choice { 
+    let rec DEST_BINARY c tm =
+        choice {
             let! il, r = dest_comb tm
             let! i, l = dest_comb il
             let! ci = dest_const i
             let! cc = dest_const c
-            if i = c || (is_const i && is_const c && reverse_interface ci = reverse_interface cc) then 
-                return (l, r)
+            if i = c || (is_const i && is_const c && reverse_interface ci = reverse_interface cc) then
+                return l, r
             else
                 return! Choice.fail()
-        }        
+        }
         |> Choice.mapError (fun e -> nestedFailure e "DEST_BINARY")
 
     and ARIGHT s =
@@ -338,6 +422,7 @@ let pp_print_term =
     let code_of_term t =
         let f, tms = strip_comb t
         // Choice.get is safe to use here
+        // OPTIMIZE : Use pattern-matching here instead of 'length' -- it's faster because length is O(n).
         if not(is_const f && fst(Choice.get <| dest_const f) = "ASCII") || not(length tms = 8) then
             failwith "code_of_term"
         else
@@ -351,6 +436,7 @@ let pp_print_term =
             let! tm'' = body tm'
             let pbod = snd(strip_exists tm'')
             let s, args = strip_comb pbod
+            // OPTIMIZE : Use pattern-matching here instead of 'length' -- it's faster because length is O(n).
             if name_of s = "_UNGUARDED_PATTERN" && length args = 2 then
                 let! tm1 = rator(hd args)
                 let! tm2 = rator(hd(tl args))                
@@ -366,6 +452,7 @@ let pp_print_term =
     let rec dest_clauses tm = 
         choice {
             let s, args = strip_comb tm
+            // TODO : Use pattern-patching here to check length of args instead of calling 'length' (which is O(n)).
             if name_of s = "_SEQPATTERN" && length args = 2 then
                 let! cl = dest_clause(hd args)
                 let! cls = dest_clauses(hd(tl args))
@@ -691,32 +778,39 @@ let pp_print_term =
 
         and print_clauses cls = 
             match cls with
-            | [c] -> print_clause c
+            | [c] ->
+                print_clause c
             | c :: cs -> 
-                (print_clause c
-                 pp_print_break fmt 1 0
-                 pp_print_string fmt "| "
-                 print_clauses cs)
-            | _ -> failwith "print_clauses: Unhandled case."
+                print_clause c
+                pp_print_break fmt 1 0
+                pp_print_string fmt "| "
+                print_clauses cs
+            | _ ->
+                failwith "print_clauses: Unhandled case."
 
         and print_clause cl = 
             match cl with
             | [p; g; r] -> 
-                (print_term 1 p
-                 pp_print_string fmt " when "
-                 print_term 1 g
-                 pp_print_string fmt " -> "
-                 print_term 1 r)
+                print_term 1 p
+                pp_print_string fmt " when "
+                print_term 1 g
+                pp_print_string fmt " -> "
+                print_term 1 r
             | [p; r] -> 
-                (print_term 1 p
-                 pp_print_string fmt " -> "
-                 print_term 1 r)
-            | _ -> failwith "print_clause: Unhandled case."
+                print_term 1 p
+                pp_print_string fmt " -> "
+                print_term 1 r
+            | _ ->
+                failwith "print_clause: Unhandled case."
 
         fun tm ->
             try
                 print_term 0 tm
-            with Failure s ->
+            with Failure s as ex ->
+                (* NOTE :   We currently suppress certain exceptions which may be raised during
+                            printing; however, we do log them for diagnostics purposes. *)
+                logger.DebugException ("Suppressed exception in 'pp_print_term'.", ex)
+
                 // NOTE: suppress all exceptions in printing
                 ()
 
@@ -737,20 +831,21 @@ let pp_print_qterm fmt tm =
 /// Prints a theorem to formatter.
 let pp_print_thm fmt th = 
     let asl, tm = dest_thm th
-    (if not(asl = []) then 
-         (if !print_all_thm then 
-              (pp_print_term fmt (hd asl)
-               do_list (fun x -> 
-                       pp_print_string fmt ","
-                       pp_print_space fmt ()
-                       pp_print_term fmt x) (tl asl))
-          else pp_print_string fmt "..."
-          pp_print_space fmt ())
-     else ()
-     pp_open_hbox fmt ()
-     pp_print_string fmt "|- "
-     pp_print_term fmt tm
-     pp_close_box fmt ())
+    if not <| List.isEmpty asl then
+        if !print_all_thm then
+            pp_print_term fmt (hd asl)
+            do_list (fun x ->
+                pp_print_string fmt ","
+                pp_print_space fmt ()
+                pp_print_term fmt x) (tl asl)
+        else
+            pp_print_string fmt "..."
+        pp_print_space fmt ()
+    
+    pp_open_hbox fmt ()
+    pp_print_string fmt "|- "
+    pp_print_term fmt tm
+    pp_close_box fmt ()
 
 (* ------------------------------------------------------------------------- *)
 (* Print on standard output.                                                 *)
@@ -776,15 +871,16 @@ let print_thm = pp_print_thm std_formatter
 (* ------------------------------------------------------------------------- *)
 
 /// Modifies a formatting printing function to return its output as a string.
-let print_to_string printer = 
+let print_to_string printer =
     let sbuff = ref ""
-    let rec output s m n = sbuff := (!sbuff) + (String.sub s m n)
+    let rec output s m n =
+        sbuff := !sbuff + (String.sub s m n)
     let flush() = ()
     let fmt = make_formatter output flush
-    ignore(pp_set_max_boxes fmt 100)
-    fun i -> 
-        ignore(printer fmt i)
-        ignore(pp_print_flush fmt ())
+    pp_set_max_boxes fmt 100 |> ignore
+    fun i ->
+        printer fmt i |> ignore
+        pp_print_flush fmt () |> ignore
         let s = !sbuff
         sbuff := ""
         s
@@ -802,13 +898,14 @@ let string_of_thm = print_to_string pp_print_thm
 let pp_print_list_term fmt (al : term list) =
     let rec pp_print_list_termInner fmt al =
         match al with
+        | [] -> ()
         | typa :: tl ->
             pp_print_term fmt typa
             pp_print_break fmt 0 0
             pp_print_list_termInner fmt tl
-        | [] -> ()
-    if al.Length = 0
-    then pp_print_string fmt "No items"
+        
+    if List.isEmpty al then
+        pp_print_string fmt "No items"
     else
         pp_open_hvbox fmt 0
         pp_print_list_termInner fmt al
@@ -824,15 +921,16 @@ let string_of_list_term = print_to_string pp_print_list_term
 let pp_print_list_typtyp fmt (al : (hol_type * hol_type) list) =
     let rec pp_print_list_typtypInner fmt al =
         match al with
-        | (typa,typb) :: tl ->
+        | [] -> ()
+        | (typa, typb) :: tl ->
             pp_print_type fmt typa
             pp_print_string fmt ", "
             pp_print_type fmt typb
             pp_print_break fmt 0 0
             pp_print_list_typtypInner fmt tl
-        | [] -> ()
-    if al.Length = 0
-    then pp_print_string fmt "No items"
+        
+    if List.isEmpty al then
+        pp_print_string fmt "No items"
     else
         pp_open_hvbox fmt 0
         pp_print_list_typtypInner fmt al
