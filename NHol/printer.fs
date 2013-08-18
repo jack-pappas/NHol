@@ -23,8 +23,6 @@ limitations under the License.
 /// Simplistic HOL Light prettyprinter, using the OCaml "Format" library.
 module NHol.printer
 
-open System.Diagnostics
-
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
@@ -48,11 +46,11 @@ logger.Trace("Entering printer.fs")
 
 /// Returns the ASCII code for the first (0th) character in a string.
 let inline private charcode (s : string) =
-    #if DEBUG
-    if String.length s <> 1 then
-        logger.Debug ("NHol.printer.charcode: The string should contain exactly one (1) character, but it contains {0} characters. (s = {1})",
-            String.length s, s)
-    #endif
+//    #if DEBUG
+//    if String.length s <> 1 then
+//        logger.Debug ("NHol.printer.charcode: The string should contain exactly one (1) character, but it contains {0} characters. (s = {1})",
+//            String.length s, s)
+//    #endif
     int s.[0]
 
 //
