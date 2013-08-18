@@ -16,11 +16,11 @@ limitations under the License.
 
 *)
 
-/// Tests for functions in the NHol.equal module.
+/// Tests for functions in the NHol.drule module.
 module Tests.NHol.drule
 
 open NHol.lib
-open NHol.fusion.Hol_kernel
+open NHol.fusion
 open NHol.basics
 open NHol.parser
 open NHol.printer

@@ -54,6 +54,7 @@
     <Compile Include="equal.fs" />
     <Compile Include="bool.fs" />
     <Compile Include="drule.fs" />
+    <Compile Include="tactics.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ExtCore">
