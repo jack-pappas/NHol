@@ -345,6 +345,21 @@ let rec butlast l =
     | (h :: t) -> h :: (butlast t)
     | [] -> failwith "butlast"
 
+/// <summary>
+/// Removes the last element from a list, returning both
+/// the last element and the remainder of the list.
+/// <c>extractLast lst</c> is equivalent to <c>(last lst), (butlast lst)</c>.
+/// </summary>
+let extractLast lst =
+    match lst with
+    | [] ->
+        invalidArg "lst" "The input list is empty."
+    | [x] ->
+        x, []
+    | _ ->
+        let rev_lst = List.rev lst
+        List.head rev_lst, List.rev (List.tail rev_lst)
+
 /// Extracts a specified element from a list.
 // OPTIMIZE : Make this an alias for List.nth.
 let rec el n l = 

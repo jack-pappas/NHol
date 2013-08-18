@@ -62,27 +62,27 @@ exception Noparse
 
 /// Produce alternative composition of two parsers.
 // NOTE : This is called (||) in the original hol-light code.
-let (<|>) parser1 parser2 input = 
-    try 
+let (<|>) parser1 parser2 input =
+    try
         parser1 input
-    with
-    | Noparse -> parser2 input
+    with Noparse ->
+        parser2 input
 
 /// Sequentially compose two parsers.
 // NOTE : This is called (++) in the original hol-light code.
-let (.>>.) parser1 parser2 input = 
+let (.>>.) parser1 parser2 input =
     let result1, rest1 = parser1 input
     let result2, rest2 = parser2 rest1
     (result1, result2), rest2
 
 /// Parses zero or more successive items using given parser.
-let rec many prs input = 
-    try 
+let rec many prs input =
+    try
         let result, next = prs input
         let results, rest = many prs next
         (result :: results), rest
-    with
-    | Noparse -> [], input
+    with Noparse ->
+        [], input
 
 /// Apply function to parser result.
 // NOTE : This is called (>>) in the original hol-light code.
@@ -94,12 +94,12 @@ let (|>>) prs treatment input =
 let fix err prs input = 
     try 
         prs input
-    with
-    | Noparse -> failwith(err + " expected")
+    with Noparse ->
+        failwith(err + " expected")
 
 /// Parses a separated list of items.
 let rec listof prs sep err =
-    prs .>>. many(sep .>>. (fix err prs) |>> snd) |>> (fun (h, t) -> h :: t)
+    prs .>>. many(sep .>>. (fix err prs) |>> snd) |>> List.Cons
 
 /// Trivial parser that parses nothing.
 let nothing input = [], input
@@ -116,45 +116,49 @@ let leftbin prs sep cons err =
 
 /// Parses iterated right-associated binary operator.
 let rightbin prs sep cons err = 
-    prs .>>. many(sep .>>. fix err prs) |>> (fun (x, opxs) -> 
-        if opxs = [] then x
+    prs .>>. many(sep .>>. fix err prs) |>> (fun (x, opxs) ->
+        if List.isEmpty opxs then x
         else 
             let ops, xs = unzip opxs
-            itlist2 cons ops (x :: butlast xs) (last xs))
+            
+            // OPTIMIZATION :   We use both (butlast xs) and (last xs) below, so instead of calling them separately
+            //                  and traversing the list twice, it's more efficient to compute them together.
+            let last_xs, butlast_xs = extractLast xs
+            itlist2 cons ops (x :: butlast_xs) (last_xs))
 
 /// Attempts to parse, returning empty list of items in case of failure.
-let possibly prs input = 
-    try 
+let possibly prs input =
+    try
         let x, rest = prs input
         [x], rest
-    with
-    | Noparse -> [], input
+    with Noparse ->
+        [], input
 
 /// Parses any single item satisfying a predicate.
-let some p = 
-    function 
-    | [] -> raise Noparse
-    | h :: t -> 
+let some p = function
+    | [] ->
+        raise Noparse
+    | h :: t ->
         if p h then h, t
         else raise Noparse
 
 /// Parser that requires a specific item.
-let a tok = some(fun item -> item = tok)
+let a tok =
+    some (fun item -> item = tok)
 
 /// Parses at least a given number of successive items using given parser.
-let rec atleast n prs i = 
-    (if n <= 0 then many prs
-     else (prs .>>. atleast (n - 1) prs) |>> (fun (h, t) -> h :: t)) i
+let rec atleast n prs i =
+    if n <= 0 then many prs i
+    else
+        i |> ((prs .>>. atleast (n - 1) prs) |>> List.Cons)
 
 /// Parser that checks emptiness of the input.
 let finished input = 
     if input = [] then 0, input
     else failwith "Unparsed input"
 
-(* ------------------------------------------------------------------------- *)
-(* The basic lexical classes: identifiers, strings and reserved words.       *)
-(* ------------------------------------------------------------------------- *)
 
+/// The basic lexical classes: identifiers, strings and reserved words.
 type lexcode =
     /// Identifier.
     | Ident of string
@@ -203,18 +207,18 @@ let lex =
     let string = a "\"" .>>. many stringchar .>>. a "\"" |>> (fun ((_, s), _) -> "\"" + implode s + "\"")
     let rawtoken = (string <|> some isbra <|> septok <|> ident) |>> (fun x -> Ident x)
     let simptoken = many(some isspace) .>>. rawtoken |>> (reserve << snd)
-    let rec tokens i = 
-        try 
+    let rec tokens i =
+        try
             let (t, rst) = simptoken i
-            if t = !comment_token then 
-                (many(fun i -> 
+            if t = !comment_token then
+                (many(fun i ->
                          if i <> [] && hd i <> "\n" then 1, tl i
                          else raise Noparse) .>>. tokens |>> snd) rst
-            else 
+            else
                 let toks, rst1 = tokens rst
                 t :: toks, rst1
-        with
-        | Noparse -> [], i
+        with Noparse ->
+            [], i
     fst << (tokens .>>. many(some isspace) .>>. finished |>> (fst << fst))
 
 (* ------------------------------------------------------------------------- *)
@@ -252,31 +256,31 @@ let lex =
 (* ------------------------------------------------------------------------- *)
 
 /// Parses a pretype.
-let parse_pretype = 
+let parse_pretype =
     let btyop n n' x y = Ptycon(n, [x; y])
-    let mk_apptype = 
-        function 
+    let mk_apptype =
+        function
         | [s], [] -> s
         | tys, [c] -> Ptycon(c, tys)
         | _ -> failwith "Bad type construction"
-    let type_atom input = 
+    let type_atom input =
         match input with
-        | (Ident s) :: rest -> 
+        | (Ident s) :: rest ->
             let result =
                 assoc s (type_abbrevs())
                 |> Option.toChoiceWithError "find"
                 |> Choice.bind pretype_of_type
                 |> Choice.fill(
-                    if get_type_arity s |> Choice.map (fun s -> s = 0) |> Choice.fill false
+                    if get_type_arity s |> Choice.map (fun arity -> arity = 0) |> Choice.fill false
                     then Ptycon(s, [])
                     else Utv(s))
 
             result, rest
         | _ -> raise Noparse
-    let type_constructor input = 
+    let type_constructor input =
         match input with
-        | (Ident s) :: rest -> 
-            if get_type_arity s |> Choice.map (fun s -> s > 0) |> Choice.fill false
+        | (Ident s) :: rest ->
+            if get_type_arity s |> Choice.map (fun arity -> arity > 0) |> Choice.fill false
             then s, rest
             else raise Noparse
         | _ -> raise Noparse
@@ -285,7 +289,7 @@ let parse_pretype =
     and prodtype i = rightbin carttype (a(Ident "#")) (btyop "prod") "type" i
     and carttype i = leftbin apptype (a(Ident "^")) (btyop "cart") "type" i
     and apptype i = (atomictypes .>>. ((type_constructor |>> (fun x -> [x])) <|> nothing) |>> mk_apptype) i
-    and atomictypes i = 
+    and atomictypes i =
         (((a(Resword "(")) .>>. typelist .>>. (a(Resword ")")) |>> (snd << fst)) <|> (type_atom |>> (fun x -> [x]))) i
     and typelist i = (listof pretype (a(Ident ",")) "type") i
     pretype
@@ -294,27 +298,39 @@ let parse_pretype =
 (* Hook to allow installation of user parsers.                               *)
 (* ------------------------------------------------------------------------- *)
 
+//
+let rec private try_parsers ps i =
+    match ps with
+    | [] ->
+        raise Noparse
+    | hd :: tl ->
+        try
+            (snd hd) i
+        with Noparse ->
+            try_parsers tl i
+
+//
+let private parser_list : (string * (lexcode list -> preterm * lexcode list)) list ref = ref []
+
 // install_parser: Install a user parser.
+let install_parser dat =
+    parser_list := dat :: !parser_list
+
 // delete_parser: Uninstall a user parser.
+let delete_parser key =
+    match remove (fun (key', _) -> key = key') !parser_list with
+    | None -> ()
+    | Some (_, p) ->
+        parser_list := p
+
 // installed_parsers: List the user parsers currently installed.
+let installed_parsers () =
+    !parser_list
+
 // try_user_parser: Try all user parsing functions.
-let install_parser, delete_parser, installed_parsers, try_user_parser = 
-    let rec try_parsers ps i = 
-        match ps with
-        | [] -> raise Noparse
-        | hd :: tl -> 
-            try 
-                (snd hd) i
-            with
-            | Noparse -> try_parsers tl i
-    let parser_list = ref([] : (string * (lexcode list -> preterm * lexcode list)) list)
-    (fun dat -> parser_list := dat :: (!parser_list)), 
-    (fun key -> 
-        match remove (fun (key', _) -> key = key') (!parser_list) with
-        | Some (_, p) -> parser_list := p
-        | None -> ()), 
-    (fun () -> !parser_list), 
-    (fun i -> try_parsers (!parser_list) i)
+let try_user_parser i =
+    try_parsers !parser_list i
+
 
 (* ------------------------------------------------------------------------- *)
 (* Initial preterm parsing. This uses binder and precedence/associativity/   *)
@@ -353,14 +369,14 @@ let install_parser, delete_parser, installed_parsers, try_user_parser =
 let parse_preterm =
   let rec pairwise r l =
     match l with
-      [] -> true
+    | [] -> true
     | h::t -> forall (r h) t && pairwise r t
 
   let rec pfrees ptm acc =
     match ptm with
       Varp(v,pty) ->
         if v = "" && pty = dpty then acc
-        elif Choice.isResult <| get_const_type v || Choice.isResult <| num_of_string v || exists (fun (w,_) -> v = w) (!the_interface) then acc
+        elif Choice.isResult <| get_const_type v || Choice.isResult <| num_of_string v || exists (fun (w,_) -> v = w) !the_interface then acc
         else insert ptm acc
     | Constp(_,_) -> acc
     | Combp(p1,p2) -> pfrees p1 (pfrees p2 acc)
@@ -422,7 +438,7 @@ let parse_preterm =
     let evs =
       let fvs = pfrees fabs []
       let bvs = pfrees babs []
-      if length fvs <= 1 || bvs = [] then fvs
+      if length fvs <= 1 || List.isEmpty bvs then fvs
       else intersect fvs bvs
     pmk_setcompr (fabs,evs,babs)
 
@@ -577,11 +593,13 @@ let parse_preterm =
 
 /// Parses a string into a HOL type.
 let parse_type s =
-//    printfn "parsing type %s" s 
+//    printfn "parsing type %s" s
     let pty, l = (parse_pretype << lex << explode) s
     //printfn "pty, l <-- %A, %A" pty l
-    if l = [] then Choice.get <| type_of_pretype pty
-    else failwith "Unparsed input following type"
+    if List.isEmpty l then
+        Choice.get <| type_of_pretype pty
+    else
+        failwith "Unparsed input following type"
 
 let tryParseType s : Protected<_> =
     try
@@ -590,11 +608,11 @@ let tryParseType s : Protected<_> =
         Choice.nestedFailwith e "parse_type"
 
 /// Parses a string into a HOL term.
-let parse_term s = 
+let parse_term s =
 //    printfn "parsing term %s" s
     let ptm, l = (parse_preterm << lex << explode) s
     //printfn "l <-- %A" l
-    if l = [] then (Choice.get << term_of_preterm << (Choice.get << retypecheck [])) ptm
+    if List.isEmpty l then (Choice.get << term_of_preterm << (Choice.get << retypecheck [])) ptm
     else failwith "Unparsed input following term"
 
 let tryParseTerm s : Protected<_> =
