@@ -42,30 +42,38 @@ module Hol_kernel =
     type hol_type =
         | Tyvar of string
         | Tyapp of string * hol_type list
+
         override this.ToString() =
             match this with
-            | Tyvar s -> "Tyvar \"" + s + "\""
-            | Tyapp(s, htlist) -> "Tyapp (\"" + s + "\", " + htlist.ToString() + ")"
+            | Tyvar s ->
+                sprintf "Tyvar \"%s\"" s
+            | Tyapp(s, htlist) ->
+                sprintf "Tyapp (\"%s\", %O)" s htlist
     
     type term =
         | Var of string * hol_type
         | Const of string * hol_type
         | Comb of term * term
         | Abs of term * term
+
         override this.ToString() = 
             match this with
-            | Var(s, t) -> "Var (\"" + s + "\", " + t.ToString() + ")"
-            | Const(s, t) -> "Const (\"" + s + "\", " + t.ToString() + ")"
-            | Comb(t1, t2) -> "Comb (" + t1.ToString() + ", " + t2.ToString() + ")"
-            | Abs(t1, t2) -> 
-                "Abs (\"" + t1.ToString() + "\", " + t2.ToString() + ")"
+            | Var(s, t) ->
+                sprintf "Var (\"%s\", %O)" s t
+            | Const(s, t) ->
+                sprintf "Const (\"%s\", %O)" s t
+            | Comb(t1, t2) ->
+                sprintf "Comb (%O, %O)" t1 t2
+            | Abs(t1, t2) ->
+                sprintf "Abs (\"%O\", %O)" t1 t2
 
     type thm0 =
         | Sequent of term list * term
+
         override this.ToString() =
             match this with
-            | Sequent(tlist, t) -> 
-                "Sequent (" + tlist.ToString() + ", " + t.ToString() + ")"
+            | Sequent(tlist, t) ->
+                sprintf "Sequent (%O, %O)" tlist t
 
 #if BUGGY
 #else
@@ -305,7 +313,7 @@ module Hol_kernel =
     (* ------------------------------------------------------------------------- *)
 
     /// Constructs a variable of given name and type.
-    let mk_var(v, ty) = Var(v, ty)
+    let inline mk_var(v, ty) = Var(v, ty)
     
     /// Produce constant term by applying an instantiation to its generic type.
     let mk_const(name, theta) : Protected<term> = 
@@ -517,7 +525,7 @@ module Hol_kernel =
     // CLEAN : Unless it offers a _specific_ performance benefit, it would simplify the code if we
     // added an extra parameter 'tm : term' to this function instead of returning a closure.
     let vsubst theta : (term -> Protected<term>) =
-        if theta = [] then
+        if List.isEmpty theta then
             Choice.result
         elif checkTermAndVarTypesMatch theta then
             vsubstRec theta
@@ -670,7 +678,7 @@ module Hol_kernel =
     // CLEAN : Unless it offers a _specific_ performance benefit, it would simplify the code if we
     // added an extra parameter 'tm : term' to this function instead of returning a closure.
     let inst tyin : (term -> Protected<term>) = 
-        if tyin = [] then Choice.result
+        if List.isEmpty tyin then Choice.result
         else instImpl [] tyin
     
     (* ------------------------------------------------------------------------- *)
