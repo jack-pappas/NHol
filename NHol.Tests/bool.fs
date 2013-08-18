@@ -308,3 +308,28 @@ let ``{EQF_ELIM thm} Replaces equality with F by negation``() =
     |> evaluate
     |> assertEqual expected
 
+//// This test requires nums module to be initialized
+//open NHol.simp
+//
+//[<Test>]
+//let ``{CONTR term thm} Implements the intuitionistic contradiction rule``() =
+//    let th = REWRITE_RULE [ARITH] (ASSUME <| parse_term @"1 = 0")
+//    let actual = CONTR (parse_term @"Russell:Person = Pope") th
+//    let expected = Sequent ([parse_term @"1 = 0"], parse_term @"Russell:Person = Pope")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+open NHol.meson
+
+[<Test>]
+let ``{EXISTENCE thm} Deduces existence from unique existence``() =
+    let th = MESON [] <| parse_term @"?!n. n = m"
+    let actual = EXISTENCE th
+    let expected = Sequent ([], parse_term @"?n. n = m")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
