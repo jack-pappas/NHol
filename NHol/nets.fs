@@ -38,33 +38,44 @@ open basics
 
 logger.Trace("Entering nets.fs")
 
-(* ------------------------------------------------------------------------- *)
-(* Term nets are a finitely branching tree structure; at each level we       *)
-(* have a set of branches and a set of "values". Linearization is            *)
-(* performed from the left of a combination; even in iterated                *)
-(* combinations we look at the head first. This is probably fastest, and     *)
-(* anyway it's useful to allow our restricted second order matches: if       *)
-(* the head is a variable then then whole term is treated as a variable.     *)
-(* ------------------------------------------------------------------------- *)
 
-type term_label = 
-    | Vnet                      (* variable (instantiable)   *)
-    | Lcnet of (string * int)   (* local constant            *)
-    | Cnet of (string * int)    (* constant                  *)
-    | Lnet of int               (* lambda term (abstraction) *)
+(* TODO :   If possible, modify the Lcnet and Cnet cases of 'term_label' by removing
+            the parentheses around their element type -- the parentheses cause the values
+            to be combined into a tuple, which adds an extra level of indirection when
+            we want to retrieve their values (not a desirable behavior for a lookup mechanism). *)
+
+/// Term nets are a finitely branching tree structure; at each level we
+/// have a set of branches and a set of "values". Linearization is
+/// performed from the left of a combination; even in iterated
+/// combinations we look at the head first. This is probably fastest, and
+/// anyway it's useful to allow our restricted second order matches: if
+/// the head is a variable then then whole term is treated as a variable.
+type term_label =
+    /// variable (instantiable)
+    | Vnet
+    /// local constant
+    | Lcnet of (string * int)
+    /// constant
+    | Cnet of (string * int)
+    /// lambda term (abstraction)
+    | Lnet of int
     override this.ToString() = 
         match this with
         | Vnet -> "Vnet"
-        | Lcnet(s, i) -> "Lcnet (\"" + s + "\", " + i.ToString() + ")"
-        | Cnet(s, i) -> "Cnet (\"" + s + "\", " + i.ToString() + ")"
-        | Lnet i -> "Lnet (" + i.ToString() + ")"
+        | Lcnet(s, i) ->
+            sprintf "Lcnet (\"%s\", %i)" s i
+        | Cnet(s, i) ->
+            sprintf "Cnet (\"%s\", %i)" s i
+        | Lnet i ->
+            sprintf "Lnet (%i)" i
 
 type net<'a> = 
     | Netnode of (term_label * 'a net) list * 'a list
     override this.ToString() = 
         match this with
-        | Netnode(tlList, aList) -> 
-            "Netnode (" + tlList.ToString() + ", " + aList.ToString() + ")"
+        | Netnode(tlList, aList) ->
+            // TODO : Should these use %A instead of %O?
+            sprintf "Netnode (%O, %O)" tlList aList
 
 (* ------------------------------------------------------------------------- *)
 (* The empty net.                                                            *)
