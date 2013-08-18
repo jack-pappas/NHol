@@ -21,6 +21,7 @@
     <Tailcalls>false</Tailcalls>
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>TRACE;DEBUG;BUGGY</DefineConstants>
+    <DefineConstants>TRACE;DEBUG</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Debug\NHol.XML</DocumentationFile>
     <OtherFlags>--mlcompatibility</OtherFlags>
@@ -52,6 +53,7 @@
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
     <None Include="init.fsx" />
+    <Compile Include="Logging.fs" />
     <Compile Include="system.fs" />
     <Compile Include="lib.fs" />
     <Compile Include="fusion.fs" />

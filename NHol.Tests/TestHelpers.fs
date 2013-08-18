@@ -23,7 +23,7 @@ open System
 open NUnit.Framework
 open FsCheck
 
-(* Fluent test helpers for use with NUnit and FsUnit. *)
+(* Fluent test helpers for use with NUnit. *)
 
 /// Tests that the specified condition is true.
 /// If not, calls Assert.Fail with a formatted string.
@@ -79,6 +79,18 @@ module Collection =
         CollectionAssert.AreNotEquivalent (expected, actual)
 
 
+/// "Unsafe" assertion functions which do not enforce type constraints on their arguments.
+/// These should only be used when absolutely necessary as they can lead to buggy implementations of unit tests.
+[<RequireQualifiedAccess>]
+module Unsafe =
+    /// Verifies that two objects are equal.
+    /// Two objects are considered equal if both are null, or if both have the same value.
+    /// NUnit has special semantics for some object types.
+    /// If they are not equal, an NUnit.Framework.AssertionException is raised.
+    let assertEqual<'T, 'U> (expected : 'T) (actual : 'U) : unit =
+        Assert.AreEqual (box expected, box actual)
+
+
 (* Fluent test helpers for use with NUnit and FsCheck. *)
 
 /// An FsCheck runner which reports FsCheck test results to NUnit.
@@ -114,3 +126,7 @@ let private nUnitConfig = {
 /// Tests that the specified property is correct.
 let assertProp testName (property : 'Testable) =
     Check.One (testName, nUnitConfig, property)
+
+/// Evaluate a choice, either returning results or raising exceptions
+let inline evaluate choice : 'T =
+    ExtCore.Choice.bindOrRaise choice

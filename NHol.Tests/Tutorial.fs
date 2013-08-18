@@ -20,7 +20,6 @@ limitations under the License.
 module Tests.NHol.Tutorial
 
 open NUnit.Framework
-open FsUnit
 
 open NHol.lib
 open NHol.fusion
@@ -58,10 +57,10 @@ open NHol.realarith
 open NHol.real
 open NHol.calc_rat 
 open NHol.int
-//open NHol.sets     
-//open NHol.iterate
-//open NHol.cart     
-//open NHol.define
+open NHol.sets     
+open NHol.iterate
+open NHol.cart     
+open NHol.define
 
 #if LONGRUNNING
 [<TestFixtureSetUp>]

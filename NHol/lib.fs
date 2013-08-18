@@ -18,36 +18,38 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
-open FSharp.Compatibility.OCaml;;
-open FSharp.Compatibility.OCaml.Num;;
-#else
-/// Various useful general library functions.
-module NHol.lib
+#if USE
+open System
+open System.Diagnostics
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
 
+open ExtCore.Control
+open ExtCore.Control.Collections
+#else
+/// Various useful general library functions.
+module NHol.lib
+
+open System
+open System.Diagnostics
+
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
+open ExtCore.Control.Collections
+
 open NHol
 open system
+
 #endif
 
-(* ------------------------------------------------------------------------- *)
-(* A few missing functions to convert OCaml code to F#.                      *)
-(* ------------------------------------------------------------------------- *)
+// Log module entry.
+tracef "Entering lib.fs"
 
-// TODO : Move this into FSharp.Compatibility.OCaml
-module Ratio =
-    open FSharp.Compatibility.OCaml
-    open FSharp.Compatibility.OCaml.Num
-
-    // NOTE : not sure what kind of normalization should be done here
-    let normalize_ratio x = x
-    let numerator_ratio(r : Ratio.ratio) = r.Numerator
-    let denominator_ratio(r : Ratio.ratio) = r.Denominator
-
-let inline (==) (x : 'T) (y : 'T) =
-    System.Object.ReferenceEquals(x, y)
+//
+type Protected<'T> = Choice<'T, exn>
 
 // The exception fired by failwith is used as a control flow.
 // KeyNotFoundException is not recognized in many cases, so we have to use redefine Failure for compatibility.
@@ -59,21 +61,242 @@ let (|Failure|_|)(exn : exn) =
     | Microsoft.FSharp.Core.Operators.Failure s -> Some s
     | _ -> None
 
+/// Creates a Failure exception with the specified message and the given exception
+/// as the Failure's InnerException.
+let inline nestedFailure innerException message : exn =
+    exn (message, innerException)
+
+/// Like failwith, but nests the specified exception within the failure exception.
+let inline nestedFailwith innerException message =
+    raise <| nestedFailure innerException message
+
+(* ------------------------------------------------------------------------- *)
+(* Some ExtCore-related functions used within NHol.                          *)
+(* ------------------------------------------------------------------------- *)
+
 /// Fail with empty string.
-let fail () = failwith ""
+let inline fail () : 'T = failwith ""
+
+// Follow the naming convention of ExtCore
+[<RequireQualifiedAccess>]
+module Choice =
+    (* These functions are generally useful, and may be moved into ExtCore in the future. *)
+    
+    /// Composes two functions designed for use with the 'choice' workflow.
+    /// This function is analagous to the F# (>>) operator.
+    // NOTE : This function has been added to ExtCore for the 0.8.33 release.
+    let compose (f : 'T -> Choice<'U, 'Error>) (g : 'U -> Choice<'V, 'Error>) =
+        f >> (Choice.bind g)
+
+    /// Composes two functions designed for use with the 'choice' workflow.
+    /// This function is analagous to the F# (<<) operator.
+    // NOTE : This function has been added to ExtCore for the 0.8.33 release.
+    let composeBack (f : 'U -> Choice<'V, 'Error>) (g : 'T -> Choice<'U, 'Error>) =
+        g >> (Choice.bind f)
+
+
+    module List =
+        /// <summary>Applies a function to each element of the collection, threading an accumulator argument
+        /// through the computation. If the input function is <c>f</c> and the elements are <c>i0...iN</c> then computes 
+        /// <c>f i0 (...(f iN-1 iN))</c>.
+        /// </summary>
+        /// <remarks>Raises <c>System.ArgumentException</c> if <c>list</c> is empty</remarks>
+        /// <param name="reduction">The function to reduce two list elements to a single element.</param>
+        /// <param name="list">The input list.</param>
+        /// <exception cref="System.ArgumentException">Thrown when the list is empty.</exception>
+        /// <returns>The final reduced value.</returns>
+        // NOTE : This function has been added to ExtCore for the 0.8.33 release.
+        [<CompiledName("ReduceBack")>]
+        let reduceBack (reduction : 'T -> 'T -> Choice<'T, 'Error>) (list : 'T list) =
+            // Preconditions
+            checkNonNull "list" list
+
+            // Extract the first element in the list then fold over the tail, using the first element
+            // as the initial state value. If the list contains only one element, we return immediately.
+            // NOTE : In order to reduce _backwards_ over the list, we reverse the list before calling fold.
+            match List.rev list with
+            | [] ->
+                invalidArg "list" "The input list was empty."
+            | [x] ->
+                Choice1Of2 x
+            | hd :: tl ->
+                Choice.List.fold reduction hd tl
+
+        /// Applies a destructor in right-associative mode a specified number of times.
+        let rec nsplit dest clist x = 
+            choice {
+                if List.isEmpty clist then
+                    return [], x
+                else 
+                    let! l, r = dest x
+                    let! ll, y = nsplit dest (List.tail clist) r
+                    return l :: ll, y
+            }
+
+    /// If BUGGY directive is defined, an exception could be raised
+    /// Otherwise, we just ignore the choice value
+    let inline ignoreOrRaise value : unit =
+#if BUGGY
+       ExtCore.Choice.bindOrRaise value
+#else
+        ignore value
+#endif        
+
+    (* These functions are specific to this project, and so probably won't be included in ExtCore. *)
+
+    // Instead of using the Choice.get available in ExtCore, we redefine it here
+    // as an alias for ExtCore.Choice.bindOrRaise, so we'll get more information when
+    // an error occurs.
+    let inline get (value : Choice<'T, exn>) =
+        ExtCore.Choice.bindOrRaise value
+
+    // The Choice.failwith in ExtCore returns the error string as-is, instead of wrapping it in an exception.
+    // We could modify NHol to work the same way, we'd just need to use the Choice.bindOrFail function at the call sites.
+    let inline failwith msg : Choice<'T, exn> =
+        Choice2Of2 <| exn msg
+
+    let inline nestedFailwith innerException message : Choice<'T, exn> =
+        Choice2Of2 <| nestedFailure innerException message
+
+    let inline fail () : Choice<'T, exn> =
+        failwith ""
+
+    let inline failwithPair s =
+        (failwith s, failwith s)
+
+    let inline nestedFailwithPair innerException message =
+        (nestedFailwith innerException message, nestedFailwith innerException message)
+
+    let inline pair (x, y) =
+        (Choice1Of2 x, Choice1Of2 y)
+
+    // NOTE : This is slightly different than the Choice.attempt from ExtCore --
+    // this one only catches exceptions which match the Failure pattern.
+    let attempt f : Choice<'T, exn> = 
+        try
+            Choice1Of2 <| f()
+        with Failure _ as e ->
+            Choice2Of2 e
+
+    let attemptNested f : Choice<'T, exn> = 
+        try
+            f ()
+        with Failure _ as e ->
+            Choice2Of2 e
+
+    let fill defaultResult (value : Choice<'T, 'Error>) =
+        match value with
+        | Choice1Of2 result ->
+            result
+        | Choice2Of2 _ ->
+            defaultResult
+
+    let getOrFailure2 msg (value : Choice<Choice<'T, exn> * Choice<'U, exn>, exn>) =
+        match value with
+        | Choice1Of2 (result1, result2) ->
+            (result1, result2)
+        | Choice2Of2 e ->
+            (nestedFailwith e msg, nestedFailwith e msg) 
+
+    let getOrFailure3 msg (value : Choice<Choice<'T, exn> * Choice<'U, exn> * Choice<'V, exn>, exn>) =
+        match value with
+        | Choice1Of2 (result1, result2, result3) ->
+            (result1, result2, result3)
+        | Choice2Of2 e ->
+            (nestedFailwith e msg, nestedFailwith e msg, nestedFailwith e msg) 
+
+    /// Applies the specified binding function to a choice value representing an error value
+    /// (Choice2Of2). If the choice value represents a result value (Choice1Of2), the result value
+    /// is passed through without modification.
+    let bindError (binding : 'Error -> Choice<'T, _>) value =
+        match value with
+        | Choice1Of2 result ->
+            Choice1Of2 result
+        | Choice2Of2 error ->
+            // NOTE: until we normalize all uses of bindError, we will categorize error patterns here
+            match error with
+            | Failure _ ->
+                binding error
+            | _ -> Choice2Of2 error
+
+    /// Iterates a function a fixed number of times.
+    /// The iteration will be short-circuited if/when the function returns an error.
+    let rec funpow n f x : Choice<'T, 'Error> =
+        choice {
+        if n < 1 then
+            return x
+        else
+            let! next_x = f x
+            return! funpow (n - 1) f next_x
+        }
+
+
+(* ------------------------------------------------------------------------- *)
+(* Functions needed for OCaml compatibility. These augment or supercede      *)
+(* the functionality of the FSharp.Compatibility.OCaml library. Some of      *)
+(* these may be included in a future release of FSharp.Compatibility.OCaml.  *)
+(* ------------------------------------------------------------------------- *)
+
+module Ratio =
+    open System.Diagnostics
+    open FSharp.Compatibility.OCaml
+    open FSharp.Compatibility.OCaml.Num
+
+    let inline numerator_ratio(r : Ratio.ratio) = r.Numerator
+    let inline denominator_ratio(r : Ratio.ratio) = r.Denominator
+
+    //
+    let [<Literal>] private normalize_ratio_warning =
+        "Ratio.normalize_ratio does not actually normalize the value \
+         (the functionality has not yet been implemented), so other functions \
+         which rely on that invariant will not work properly."
+
+    // NOTE : not sure what kind of normalization should be done here
+    // TODO : Implement this function correctly in the next version of
+    // FSharp.Compatibility.OCaml, then upgrade to that version ASAP.
+    [<Experimental(normalize_ratio_warning)>]
+    let normalize_ratio x =
+        Debug.Write "Warning: "
+        Debug.WriteLine normalize_ratio_warning
+        x
+
+
+(* ------------------------------------------------------------------------- *)
+(* NHol-specific helper functions which don't belong in ExtCore or           *)
+(* FSharp.Compatibility.OCaml.                                               *)
+(* ------------------------------------------------------------------------- *)
+
+module Option =
+    /// Gets the value associated with an option; if the option is None,
+    /// fails with the specified error message.
+    let getOrFailWith msg (value : 'T option) =
+        match value with
+        | Some x -> x
+        | None -> failwith msg
+
+    let toChoiceWithError msg (value : 'T option) =
+        match value with
+        | Some v -> Choice.result v
+        | None -> Choice.failwith msg
+
 
 (* ------------------------------------------------------------------------- *)
 (* Combinators.                                                              *)
 (* ------------------------------------------------------------------------- *)
 
-(* OPTIMIZE :   The functions below should (probably) all be inlined; alternatively,
-                some can be replaced (used as aliases for) F# intrinsic functions. *)
-let curry f x y = f(x, y)
-let uncurry f (x, y) = f x y
-let I x = x
-let K x y = x
-let C f x y = f y x
-let W f x = f x x
+let inline curry f x y = f(x, y)
+let inline uncurry f (x, y) = f x y
+/// Identity function.
+[<Obsolete("Use the 'id' function instead.")>]
+let inline I x = x
+/// Returns the first of the two applied arguments.
+let inline K x y = x
+// TODO : Replace with 'flip' from ExtCore.
+/// Given a function taking two arguments, returns a new function which calls
+/// the original function but swaps the order in which the arguments are applied.
+let inline C f x y = f y x
+/// Applies the argument to the function twice.
+let inline W f x = f x x
 let (||>>) = fun f g (x, y) -> (f x, g y)
 
 (* ------------------------------------------------------------------------- *)
@@ -82,7 +305,7 @@ let (||>>) = fun f g (x, y) -> (f x, g y)
 
 /// Computes the first element (the head) of a list.
 // OPTIMIZE : Make this an alias for List.head.
-let hd l = 
+let hd l =
     match l with
     | h :: t -> h
     | _ -> failwith "hd"
@@ -106,7 +329,7 @@ let map f =
     mapf
 
 /// Computes the last element of a list.
-// OPTIMIZE : Make this an alias for List.last.
+// OPTIMIZE : Make this an alias for List.last (from ExtCore).
 let rec last l = 
     match l with
     | [x] -> x
@@ -114,7 +337,7 @@ let rec last l =
     | [] -> failwith "last"
 
 /// Computes the sub-list of a list consisting of all but the last element.
-// OPTIMIZE : Make this an alias for List.dropLast.
+// OPTIMIZE : Make this an alias for List.dropLast (from ExtCore).
 let rec butlast l = 
     match l with
     | [_] -> []
@@ -150,42 +373,34 @@ let rec map2 f l1 l2 =
 (* Attempting function or predicate applications.                            *)
 (* ------------------------------------------------------------------------- *)
 
-/// Tests for failure.
-let can f x = 
-    try
-        (f x |> ignore
-         true)
-    with
-    | Failure _ -> false
-
 /// Checks that a value satisfies a predicate.
-let check p x =
-    if p x then x
-    else failwith "check"
+let check p x : Protected<_> = 
+    if p x then Choice.result x
+    else Choice.failwith "check"
 
 (* ------------------------------------------------------------------------- *)
 (* Repetition of a function.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
 /// Iterates a function a fixed number of times.
+[<Obsolete("Use Choice.funpow instead.")>]
 let rec funpow n f x = 
     if n < 1 then x
     else funpow (n - 1) f (f x)
 
 /// Repeatedly apply a function until it fails.
 let rec repeat f x = 
-    try 
-        let y = f x
+    match f x with
+    | Some y -> 
         repeat f y
-    with
-    | Failure _ -> x
+    | None -> x
 
 (* ------------------------------------------------------------------------- *)
 (* To avoid consing in various situations, we propagate this exception.      *)
 (* I should probably eliminate this and use pointer EQ tests instead.        *)
 (* ------------------------------------------------------------------------- *)
 
-exception Unchanged
+//exception Unchanged
 
 (* ------------------------------------------------------------------------- *)
 (* Various versions of list iteration.                                       *)
@@ -234,32 +449,37 @@ let rec rev_itlist2 f l1 l2 b =
 (* ------------------------------------------------------------------------- *)
 
 /// Applies a binary destructor repeatedly in left-associative mode.
+// OPTIMIZE : Anywhere this function is called, and the state is discarded from the result,
+// we can immediately change to using List.unfold from ExtCore. To handle other call sites,
+// we could copy in the code for List.unfold from ExtCore and modify it to also return the
+// final state value, in which case it'd give identical results to this function.
 let rec splitlist dest x = 
-    try 
-        let l, r = dest x
+    match dest x with
+    | Some (l, r) ->
         let ls, res = splitlist dest r
         (l :: ls, res)
-    with
-    | Failure _ -> ([], x)
+    | None -> ([], x)
 
 /// Applies a binary destructor repeatedly in right-associative mode.
+// OPTIMIZE : Anywhere this function is called, and the state is discarded from the result,
+// we can immediately change to using List.unfoldBack from ExtCore. To handle other call sites,
+// we could copy in the code for List.unfoldBack from ExtCore and modify it to also return the
+// final state value, in which case it'd give identical results to this function.
 let rev_splitlist dest = 
     let rec rsplist ls x = 
-        try 
-            let l, r = dest x
+        match dest x with
+        | Some (l, r) ->
             rsplist (r :: ls) l
-        with
-        | Failure _ -> (x, ls)
+        | None -> (x, ls)
     fun x -> rsplist [] x
 
 /// Applies a binary destructor repeatedly, flattening the construction tree into a list.
 let striplist dest = 
     let rec strip x acc = 
-        try 
-            let l, r = dest x
+        match dest x with
+        | Some (l, r) ->
             strip l (strip r acc)
-        with
-        | Failure _ -> x :: acc
+        | None -> x :: acc
     fun x -> strip x []
 
 (* ------------------------------------------------------------------------- *)
@@ -269,7 +489,8 @@ let striplist dest =
 /// Applies a destructor in right-associative mode a specified number of times.
 // OPTIMIZE : It seems like this could be simplified by using one of the State.List functions from ExtCore.
 let rec nsplit dest clist x = 
-    if clist = [] then [], x
+    if List.isEmpty clist then
+        [], x
     else 
         let l, r = dest x
         let ll, y = nsplit dest (tl clist) r
@@ -287,10 +508,9 @@ let rec replicate x n =
 
 /// Gives a finite list of integers between the given bounds.
 // OPTIMIZE : Make this an alias for [m..n]
-let rec (--) = 
-    fun m n -> 
-        if m > n then []
-        else m :: ((m + 1) -- n)
+let rec (--) m n =
+    if m > n then []
+    else m :: ((m + 1) -- n)
 
 (* ------------------------------------------------------------------------- *)
 (* Various useful list operations.                                           *)
@@ -353,65 +573,45 @@ let rec partition p l =
              else yes, h :: no)
 
 /// Applies a function to every element of a list, returning a list of results for those elements for which application succeeds.
-// OPTIMIZE : Make this an alias for List.choose.
-let rec mapfilter f l = 
-    match l with
-    | [] -> []
-    | (h :: t) -> 
-        let rest = mapfilter f t
-        try 
-            (f h) :: rest
-        with
-        | Failure _ -> rest
+[<Obsolete("Use 'List.choose' instead.")>]
+let inline mapfilter f l =
+    List.choose f l
 
 /// Returns the first element of a list which satisfies a predicate.
-// OPTIMIZE : Make this an alias for List.find.
-let rec find p l = 
-    match l with
-    | [] -> failwith "find"
-    | (h :: t) -> 
-        if p(h) then h
-        else find p t
+[<Obsolete("Use 'List.tryFind' instead.")>]
+let inline find p l =
+    List.tryFind p l
 
 /// Returns the result of the first successful application of a function to the elements of a list.
-// OPTIMIZE : Make this an alias for List.tryFind.
-let rec tryfind f l = 
-    match l with
-    | [] -> failwith "tryfind"
-    | (h :: t) -> 
-        try 
-            f h
-        with
-        | Failure _ -> tryfind f t
+[<Obsolete("Use 'List.tryPick' instead.")>]
+let inline tryfind f l =
+    List.tryPick f l
 
 /// Flattens a list of lists into one long list.
 // OPTIMIZE : Make this an alias for List.concat.
-let flat l = itlist (@) l []
+let flat l =
+    itlist (@) l []
 
 /// Separates the first element of a list to satisfy a predicate from the rest of the list.
-// OPTIMIZE : Rewrite this function using a list-based zipper.
+// OPTIMIZE : Rewrite this function using ListZipper from ExtCore.
 let rec remove p l = 
     match l with
-    | [] -> failwith "remove"
+    | [] -> None
     | (h :: t) -> 
-        if p(h) then h, t
+        if p(h) then Some (h, t)
         else 
-            let y, n = remove p t
-            y, h :: n
+            remove p t
+            |> Option.map (fun (y, n) -> (y, h :: n))
 
 /// Chops a list into two parts at a specified point.
-// OPTIMIZE : Make this an alias for List.take.
-let rec chop_list n l = 
-    if n = 0 then [], l
-    else 
-        try 
-            let m, l' = chop_list (n - 1) (tl l)
-            (hd l) :: m, l'
-        with
-        | Failure _ -> failwith "chop_list"
+[<Obsolete("Use 'List.take' instead.")>]
+let inline chop_list n l = 
+    List.take n l
 
 /// Returns position of given element in list.
 // OPTIMIZE : Make this an alias for List.findIndex.
+// Or, for more safety, modify this to return an option value, fix the call sites,
+// then make this an alias for List.tryFindIndex.
 let index x = 
     let rec ind n l = 
         match l with
@@ -438,14 +638,19 @@ let insert x l =
 
 /// Computes the union of two 'sets'.
 let union l1 l2 = itlist insert l1 l2
+
 /// Performs the union of a set of sets.
 let unions l = itlist union l []
+
 /// Computes the intersection of two 'sets'.
 let intersect l1 l2 = filter (fun x -> mem x l2) l1
+
 /// Computes the set-theoretic difference of two 'sets'.
 let subtract l1 l2 = filter (fun x -> not(mem x l2)) l1
+
 /// Tests if one list is a subset of another.
 let subset l1 l2 = forall (fun t -> mem t l2) l1
+
 /// Tests two 'sets' for equality.
 let set_eq l1 l2 = subset l1 l2 && subset l2 l1
 
@@ -456,18 +661,18 @@ let set_eq l1 l2 = subset l1 l2 && subset l2 l1
 /// Searches a list of pairs for a pair whose first component equals a specified value.
 let rec assoc a l = 
     match l with
+    | [] -> None
     | (x, y) :: t -> 
-        if compare x a = 0 then y
+        if compare x a = 0 then Some y
         else assoc a t
-    | [] -> failwith "find"
 
 /// Searches a list of pairs for a pair whose second component equals a specified value.
-let rec rev_assoc a l = 
+let rec rev_assoc a l =
     match l with
-    | (x, y) :: t -> 
-        if compare y a = 0 then x
+    | [] -> None
+    | (x, y) :: t ->
+        if compare y a = 0 then Some x
         else rev_assoc a t
-    | [] -> failwith "find"
 
 (* ------------------------------------------------------------------------- *)
 (* Zipping, unzipping etc.                                                   *)
@@ -483,10 +688,10 @@ let rec zip l1 l2 =
 
 /// Converts a list of pairs into a pair of lists.
 // OPTIMIZE : Make this an alias for List.unzip.
-let rec unzip = 
-    function 
-    | [] -> [], []
-    | ((a, b) :: rest) -> 
+let rec unzip = function 
+    | [] ->
+        [], []
+    | (a, b) :: rest ->
         let alist, blist = unzip rest
         (a :: alist, b :: blist)
 
@@ -495,10 +700,10 @@ let rec unzip =
 (* ------------------------------------------------------------------------- *)
 
 /// Shares out the elements of the second list according to pattern in first.
-let rec shareout pat all = 
+let rec shareout pat all =
     if pat = [] then []
     else 
-        let l, r = chop_list (length(hd pat)) all
+        let l, r = List.take (length(hd pat)) all
         l :: (shareout (tl pat) r)
 
 (* ------------------------------------------------------------------------- *)
@@ -510,9 +715,9 @@ let rec shareout pat all =
 let rec do_list f l = 
     match l with
     | [] -> ()
-    | (h :: t) -> 
-        (f h
-         do_list f t)
+    | h :: t -> 
+        f h
+        do_list f t
 
 (* ------------------------------------------------------------------------- *)
 (* Sorting.                                                                  *)
@@ -553,14 +758,43 @@ let setify s = uniq(sort (fun x y -> compare x y <= 0) s)
 (* ------------------------------------------------------------------------- *)
 
 /// Concatenates a list of strings into one string.
-// OPTIMIZE : Make this an alias for List.sortWith.
-let implode l = itlist (+) l ""
+let implode (l : string list) : string =
+    // Preconditions
+    checkNonNull "l" l
+
+    // Pattern-match on the list to provide optimized implementations
+    // for lists with just a few elements.
+    match l with
+    | [] -> ""
+    | [x] -> x
+    | x :: [y] ->
+        System.String.Concat (x, y)
+    | x :: y :: [z] ->
+        System.String.Concat (x, y, z)
+    | w :: x :: y :: [z] ->
+        System.String.Concat (w, x, y, z)
+    | _ ->
+        // TODO : If it's not much slower, just use System.String.Join here instead to simplify things.
+        // System.String.Join ("", l)
+        let sb = System.Text.StringBuilder ()
+        let rec implode = function
+            | [] ->
+                sb.ToString ()
+            | (hd : string) :: tl ->
+                Debug.Assert (not <| isNull hd,
+                    "The string list contains at least one element which is a null string.")
+                sb.Append hd |> ignore
+                implode tl
+        implode l
 
 /// Converts a string into a list of single-character strings.
-let explode s = 
+let explode (s : string) : string list =
+    // Preconditions
+    checkNonNull "s" s
+
     let rec exap n l = 
         if n < 0 then l
-        else exap (n - 1) ((String.sub s n 1) :: l)
+        else exap (n - 1) ((s.[n].ToString()) :: l)
     exap (String.length s - 1) []
 
 (* ------------------------------------------------------------------------- *)
@@ -588,21 +822,19 @@ let num_2 = Int 2
 let num_10 = Int 10
 
 let pow2 (n:int) = 
-    if n < 0 
-        then 
-            let n' = System.Math.Abs(n)
-            (Int 1) / (power_num num_2 (Int n'))
-        else power_num num_2 (Int n)
+    if n < 0 then
+        let n' = System.Math.Abs(n)
+        (Int 1) / (power_num num_2 (Int n'))
+    else power_num num_2 (Int n)
 
-let pow10 (n:int) = 
-    if n < 0 
-        then 
-            let n' = System.Math.Abs(n)
-            (Int 1) / (power_num num_10 (Int n'))
-        else power_num num_10 (Int n)
+let pow10 (n:int) =
+    if n < 0 then 
+        let n' = System.Math.Abs(n)
+        (Int 1) / (power_num num_10 (Int n'))
+    else power_num num_10 (Int n)
 
 /// Returns numerator and denominator of normalized fraction.
-let numdom r = 
+let numdom r =
     let r' = Ratio.normalize_ratio(ratio_of_num r)
     num_of_big_int(Ratio.numerator_ratio r'), num_of_big_int(Ratio.denominator_ratio r')
 
@@ -612,20 +844,20 @@ let numerator = fst << numdom
 let denominator = snd << numdom
 
 module Big_int =
-    let inline gcd_big_int (a : System.Numerics.BigInteger) (b : System.Numerics.BigInteger) : System.Numerics.BigInteger =
-        System.Numerics.BigInteger.GreatestCommonDivisor(a,b) 
+    let inline gcd_big_int (a : bigint) (b : bigint) : bigint =
+        bigint.GreatestCommonDivisor(a,b) 
 
     let big_int_of_ratio r =
-        let numerator,denominator = numdom r
-        if denominator = num_of_big_int System.Numerics.BigInteger.One 
-            then 
-                match numerator with
-                | Int i -> bigint i
-                | Big_int i -> i
-            else failwith "big_int_of_ratio"
+        let numerator, denominator = numdom r
+        if denominator = num_of_big_int System.Numerics.BigInteger.One then
+            match numerator with
+            | Int i -> bigint i
+            | Big_int i -> i
+            | Ratio _ ->
+                failwith "big_int_of_ratio"
+        else failwith "big_int_of_ratio"
 
 module Num =
-
     let big_int_of_num (n : num) : bigint =
         match n with
         | Int i ->
@@ -658,7 +890,7 @@ let rec allpairs f l1 l2 =
 (* ------------------------------------------------------------------------- *)
 
 /// Prints a string and a following line break.
-let report s = 
+let report s =
     Format.print_string s
     Format.print_newline()
 
@@ -667,9 +899,12 @@ let report s =
 (* ------------------------------------------------------------------------- *)
 
 /// Prints out a warning string.
-let warn cond s = 
-    if cond then report("Warning: " + s)
-    else ()
+let warn cond s =
+    if cond then
+        report("Warning: " + s)
+    
+        // Also log the warning with NLog.
+//        logger.Warn s
 
 (* ------------------------------------------------------------------------- *)
 (* Flags to switch on verbose mode.                                          *)
@@ -685,9 +920,11 @@ let report_timing = ref true
 (* ------------------------------------------------------------------------- *)
 
 /// Output a string and newline if and only if 'verbose' flag is set.
-let remark s = 
+let remark s =
     if !verbose then report s
-    else ()
+    
+    // Also log the message with NLog, regardless of whether the 'verbose' flag is set.
+//    logger.Info s
 
 (* ------------------------------------------------------------------------- *)
 (* Time a function.                                                          *)
@@ -703,12 +940,11 @@ let time f x =
             let finish_time = Sys.time()
             report("CPU time (user): " + (string_of_float(finish_time -. start_time)))
             result
-        with
-        | e -> 
+        with _ -> 
             let finish_time = Sys.time()
             Format.print_string
                 ("Failed after (user) CPU time of " + (string_of_float(finish_time -. start_time)) + ": ")
-            raise e
+            reraise ()
 
 (* ------------------------------------------------------------------------- *)
 (* Versions of assoc and rev_assoc with default rather than failure.         *)
@@ -749,6 +985,7 @@ let rec qmap f l =
 (* ------------------------------------------------------------------------- *)
 
 /// Merges together two sorted lists with respect to a given ordering.
+// OPTIMIZE : Make this tail-recursive (just use an accumulator and call List.rev at the end).
 let rec merge ord l1 l2 = 
     match l1 with
     | [] -> l2
@@ -809,6 +1046,7 @@ let undefined = Empty
 (* ------------------------------------------------------------------------- *)
 
 /// Tests if a finite partial function is defined nowhere.
+// OPTIMIZE : Replace with IntMap.isEmpty from ExtCore (once func<_,_> is replaced with IntMap).
 let is_undefined f = 
     match f with
     | Empty -> true
@@ -882,7 +1120,7 @@ let applyd =
         match l with
         | (a, b) :: t -> 
             let c = compare x a
-            if c = 0 then b
+            if c = 0 then Some b
             elif c > 0 then apply_listd t d x
             else d x
         | [] -> d x
@@ -898,17 +1136,16 @@ let applyd =
         look f
 
 /// Applies a finite partial function, failing on undefined points.
-let apply f = applyd f (fun x -> failwith "apply")
+let apply f = applyd f (fun x -> None)
+
 /// Applies a finite partial function, with a default for undefined points.
-let tryapplyd f a d = applyd f (fun x -> d) a
+let tryapplyd f a d = 
+    // NOTE: this will not fail because there is no case returning None
+    Option.get <| applyd f (fun x -> Some d) a
 
 /// Tests if a finite partial function is defined on a certain domain value.
 let defined f x = 
-    try 
-        apply f x |> ignore
-        true
-    with
-    | Failure _ -> false
+    Option.isSome <| apply f x
 
 (* ------------------------------------------------------------------------- *)
 (* Undefinition.                                                             *)
@@ -1074,10 +1311,12 @@ let (|=>) = fun x y -> (x |-> y) undefined
 (* ------------------------------------------------------------------------- *)
 
 /// Picks an arbitrary element from the graph of a finite partial function.
-let rec choose t = 
+let rec choose t =
     match t with
-    | Empty -> failwith "choose: completely undefined function"
-    | Leaf(h, l) -> hd l
+    | Empty ->
+        Choice.failwith "choose: completely undefined function"
+    | Leaf(h, l) ->
+        Choice.result <| hd l
     | Branch(b, p, t1, t2) -> choose t1
 
 (* ------------------------------------------------------------------------- *)
@@ -1096,7 +1335,7 @@ fsi.AddPrinter print_fpf
 (* ------------------------------------------------------------------------- *)
 
 /// Tests if an element is equivalent to a member of a list w.r.t. some relation.
-let rec mem' eq = 
+let rec mem' eq =
     let rec mem x lis = 
         match lis with
         | [] -> false
@@ -1145,36 +1384,62 @@ let num_of_string =
          "E", 14;
          "f", 15;
          "F", 15]
+
     let rec valof b s = 
-        let v = Int(assoc s values)
-        if v </ b then v
-        else failwith "num_of_string: invalid digit for base"
+        choice {
+            let! v =
+                match assoc s values with
+                | Some x -> Choice.result <| Int x
+                | None -> Choice.failwith "find"
+            if v </ b then 
+                return v
+            else 
+                return! Choice.failwith "num_of_string: invalid digit for base"
+        }
+
     and two = num_2
     and ten = num_10
     and sixteen = Int 16
-    let rec num_of_stringlist b l = 
-        match l with
-        | [] -> failwith "num_of_string: no digits after base indicator"
-        | [h] -> valof b h
-        | h :: t -> valof b h +/ b */ num_of_stringlist b t
-    fun s -> 
-        match explode(s) with
-        | [] -> failwith "num_of_string: no digits"
-        | "0" :: "x" :: hexdigits -> num_of_stringlist sixteen (rev hexdigits)
-        | "0" :: "b" :: bindigits -> num_of_stringlist two (rev bindigits)
-        | decdigits -> num_of_stringlist ten (rev decdigits)
 
+    let rec num_of_stringlist b l = 
+        choice {
+            match l with
+            | [] -> 
+                return! Choice.failwith "num_of_string: no digits after base indicator"
+            | [h] -> 
+                return! valof b h
+            | h :: t -> 
+                let! x = valof b h 
+                let! y = num_of_stringlist b t
+                return x +/ b */ y
+        }
+
+    fun s ->
+        choice {
+            match explode(s) with
+            | [] ->
+                return! Choice.failwith "num_of_string: no digits"
+            | "0" :: "x" :: hexdigits ->
+                return! num_of_stringlist sixteen (rev hexdigits)
+            | "0" :: "b" :: bindigits ->
+                return! num_of_stringlist two (rev bindigits)
+            | decdigits ->
+                return! num_of_stringlist ten (rev decdigits)
+        } : Protected<_>
+            
 (* ------------------------------------------------------------------------- *)
 (* Convenient conversion between files and (lists of) strings.               *)
 (* ------------------------------------------------------------------------- *)
 
 /// Read file and convert content into a list of strings.
+// OPTIMIZE : Use a StreamReader here instead of the OCaml-compatibility stuff.
 let strings_of_file filename = 
     let fd = 
-        try 
+        try
             Pervasives.open_in filename
         with
-        | Sys_error _ -> failwith("strings_of_file: can't open " + filename)
+        | Sys_error _ as e ->
+            nestedFailwith e ("strings_of_file: can't open " + filename)
     let rec suck_lines acc = 
         try 
             let l = Pervasives.input_line fd
@@ -1186,9 +1451,13 @@ let strings_of_file filename =
      data)
 
 /// Read file and convert content into a string.
+// OPTIMIZE : Use a StringBuilder and iterate over the file to avoid creating
+// intermediate values all at once when we can stream them instead.
+// Initialize the StringBuilder's capacity to the file size to avoid re-allocation.
 let string_of_file filename = end_itlist (fun s t -> s + "\n" + t) (strings_of_file filename)
 
 /// Write out a string to a named file.
+// OPTIMIZE : Make this an alias for System.IO.File.WriteAllText().
 let file_of_string filename s = 
     let fd = Pervasives.open_out filename
     output_string fd s

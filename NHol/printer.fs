@@ -18,13 +18,16 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Simplistic HOL Light prettyprinter, using the OCaml "Format" library.
 module NHol.printer
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open system
@@ -34,6 +37,8 @@ open fusion.Hol_kernel
 open basics
 open nets
 #endif
+
+logger.Trace("Entering printer.fs")
 
 (* ------------------------------------------------------------------------- *)
 (* Character discrimination.                                                 *)
@@ -148,7 +153,8 @@ let unparse_as_infix, parse_as_infix, get_infix_status, infixes =
     let infix_list = ref([] : (string * (int * string)) list)
     (fun n -> infix_list := filter (((<>) n) << fst) (!infix_list)), 
     (fun (n, d) -> infix_list := sort cmp ((n, d) :: (filter (((<>) n) << fst) (!infix_list)))), 
-    (fun n -> assoc n (!infix_list)), (fun () -> !infix_list)
+    (fun n -> assoc n !infix_list),
+    (fun () -> !infix_list)
 
 (* ------------------------------------------------------------------------- *)
 (* Interface mapping.                                                        *)
@@ -156,6 +162,7 @@ let unparse_as_infix, parse_as_infix, get_infix_status, infixes =
 
 /// List of active interface mappings.
 let the_interface = ref([] : (string * (string * hol_type)) list)
+
 /// List of overload skeletons for all overloadable identifiers.
 let the_overload_skeletons = ref([] : (string * hol_type) list)
 
@@ -176,9 +183,7 @@ let reverse_interface_mapping = ref true
 
 /// Determines which binary operators are printed with surrounding spaces.
 let unspaced_binops = 
-    ref [",";
-         "..";
-         "$"]
+    ref [","; ".."; "$"]
 
 (* ------------------------------------------------------------------------- *)
 (* Binary operators to print at start of line when breaking.                 *)
@@ -215,7 +220,8 @@ let print_all_thm = ref true
 /// Gets the name of a constant or variable.
 let name_of tm = 
     match tm with
-    | Var(x, ty) | Const(x, ty) -> x
+    | Var(x, ty)
+    | Const(x, ty) -> x
     | _ -> ""
 
 (* ------------------------------------------------------------------------- *)
@@ -232,25 +238,27 @@ let pp_print_type, pp_print_qtype =
             if flag then "(" + s + ")"
             else s
     let rec sot pr ty = 
-        try 
-            dest_vartype ty
-        with
-        | Failure _ -> 
+        match dest_vartype ty with
+        | Success s -> s
+        | Error _ -> 
             match dest_type ty with
-            | con, [] -> con
-            | "fun", [ty1; ty2] -> 
-                soc "->" (pr > 0) [sot 1 ty1;
-                                   sot 0 ty2]
-            | "sum", [ty1; ty2] -> 
-                soc "+" (pr > 2) [sot 3 ty1;
-                                  sot 2 ty2]
-            | "prod", [ty1; ty2] -> 
-                soc "#" (pr > 4) [sot 5 ty1;
-                                  sot 4 ty2]
-            | "cart", [ty1; ty2] -> 
-                soc "^" (pr > 6) [sot 6 ty1;
-                                  sot 7 ty2]
-            | con, args -> (soc "," true (map (sot 0) args)) + con
+            | Success ty' ->
+                match ty' with
+                | con, [] -> con
+                | "fun", [ty1; ty2] -> 
+                    soc "->" (pr > 0) [sot 1 ty1;
+                                       sot 0 ty2]
+                | "sum", [ty1; ty2] -> 
+                    soc "+" (pr > 2) [sot 3 ty1;
+                                      sot 2 ty2]
+                | "prod", [ty1; ty2] -> 
+                    soc "#" (pr > 4) [sot 5 ty1;
+                                      sot 4 ty2]
+                | "cart", [ty1; ty2] -> 
+                    soc "^" (pr > 6) [sot 6 ty1;
+                                      sot 7 ty2]
+                | con, args -> (soc "," true (map (sot 0) args)) + con
+            | Error _ -> "malformed type"
     (fun fmt ty -> pp_print_string fmt (sot 0 ty)), (fun fmt ty -> pp_print_string fmt ("`:" + sot 0 ty + "`"))
 
 (* ------------------------------------------------------------------------- *)
@@ -260,83 +268,135 @@ let pp_print_type, pp_print_qtype =
 // install_user_printer: Install a user-defined printing function into the HOL Light term printer.
 // delete_user_printer: Remove user-defined printer from the HOL Light term printing.
 // try_user_printer: Try user-defined printers on a term.
-let install_user_printer, delete_user_printer, try_user_printer = 
+let install_user_printer, delete_user_printer, (try_user_printer : term -> Protected<unit>) = 
     let user_printers = ref([] : (string * (term -> unit)) list)
-    (fun pr -> user_printers := pr :: (!user_printers)), 
-    (fun s -> user_printers := snd(remove (fun (s', _) -> s = s') (!user_printers))), 
-    (fun tm -> tryfind (fun (_, pr) -> pr tm) (!user_printers))
+    (fun pr ->
+        user_printers := pr :: !user_printers), 
+    (fun s ->
+        user_printers := snd(Option.get <| remove (fun (s', _) -> s = s') !user_printers)),
+    (fun tm ->
+        !user_printers
+        |> tryfind (fun (_, pr) ->
+            // NOTE: wrong use of Some, need to change this
+            Some <| pr tm)
+        |> Option.toChoiceWithError "find")
 
 (* ------------------------------------------------------------------------- *)
 (* Printer for terms.                                                        *)
 (* ------------------------------------------------------------------------- *)
 
 /// Prints a term (without quotes) to formatter.
-let pp_print_term = 
-    let reverse_interface(s0, ty0) = 
+let pp_print_term =
+    let reverse_interface(s0, ty0) =
         if not(!reverse_interface_mapping) then s0
         else 
-            try 
-                fst(find (fun (s, (s', ty)) -> s' = s0 && can (type_match ty ty0) []) (!the_interface))
-            with
-            | Failure _ -> s0
+            match find (fun (s, (s', ty)) -> s' = s0 && Choice.isResult <| type_match ty ty0 []) (!the_interface) with
+            | Some(s0', _) -> s0'
+            | None -> s0
+
     let rec DEST_BINARY c tm = 
-        try 
-            let il, r = dest_comb tm
-            let i, l = dest_comb il
-            if i = c || (is_const i && is_const c && reverse_interface(dest_const i) = reverse_interface(dest_const c)) then 
-                l, r
-            else fail()
-        with
-        | Failure _ -> failwith "DEST_BINARY"
-    and ARIGHT s = 
-        match snd(get_infix_status s) with
-        | "right" -> true
-        | _ -> false
+        choice { 
+            let! il, r = dest_comb tm
+            let! i, l = dest_comb il
+            let! ci = dest_const i
+            let! cc = dest_const c
+            if i = c || (is_const i && is_const c && reverse_interface ci = reverse_interface cc) then 
+                return (l, r)
+            else
+                return! Choice.fail()
+        }        
+        |> Choice.mapError (fun e -> nestedFailure e "DEST_BINARY")
+
+    and ARIGHT s =
+        choice {
+        match get_infix_status s with
+        | Some (_, "right") ->
+            return true
+        | Some _ ->
+            return false
+        // Add this to ensure the original meaning
+        | None ->
+            return! Choice.nestedFailwith (exn "find") "ARIGHT"
+        }
+
     let rec powerof10 n = 
         if abs_num n </ Int 1 then false
         elif n =/ Int 1 then true
         else powerof10(n / Int 10)
-    let bool_of_term t = 
+
+    let bool_of_term t =
+        choice {
         match t with
-        | Const("T", _) -> true
-        | Const("F", _) -> false
-        | _ -> failwith "bool_of_term"
-    let code_of_term t = 
+        | Const("T", _) ->
+            return true
+        | Const("F", _) ->
+            return false
+        | _ ->
+            return! Choice.failwith "bool_of_term"
+        }
+
+    let code_of_term t =
         let f, tms = strip_comb t
-        if not(is_const f && fst(dest_const f) = "ASCII") || not(length tms = 8) then failwith "code_of_term"
-        else 
-            itlist (fun b f -> 
-                    if b then 1 + 2 * f
-                    else 2 * f) (map bool_of_term (rev tms)) 0
+        // Choice.get is safe to use here
+        if not(is_const f && fst(Choice.get <| dest_const f) = "ASCII") || not(length tms = 8) then
+            failwith "code_of_term"
+        else
+            itlist (fun b f ->
+                if b then 1 + 2 * f else 2 * f)
+                    (map (Choice.get << bool_of_term) (rev tms)) 0
+
     let rec dest_clause tm = 
-        let pbod = snd(strip_exists(body(body tm)))
-        let s, args = strip_comb pbod
-        if name_of s = "_UNGUARDED_PATTERN" && length args = 2 then 
-            [rand(rator(hd args));
-             rand(rator(hd(tl args)))]
-        elif name_of s = "_GUARDED_PATTERN" && length args = 3 then 
-            [rand(rator(hd args));
-             hd(tl args);
-             rand(rator(hd(tl(tl args))))]
-        else failwith "dest_clause"
+        choice {
+            let! tm' = body tm
+            let! tm'' = body tm'
+            let pbod = snd(strip_exists tm'')
+            let s, args = strip_comb pbod
+            if name_of s = "_UNGUARDED_PATTERN" && length args = 2 then
+                let! tm1 = rator(hd args)
+                let! tm2 = rator(hd(tl args))                
+                return! Choice.List.map id [rand tm1; rand tm2]
+            elif name_of s = "_GUARDED_PATTERN" && length args = 3 then
+                let! tm1 = rator(hd args)
+                let! tm2 = rator(hd(tl(tl args)))
+                return! Choice.List.map id [rand tm1; Choice.result <| hd(tl args); rand tm2]
+            else 
+                return! Choice.failwith "dest_clause"
+        }
+
     let rec dest_clauses tm = 
-        let s, args = strip_comb tm
-        if name_of s = "_SEQPATTERN" && length args = 2 then dest_clause(hd args) :: dest_clauses(hd(tl args))
-        else [dest_clause tm]
-    fun fmt -> 
-        let rec print_term prec tm = 
-            try 
-                try_user_printer tm
-            with
-            | Failure _ -> 
-                try 
-                    pp_print_string fmt (string_of_num(dest_numeral tm))
-                with
-                | Failure _ -> 
-                    try 
-                        (let tms = dest_list tm
-                         try 
-                             if fst(dest_type(hd(snd(dest_type(type_of tm))))) <> "char" then fail()
+        choice {
+            let s, args = strip_comb tm
+            if name_of s = "_SEQPATTERN" && length args = 2 then
+                let! cl = dest_clause(hd args)
+                let! cls = dest_clauses(hd(tl args))
+                return (cl :: cls)
+            else
+                let! cl = dest_clause tm
+                return [cl]
+        }
+
+    fun fmt ->
+        let rec print_term prec tm =
+            (* OPTIMIZE: Modify these functions to use option -- these heavily-nested
+                         try-catch blocks are extremely slow. *)
+            match try_user_printer tm with
+            | Success _ -> ()
+            | Error _ -> 
+                match dest_numeral tm with
+                | Success tm ->
+                    pp_print_string fmt (string_of_num tm)
+                | Error _ -> 
+                    match dest_list tm with
+                    | Success tms ->
+                         try
+                             // CLEAN : Rename this value to something sensible.
+                             let foo1 =
+                                type_of tm
+                                |> Choice.bind dest_type
+                                |> Choice.bind (snd >> hd >> dest_type)
+                                |> Choice.map fst
+                                |> ExtCore.Choice.bindOrRaise
+                             if foo1 <> "char" then fail()
                              else 
                                  let ccs = map (String.make 1 << Char.chr << code_of_term) tms
                                  let s = "\"" + String.escaped(implode ccs) + "\""
@@ -345,23 +405,20 @@ let pp_print_term =
                          | Failure _ -> 
                              pp_print_string fmt "["
                              print_term_sequence "; " 0 tms
-                             pp_print_string fmt "]")
-                    with
-                    | Failure _ -> 
+                             pp_print_string fmt "]"
+                    | Error _ -> 
                         if is_gabs tm then print_binder prec tm
                         else 
                             let hop, args = strip_comb tm
                             let s0 = name_of hop
-                            let ty0 = type_of hop
+                            let ty0 = Choice.get <| type_of hop
                             let s = reverse_interface(s0, ty0)
-                            try 
-                                if s = "EMPTY" && is_const tm && args = [] then pp_print_string fmt "{}"
-                                else fail()
-                            with
-                            | Failure _ -> 
+                            
+                            if s = "EMPTY" && is_const tm && args = [] then pp_print_string fmt "{}"
+                            else 
                                 try 
                                     if s = "UNIV" && !typify_universal_set && is_const tm && args = [] then 
-                                        let ty = fst(dest_fun_ty(type_of tm))
+                                        let ty = fst(Choice.get <| dest_fun_ty(Choice.get <| type_of tm))
                                         (pp_print_string fmt "(:"
                                          pp_print_type fmt ty
                                          pp_print_string fmt ")")
@@ -371,8 +428,9 @@ let pp_print_term =
                                     try 
                                         if s <> "INSERT" then fail()
                                         else 
-                                            let mems, oth = splitlist (dest_binary "INSERT") tm
-                                            if is_const oth && fst(dest_const oth) = "EMPTY" then 
+                                            let mems, oth = splitlist (Choice.toOption << dest_binary "INSERT") tm
+                                            // Choice.get is safe to use here
+                                            if is_const oth && fst(Choice.get <| dest_const oth) = "EMPTY" then 
                                                 (pp_print_string fmt "{"
                                                  print_term_sequence ", " 14 mems
                                                  pp_print_string fmt "}")
@@ -382,11 +440,11 @@ let pp_print_term =
                                         try 
                                             if not(s = "GSPEC") then fail()
                                             else 
-                                                let evs, bod = strip_exists(body(rand tm))
-                                                let bod1, fabs = dest_comb bod
-                                                let bod2, babs = dest_comb bod1
-                                                let c = rator bod2
-                                                if fst(dest_const c) <> "SETSPEC" then fail()
+                                                let evs, bod = strip_exists(Choice.get <| body(Choice.get <| rand tm))
+                                                let bod1, fabs = Choice.get <| dest_comb bod
+                                                let bod2, babs = Choice.get <| dest_comb bod1
+                                                let c = Choice.get <| rator bod2
+                                                if fst(Choice.get <| dest_const c) <> "SETSPEC" then fail()
                                                 else 
                                                     pp_print_string fmt "{"
                                                     print_term 0 fabs
@@ -405,17 +463,17 @@ let pp_print_term =
                                         with
                                         | Failure _ -> 
                                             try 
-                                                let eqs, bod = dest_let tm
+                                                let eqs, bod = Choice.get <| dest_let tm
                                                 (if prec = 0 then pp_open_hvbox fmt 0
                                                  else 
                                                      (pp_open_hvbox fmt 1
                                                       pp_print_string fmt "(")
                                                  pp_print_string fmt "let "
-                                                 print_term 0 (mk_eq(hd eqs))
+                                                 print_term 0 (Choice.get <| mk_eq(hd eqs))
                                                  do_list (fun (v, t) -> 
                                                          pp_print_break fmt 1 0
                                                          pp_print_string fmt "and "
-                                                         print_term 0 (mk_eq(v, t))) (tl eqs)
+                                                         print_term 0 (Choice.get <| mk_eq(v, t))) (tl eqs)
                                                  pp_print_string fmt " in"
                                                  pp_print_break fmt 1 0
                                                  print_term 0 bod
@@ -427,8 +485,8 @@ let pp_print_term =
                                                 try 
                                                     if s <> "DECIMAL" then fail()
                                                     else 
-                                                        let n_num = dest_numeral(hd args)
-                                                        let n_den = dest_numeral(hd(tl args))
+                                                        let n_num = Choice.get <| dest_numeral(hd args)
+                                                        let n_den = Choice.get <| dest_numeral(hd(tl args))
                                                         if not(powerof10 n_den) then fail()
                                                         else 
                                                             let s_num = string_of_num(quo_num n_num n_den)
@@ -445,7 +503,7 @@ let pp_print_term =
                                                     try 
                                                         if s <> "_MATCH" || length args <> 2 then failwith ""
                                                         else 
-                                                            let cls = dest_clauses(hd(tl args))
+                                                            let cls = Choice.get <| dest_clauses(hd(tl args))
                                                             (if prec = 0 then ()
                                                              else pp_print_string fmt "("
                                                              pp_open_hvbox fmt 0
@@ -462,7 +520,7 @@ let pp_print_term =
                                                         try 
                                                             if s <> "_FUNCTION" || length args <> 1 then failwith ""
                                                             else 
-                                                                let cls = dest_clauses(hd args)
+                                                                let cls = Choice.get <| dest_clauses(hd args)
                                                                 (if prec = 0 then ()
                                                                  else pp_print_string fmt "("
                                                                  pp_open_hvbox fmt 0
@@ -473,7 +531,7 @@ let pp_print_term =
                                                                  if prec = 0 then ()
                                                                  else pp_print_string fmt ")")
                                                         with
-                                                        | Failure _ -> 
+                                                        | Failure _ ->
                                                             if s = "COND" && length args = 3 then 
                                                                 (if prec = 0 then ()
                                                                  else pp_print_string fmt "("
@@ -496,11 +554,11 @@ let pp_print_term =
                                                                  (if isalnum s 
                                                                      || s = "--" && length args = 1 
                                                                         && (try 
-                                                                                let l, r = dest_comb(hd args)
+                                                                                let l, r = Choice.get <| dest_comb(hd args)
                                                                                 let s0 = name_of l
-                                                                                let ty0 = type_of l
+                                                                                let ty0 = Choice.get <| type_of l
                                                                                 reverse_interface(s0, ty0) = "--" 
-                                                                                || mem (fst(dest_const l)) 
+                                                                                || mem (fst(Choice.get <| dest_const l)) 
                                                                                        ["real_of_num";
                                                                                         "int_of_num"]
                                                                             with
@@ -513,16 +571,16 @@ let pp_print_term =
                                                                  else ())
                                                             elif parses_as_binder s && length args = 1 
                                                                  && is_gabs(hd args) then print_binder prec tm
-                                                            elif can get_infix_status s && length args = 2 then 
+                                                            elif Option.isSome <| get_infix_status s && length args = 2 then 
                                                                 let bargs = 
-                                                                    if ARIGHT s then 
-                                                                        let tms, tmt = splitlist (DEST_BINARY hop) tm
+                                                                    if Choice.get <| ARIGHT s then 
+                                                                        let tms, tmt = splitlist (Choice.toOption << DEST_BINARY hop) tm
                                                                         tms @ [tmt]
                                                                     else 
                                                                         let tmt, tms = 
-                                                                            rev_splitlist (DEST_BINARY hop) tm
+                                                                            rev_splitlist (Choice.toOption << DEST_BINARY hop) tm
                                                                         tmt :: tms
-                                                                let newprec = fst(get_infix_status s)
+                                                                let newprec = fst(Option.get <| get_infix_status s)
                                                                 (if newprec <= prec then 
                                                                      (pp_open_hvbox fmt 1
                                                                       pp_print_string fmt "(")
@@ -545,27 +603,26 @@ let pp_print_term =
                                                                  pp_close_box fmt ())
                                                             elif (is_const hop || is_var hop) && args = [] then 
                                                                 let s' = 
-                                                                    if parses_as_binder s || can get_infix_status s 
-                                                                       || is_prefix s then "(" + s + ")"
+                                                                    if parses_as_binder s || Option.isSome <| get_infix_status s || is_prefix s then "(" + s + ")"
                                                                     else s
                                                                 pp_print_string fmt s'
                                                             else 
-                                                                let l, r = dest_comb tm
+                                                                let l, r = Choice.get <| dest_comb tm
                                                                 (pp_open_hvbox fmt 0
                                                                  if prec = 1000 then pp_print_string fmt "("
                                                                  else ()
                                                                  print_term 999 l
-                                                                 (if try 
-                                                                         mem (fst(dest_const l)) ["real_of_num";
-                                                                                                  "int_of_num"]
-                                                                     with
-                                                                     | Failure _ -> false
-                                                                  then ()
-                                                                  else pp_print_space fmt ())
+                                                                 // TODO: this converted form is a bit non-sense
+                                                                 match dest_const l with
+                                                                 | Success(s, _) -> 
+                                                                    if not <| mem s ["real_of_num"; "int_of_num"] then
+                                                                        pp_print_space fmt ()
+                                                                 | Error _ -> pp_print_space fmt ()
                                                                  print_term 1000 r
                                                                  if prec = 1000 then pp_print_string fmt ")"
                                                                  else ()
                                                                  pp_close_box fmt ())
+
         and print_term_sequence sep prec tms = 
             if tms = [] then ()
             else 
@@ -575,29 +632,31 @@ let pp_print_term =
                  else 
                      (pp_print_string fmt sep
                       print_term_sequence sep prec ttms))
+
         and print_binder prec tm = 
             let absf = is_gabs tm
             let s = 
                 if absf then "\\"
-                else name_of(rator tm)
+                else name_of(Choice.get <| rator tm)
             let rec collectvs tm = 
                 if absf then 
                     if is_abs tm then 
-                        let v, t = dest_abs tm
+                        let v, t = Choice.get <| dest_abs tm
                         let vs, bod = collectvs t
                         (false, v) :: vs, bod
                     elif is_gabs tm then 
-                        let v, t = dest_gabs tm
+                        let v, t = Choice.get <| dest_gabs tm
                         let vs, bod = collectvs t
                         (true, v) :: vs, bod
                     else [], tm
-                elif is_comb tm && name_of(rator tm) = s then 
-                    if is_abs(rand tm) then 
-                        let v, t = dest_abs(rand tm)
+                // Choice.get is safe to use here
+                elif is_comb tm && name_of(Choice.get <| rator tm) = s then 
+                    if is_abs(Choice.get <| rand tm) then 
+                        let v, t = Choice.get <| dest_abs(Choice.get <| rand tm)
                         let vs, bod = collectvs t
                         (false, v) :: vs, bod
-                    elif is_gabs(rand tm) then 
-                        let v, t = dest_gabs(rand tm)
+                    elif is_gabs(Choice.get <| rand tm) then 
+                        let v, t = Choice.get <| dest_gabs(Choice.get <| rand tm)
                         let vs, bod = collectvs t
                         (true, v) :: vs, bod
                     else [], tm
@@ -629,6 +688,7 @@ let pp_print_term =
              (if prec = 0 then ()
               else pp_print_string fmt ")")
              pp_close_box fmt ())
+
         and print_clauses cls = 
             match cls with
             | [c] -> print_clause c
@@ -638,6 +698,7 @@ let pp_print_term =
                  pp_print_string fmt "| "
                  print_clauses cs)
             | _ -> failwith "print_clauses: Unhandled case."
+
         and print_clause cl = 
             match cl with
             | [p; g; r] -> 
@@ -651,7 +712,13 @@ let pp_print_term =
                  pp_print_string fmt " -> "
                  print_term 1 r)
             | _ -> failwith "print_clause: Unhandled case."
-        print_term 0
+
+        fun tm ->
+            try
+                print_term 0 tm
+            with Failure s ->
+                // NOTE: suppress all exceptions in printing
+                ()
 
 (* ------------------------------------------------------------------------- *)
 (* Print term with quotes.                                                   *)
@@ -691,12 +758,16 @@ let pp_print_thm fmt th =
 
 /// Prints a type (without colon or quotes) to standard output.
 let print_type = pp_print_type std_formatter
+
 /// Prints a type with colon and surrounding quotes to standard output.
 let print_qtype = pp_print_qtype std_formatter
+
 /// Prints a HOL term (without quotes) to the standard output.
 let print_term = pp_print_term std_formatter
+
 /// Prints a HOL term with surrounding quotes to standard output.
 let print_qterm = pp_print_qterm std_formatter
+
 /// Prints a HOL theorem to the standard output.
 let print_thm = pp_print_thm std_formatter
 
@@ -720,10 +791,58 @@ let print_to_string printer =
 
 /// Converts a HOL type to a string representation.
 let string_of_type = print_to_string pp_print_type
+
 /// Converts a HOL term to a string representation.
 let string_of_term = print_to_string pp_print_term
+
 /// Converts a HOL theorem to a string representation.
 let string_of_thm = print_to_string pp_print_thm
+
+/// Prints a term list to formatter.
+let pp_print_list_term fmt (al : term list) =
+    let rec pp_print_list_termInner fmt al =
+        match al with
+        | typa :: tl ->
+            pp_print_term fmt typa
+            pp_print_break fmt 0 0
+            pp_print_list_termInner fmt tl
+        | [] -> ()
+    if al.Length = 0
+    then pp_print_string fmt "No items"
+    else
+        pp_open_hvbox fmt 0
+        pp_print_list_termInner fmt al
+        pp_close_box fmt ()
+
+/// Prints a term list to the standard output.
+let print_list_term = pp_print_list_term std_formatter
+
+/// Converts a term list to a string representation.
+let string_of_list_term = print_to_string pp_print_list_term
+
+/// Prints a ((hol_type * hol_type) list) to formatter.
+let pp_print_list_typtyp fmt (al : (hol_type * hol_type) list) =
+    let rec pp_print_list_typtypInner fmt al =
+        match al with
+        | (typa,typb) :: tl ->
+            pp_print_type fmt typa
+            pp_print_string fmt ", "
+            pp_print_type fmt typb
+            pp_print_break fmt 0 0
+            pp_print_list_typtypInner fmt tl
+        | [] -> ()
+    if al.Length = 0
+    then pp_print_string fmt "No items"
+    else
+        pp_open_hvbox fmt 0
+        pp_print_list_typtypInner fmt al
+        pp_close_box fmt ()
+
+/// Prints a ((hol_type * hol_type) list) to the standard output.
+let print_list_typtyp = pp_print_list_typtyp std_formatter
+
+/// Converts a ((hol_type * hol_type) list) to a string representation.
+let string_of_list_typtyp = print_to_string pp_print_list_typtyp
 
 (* ------------------------------------------------------------------------- *)
 (* Install all the printers.                                                 *)

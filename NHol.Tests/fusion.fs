@@ -20,9 +20,10 @@ limitations under the License.
 module Tests.NHol.fusion
 
 open NHol.fusion
+open NHol.parser
+open NHol.printer
 
 open NUnit.Framework
-open FsUnit
 
 // Note: Many of the next test cases came from the HOL Light reference manual
 
@@ -32,7 +33,7 @@ open FsUnit
 let ``{types} returns a list of all the type constructors declared``() =
 
     types ()
-    |> should equal [("bool",0); ("fun",2)]
+    |> assertEqual [("bool",0); ("fun",2)]
 
 (* get_type_arity tests *)
 
@@ -40,36 +41,41 @@ let ``{types} returns a list of all the type constructors declared``() =
 let ``{get_type_arity} when applied to the name of a type constructor returns its arity``() =
 
     get_type_arity "bool"
-    |> should equal 0
+    |> evaluate
+    |> assertEqual 0
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "find")>]
 let ``{get_type_arity} fails if there is no type constructor of that name``() =
 
     get_type_arity "nocon"
-    |> should equal 0
+    |> evaluate
+    |> assertEqual 0
 
 (* new_type tests *)
 
 [<Test>]
 let ``{new_type {"t",n}} declares a new {n}-ary type constructor called {t}``() =
 
+    let old_type_constants = !the_type_constants
+
     let expected = [("set",0); ("bool",0); ("fun",2)]
-
-    new_type ("set",0) |> ignore
-
-    let actual = !the_type_constants
-
     the_type_constants := [("bool",0); ("fun",2)]
 
+    new_type ("set",0) |> ignore
+    let actual = !the_type_constants
+
+    the_type_constants := old_type_constants
+
     actual
-    |> should equal expected
+    |> assertEqual expected
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "new_type: type bool has already been declared")>]
 let ``{new_type {"t",n}} fails if HOL is there is already a type operator of that name in the current theory``() =
 
     new_type ("bool",0) 
+    |> evaluate
     |> ignore
 
 (* mk_type tests *)
@@ -78,13 +84,15 @@ let ``{new_type {"t",n}} fails if HOL is there is already a type operator of tha
 let ``{mk_type} constructs a type, other than a variable type``() =
 
     mk_type ("bool",[])
-    |> should equal (Tyapp ("bool", []))
+    |> evaluate
+    |> assertEqual (Tyapp ("bool", []))
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "mk_type: type set has not been defined")>]
 let ``{mk_type} fails if the string is not the name of a known type``() =
 
     mk_type ("set",[])
+    |> evaluate
     |> ignore
 
 [<Test>]
@@ -92,6 +100,7 @@ let ``{mk_type} fails if the string is not the name of a known type``() =
 let ``{mk_type} fails if if the type is known but the length of the list of argument types is not equal to the arity of the type constructor``() =
 
     mk_type ("fun",[])
+    |> evaluate
     |> ignore
 
 (* mk_vartype tests *)
@@ -100,7 +109,7 @@ let ``{mk_type} fails if if the type is known but the length of the list of argu
 let ``{mk_vartype "A"} returns a type variable {:A}``() =
 
     mk_vartype "Test"
-    |> should equal (Tyvar "Test")
+    |> assertEqual (Tyvar "Test")
 
 (* dest_type tests *)
 
@@ -108,13 +117,15 @@ let ``{mk_vartype "A"} returns a type variable {:A}``() =
 let ``{dest_type} breaks apart a type``() =
 
     dest_type (Tyapp ("fun", [Tyvar "A"; Tyvar "B"]))
-    |> should equal ("fun", [Tyvar "A"; Tyvar "B"])
+    |> evaluate
+    |> assertEqual ("fun", [Tyvar "A"; Tyvar "B"])
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "dest_type: type variable not a constructor")>]
 let ``{dest_type} fails if the type is a type variable``() =
 
     dest_type (Tyvar "Test")
+    |> evaluate
     |> ignore
 
 (* dest_vartype tests *)
@@ -123,13 +134,15 @@ let ``{dest_type} fails if the type is a type variable``() =
 let ``{dest_vartype} breaks a type variable down to its name``() =
 
     dest_vartype (Tyvar "A")
-    |> should equal "A"
+    |> evaluate
+    |> assertEqual "A"
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "dest_vartype: type constructor not a variable")>]
 let ``{dest_vartype} fails if the type is not a type variable``() =
 
     dest_vartype (Tyapp ("bool", []))
+    |> evaluate
     |> ignore
 
 (* is_type tests *)
@@ -138,13 +151,13 @@ let ``{dest_vartype} fails if the type is not a type variable``() =
 let ``{is_type ty} returns {true} if {ty} is a base type or constructed by an outer type constructor``() =
 
     is_type (Tyapp ("fun", [Tyvar "A"; Tyvar "B"]))
-    |> should equal true
+    |> assertEqual true
 
 [<Test>]
 let ``{is_type ty} returns {false} if {ty} is a type variable``() =
 
     is_type (Tyvar "A")
-    |> should equal false
+    |> assertEqual false
 
 (* is_vartype tests *)
 
@@ -152,13 +165,13 @@ let ``{is_type ty} returns {false} if {ty} is a type variable``() =
 let ``{is_vartype ty} returns {true} if {ty} is a type variable``() =
 
     is_vartype (Tyvar "A")
-    |> should equal true
+    |> assertEqual true
 
 [<Test>]
 let ``{is_vartype ty} returns {false} if {ty} is not a type variable``() =
 
     is_vartype (Tyapp ("fun", [Tyvar "A"; Tyvar "B"]))
-    |> should equal false
+    |> assertEqual false
 
 (* tyvars tests *)
 
@@ -166,7 +179,7 @@ let ``{is_vartype ty} returns {false} if {ty} is not a type variable``() =
 let ``{tyvars}, when applied to a type, returns a list, possibly empty, of the type  variables``() =
 
     tyvars (Tyapp ("fun", [Tyvar "A"; Tyapp ("fun", [Tyvar "A"; Tyvar "B"])]))
-    |> should equal [Tyvar "A";Tyvar "B"]
+    |> assertEqual [Tyvar "A";Tyvar "B"]
 
 (* constants tests *)
 
@@ -174,7 +187,7 @@ let ``{tyvars}, when applied to a type, returns a list, possibly empty, of the t
 let ``{constants} returns a list of all the constants that have been defined so far``() =
 
     constants ()
-    |> should equal [("=", Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))]
+    |> assertEqual [("=", Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))]
 
 (* get_const_type tests *)
 
@@ -182,13 +195,15 @@ let ``{constants} returns a list of all the constants that have been defined so 
 let ``{get_const_type "c"} returns the generic type of {c}, if {c} is a constant``() =
 
     get_const_type "="
-    |> should equal (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
+    |> evaluate
+    |> assertEqual (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "find")>]
 let ``{get_const_type st} fails if {st} is not the name of a constant``() =
 
     get_const_type "xx"
+    |> evaluate
     |> ignore
 
 (* new_constant tests *)
@@ -204,13 +219,14 @@ let ``{new_constant {"c",:ty}} makes {c} a constant with most general type {ty}`
     the_term_constants := ["=",Tyapp("fun",[aty;Tyapp("fun",[aty;bool_ty])])]
 
     actual
-    |> should equal expected
+    |> assertEqual expected
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "new_constant: constant = has already been declared")>]
 let ``{new_constant {"c",:ty}} fails if there is already a constant of that name in the current theory``() =
 
-    new_constant ("=", Tyvar "num") 
+    new_constant ("=", Tyvar "num")
+    |> evaluate 
     |> ignore
 
 (* type_of tests *)
@@ -219,7 +235,8 @@ let ``{new_constant {"c",:ty}} fails if there is already a constant of that name
 let ``{type_of} returns the type of a term``() =
 
     type_of (Const ("=",Tyapp("fun",[aty;Tyapp("fun",[aty;bool_ty])])))
-    |> should equal (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
+    |> evaluate
+    |> assertEqual (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
 
 (* inst tests *)
 
@@ -247,7 +264,8 @@ let ``{inst [ty1,tv1; _ ; tyn,tvn] t} will systematically replace each type vari
 
 
     actual
-    |> should equal expected
+    |> evaluate
+    |> assertEqual expected
 
 (* REFL tests *)
 
@@ -279,8 +297,20 @@ let ``{REFL} maps any term {t} to the corresponding theorem {|- t = t}``() =
             )
 
     REFL input
-    |> should equal expected
+    |> evaluate
+    |> assertEqual expected
 
+[<Test>]
+let ``{EQ_MP th1 th2} equality version of modus ponens rule``() =
 
+    parse_as_infix("=", (12, "right"))|> ignore
+    let given1 = ASSUME (parse_term @"(p:bool) = (q:bool)")
+    let given2 = ASSUME (parse_term @"(p:bool)")
+    let actual = EQ_MP given1 given2
+    let expected = Sequent ([parse_term @"p:bool"; parse_term @"(p:bool) = (q:bool)"], parse_term @"q:bool")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
 
 

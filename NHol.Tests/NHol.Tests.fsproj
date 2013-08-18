@@ -41,6 +41,7 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+    <Compile Include="GenericAssert.fs" />
     <Compile Include="TestHelpers.fs" />
     <Compile Include="Tutorial.fs" />
     <Compile Include="lib.fs" />
@@ -51,10 +52,11 @@
     <Compile Include="preterm.fs" />
     <Compile Include="parser.fs" />
     <Compile Include="equal.fs" />
+    <Compile Include="bool.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ExtCore">
-      <HintPath>..\packages\ExtCore.0.8.29\lib\net40\ExtCore.dll</HintPath>
+      <HintPath>..\packages\ExtCore.0.8.32\lib\net40\ExtCore.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FsCheck">
@@ -63,10 +65,6 @@
     </Reference>
     <Reference Include="FSharp.Compatibility.OCaml">
       <HintPath>..\packages\FSharp.Compatibility.OCaml.0.1.10\lib\net40\FSharp.Compatibility.OCaml.dll</HintPath>
-    </Reference>
-    <Reference Include="FsUnit.NUnit">
-      <HintPath>..\packages\FsUnit.1.2.1.0\Lib\Net40\FsUnit.NUnit.dll</HintPath>
-      <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core, Version=4.3.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">

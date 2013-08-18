@@ -18,13 +18,16 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Calculation with integer-valued reals.
 module NHol.calc_int
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
+open ExtCore.Control.Collections
 
 open NHol
 open system
@@ -62,72 +65,101 @@ open grobner
 open realax
 #endif
 
+logger.Trace("Entering calc_int.fs")
+
 (* ------------------------------------------------------------------------- *)
 (* Syntax operations on integer constants of type ":real".                   *)
 (* ------------------------------------------------------------------------- *)
+
 /// Tests if a term is an integer literal of type :real.
 let is_realintconst tm = 
     match tm with
     | Comb(Const("real_of_num", _), n) -> is_numeral n
     | Comb(Const("real_neg", _), Comb(Const("real_of_num", _), n)) -> 
-        is_numeral n && not(dest_numeral n = num_0)
+        // The is_numeral call ensures that dest_numeral always succeeds
+        is_numeral n && not(Choice.get <| dest_numeral n = num_0)
     | _ -> false
 
 /// Converts an integer literal of type :real to an F# number.
 let dest_realintconst tm = 
-    match tm with
-    | Comb(Const("real_of_num", _), n) -> dest_numeral n
-    | Comb(Const("real_neg", _), Comb(Const("real_of_num", _), n)) -> 
-        let nn = dest_numeral n
-        if nn <> num_0
-        then minus_num(dest_numeral n)
-        else failwith "dest_realintconst"
-    | _ -> failwith "dest_realintconst"
+    choice {
+        match tm with
+        | Comb(Const("real_of_num", _), n) -> 
+            return! dest_numeral n
+        | Comb(Const("real_neg", _), Comb(Const("real_of_num", _), n)) -> 
+            let! nn = dest_numeral n
+            if nn <> num_0 then 
+                return minus_num nn
+            else 
+                return! Choice.failwith "dest_realintconst"
+        | _ -> 
+            return! Choice.failwith "dest_realintconst"
+    }
 
 /// Converts an F# number to a canonical integer literal of type :real.
 let mk_realintconst = 
     let cast_tm = (parse_term @"real_of_num")
     let neg_tm = (parse_term @"(--)")
-    let mk_numconst n = mk_comb(cast_tm, mk_numeral n)
+    let mk_numconst n = 
+        choice {
+            let! n' = mk_numeral n
+            return! mk_comb(cast_tm, n')
+        }
+    
     fun x -> 
-        if x < num_0
-        then mk_comb(neg_tm, mk_numconst(minus_num x))
-        else mk_numconst x
+        choice {
+            if x < num_0 then 
+                let! tm1 = mk_numconst(minus_num x)
+                return! mk_comb(neg_tm, tm1)
+            else 
+                return! mk_numconst x
+        }
 
 /// Tests if a term is a canonical rational literal of type :real.
 let is_ratconst tm = 
     match tm with
     | Comb(Comb(Const("real_div", _), p), q) -> 
+        // Safe to call Choice.get after is_* checks
         is_realintconst p && is_realintconst q 
-        && (let m = dest_realintconst p
-            let n = dest_realintconst q
+        && (let m = Choice.get <| dest_realintconst p
+            let n = Choice.get <| dest_realintconst q
             n > num_1 && gcd_num m n = num_1)
     | _ -> is_realintconst tm
 
 /// Converts a canonical rational literal of type :real to an F# number.
 let rat_of_term tm = 
-    match tm with
-    | Comb(Comb(Const("real_div", _), p), q) -> 
-        let m = dest_realintconst p
-        let n = dest_realintconst q
-        if n > num_1 && gcd_num m n = num_1
-        then m / n
-        else failwith "rat_of_term"
-    | _ -> dest_realintconst tm
+    choice {
+        match tm with
+        | Comb(Comb(Const("real_div", _), p), q) -> 
+            let! m = dest_realintconst p
+            let! n = dest_realintconst q
+            if n > num_1 && gcd_num m n = num_1 then 
+                return m / n
+            else 
+                return! Choice.failwith "rat_of_term"
+        | _ -> 
+            return! dest_realintconst tm
+    }
 
 /// Converts F# number to canonical rational literal of type :real.
 let term_of_rat = 
     let div_tm = (parse_term @"(/)")
     fun x -> 
-        let p, q = numdom x
-        let ptm = mk_realintconst p
-        if q = num_1
-        then ptm
-        else mk_comb(mk_comb(div_tm, ptm), mk_realintconst q)
+        choice {
+            let p, q = numdom x
+            let! ptm = mk_realintconst p
+            if q = num_1 then 
+                return ptm
+            else 
+                let! tm1 = mk_comb(div_tm, ptm)
+                let! tm2 = mk_realintconst q
+                return! mk_comb(tm1, tm2)
+        }
 
 (* ------------------------------------------------------------------------- *)
 (* Some elementary "bootstrapping" lemmas we need below.                     *)
 (* ------------------------------------------------------------------------- *)
+
 let REAL_ADD_AC = prove((parse_term @"(m + n = n + m) /\
    ((m + n) + p = m + (n + p)) /\
    (m + (n + p) = n + (m + p))"), MESON_TAC [REAL_ADD_ASSOC; REAL_ADD_SYM])
@@ -151,66 +183,62 @@ let REAL_EQ_ADD_RCANCEL =
     prove
         ((parse_term @"!x y z. (x + z = y + z) <=> (x = y)"), 
          MESON_TAC [REAL_ADD_SYM; REAL_EQ_ADD_LCANCEL])
+
 let REAL_MUL_RZERO = 
     prove
         ((parse_term @"!x. x * &0 = &0"), 
          MESON_TAC [REAL_EQ_ADD_RCANCEL; REAL_ADD_LDISTRIB; REAL_ADD_LID])
+
 let REAL_MUL_LZERO = 
     prove
         ((parse_term @"!x. &0 * x = &0"), 
          MESON_TAC [REAL_MUL_SYM; REAL_MUL_RZERO])
+
 let REAL_NEG_NEG = 
     prove
         ((parse_term @"!x. --(--x) = x"), 
          MESON_TAC 
              [REAL_EQ_ADD_RCANCEL; REAL_ADD_LINV; REAL_ADD_SYM; REAL_ADD_LINV])
+
 let REAL_MUL_RNEG = 
     prove
         ((parse_term @"!x y. x * (--y) = -- (x * y)"), 
          MESON_TAC 
              [REAL_EQ_ADD_RCANCEL; REAL_ADD_LDISTRIB; REAL_ADD_LINV; 
               REAL_MUL_RZERO])
+
 let REAL_MUL_LNEG = 
     prove
         ((parse_term @"!x y. (--x) * y = -- (x * y)"), 
          MESON_TAC [REAL_MUL_SYM; REAL_MUL_RNEG])
 
 let REAL_NEG_ADD = 
-    prove
-        ((parse_term @"!x y. --(x + y) = --x + --y"), 
-         REPEAT GEN_TAC
-         |> THEN 
-         <| MATCH_MP_TAC
-                (GEN_ALL(fst(EQ_IMP_RULE(SPEC_ALL REAL_EQ_ADD_RCANCEL))))
-         |> THEN <| EXISTS_TAC(parse_term @"x + y")
-         |> THEN <| REWRITE_TAC [REAL_ADD_LINV]
-         |> THEN 
-         <| ONCE_REWRITE_TAC 
-                [AC REAL_ADD_AC 
-                     (parse_term @"(a + b) + (c + d) = (a + c) + (b + d)")]
-         |> THEN <| REWRITE_TAC [REAL_ADD_LINV; REAL_ADD_LID])
+    prove((parse_term @"!x y. --(x + y) = --x + --y"), 
+          REPEAT GEN_TAC
+          |> THEN <| MATCH_MP_TAC(GEN_ALL(fst(EQ_IMP_RULE(SPEC_ALL REAL_EQ_ADD_RCANCEL))))
+          |> THEN <| EXISTS_TAC(parse_term @"x + y")
+          |> THEN <| REWRITE_TAC [REAL_ADD_LINV]
+          |> THEN <| ONCE_REWRITE_TAC [AC REAL_ADD_AC (parse_term @"(a + b) + (c + d) = (a + c) + (b + d)")]
+          |> THEN <| REWRITE_TAC [REAL_ADD_LINV; REAL_ADD_LID])
 
 let REAL_ADD_RID = 
     prove((parse_term @"!x. x + &0 = x"), MESON_TAC [REAL_ADD_SYM; REAL_ADD_LID])
+
 let REAL_NEG_0 = 
     prove((parse_term @"--(&0) = &0"), MESON_TAC [REAL_ADD_LINV; REAL_ADD_RID])
 
 let REAL_LE_LNEG = 
-    prove
-        ((parse_term @"!x y. --x <= y <=> &0 <= x + y"), 
-         REPEAT GEN_TAC
-         |> THEN <| EQ_TAC
-         |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP REAL_LE_LADD_IMP)
-         |> THENL 
-         <| [DISCH_THEN(MP_TAC << SPEC(parse_term @"x:real"))
-             |> THEN 
-             <| REWRITE_TAC [ONCE_REWRITE_RULE [REAL_ADD_SYM] REAL_ADD_LINV]
-             DISCH_THEN(MP_TAC << SPEC(parse_term @"--x"))
-             |> THEN 
-             <| REWRITE_TAC [REAL_ADD_LINV
-                             REAL_ADD_ASSOC
-                             REAL_ADD_LID
-                             ONCE_REWRITE_RULE [REAL_ADD_SYM] REAL_ADD_LID]])
+    prove((parse_term @"!x y. --x <= y <=> &0 <= x + y"), 
+          REPEAT GEN_TAC
+          |> THEN <| EQ_TAC
+          |> THEN <| DISCH_THEN(MP_TAC << MATCH_MP REAL_LE_LADD_IMP)
+          |> THENL <| [DISCH_THEN(MP_TAC << SPEC(parse_term @"x:real"))
+                       |> THEN <| REWRITE_TAC [ONCE_REWRITE_RULE [REAL_ADD_SYM] REAL_ADD_LINV];
+                       DISCH_THEN(MP_TAC << SPEC(parse_term @"--x"))
+                       |> THEN <| REWRITE_TAC [REAL_ADD_LINV;
+                                               REAL_ADD_ASSOC;
+                                               REAL_ADD_LID;
+                                               ONCE_REWRITE_RULE [REAL_ADD_SYM] REAL_ADD_LID]])
 
 let REAL_LE_NEG2 = 
     prove
@@ -255,6 +283,7 @@ let REAL_ABS_NUM =
     prove
         ((parse_term @"!n. abs(&n) = &n"), 
          REWRITE_TAC [real_abs; REAL_OF_NUM_LE; LE_0])
+
 let REAL_ABS_NEG = 
     prove
         ((parse_term @"!x. abs(--x) = abs x"), 
@@ -264,6 +293,7 @@ let REAL_ABS_NEG =
 (* ------------------------------------------------------------------------- *)
 (* First, the conversions on integer constants.                              *)
 (* ------------------------------------------------------------------------- *)
+
 // REAL_INT_LE_CONV: Conversion to prove whether one integer literal of type :real is <= another.
 // REAL_INT_LT_CONV: Conversion to prove whether one integer literal of type :real is < another.
 // REAL_INT_GE_CONV: Conversion to prove whether one integer literal of type :real is >= another.
@@ -360,11 +390,21 @@ let REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL
                                         GEN_REWRITE_CONV I [pth_eq2a; pth_eq2b]
                                         |> THENC <| NUM2_EQ_CONV]
                         REAL_INT_LE_CONV, REAL_INT_LT_CONV, REAL_INT_GE_CONV, REAL_INT_GT_CONV, REAL_INT_EQ_CONV
-                    | _ -> failwith "eqfuncs: Unhandled case."
-                | _ -> failwith "gtfuncs: Unhandled case."
-            | _ -> failwith "gefuncs: Unhandled case."
-        | _ -> failwith "ltfuncs: Unhandled case."
-    | _ -> failwith "lefuncs: Unhandled case."
+                    | _ -> 
+                        let failConv = fun _ -> Choice.failwith "eqfuncs: Unhandled case."
+                        failConv, failConv, failConv, failConv, failConv
+                | _ -> 
+                    let failConv = fun _ -> Choice.failwith "gtfuncs: Unhandled case."
+                    failConv, failConv, failConv, failConv, failConv
+            | _ ->
+                let failConv = fun _ -> Choice.failwith "gefuncs: Unhandled case."
+                failConv, failConv, failConv, failConv, failConv
+        | _ ->
+            let failConv = fun _ -> Choice.failwith "ltfuncs: Unhandled case."
+            failConv, failConv, failConv, failConv, failConv
+    | _ ->
+        let failConv = fun _ -> Choice.failwith "lefuncs: Unhandled case."
+        failConv, failConv, failConv, failConv, failConv
 
 /// Conversion to negate an integer literal of type :real.
 let REAL_INT_NEG_CONV = 
@@ -396,7 +436,7 @@ let REAL_INT_ADD_CONV =
     let neg_tm = (parse_term @"(--)")
     let amp_tm = (parse_term @"&")
     let add_tm = (parse_term @"(+)")
-    let dest = dest_binop(parse_term @"(+)")
+    let dest = Choice.get << dest_binop(parse_term @"(+)")
     let m_tm = (parse_term @"m:num")
     let n_tm = (parse_term @"n:num")
     let pth0 = prove((parse_term @"(--(&m) + &m = &0) /\
@@ -419,80 +459,92 @@ let REAL_INT_ADD_CONV =
                   |> THEN <| REWRITE_TAC [REAL_ADD_RINV; REAL_ADD_LID])
         match pthFuncs with
         |  [pth1; pth2; pth3; pth4; pth5; pth6] -> pth1, pth2, pth3, pth4, pth5, pth6
-        | _ -> failwith "pthFuncs: Unhandled case."
+        | _ -> 
+            let failThm = Choice.failwith "pthFuncs: Unhandled case."
+            failThm, failThm, failThm, failThm, failThm, failThm
 
     GEN_REWRITE_CONV I [pth0]
     |> ORELSEC <| (fun tm -> 
-        try 
+        choice { 
             let l, r = dest tm
-            if rator l = neg_tm
-            then 
-                if rator r = neg_tm
-                then 
-                    let th1 = 
-                        INST [rand(rand l), m_tm
-                              rand(rand r), n_tm] pth1
-                    let tm1 = rand(rand(rand(concl th1)))
+            let! tm1 = rator l
+            if tm1 = neg_tm then 
+                let! tm2 = rator r
+                if tm2 = neg_tm then 
+                    let! tm3 = (Choice.bind rand << rand) l
+                    let! tm4 = (Choice.bind rand << rand) r
+                    let! th1 = INST [tm3, m_tm; tm4, n_tm] pth1
+                    let! tm5 = (Choice.bind rand << rand) (concl th1)
+                    let! tm1 = rand tm5
                     let th2 = AP_TERM neg_tm (AP_TERM amp_tm (NUM_ADD_CONV tm1))
-                    TRANS th1 th2
+                    return! TRANS (Choice.result th1) th2
                 else 
-                    let m = rand(rand l)
-                    let n = rand r
-                    let m' = dest_numeral m
-                    let n' = dest_numeral n
-                    if m' <= n'
-                    then 
-                        let p = mk_numeral(n' - m')
-                        let th1 = 
-                            INST [m, m_tm
-                                  p, n_tm] pth2
-                        let th2 = NUM_ADD_CONV(rand(rand(lhand(concl th1))))
-                        let th3 = AP_TERM (rator tm) (AP_TERM amp_tm (SYM th2))
-                        TRANS th3 th1
+                    let! m = (Choice.bind rand << rand) l
+                    let! n = rand r
+                    let! m' = dest_numeral m
+                    let! n' = dest_numeral n
+                    if m' <= n' then 
+                        let! p = mk_numeral(n' - m')
+                        let! th1 = INST [m, m_tm; p, n_tm] pth2
+                        let! tm3 = lhand(concl th1)
+                        let! tm4 = (Choice.bind rand << rand) tm3
+                        let th2 = NUM_ADD_CONV tm4
+                        let! tm5 = rator tm
+                        let th3 = AP_TERM tm5 (AP_TERM amp_tm (SYM th2))
+                        return! TRANS th3 (Choice.result th1)
                     else 
-                        let p = mk_numeral(m' - n')
-                        let th1 = 
-                            INST [n, m_tm
-                                  p, n_tm] pth3
-                        let th2 = 
-                            NUM_ADD_CONV(rand(rand(lhand(lhand(concl th1)))))
+                        let! p = mk_numeral(m' - n')
+                        let! th1 = INST [n, m_tm; p, n_tm] pth3
+                        let! tm3 = lhand(concl th1)
+                        let! tm4 = lhand tm3
+                        let! tm5 = rand tm4
+                        let! tm6 = rand tm5
+                        let th2 = NUM_ADD_CONV tm6
                         let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
-                        let th4 = AP_THM (AP_TERM add_tm th3) (rand tm)
-                        TRANS th4 th1
-            elif rator r = neg_tm
-            then 
-                let m = rand l
-                let n = rand(rand r)
-                let m' = dest_numeral m
-                let n' = dest_numeral n
-                if n' <= m'
-                then 
-                    let p = mk_numeral(m' - n')
-                    let th1 = 
-                        INST [n, m_tm
-                              p, n_tm] pth4
-                    let th2 = NUM_ADD_CONV(rand(lhand(lhand(concl th1))))
-                    let th3 = AP_TERM add_tm (AP_TERM amp_tm (SYM th2))
-                    let th4 = AP_THM th3 (rand tm)
-                    TRANS th4 th1
-                else 
-                    let p = mk_numeral(n' - m')
-                    let th1 = 
-                        INST [m, m_tm
-                              p, n_tm] pth5
-                    let th2 = NUM_ADD_CONV(rand(rand(rand(lhand(concl th1)))))
-                    let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
-                    let th4 = AP_TERM (rator tm) th3
-                    TRANS th4 th1
-            else 
-                let th1 = 
-                    INST [rand l, m_tm
-                          rand r, n_tm] pth6
-                let tm1 = rand(rand(concl th1))
-                let th2 = AP_TERM amp_tm (NUM_ADD_CONV tm1)
-                TRANS th1 th2
-        with
-        | Failure _ -> failwith "REAL_INT_ADD_CONV")
+                        let! tm7 = rand tm
+                        let th4 = AP_THM (AP_TERM add_tm th3) tm7
+                        return! TRANS th4 (Choice.result th1)
+
+            else
+                let! tm2 = rator r
+                if tm2 = neg_tm then 
+                    let! m = rand l
+                    let! n = (Choice.bind rand << rand) r
+                    let! m' = dest_numeral m
+                    let! n' = dest_numeral n
+                    if n' <= m' then 
+                        let! p = mk_numeral(m' - n')
+                        let! th1 = INST [n, m_tm; p, n_tm] pth4
+                        let! tm3 = lhand(concl th1)
+                        let! tm4 = lhand tm3
+                        let! tm5 = rand tm4
+                        let th2 = NUM_ADD_CONV tm5
+                        let th3 = AP_TERM add_tm (AP_TERM amp_tm (SYM th2))
+                        let! tm6 = rand tm
+                        let th4 = AP_THM th3 tm6
+                        return! TRANS th4 (Choice.result th1)
+                    else 
+                        let! p = mk_numeral(n' - m')
+                        let! th1 = INST [m, m_tm; p, n_tm] pth5
+                        let! tm3 = lhand(concl th1)
+                        let! tm4 = rand tm3
+                        let! tm5 = rand tm4
+                        let! tm6 = rand tm5
+                        let th2 = NUM_ADD_CONV tm6
+                        let th3 = AP_TERM neg_tm (AP_TERM amp_tm (SYM th2))
+                        let! tm7 = rator tm
+                        let th4 = AP_TERM tm7 th3
+                        return! TRANS th4 (Choice.result th1)
+                else
+                    let! tm3 = rand l
+                    let! tm4 = rand r 
+                    let! th1 = INST [tm3, m_tm; tm4, n_tm] pth6
+                    let! tm5 = rand(concl th1)
+                    let! tm1 = rand tm5
+                    let th2 = AP_TERM amp_tm (NUM_ADD_CONV tm1)
+                    return! TRANS (Choice.result th1) th2
+        }
+        |> Choice.mapError (fun e -> nestedFailure e "REAL_INT_ADD_CONV"))
 
 /// Conversion to perform subtraction on two integer literals of type :real.
 let REAL_INT_SUB_CONV = 
@@ -518,9 +570,13 @@ let REAL_INT_POW_CONV =
                    |> THENC <| RATOR_CONV(RATOR_CONV(RAND_CONV NUM_EVEN_CONV))
                    |> THENC <| GEN_REWRITE_CONV I [tth]
                    |> THENC <| (fun tm -> 
-                       if rator tm = neg_tm
-                       then RAND_CONV (RAND_CONV NUM_EXP_CONV) tm
-                       else RAND_CONV NUM_EXP_CONV tm))
+                        choice {
+                           let! tm1 = rator tm
+                           if tm1 = neg_tm then 
+                               return! RAND_CONV (RAND_CONV NUM_EXP_CONV) tm
+                           else 
+                               return! RAND_CONV NUM_EXP_CONV tm
+                        }))
 
 /// Conversion to produce absolute value of an integer literal of type :real.
 let REAL_INT_ABS_CONV = 
@@ -531,21 +587,26 @@ let REAL_INT_ABS_CONV =
 /// Performs one arithmetic or relational operation on integer literals of type :real.
 let REAL_INT_RED_CONV = 
     let gconv_net = 
-        itlist (uncurry net_of_conv) [(parse_term @"x <= y"), REAL_INT_LE_CONV
-                                      (parse_term @"x < y"), REAL_INT_LT_CONV
-                                      (parse_term @"x >= y"), REAL_INT_GE_CONV
-                                      (parse_term @"x > y"), REAL_INT_GT_CONV
+        Choice.List.foldBack (fun (term, conv) acc -> net_of_conv term conv acc) 
+                                     [(parse_term @"x <= y"), REAL_INT_LE_CONV;
+                                      (parse_term @"x < y"), REAL_INT_LT_CONV;
+                                      (parse_term @"x >= y"), REAL_INT_GE_CONV;
+                                      (parse_term @"x > y"), REAL_INT_GT_CONV;
                                       (parse_term @"x:real = y"), 
-                                      REAL_INT_EQ_CONV
+                                      REAL_INT_EQ_CONV;
                                       (parse_term @"--x"), 
-                                      CHANGED_CONV REAL_INT_NEG_CONV
-                                      (parse_term @"abs(x)"), REAL_INT_ABS_CONV
-                                      (parse_term @"x + y"), REAL_INT_ADD_CONV
-                                      (parse_term @"x - y"), REAL_INT_SUB_CONV
-                                      (parse_term @"x * y"), REAL_INT_MUL_CONV
-                                      (parse_term @"x pow n"), REAL_INT_POW_CONV] 
-            (basic_net())
-    REWRITES_CONV gconv_net
+                                      CHANGED_CONV REAL_INT_NEG_CONV;
+                                      (parse_term @"abs(x)"), REAL_INT_ABS_CONV;
+                                      (parse_term @"x + y"), REAL_INT_ADD_CONV;
+                                      (parse_term @"x - y"), REAL_INT_SUB_CONV;
+                                      (parse_term @"x * y"), REAL_INT_MUL_CONV;
+                                      (parse_term @"x pow n"), REAL_INT_POW_CONV] (basic_net())
+    // NOTE: add arguments to propagate errors
+    fun tm ->   
+        choice {     
+            let! gconv_net = gconv_net
+            return! REWRITES_CONV gconv_net tm
+        }
 
 /// Evaluate subexpressions built up from integer literals of type :real, by proof.
 let REAL_INT_REDUCE_CONV = DEPTH_CONV REAL_INT_RED_CONV

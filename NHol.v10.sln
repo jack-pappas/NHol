@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tutorial", "Tutorial", "{BD
 		Tutorial\exploration.fsx = Tutorial\exploration.fsx
 		Tutorial\hol.fsx = Tutorial\hol.fsx
 		Tutorial\holBasics.fsx = Tutorial\holBasics.fsx
+		Tutorial\NLogExample.fsx = Tutorial\NLogExample.fsx
+		Tutorial\theorems_proofs.fsx = Tutorial\theorems_proofs.fsx
 	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "NHol.v10", "NHol\NHol.v10.fsproj", "{2C197CE2-A645-4CD6-8727-4C52ED510138}"

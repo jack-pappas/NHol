@@ -18,13 +18,15 @@ limitations under the License.
 
 *)
 
-#if INTERACTIVE
+#if USE
 #else
 /// Lexical analyzer, type and preterm parsers.
 module NHol.parser
 
 open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
 
 open NHol
 open system
@@ -37,6 +39,8 @@ open printer
 open preterm
 #endif
 
+logger.Trace("Entering parser.fs")
+
 (* TODO :   Re-name operators and functions for parser-combinators (below) to the
             equivalents from fparsec:
                 http://www.quanttec.com/fparsec/reference/primitives.html
@@ -47,8 +51,6 @@ open preterm
 (* Need to have this now for set enums, since "," isn't a reserved word.     *)
 (* ------------------------------------------------------------------------- *)
 
-// https://github.com/gilith/hol-light/blob/master/Help/parse_as_infix.doc
-// parse_as_infix : string * (int * string) -> unit
 parse_as_infix(",", (14, "right"))
 
 (* ------------------------------------------------------------------------- *)
@@ -260,26 +262,21 @@ let parse_pretype =
     let type_atom input = 
         match input with
         | (Ident s) :: rest -> 
-            let result = 
-                try 
-                    pretype_of_type(assoc s (type_abbrevs()))
-                with
-                | Failure _ -> 
-                    if (try 
-                            get_type_arity s = 0
-                        with
-                        | Failure _ -> false)
+            let result =
+                assoc s (type_abbrevs())
+                |> Option.toChoiceWithError "find"
+                |> Choice.bind pretype_of_type
+                |> Choice.fill(
+                    if get_type_arity s |> Choice.map (fun s -> s = 0) |> Choice.fill false
                     then Ptycon(s, [])
-                    else Utv(s)
+                    else Utv(s))
+
             result, rest
         | _ -> raise Noparse
     let type_constructor input = 
         match input with
         | (Ident s) :: rest -> 
-            if (try 
-                    get_type_arity s > 0
-                with
-                | Failure _ -> false)
+            if get_type_arity s |> Choice.map (fun s -> s > 0) |> Choice.fill false
             then s, rest
             else raise Noparse
         | _ -> raise Noparse
@@ -311,11 +308,13 @@ let install_parser, delete_parser, installed_parsers, try_user_parser =
             with
             | Noparse -> try_parsers tl i
     let parser_list = ref([] : (string * (lexcode list -> preterm * lexcode list)) list)
-    (fun dat -> parser_list := dat :: (!parser_list)), (fun key -> 
-        try 
-            parser_list := snd(remove (fun (key', _) -> key = key') (!parser_list))
-        with
-        | Failure _ -> ()), (fun () -> !parser_list), (fun i -> try_parsers (!parser_list) i)
+    (fun dat -> parser_list := dat :: (!parser_list)), 
+    (fun key -> 
+        match remove (fun (key', _) -> key = key') (!parser_list) with
+        | Some (_, p) -> parser_list := p
+        | None -> ()), 
+    (fun () -> !parser_list), 
+    (fun i -> try_parsers (!parser_list) i)
 
 (* ------------------------------------------------------------------------- *)
 (* Initial preterm parsing. This uses binder and precedence/associativity/   *)
@@ -356,55 +355,69 @@ let parse_preterm =
     match l with
       [] -> true
     | h::t -> forall (r h) t && pairwise r t
+
   let rec pfrees ptm acc =
     match ptm with
       Varp(v,pty) ->
         if v = "" && pty = dpty then acc
-        elif can get_const_type v || can num_of_string v || exists (fun (w,_) -> v = w) (!the_interface) then acc
+        elif Choice.isResult <| get_const_type v || Choice.isResult <| num_of_string v || exists (fun (w,_) -> v = w) (!the_interface) then acc
         else insert ptm acc
     | Constp(_,_) -> acc
     | Combp(p1,p2) -> pfrees p1 (pfrees p2 acc)
     | Absp(p1,p2) -> subtract (pfrees p2 acc) (pfrees p1 [])
     | Typing(p,_) -> pfrees p acc
+
   let pdest_eq =
       function
       | (Combp(Combp(Varp(("="|"<=>"),_),l),r)) -> (l,r)
       | _ -> failwith "pdest_eq: Unhandled case."
+
   let pmk_let (letbindings,body) =
     let vars,tms = unzip (map pdest_eq letbindings)
-    let _ = warn(not (pairwise (fun s t -> intersect(pfrees s []) (pfrees t []) = []) vars)) "duplicate names on left of let-binding: latest is used"
-    let lend = Combp(Varp("LET_END",dpty),body)
+    do warn(not (pairwise (fun s t -> intersect(pfrees s []) (pfrees t []) = []) vars)) "duplicate names on left of let-binding: latest is used"
+    let lend = Combp(Varp("LET_END",dpty), body)
     let abs = itlist (fun v t -> Absp(v,t)) vars lend
     let labs = Combp(Varp("LET",dpty),abs)
     rev_itlist (fun x f -> Combp(f,x)) tms labs
+
   let pmk_vbinder(n,v,bod) =
     if n = "\\" then Absp(v,bod)
     else Combp(Varp(n,dpty),Absp(v,bod))
+
   let pmk_binder(n,vs,bod) = itlist (fun v b -> pmk_vbinder(n,v,b)) vs bod
+
   let pmk_set_enum ptms = itlist (fun x t -> Combp(Combp(Varp("INSERT",dpty),x),t)) ptms (Varp("EMPTY",dpty))
+
   let pgenvar =
     let gcounter = ref 0
     fun () ->
         let count = !gcounter
         gcounter := count + 1
         Varp("GEN%PVAR%"+(string count),dpty)
+
   let pmk_exists(v,ptm) = Combp(Varp("?",dpty),Absp(v,ptm))
+
   let pmk_list els = itlist (fun x y -> Combp(Combp(Varp("CONS",dpty),x),y)) els (Varp("NIL",dpty))
+
   let pmk_bool =
     let tt = Varp("T",dpty)
     let ff = Varp("F",dpty)
     fun b ->
         if b then tt else ff
+
   let pmk_char c =
     let lis = map (fun i -> pmk_bool((c / (1 <<< i)) % 2 = 1)) (0--7)
     itlist (fun x y -> Combp(y,x)) lis (Varp("ASCII",dpty))
+
   let pmk_string s =
     let ns = map (fun i -> Char.code(String.get s i)) (0--(String.length s - 1))
     pmk_list(map pmk_char ns)
+
   let pmk_setcompr (fabs,bvs,babs) =
     let v = pgenvar()
     let bod = itlist (curry pmk_exists) bvs (Combp(Combp(Combp(Varp("SETSPEC",dpty),v),babs),fabs))
     Combp(Varp("GSPEC",dpty),Absp(v,bod))
+
   let pmk_setabs (fabs,babs) =
     let evs =
       let fvs = pfrees fabs []
@@ -412,6 +425,7 @@ let parse_preterm =
       if length fvs <= 1 || bvs = [] then fvs
       else intersect fvs bvs
     pmk_setcompr (fabs,evs,babs)
+
   let rec mk_precedence infxs prs inp =
     match infxs with
       (s,(p,at))::_ ->
@@ -425,7 +439,9 @@ let parse_preterm =
             (end_itlist (<|>) (map (fun (s,_) -> a (Ident s)) topins)) 
              fun1 "term after binary operator" inp
     | _ -> prs inp
+
   let pmk_geq s t = Combp(Combp(Varp("GEQ",dpty),s),t)
+
   let pmk_pattern ((pat,guards),res) =
     let x = pgenvar()
     let y = pgenvar()
@@ -436,7 +452,9 @@ let parse_preterm =
      else
        Combp(Combp(Combp(Varp("_GUARDED_PATTERN",dpty),pmk_geq pat x), hd guards), pmk_geq res y)
     Absp(x,Absp(y,itlist (curry pmk_exists) vs bod))
+
   let pretype = parse_pretype
+
   let rec string inp = 
       match inp with
       | Ident s :: rst when String.length s >= 2 && String.sub s 0 1 = "\"" && String.sub s (String.length s - 1) 1 = "\"" -> 
@@ -468,28 +486,27 @@ let parse_preterm =
           if ropt = [] then l0, "1"
           else 
               let r0 = hd ropt
-              let n_l = num_of_string l0
-              let n_r = num_of_string r0
+              let n_l = Choice.get <| num_of_string l0
+              let n_r = Choice.get <| num_of_string r0
               let n_d = power_num (Int 10) (Int(String.length r0))
               let n_n = n_l */ n_d +/ n_r
               string_of_num n_n, string_of_num n_d
       Combp(Combp(Varp("DECIMAL", dpty), Varp(l, dpty)), Varp(r, dpty))
   
   and lmk_univ((_, pty), _) = 
-      Typing(Varp("UNIV", dpty), Ptycon("fun", [pty;
-                                                Ptycon("bool", [])]))
+      Typing(Varp("UNIV", dpty), Ptycon("fun", [pty; Ptycon("bool", [])]))
   
   and any_identifier = 
       function 
       | ((Ident s) :: rest) -> s, rest
       | _ -> raise Noparse
   
-  and identifier = 
-      function 
-      | ((Ident s) :: rest) -> 
-          if can get_infix_status s || is_prefix s || parses_as_binder s then raise Noparse
+  and identifier x = 
+    match x with
+    | ((Ident s) :: rest) -> 
+          if Option.isSome <| get_infix_status s || is_prefix s || parses_as_binder s then raise Noparse
           else s, rest
-      | _ -> raise Noparse
+    | _ -> raise Noparse
   
   and binder = 
       function 
@@ -559,19 +576,31 @@ let parse_preterm =
 (* ------------------------------------------------------------------------- *)
 
 /// Parses a string into a HOL type.
-let parse_type (s : string) =
+let parse_type s =
 //    printfn "parsing type %s" s 
     let pty, l = (parse_pretype << lex << explode) s
     //printfn "pty, l <-- %A, %A" pty l
-    if l = [] then type_of_pretype pty
+    if l = [] then Choice.get <| type_of_pretype pty
     else failwith "Unparsed input following type"
+
+let tryParseType s : Protected<_> =
+    try
+        Choice.result <| parse_type s
+    with e ->
+        Choice.nestedFailwith e "parse_type"
 
 /// Parses a string into a HOL term.
 let parse_term s = 
 //    printfn "parsing term %s" s
     let ptm, l = (parse_preterm << lex << explode) s
     //printfn "l <-- %A" l
-    if l = [] then (term_of_preterm << (retypecheck [])) ptm
+    if l = [] then (Choice.get << term_of_preterm << (Choice.get << retypecheck [])) ptm
     else failwith "Unparsed input following term"
+
+let tryParseTerm s : Protected<_> =
+    try
+        Choice.result <| parse_term s
+    with e ->
+        Choice.nestedFailwith e "parse_term"
 
 
