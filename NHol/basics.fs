@@ -1,3 +1,5 @@
+//#region "License"
+
 (*
 
 Copyright 1998 University of Cambridge
@@ -18,7 +20,26 @@ limitations under the License.
 
 *)
 
+//#endregion
+
+//#region "open"
+
 #if USE
+#else
+#if INTERACTIVE
+module NHol.basics
+
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
+open ExtCore.Control.Collections
+
+open NHol
+open system
+open lib
+open fusion
+open fusion.Hol_kernel
 #else
 /// More syntax constructors, and prelogical utilities like matching.
 module NHol.basics
@@ -35,6 +56,9 @@ open lib
 open fusion
 open fusion.Hol_kernel
 #endif
+#endif
+
+//#endregion
 
 logger.Trace("Entering basics.fs")
 

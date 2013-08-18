@@ -1,4 +1,6 @@
-﻿(*
+﻿//#region "License"
+
+(*
 
 Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
@@ -18,7 +20,26 @@ limitations under the License.
 
 *)
 
+//#endregion
+
+//#region "open"
+
 #if USE
+#else
+#if INTERACTIVE
+module NHol.nets
+
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
+
+open NHol
+open system
+open lib
+open fusion
+open fusion.Hol_kernel
+open basics
 #else
 /// Term nets: reasonably fast lookup based on term matchability.
 module NHol.nets
@@ -35,6 +56,9 @@ open fusion
 open fusion.Hol_kernel
 open basics
 #endif
+#endif
+
+//#endregion
 
 logger.Trace("Entering nets.fs")
 

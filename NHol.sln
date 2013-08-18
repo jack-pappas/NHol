@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio Express 2012 for Web
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "NHol", "NHol\NHol.fsproj", "{389E2C7E-0C68-4AED-B185-BA777DE8E69E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{A4D22461-53F4-4971-8AC3-92BC50EEDF15}"
@@ -19,8 +19,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tutorial", "Tutorial", "{BD
 		Tutorial\exploration.fsx = Tutorial\exploration.fsx
 		Tutorial\hol.fsx = Tutorial\hol.fsx
 		Tutorial\holBasics.fsx = Tutorial\holBasics.fsx
-		Tutorial\theorems_proofs.fsx = Tutorial\theorems_proofs.fsx
 		Tutorial\NLogExample.fsx = Tutorial\NLogExample.fsx
+		Tutorial\testBuilder.fsx = Tutorial\testBuilder.fsx
+		Tutorial\theorems_proofs.fsx = Tutorial\theorems_proofs.fsx
 	EndProjectSection
 EndProject
 Global

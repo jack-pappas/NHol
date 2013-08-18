@@ -1,4 +1,6 @@
-﻿(*
+﻿//#region "License"
+
+(*
 
 Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
@@ -18,7 +20,22 @@ limitations under the License.
 
 *)
 
+//#endregion
+
+//#region "open"
+
 #if USE
+open System
+
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
+open ExtCore.Control.Collections
+#else
+#if INTERACTIVE
+module NHol.lib
+
 open System
 
 open FSharp.Compatibility.OCaml
@@ -42,6 +59,9 @@ open NHol
 open system
 
 #endif
+#endif
+
+//#endregion
 
 // Log module entry.
 tracef "Entering lib.fs"
@@ -61,11 +81,20 @@ let (|Failure|_|)(exn : exn) =
 
 /// Creates a Failure exception with the specified message and the given exception
 /// as the Failure's InnerException.
+
+#if CODE_COVERAGE
+let nestedFailure innerException message : exn =
+#else
 let inline nestedFailure innerException message : exn =
+#endif
     exn (message, innerException)
 
 /// Like failwith, but nests the specified exception within the failure exception.
+#if CODE_COVERAGE
+let nestedFailwith innerException message =
+#else
 let inline nestedFailwith innerException message =
+#endif
     raise <| nestedFailure innerException message
 
 (* ------------------------------------------------------------------------- *)
@@ -73,7 +102,11 @@ let inline nestedFailwith innerException message =
 (* ------------------------------------------------------------------------- *)
 
 /// Fail with empty string.
+#if CODE_COVERAGE
+let fail () : 'T = failwith ""
+#else
 let inline fail () : 'T = failwith ""
+#endif
 
 // Follow the naming convention of ExtCore
 [<RequireQualifiedAccess>]

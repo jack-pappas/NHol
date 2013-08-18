@@ -42,7 +42,6 @@
     <None Include="app.config" />
     <None Include="packages.config" />
     <Compile Include="TestHelpers.fs" />
-    <Compile Include="Tutorial.fs" />
     <Compile Include="lib.fs" />
     <Compile Include="fusion.fs" />
     <Compile Include="basics.fs" />

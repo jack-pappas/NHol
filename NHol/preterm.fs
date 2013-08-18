@@ -1,4 +1,6 @@
-﻿(*
+﻿//#region "License"
+
+(*
 
 Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
@@ -20,7 +22,29 @@ limitations under the License.
 
 *)
 
+//#endregion
+
+//#region "open"
+
 #if USE
+#else
+#if INTERACTIVE
+module NHol.preterm
+
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
+open ExtCore.Control.Collections
+
+open NHol
+open system
+open lib
+open fusion
+open fusion.Hol_kernel
+open basics
+open nets
+open printer
 #else
 /// Preterms and pretypes; typechecking; translation to types and terms.
 module NHol.preterm
@@ -40,6 +64,9 @@ open basics
 open nets
 open printer
 #endif
+#endif
+
+//#endregion
 
 logger.Trace("Entering preterm.fs")
 

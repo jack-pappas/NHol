@@ -1,4 +1,6 @@
-﻿(*
+﻿//#region "License"
+
+(*
 
 Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
@@ -18,7 +20,28 @@ limitations under the License.
 
 *)
 
+//#endregion
+
+//#region "open"
+
 #if USE
+#else
+#if INTERACTIVE
+module NHol.printer
+
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+
+open ExtCore.Control
+open ExtCore.Control.Collections
+
+open NHol
+open system
+open lib
+open fusion
+open fusion.Hol_kernel
+open basics
+open nets
 #else
 /// Simplistic HOL Light prettyprinter, using the OCaml "Format" library.
 module NHol.printer
@@ -37,6 +60,9 @@ open fusion.Hol_kernel
 open basics
 open nets
 #endif
+#endif
+
+//#endregion
 
 logger.Trace("Entering printer.fs")
 
@@ -842,7 +868,7 @@ let string_of_list_typtyp = print_to_string pp_print_list_typtyp
 (* ------------------------------------------------------------------------- *)
 
 #if INTERACTIVE
-fsi.AddPrinter string_of_type
-fsi.AddPrinter string_of_term
-fsi.AddPrinter string_of_thm
+//fsi.AddPrinter string_of_type
+//fsi.AddPrinter string_of_term
+//fsi.AddPrinter string_of_thm
 #endif

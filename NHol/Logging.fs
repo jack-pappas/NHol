@@ -1,4 +1,6 @@
-﻿(*
+﻿//#region "License"
+
+(*
 
 Copyright 2013 Jack Pappas, Anh-Dung Phan, Eric Taucher, Domenico Masini
 
@@ -16,13 +18,23 @@ limitations under the License.
 
 *)
 
+//#endregion
+
+//#region "open"
+
 #if USE
+#else
+#if INTERACTIVE
+module NHol.Logging
 #else
 
 [<AutoOpen>]
 module NHol.Logging
 
 #endif
+#endif
+
+//#endregion
 
 // Log support functions
 [<RequireQualifiedAccess; CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]

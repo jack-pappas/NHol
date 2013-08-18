@@ -16,6 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tutorial", "Tutorial", "{BD
 		Tutorial\hol.fsx = Tutorial\hol.fsx
 		Tutorial\holBasics.fsx = Tutorial\holBasics.fsx
 		Tutorial\NLogExample.fsx = Tutorial\NLogExample.fsx
+		Tutorial\testBuilder.fsx = Tutorial\testBuilder.fsx
 		Tutorial\theorems_proofs.fsx = Tutorial\theorems_proofs.fsx
 	EndProjectSection
 EndProject
@@ -27,16 +28,21 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
+		USE|Any CPU = USE|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{2C197CE2-A645-4CD6-8727-4C52ED510138}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{2C197CE2-A645-4CD6-8727-4C52ED510138}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C197CE2-A645-4CD6-8727-4C52ED510138}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2C197CE2-A645-4CD6-8727-4C52ED510138}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C197CE2-A645-4CD6-8727-4C52ED510138}.USE|Any CPU.ActiveCfg = USE|Any CPU
+		{2C197CE2-A645-4CD6-8727-4C52ED510138}.USE|Any CPU.Build.0 = USE|Any CPU
 		{E20CF4CB-B066-4F82-924C-A1461E4BB9A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E20CF4CB-B066-4F82-924C-A1461E4BB9A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E20CF4CB-B066-4F82-924C-A1461E4BB9A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E20CF4CB-B066-4F82-924C-A1461E4BB9A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E20CF4CB-B066-4F82-924C-A1461E4BB9A6}.USE|Any CPU.ActiveCfg = USE|Any CPU
+		{E20CF4CB-B066-4F82-924C-A1461E4BB9A6}.USE|Any CPU.Build.0 = USE|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

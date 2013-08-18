@@ -1,4 +1,6 @@
-﻿(*
+﻿//#region "License"
+
+(*
 
 Copyright 2013 Jack Pappas, Anh-Dung Phan, Eric Taucher
 
@@ -15,6 +17,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 *)
+
+//#endregion
 
 // Note: To use this with F# Interactive within Visual Studio 2010
 // In Visual Studio menu: Tool -> Options -> F# Tools -> F# Interactive

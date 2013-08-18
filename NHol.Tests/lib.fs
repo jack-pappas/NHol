@@ -1971,3 +1971,1067 @@ let ``{num_of_string "n"} converts the string {"n"} into an OCaml unlimited-prec
     NHol.lib.num_of_string "0b11000000"
     |> ExtCore.Choice.get
     |> assertEqual (Int 192)
+
+// A test that always fails.
+// Used to test testing environments to see how they report a failure.
+//[<Test>]
+//let ``a failing test``() =
+//    Assert.Fail 
+
+type mySystemException () =
+    inherit System.Exception()
+
+type myExn () =
+    inherit exn()
+
+// Note: type Microsoft.FSharp.Core.exn = System.Exception
+// Note: For the Failure Active Pattern tests the main result is an exception 
+// so we don't use the NUnit Exception attribute to process the exception, 
+// but instead just treat the exception as any other type.
+// Note: There are three definitionsn of the Failure Active Pattern
+// accessiable in NHol
+// 1. Microsoft.FSharp.Core.Operators.Failure
+// 2. FSharp.Compatibility.OCaml.Core.Failure
+// 3. NHol.lib.Failure
+let private failureActivePatternValues : (Microsoft.FSharp.Core.exn * string * string * string)[] = [| 
+    (
+        // idx 0
+        // lib.failureActivePattern.01
+        // One of the explict exceptions to catch with NHol.lib.Failure
+        new System.Collections.Generic.KeyNotFoundException () :> System.Exception, 
+        "Other: The given key was not present in the dictionary.", 
+        "Other: The given key was not present in the dictionary.", 
+        "Failure: The given key was not present in the dictionary."  // Notice NHol modified outcome
+    );
+    (
+        // idx 1
+        // lib.failureActivePattern.02
+        // One of the explict exceptions to catch with NHol.lib.Failure
+        new System.ArgumentException () :> System.Exception,
+        "Other: Value does not fall within the expected range.", 
+        "Other: Value does not fall within the expected range.", 
+        "Failure: Value does not fall within the expected range."  // Notice NHol modified outcome
+    );
+    (
+        // idx 2
+        // lib.failureActivePattern.03
+        // An exception not inheriting from System.Exception
+        NHol.lib.Unchanged, 
+        "Other: Exception of type 'NHol.lib+Unchanged' was thrown.", 
+        "Other: Exception of type 'NHol.lib+Unchanged' was thrown.", 
+        "Other: Exception of type 'NHol.lib+Unchanged' was thrown."
+    );
+    (
+        // idx 3
+        // lib.failureActivePattern.04
+        // An exception that inherits from System.Exception -> exn
+        new System.OutOfMemoryException () :> System.Exception, 
+        "Other: Insufficient memory to continue the execution of the program.", 
+        "Other: Insufficient memory to continue the execution of the program.", 
+        "Other: Insufficient memory to continue the execution of the program."
+    );
+    (
+        // idx 4
+        // lib.failureActivePattern.05
+        // An exception that inherits from exn
+        new System.ApplicationException () :> System.Exception, 
+        "Other: Error in the application.", 
+        "Other: Error in the application.", 
+        "Other: Error in the application."
+    );
+    (
+        // idx 5
+        // lib.failureActivePattern.06
+        // The default exceptions to catch with NHol.lib.Failure
+        new System.Exception (), 
+        "Failure: Exception of type 'System.Exception' was thrown.", 
+        "Other: Exception of type 'System.Exception' was thrown.",    // Notice FSharp.Compatibility.OCaml.Core modified outcome    
+        "Failure: Exception of type 'System.Exception' was thrown."   // Notice NHol allowed default to pass to outcome
+    );
+    (
+        // idx 6
+        // lib.failureActivePattern.07
+        // An exception that inherits from ArgumentException -> SystemException -> exn
+        new System.ArgumentOutOfRangeException () :> System.Exception, 
+        "Other: Specified argument was out of the range of valid values.", 
+        "Other: Specified argument was out of the range of valid values.", 
+        "Failure: Specified argument was out of the range of valid values."  // Notice NHol modified outcome
+    );
+    (
+        // idx 7
+        // lib.failureActivePattern.08
+        // Used with test for DllNotFoundException to show both levels for two levels of inheritence
+        new System.TypeLoadException () :> System.Exception, 
+        "Other: Failure has occurred while loading a type.", 
+        "Other: Failure has occurred while loading a type.", 
+        "Other: Failure has occurred while loading a type." 
+    );
+    (
+        // idx 8
+        // lib.failureActivePattern.09
+        // An exception that inherits from TypeLoadException -> SystemException -> exn
+        new System.DllNotFoundException () :> System.Exception, 
+        "Other: Dll was not found.", 
+        "Other: Dll was not found.", 
+        "Other: Dll was not found."
+    );
+    (
+        // idx 9
+        // lib.failureActivePattern.10
+        // A user defined exception that inherts from System.Exception
+        new mySystemException () :> System.Exception, 
+        "Other: Exception of type 'Tests.NHol.lib+mySystemException' was thrown.", 
+        "Other: Exception of type 'Tests.NHol.lib+mySystemException' was thrown.", 
+        "Other: Exception of type 'Tests.NHol.lib+mySystemException' was thrown."
+    );
+    (
+        // idx 10
+        // lib.failureActivePattern.11
+        // A user defined exception that inherts from exn
+        new myExn () :> System.Exception, 
+        "Other: Exception of type 'Tests.NHol.lib+myExn' was thrown.", 
+        "Other: Exception of type 'Tests.NHol.lib+myExn' was thrown.", 
+        "Other: Exception of type 'Tests.NHol.lib+myExn' was thrown."
+    );
+    (
+        // idx 11
+        // lib.failureActivePattern.12
+        // A typical exception not redefined by Failure.
+        new System.IO.DirectoryNotFoundException () :> System.Exception, 
+        "Other: Attempted to access a path that is not on the disk.", 
+        "Other: Attempted to access a path that is not on the disk.", 
+        "Other: Attempted to access a path that is not on the disk."
+    );
+    (
+        // idx 12
+        // lib.failureActivePattern.13
+        // The exn type which is identical to System.Exception.
+        new exn (), 
+        "Failure: Exception of type 'System.Exception' was thrown.", 
+        "Other: Exception of type 'System.Exception' was thrown.",     // Notice FSharp.Compatibility.OCaml.Core modified outcome
+        "Failure: Exception of type 'System.Exception' was thrown."    // Notice NHol allowed default to pass to outcome
+    );
+    |]
+    
+[<Test>]
+[<TestCase(0, TestName = "lib.failureActivePattern.01")>]
+[<TestCase(1, TestName = "lib.failureActivePattern.02")>]
+[<TestCase(2, TestName = "lib.failureActivePattern.03")>]
+[<TestCase(3, TestName = "lib.failureActivePattern.04")>]
+[<TestCase(4, TestName = "lib.failureActivePattern.05")>]
+[<TestCase(5, TestName = "lib.failureActivePattern.06")>]
+[<TestCase(6, TestName = "lib.failureActivePattern.07")>]
+[<TestCase(7, TestName = "lib.failureActivePattern.08")>]
+[<TestCase(8, TestName = "lib.failureActivePattern.09")>]
+[<TestCase(9, TestName = "lib.failureActivePattern.10")>]
+[<TestCase(10, TestName = "lib.failureActivePattern.11")>]
+[<TestCase(11, TestName = "lib.failureActivePattern.12")>]
+[<TestCase(12, TestName = "lib.failureActivePattern.13")>]
+let ``function failureActivePattern`` idx =
+    let (ex, _, _, _) = failureActivePatternValues.[idx]
+    let (_, microsoftResult, _, _) = failureActivePatternValues.[idx]
+    let (_, _, compatibilityResult, _) = failureActivePatternValues.[idx]
+    let (_, _, _, nholResult) = failureActivePatternValues.[idx]
+    
+    let microsoftFailure =
+        try
+            raise ex
+        with
+        | Microsoft.FSharp.Core.Operators.Failure _ as e -> Printf.sprintf "Failure: %s" e.Message
+        | _ as other -> Printf.sprintf "Other: %s" other.Message
+
+//    printfn "microsoftFailure: %A" microsoftFailure
+    microsoftFailure
+    |> assertEqual microsoftResult
+
+    let compatibilityFailure =
+        try
+            raise ex
+        with
+        | FSharp.Compatibility.OCaml.Core.Failure _ as e -> Printf.sprintf "Failure: %s" e.Message
+        | _ as other -> Printf.sprintf "Other: %s" other.Message
+        
+//    printfn "compatibilityFailure: %A" compatibilityFailure
+    compatibilityFailure
+    |> assertEqual compatibilityResult
+
+    let nholFailure =
+        try
+            raise ex
+        with
+        | NHol.lib.Failure _ as e -> Printf.sprintf "Failure: %s" e.Message
+        | _ as other -> Printf.sprintf "Other: %s" other.Message
+        
+//    printfn "nholFailure: %A" nholFailure
+    nholFailure
+    |> assertEqual nholResult
+
+let private nestedFailureValues : (exn * string * string)[] = [| 
+    (
+        // idx 0
+        // lib.nestedFailure.01
+        NHol.lib.Unchanged,
+        "an error message",
+        "System.Exception: an error message ---> NHol.lib+Unchanged: Exception of type 'NHol.lib+Unchanged' was thrown.\r\n" +
+        "   --- End of inner exception stack trace ---"
+    );
+    |]
+    
+[<Test>]
+[<TestCase(0, TestName = "lib.nestedFailure.01")>]
+let ``function nestedFailure`` idx =
+    let (ex, _, _) = nestedFailureValues.[idx]
+    let (_, msg, _) = nestedFailureValues.[idx]
+    let (_, _, result) = nestedFailureValues.[idx]
+    let nex = NHol.lib.nestedFailure ex msg
+//    printfn "nex: %s" (nex.ToString())
+    nex.ToString()
+    |> should equal result
+
+let private nestedFailwithValues : (exn * string * string)[] = [| 
+    (
+        // idx 0
+        // lib.nestedFailwith.01
+        new System.ArgumentException ("Inner message: Not a string","filename") :> System.Exception,
+        "Outer message: strings_of_file: can't open test.txt",
+        "Outer message: strings_of_file: can't open test.txt\n" +
+        "Inner message: Not a string\r\n" +
+        "Parameter name: filename"
+    );
+    |]
+    
+[<Test>]
+[<TestCase(0, TestName = "lib.nestedFailwith.01")>]
+let ``function nestedFailwith`` idx =
+    let (ex, _, _) = nestedFailwithValues.[idx]
+    let (_, outterMsg, _) = nestedFailwithValues.[idx]
+    let (_, _, result) = nestedFailwithValues.[idx]
+    let nestedFailwithMessages =
+        try
+            try
+                raise ex
+            with
+            | e1 ->
+                NHol.lib.nestedFailwith e1 outterMsg
+        with
+        | e2 -> e2.Message + "\n" + e2.InnerException.Message
+//    printfn "%s" nestedFailwithMessages
+    nestedFailwithMessages
+    |> assertEqual result
+
+let private failValues : (bool)[] = [| 
+    (
+        // idx 0
+        // lib.fail.01
+        true
+    );
+    |]
+    
+[<Test>]
+[<TestCase(0, TestName = "lib.fail.01")>]
+let ``function fail`` idx =
+    let (result) = failValues.[idx]
+    let failResult =
+        try
+            NHol.lib.fail ()
+            false
+        with
+        | ex -> true
+
+    failResult
+    |> assertEqual result
+
+
+// Note: checkNonNull is in ExtCore.Operators, but it is used in lib
+// Since we don't want to test all of ExtCore here, we will only 
+// test the functions used from ExtCore.
+//
+// Note: These test are run using the discriminator testValueType
+// because the checkNonNull type signature is
+//    let inline checkNonNull< ^T when ^T : not struct> argName (value : ^T) 
+// using static type variable, i.e. ^T, so
+// we need differnt types to test with,
+// and you can't have different types in an array without
+// a discriminator.
+//
+// Note: Since checkNonNull has a type constraint of not struct
+// struct types such as int will not compile for checkNonNull.
+
+
+// In order to keep certain test grouped together and avoid 
+//
+//    Warning 114 This construct causes code to be less generic than indicated by the type annotations. 
+//    The type variable <x> has been constrained to be type <y>.
+//
+// I use a discriminator for selecting the correct type when testing.
+//
+// Note: I could have used the syntactic sugar forms for the types
+// i.e. int list, string, (int * int)
+// but by using the desugared forms it is easier to identify test to create.
+type checkNonNullValueType =
+    | Unit_ of unit
+    | IntList_ of Microsoft.FSharp.Collections.List<int>         // int list
+    | String_ of Microsoft.FSharp.Core.string                    // System.string
+    | StringList_ of Microsoft.FSharp.Collections.List<string>   // string list
+    | Fun1_ of (int -> int)
+    | Tuple_ of int * int                                        // System.Tuple<int,int> did not let me use (1,2)
+    | Object_ of System.Object                                   // obj
+    | IntSet_ of Microsoft.FSharp.Collections.Set<int>
+
+let private checkNonNullValues : (string * checkNonNullValueType * bool)[] = [| 
+    (
+        // idx 0
+        // lib.checkNonNull.01
+        // System.ArgumentNullException - Value cannot be null.
+        "list",
+        Unit_ (),
+        false       // Dummy value used as place holder
+    );
+    (
+        // idx 1
+        // lib.checkNonNull.02
+        "list",
+        IntList_ [],
+        true
+    );
+    (
+        // idx 2
+        // lib.checkNonNull.03
+        "list",
+        IntList_ [1],
+        true
+    );
+    (
+        // idx 3
+        // lib.checkNonNull.04
+        "string",
+        String_ "",
+        true
+    );
+    (
+        // idx 4
+        // lib.checkNonNull.05
+        "string",
+        String_ "a",
+        true
+    );
+    (
+        // idx 5
+        // lib.checkNonNull.06
+        "list",
+        StringList_ [],
+        true
+    );
+    (
+        // idx 6
+        // lib.checkNonNull.07
+        "list",
+        StringList_ ["a"],
+        true
+    );
+    (
+        // idx 7
+        // lib.checkNonNull.08
+        "function",
+        Fun1_ (fun x -> x),
+        true
+    );
+    (
+        // idx 8
+        // lib.checkNonNull.09
+        "tuple",
+        Tuple_ (System.Tuple.Create(1,2)),
+        true
+    );
+    (
+        // idx 9
+        // lib.checkNonNull.10
+        "tuple",
+        Tuple_ (1,2),
+        true
+    );
+    (
+        // idx 10
+        // lib.checkNonNull.11
+        "object",
+        Object_ (new System.Object ()),
+        true
+    );    
+    (
+        // idx 11
+        // lib.checkNonNull.12
+        "set",
+        Object_ Microsoft.FSharp.Collections.Set.empty,
+        true
+    )
+    |]
+    
+[<Test>]
+[<TestCase(0, TestName = "lib.checkNonNull.01", ExpectedException=typeof<System.ArgumentNullException>, ExpectedMessage="Value cannot be null.\r\nParameter name: list")>]
+[<TestCase(1, TestName = "lib.checkNonNull.02")>]
+[<TestCase(2, TestName = "lib.checkNonNull.03")>]
+[<TestCase(3, TestName = "lib.checkNonNull.04")>]
+[<TestCase(4, TestName = "lib.checkNonNull.05")>]
+[<TestCase(5, TestName = "lib.checkNonNull.06")>]
+[<TestCase(6, TestName = "lib.checkNonNull.07")>]
+[<TestCase(7, TestName = "lib.checkNonNull.08")>]
+[<TestCase(8, TestName = "lib.checkNonNull.09")>]
+[<TestCase(9, TestName = "lib.checkNonNull.10")>]
+[<TestCase(10, TestName = "lib.checkNonNull.11")>]
+[<TestCase(11, TestName = "lib.checkNonNull.12")>]
+let ``function checkNonNull`` idx =
+    let (name, _, _) = checkNonNullValues.[idx]
+    let (_, value, _) = checkNonNullValues.[idx]
+    let (_, _, result) = checkNonNullValues.[idx]
+    let checkNonNullResult =
+        match value with
+        | Unit_ v -> ExtCore.Operators.checkNonNull name v
+        | IntList_ v -> ExtCore.Operators.checkNonNull name v
+        | String_ v -> ExtCore.Operators.checkNonNull name v
+        | StringList_ v -> ExtCore.Operators.checkNonNull name v
+        | Fun1_ v -> ExtCore.Operators.checkNonNull name v
+        | Tuple_ (a,b) -> ExtCore.Operators.checkNonNull name (a,b)
+        | Object_ v -> ExtCore.Operators.checkNonNull name v
+        | IntSet_ v -> ExtCore.Operators.checkNonNull name v
+        true  // Need to return a result when successful to check against.
+    checkNonNullResult
+    |> assertEqual result
+
+
+// Need to use a function that will give a different result if processing the
+// list from head to tail instead of tail to head
+// i.e. for 1,2,3 
+// we need (((3 * 2) + 2) * 1) + 2 = 10
+// not     (((1 * 2) + 2) * 3) + 2) = 14
+let private choiceReduceBackValues : ( (int -> int -> Choice<int,exn>) * int list * Choice<int,exn>)[] = [| 
+    (
+        // idx 0
+        // lib.choiceReduceBack.01
+        // An empty list
+        // System.ArgumentException - The input list was empty.
+        (fun (x : int) (y : int) -> ExtCore.Choice.result (x * y + 2)),
+        [],
+        Choice1Of2(0)  // Dummy value
+    );
+    (
+        // idx 1
+        // lib.choiceReduceBack.02
+        // A list with one item
+        (fun (x : int) (y : int) -> ExtCore.Choice.result (x * y + 2)),
+        [1],
+        Choice1Of2(1)
+    );
+    (
+        // idx 2
+        // lib.choiceReduceBack.
+        // A list with two items
+        (fun (x : int) (y : int) -> ExtCore.Choice.result (x * y + 2)),
+        [1;2],
+        Choice1Of2(4)
+    );
+    (
+        // idx 3
+        // lib.choiceReduceBack.04
+        // A list with three items
+        (fun (x : int) (y : int) -> ExtCore.Choice.result (x * y + 2)),
+        [1;2;3],
+        Choice1Of2(10)
+    );
+    (
+        // idx 4
+        // lib.choiceReduceBack.05
+        // A list with four items
+        (fun (x : int) (y : int) -> ExtCore.Choice.result (x * y + 2)),
+        [1;2;3;4],
+        Choice1Of2(32)
+    )
+    |]
+
+// TODO: Create test to cause precondition
+// checkNonNull "list" list
+// to fail using reduceBack. Is it even possible?
+// The only way I know get checkNonNull to fail is to use the Unit type as a parameter, but VS
+// will not allow that for reduceBack. Maybe one needs to use a differnt compiler?
+    
+[<Test>]
+[<TestCase(0, TestName = "lib.choiceReduceBack.01", ExpectedException=typeof<System.ArgumentException>, ExpectedMessage="The input list was empty.\r\nParameter name: list")>]
+[<TestCase(1, TestName = "lib.choiceReduceBack.02")>]
+[<TestCase(2, TestName = "lib.choiceReduceBack.03")>]
+[<TestCase(3, TestName = "lib.choiceReduceBack.04")>]
+[<TestCase(4, TestName = "lib.choiceReduceBack.05")>]
+let ``function choiceReduceBack`` idx =
+    let (reduction, _, _) = choiceReduceBackValues.[idx]
+    let (_, list, _) = choiceReduceBackValues.[idx]
+    let (_, _, result) = choiceReduceBackValues.[idx]
+    let choiceReduceBackResult =
+        NHol.lib.Choice.List.reduceBack reduction list
+//    printfn "%A" choiceReduceBackResult
+    choiceReduceBackResult |> assertEqual result
+
+(* nsplit tests *)
+
+// Note: There are currently (08/15/13) two functions named nsplit in NHol.lib
+// NHol.lib.Choice.List.nsplit
+// NHol.lib.nsplit 
+
+// The nsplit destructor param can take a function. 
+// The destructor function is dependent upon the the structure of the type passed into the function.
+// The destructor function is dependent upon the the signature of the output,
+//    the original OCaml code used exceptions,
+//    we will use workflows, (F# Computation Expressions)
+//    and during the coversion to workflows we will use Choice.
+type nsplitExpDestructorType =
+    | ExpExn_ of (exp -> (exp * exp))
+    | ExpChoice_ of (exp -> Choice<(exp * exp),exn>)
+    | ExpWorflow_ of (exp -> Protected<(exp * exp)>)  // type Protected<'T> = Choice<'T, exn>
+
+// Type exp: Use an exception
+let exp_dest_conj_with_exn (x : exp) : (exp * exp) =
+    match x with
+    | And (x1,x2) -> x1,x2
+    | _           -> failwith "dest_conj: not an And expression"
+
+// Type exp: Use Microsoft.FSharp.Core.Choice
+let exp_dest_conj_with_choice (x : exp) : Choice<(exp * exp),exn> =
+    match x with
+    | And (x1,x2) -> ExtCore.Choice.result (x1,x2)
+    | _           -> NHol.lib.Choice.failwith ("dest_conj: not an And expression")
+
+// Type exp: Use a workflow
+let exp_dest_conj_with_workflow_choice (x : exp) : Protected<(exp * exp)> =
+    ExtCore.Control.WorkflowBuilders.choice {
+        match x with
+        | And (x1,x2) -> return (x1,x2)
+        | _           -> return! NHol.lib.Choice.failwith ("dest_conj: not an And expression")
+    }
+
+// nsplit clist param can take a list of any type.
+// To demonstrate this we pass in either a list of int or string.
+// The clist length is the only thing that matters.
+// The values for clist can be duplicated and out of order.
+// If the length of clist is equal to or greater than destructs that can 
+// be performed, expect the destructor to throw an exception.
+type nsplitClistType =
+    | IntList_ of Microsoft.FSharp.Collections.List<int>         // int list
+    | StringList_ of Microsoft.FSharp.Collections.List<string>   // string list
+
+let nsplitExpValues : (nsplitExpDestructorType * nsplitClistType * exp * (exp list * exp) * string)[] = [| 
+    (
+        // idx 0
+        // lib.nsplit.01
+        // type exp, exn, int list, no exception
+        ExpExn_ exp_dest_conj_with_exn,
+        IntList_ [1;2;3],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([Atom 1;Atom 2;Atom 3], Atom 4),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 1
+        // lib.nsplit.02
+        // type exp, exn, int list, exception
+        ExpExn_ exp_dest_conj_with_exn,
+        IntList_ [1;2;3;4],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([], Atom 0), // dummy value, exception occurs
+        "dest_conj: not an And expression"
+    );
+    (
+        // idx 2
+        // lib.nsplit.03
+        // type exp, choice, int list, no exception
+        ExpChoice_ exp_dest_conj_with_choice,
+        IntList_ [1;2;3],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([Atom 1;Atom 2;Atom 3], Atom 4),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 3
+        // lib.nsplit.04
+        // type exp, choice, int list, exception
+        ExpChoice_ exp_dest_conj_with_choice,
+        IntList_ [1;2;3;4],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([], Atom 0), // dummy value, exception occurs
+        "dest_conj: not an And expression"
+    );
+    (
+        // idx 4
+        // lib.nsplit.05
+        // type exp, workflow, int list, no exception
+        ExpWorflow_ exp_dest_conj_with_workflow_choice,
+        IntList_ [1;2;3],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([Atom 1;Atom 2;Atom 3], Atom 4),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 5
+        // lib.nsplit.06
+        // type exp, workflow, int list, exception
+        ExpWorflow_ exp_dest_conj_with_workflow_choice,
+        IntList_ [1;2;3;4],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([], Atom 0), // dummy value, exception occurs
+        "dest_conj: not an And expression"
+    );
+    (
+        // idx 6
+        // lib.nsplit.07
+        // type exp, exn, string list, no exception
+        ExpExn_ exp_dest_conj_with_exn,
+        StringList_ ["a";"b";"c"],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([Atom 1;Atom 2;Atom 3], Atom 4),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 7
+        // lib.nsplit.08
+        // type exp, exn, string list, exception
+        ExpExn_ exp_dest_conj_with_exn,
+        StringList_ ["a";"b";"c";"d"],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([], Atom 0), // dummy value, exception occurs
+        "dest_conj: not an And expression"
+    );
+    (
+        // idx 8
+        // lib.nsplit.09
+        // type exp, choice, string list, no exception
+        ExpChoice_ exp_dest_conj_with_choice,
+        StringList_ ["a";"b";"c"],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([Atom 1;Atom 2;Atom 3], Atom 4),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 9
+        // lib.nsplit.10
+        // type exp, choice, string list, exception
+        ExpChoice_ exp_dest_conj_with_choice,
+        StringList_ ["a";"b";"c";"d"],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([], Atom 0), // dummy value, exception occurs
+        "dest_conj: not an And expression"
+    );
+    (
+        // idx 10
+        // lib.nsplit.11
+        // type exp, workflow, string list, no exception
+        ExpWorflow_ exp_dest_conj_with_workflow_choice,
+        StringList_ ["a";"b";"c"],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([Atom 1;Atom 2;Atom 3], Atom 4),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 11
+        // lib.nsplit.12
+        // type exp, workflow, string list, exception
+        ExpWorflow_ exp_dest_conj_with_workflow_choice,
+        StringList_ ["a";"b";"c";"d"],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([], Atom 0), // dummy value, exception occurs
+        "dest_conj: not an And expression"
+    );
+    (
+        // idx 12
+        // lib.nsplit.13
+        // type exp, workflow, empty list, no exception
+        ExpWorflow_ exp_dest_conj_with_workflow_choice,
+        StringList_ [],
+        (And (Atom 1, And (Atom 2, And (Atom 3, Atom 4)))),
+        ([], And (Atom 1,And (Atom 2,And (Atom 3,Atom 4)))),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 13
+        // lib.nsplit.14
+        // type exp, workflow, empty list, no exception, empty input
+        ExpWorflow_ exp_dest_conj_with_workflow_choice,
+        StringList_ [],
+        (Atom 1),
+        ([], Atom 1),
+        "" // dummy value, no exception
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "lib.nsplit.01")>]
+[<TestCase(1, TestName = "lib.nsplit.02")>]
+[<TestCase(2, TestName = "lib.nsplit.03")>]
+[<TestCase(3, TestName = "lib.nsplit.04")>]
+[<TestCase(4, TestName = "lib.nsplit.05")>]
+[<TestCase(5, TestName = "lib.nsplit.06")>]
+[<TestCase(6, TestName = "lib.nsplit.07")>]
+[<TestCase(7, TestName = "lib.nsplit.08")>]
+[<TestCase(8, TestName = "lib.nsplit.09")>]
+[<TestCase(9, TestName = "lib.nsplit.10")>]
+[<TestCase(10, TestName = "lib.nsplit.11")>]
+[<TestCase(11, TestName = "lib.nsplit.12")>]
+[<TestCase(12, TestName = "lib.nsplit.13")>]
+[<TestCase(13, TestName = "lib.nsplit.14")>]
+let ``function nsplit type: exp`` idx =
+    let (dest, _, _, _, _) = nsplitExpValues.[idx]
+    let (_, clist, _, _, _) = nsplitExpValues.[idx]
+    let (_, _, x, _, _) = nsplitExpValues.[idx]
+    let (_, _, _, valueResult, _) = nsplitExpValues.[idx]
+    let (_, _, _, _, exnResult) = nsplitExpValues.[idx]
+    
+    match dest, clist with
+    | ExpExn_ dest', IntList_ clist' ->                                  // type exp, exn, int list
+        try
+            // Note: This uses NHol.lib.nsplit not NHol.lib.Choice.List.nsplit
+            let result = NHol.lib.nsplit dest' clist' x
+            result |> assertEqual valueResult
+        with
+        | ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+    | ExpExn_ dest', StringList_ clist' ->                               // type exp, exn, string list
+        try    
+            // Note: This uses NHol.lib.nsplit not NHol.lib.Choice.List.nsplit
+            let result = NHol.lib.nsplit dest' clist' x
+            result |> assertEqual valueResult
+        with
+        | ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+    | ExpChoice_ dest', IntList_ clist' ->                               // type exp, Choice, int list
+        let result = NHol.lib.Choice.List.nsplit dest' clist' x
+        match result with
+        | Choice1Of2 v -> v |> assertEqual valueResult
+        | Choice2Of2 ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+    | ExpChoice_ dest', StringList_ clist' ->                            // type exp, Choice, string list
+        let result = NHol.lib.Choice.List.nsplit dest' clist' x
+        match result with
+        | Choice1Of2 v -> v |> assertEqual valueResult
+        | Choice2Of2 ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+    | ExpWorflow_ dest', IntList_ clist' ->                              // type exp, workflow, int list
+        let result = NHol.lib.Choice.List.nsplit dest' clist' x
+        match result with
+        | Choice1Of2 v -> v |> assertEqual valueResult
+        | Choice2Of2 ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+    | ExpWorflow_ dest', StringList_ clist' ->                           // type exp, workflow, string list
+        let result = NHol.lib.Choice.List.nsplit dest' clist' x
+        match result with
+        | Choice1Of2 v -> 
+            printfn "result: %A" v
+            v |> assertEqual valueResult
+        | Choice2Of2 ex ->
+            printfn "exn: %s" ex.Message
+            ex.Message |> assertEqual exnResult
+
+
+// Note: We have to use two differnt arrays to test nsplit because we need
+// two differnt return types. If we allow for two differnt retrun types in the 
+// same array using a discriminator, we would need 48 patterns to avoid the
+// incomplete pattern matches warning. i.e.
+// dest = 6, clist = 2, x = 2, result = 2
+// 6 * 2 * 2 * 2 = 48
+// The problem is the patterns would have to include exp input returning testType output
+// and vice versa; so we split the test to avoid the warning.
+// I use the warning to avoid bugs; a lot of research went into pattern macthing
+// and the type inference, so I try to make the most of it.
+
+// Note: test_type is the same structure as Hol_type.
+type nsplitTestType = 
+    | Tyvar of string
+    | Tyapp of string * nsplitTestType list
+
+// The nsplit destructor param can take a function. 
+// The destructor function is dependent upon the the structure of the type passed into the function.
+// The destructor function is dependent upon the the signature of the output,
+//    the original OCaml code used exceptions,
+//    we will use workflows, (F# Computation Expressions)
+//    and during the coversion will use Choice.
+type nsplitTestDestructorType =
+    | TestExn_ of (nsplitTestType -> (nsplitTestType * nsplitTestType))
+    | TestChoice_ of (nsplitTestType -> Choice<(nsplitTestType * nsplitTestType),exn>)
+    | TestWorflow_ of (nsplitTestType -> Protected<(nsplitTestType * nsplitTestType)>)  // type Protected<'T> = Choice<'T, exn>
+
+// Type exp: Use an exception
+let test_dest_fun_ty_with_exn (ty : nsplitTestType) : (nsplitTestType * nsplitTestType) =
+    match ty with
+    | nsplitTestType.Tyapp("fun", [ty1; ty2]) -> (ty1, ty2)
+    | _                                       -> failwith "test_dest_fun_ty_wit_exn"
+
+// Type exp: Use Microsoft.FSharp.Core.Choice
+let test_dest_fun_ty_with_choice (ty : nsplitTestType) : Choice<(nsplitTestType * nsplitTestType),exn> =
+    match ty with
+    | nsplitTestType.Tyapp("fun", [ty1; ty2]) -> ExtCore.Choice.result (ty1, ty2)
+    | _                                       -> NHol.lib.Choice.failwith "test_dest_fun_ty_with_choice"
+
+// Type exp: Use a workflow
+let test_dest_fun_ty_with_workflow_choice (ty : nsplitTestType) : Protected<(nsplitTestType * nsplitTestType)> =
+    ExtCore.Control.WorkflowBuilders.choice {
+        match ty with
+        | nsplitTestType.Tyapp("fun", [ty1; ty2]) -> return (ty1, ty2)
+        | _                                       -> return! NHol.lib.Choice.failwith "test_dest_fun_ty_with_workflow_choice"
+    }
+
+let nsplitTestValues : (nsplitTestDestructorType * nsplitClistType * nsplitTestType * (nsplitTestType list * nsplitTestType) * string)[] = [| 
+    (
+        // idx 0
+        // lib.nsplit.01
+        // type nsplitTestType, exn, int list, no exception
+        TestExn_ test_dest_fun_ty_with_exn,
+        IntList_ [1;2],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([Tyapp ("fun",[Tyvar "a"; Tyvar "b"]); Tyvar "c"], Tyvar "d"),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 1
+        // lib.nsplit.02
+        // type nsplitTestType, exn, int list, exception
+        TestExn_ test_dest_fun_ty_with_exn,
+        IntList_ [1;2;3],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([], Tyvar "-"), // dummy value, exception occurs
+        "test_dest_fun_ty_wit_exn"
+    );
+    (
+        // idx 2
+        // lib.nsplit.03
+        // type nsplitTestType, choice, int list, no exception
+        TestChoice_ test_dest_fun_ty_with_choice,
+        IntList_ [1;2],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([Tyapp ("fun",[Tyvar "a"; Tyvar "b"]); Tyvar "c"], Tyvar "d"),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 3
+        // lib.nsplit.04
+        // type nsplitTestType, choice, int list, exception
+        TestChoice_ test_dest_fun_ty_with_choice,
+        IntList_ [1;2;3],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([], Tyvar "-"), // dummy value, exception occurs
+        "test_dest_fun_ty_with_choice"
+    );
+    (
+        // idx 4
+        // lib.nsplit.05
+        // type nsplitTestType, workflow, int list, no exception
+        TestWorflow_ test_dest_fun_ty_with_workflow_choice,
+        IntList_ [1;2],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([Tyapp ("fun",[Tyvar "a"; Tyvar "b"]); Tyvar "c"], Tyvar "d"),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 5
+        // lib.nsplit.06
+        // type nsplitTestType, workflow, int list, exception
+        TestWorflow_ test_dest_fun_ty_with_workflow_choice,
+        IntList_ [1;2;3],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([], Tyvar "-"), // dummy value, exception occurs
+        "test_dest_fun_ty_with_workflow_choice"
+    );
+    (
+        // idx 6
+        // lib.nsplit.07
+        // type nsplitTestType, exn, string list, no exception
+        TestExn_ test_dest_fun_ty_with_exn,
+        StringList_ ["a";"b"],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([Tyapp ("fun",[Tyvar "a"; Tyvar "b"]); Tyvar "c"], Tyvar "d"),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 7
+        // lib.nsplit.08
+        // type nsplitTestType, exn, string list, exception
+        TestExn_ test_dest_fun_ty_with_exn,
+        StringList_ ["a";"b";"c"],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([], Tyvar "-"), // dummy value, exception occurs
+        "test_dest_fun_ty_wit_exn"
+    );
+    (
+        // idx 8
+        // lib.nsplit.09
+        // type nsplitTestType, choice, string list, no exception
+        TestChoice_ test_dest_fun_ty_with_choice,
+        StringList_ ["a";"b"],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([Tyapp ("fun",[Tyvar "a"; Tyvar "b"]); Tyvar "c"], Tyvar "d"),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 9
+        // lib.nsplit.10
+        // type nsplitTestType, choice, string list, exception
+        TestChoice_ test_dest_fun_ty_with_choice,
+        StringList_ ["a";"b";"c"],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([], Tyvar "-"), // dummy value, exception occurs
+        "test_dest_fun_ty_with_choice"
+    );
+    (
+        // idx 10
+        // lib.nsplit.11
+        // type nsplitTestType, workflow, string list, no exception
+        TestWorflow_ test_dest_fun_ty_with_workflow_choice,
+        StringList_ ["a";"b"],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([Tyapp ("fun",[Tyvar "a"; Tyvar "b"]); Tyvar "c"], Tyvar "d"),
+        "" // dummy value, no exception
+    );
+    (
+        // idx 11
+        // lib.nsplit.12
+        // type nsplitTestType, workflow, string list, exception
+        TestWorflow_ test_dest_fun_ty_with_workflow_choice,
+        StringList_ ["a";"b";"c"],
+        (nsplitTestType.Tyapp ("fun", [(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "a"; nsplitTestType.Tyvar "b"]));(nsplitTestType.Tyapp ("fun",[nsplitTestType.Tyvar "c"; nsplitTestType.Tyvar "d"]))])),
+        ([], Tyvar "-"), // dummy value, exception occurs
+        "test_dest_fun_ty_with_workflow_choice"
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "lib.nsplit.01")>]
+[<TestCase(1, TestName = "lib.nsplit.02")>]
+[<TestCase(2, TestName = "lib.nsplit.03")>]
+[<TestCase(3, TestName = "lib.nsplit.04")>]
+[<TestCase(4, TestName = "lib.nsplit.05")>]
+[<TestCase(5, TestName = "lib.nsplit.06")>]
+[<TestCase(6, TestName = "lib.nsplit.07")>]
+[<TestCase(7, TestName = "lib.nsplit.08")>]
+[<TestCase(8, TestName = "lib.nsplit.09")>]
+[<TestCase(9, TestName = "lib.nsplit.10")>]
+[<TestCase(10, TestName = "lib.nsplit.11")>]
+[<TestCase(11, TestName = "lib.nsplit.12")>]
+let ``function nsplit type: nsplitTestType`` idx =
+    let (dest, _, _, _, _) = nsplitTestValues.[idx]
+    let (_, clist, _, _, _) = nsplitTestValues.[idx]
+    let (_, _, x, _, _) = nsplitTestValues.[idx]
+    let (_, _, _, valueResult, _) = nsplitTestValues.[idx]
+    let (_, _, _, _, exnResult) = nsplitTestValues.[idx]
+    
+    match dest, clist with
+    | TestExn_ dest', IntList_ clist' ->                           // type nsplitTestType, exn, int list
+        try
+            // Note: This uses NHol.lib.nsplit not NHol.lib.Choice.List.nsplit
+            let result = NHol.lib.nsplit dest' clist' x
+            result |> assertEqual valueResult
+        with
+        | ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+    | TestExn_ dest', StringList_ clist' ->                        // type nsplitTestType, exn, string list
+        try    
+            // Note: This uses NHol.lib.nsplit not NHol.lib.Choice.List.nsplit
+            let result = NHol.lib.nsplit dest' clist' x
+            result |> assertEqual valueResult
+        with
+        | ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+    | TestChoice_ dest', IntList_ clist' ->                        // type nsplitTestType, Choice, int list
+        let result = NHol.lib.Choice.List.nsplit dest' clist' x
+        match result with
+        | Choice1Of2 v -> v |> assertEqual valueResult
+        | Choice2Of2 ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+    | TestChoice_ dest', StringList_ clist' ->                     // type nsplitTestType, Choice, string list
+        let result = NHol.lib.Choice.List.nsplit dest' clist' x
+        match result with
+        | Choice1Of2 v -> v |> assertEqual valueResult
+        | Choice2Of2 ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+    | TestWorflow_ dest', IntList_ clist' ->                       // type nsplitTestType, workflow, int list
+        let result = NHol.lib.Choice.List.nsplit dest' clist' x
+        match result with
+        | Choice1Of2 v -> v |> assertEqual valueResult
+        | Choice2Of2 ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+    | TestWorflow_ dest', StringList_ clist' ->                    // type nsplitTestType, workflow, string list
+        let result = NHol.lib.Choice.List.nsplit dest' clist' x
+        match result with
+        | Choice1Of2 v -> v |> assertEqual valueResult
+        | Choice2Of2 ex -> 
+//            printfn "%A" ex.Message
+            ex.Message |> assertEqual exnResult
+
+// =======================================================================================================
+
+// -------------------------------------------------------------------------------------------------------
+
+
+(* curry tests *)
+
+let private curryValues : ((int * int -> int) * int * int * int)[] = [| 
+//let private curryValues = [| 
+    (
+        // idx 0
+        // lib.curry.01
+        (fun ((x : int), (y : int)) -> x + y),
+        1,
+        5,
+        6
+    );
+//    (
+//        // idx 1
+//        // lib.curry.02
+//        // A list with one item
+//        (fun (x : int) (y : int) -> ExtCore.Choice.result (x * y + 2)),
+//        [1],
+//        Choice1Of2(1)
+//    );
+//    (
+//        // idx 2
+//        // lib.curry.
+//        // A list with two items
+//        (fun (x : int) (y : int) -> ExtCore.Choice.result (x * y + 2)),
+//        [1;2],
+//        Choice1Of2(4)
+//    );
+//    (
+//        // idx 3
+//        // lib.curry.04
+//        // A list with three items
+//        (fun (x : int) (y : int) -> ExtCore.Choice.result (x * y + 2)),
+//        [1;2;3],
+//        Choice1Of2(10)
+//    );
+//    (
+//        // idx 4
+//        // lib.curry.05
+//        // A list with four items
+//        (fun (x : int) (y : int) -> ExtCore.Choice.result (x * y + 2)),
+//        [1;2;3;4],
+//        Choice1Of2(32)
+//    )
+    |]
+   
+[<Test>]
+[<TestCase(0, TestName = "lib.curry.01")>]
+//[<TestCase(1, TestName = "lib.curry.02")>]
+//[<TestCase(2, TestName = "lib.curry.03")>]
+//[<TestCase(3, TestName = "lib.curry.04")>]
+//[<TestCase(4, TestName = "lib.curry.05")>]
+let ``function curry`` idx =
+    let (func, _, _, _) = curryValues.[idx]
+    let (_, value1, _, _) = curryValues.[idx]
+    let (_, _, value2, _) = curryValues.[idx]
+    let (_, _, _, result) = curryValues.[idx]
+    let curriedFunc = NHol.lib.curry func value1
+    let curryResult = curriedFunc value2
+    printfn "%A" curryResult
+    curryResult |> assertEqual result

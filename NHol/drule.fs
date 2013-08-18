@@ -1,3 +1,5 @@
+//#region "License"
+
 (*
 
 Copyright 1998 University of Cambridge
@@ -18,7 +20,38 @@ limitations under the License.
 
 *)
 
+//#endregion
+
+//#endregion
+
+//#region "open"
+
 #if USE
+#else
+#if INTERACTIVE
+module NHol.drule
+
+open System
+
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+open FSharp.Compatibility.OCaml.Format
+
+open ExtCore.Control
+open ExtCore.Control.Collections
+
+open NHol
+open system
+open lib
+open fusion
+open fusion.Hol_kernel
+open basics
+open nets
+open printer
+open preterm
+open parser
+open equal
+open bool
 #else
 /// More sophisticated derived rules including definitions and rewriting.
 module NHol.drule
@@ -45,6 +78,9 @@ open parser
 open equal
 open bool
 #endif
+#endif
+
+//#endregion
 
 logger.Trace("Entering drule.fs")
 

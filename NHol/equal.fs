@@ -1,4 +1,6 @@
-﻿(*
+﻿//#region "License"
+
+(*
 
 Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
@@ -18,7 +20,31 @@ limitations under the License.
 
 *)
 
+//#endregion
+
+//#region "open"
+
 #if USE
+#else
+#if INTERACTIVE
+module NHol.equal
+
+open System
+open FSharp.Compatibility.OCaml
+
+open ExtCore.Control
+open ExtCore.Control.Collections
+
+open NHol
+open system
+open lib
+open fusion
+open fusion.Hol_kernel
+open basics
+open nets
+open printer
+open preterm
+open parser
 #else
 /// Basic equality reasoning including conversionals.
 module NHol.equal
@@ -40,6 +66,9 @@ open printer
 open preterm
 open parser
 #endif
+#endif
+
+//#endregion
 
 logger.Trace("Entering equal.fs")
 

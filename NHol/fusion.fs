@@ -1,4 +1,6 @@
-﻿(*
+﻿//#region "License"
+
+(*
 
 Copyright 1998 University of Cambridge
 Copyright 1998-2007 John Harrison
@@ -18,7 +20,25 @@ limitations under the License.
 
 *)
 
+//#endregion
+
+//#region "open"
+
 #if USE
+#else
+#if INTERACTIVE
+module NHol.fusion
+
+open System
+
+open FSharp.Compatibility.OCaml
+open FSharp.Compatibility.OCaml.Num
+open ExtCore.Control
+open ExtCore.Control.Collections
+
+open NHol
+open system
+open lib
 #else
 /// Complete HOL kernel of types, terms and theorems.
 module NHol.fusion
@@ -34,6 +54,9 @@ open NHol
 open system
 open lib
 #endif
+#endif
+
+//#endregion
 
 logger.Trace("Entering fusion.fs")
 

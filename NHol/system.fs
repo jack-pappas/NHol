@@ -1,4 +1,6 @@
-﻿(*
+﻿//#region "License"
+
+(*
 
 Copyright 1998-2007 John Harrison
 Copyright 2013 Jack Pappas, Anh-Dung Phan, Eric Taucher
@@ -17,14 +19,24 @@ limitations under the License.
 
 *)
 
+//#endregion
+
+//#region "open"
+
 #if USE
 #else
-
+#if INTERACTIVE
+module NHol.system
+open NHol
+#else
 module NHol.system
 
 open NHol
 
 #endif
+#endif
+
+//#endregion
 
 // Log module entry.
 tracef "Entering system.fs"
@@ -76,4 +88,11 @@ let print_num n =
 fsi.AddPrinter print_num
 
 *)
+
+let firstLineOfText (text : System.String) =
+    let lines = text.Split('\n')
+    let chars = text.ToCharArray ()
+    printfn "chars: %A" chars
+    let firstLine = lines.[0]
+    firstLine
 
