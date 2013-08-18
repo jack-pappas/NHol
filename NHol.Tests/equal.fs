@@ -197,3 +197,125 @@ let ``{ALPHA tm1 tm2} Proves equality of alpha-equivalent terms``() =
     actual
     |> evaluate
     |> assertEqual expected
+
+open NHol.nums
+open NHol.calc_num
+
+//// This test requires nums module to be initialized
+//
+//[<Test>]
+//let ``{ALPHA_CONV tm1 tm2} Renames the bound variable of a lambda-abstraction``() =
+//    num_tydef |> ignore
+//    let actual = ALPHA_CONV (parse_term @"y:num") (parse_term @"\x. x + 1")
+//    let expected = Sequent ([], parse_term @"(\x. x + 1) = (\y. y + 1)")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+//
+
+[<Test>]
+[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "alpha: Invalid new variable")>]
+let ``{ALPHA_CONV tm1 tm2} Fails on unbounded variables``() =
+    let actual = ALPHA_CONV (parse_term @"y:bool") (parse_term @"\x. x /\ y")
+
+    actual
+    |> evaluate
+    |> ignore
+
+//// This test has wrong inputs
+//
+//[<Test>]
+//let ``{GEN_ALPHA_CONV tm1 tm2} Renames the bound variable of an abstraction or binder``() =
+//    let actual = GEN_ALPHA_CONV (parse_term @"y") (parse_term @"\x. x /\ y")
+//    let expected = Sequent ([], parse_term @"(\x. x /\ y) = (\y. x /\ x)")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This test requires calc_num module to be initialized
+//
+//[<Test>]
+//let ``{MK_BINOP tm1 (th1, th2)} Compose equational theorems with binary operator``() =
+//    let th1 = NUM_REDUCE_CONV (parse_term @"2 * 2")
+//    let th2 = NUM_REDUCE_CONV (parse_term @"2 EXP 2")
+//    let actual = MK_BINOP (parse_term @"(+):num->num->num") (th1, th2)
+//    let expected = Sequent ([], parse_term @"2 * 2 + 2 EXP 2 = 4 + 4")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This test requires calc_num module to be initialized
+//
+//[<Test>]
+//let ``{THENC conv1 conv2} Applies two conversions in sequence``() =
+//    let actual = (BETA_CONV |> THENC <| NUM_ADD_CONV) (parse_term @"(\x. x + 1) 3")
+//    let expected = Sequent ([], parse_term @"(\x. x + 1) 3 = 4")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This test requires calc_num module to be initialized
+//
+//[<Test>]
+//let ``{ORELSEC conv1 conv2} Applies the first of two conversions that succeeds``() =
+//    let actual = (NUM_ADD_CONV |> ORELSEC <| NUM_MULT_CONV) (parse_term @"1 * 1")
+//    let expected = Sequent ([], parse_term @"1 * 1 = 1")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This test requires calc_num module to be initialized
+//
+//[<Test>]
+//let ``{FIRST_CONV convl conv} Apply the first of the conversions in a given list that succeeds``() =
+//    let actual = FIRST_CONV [NUM_ADD_CONV; NUM_MULT_CONV; NUM_EXP_CONV] (parse_term @"12 * 12")
+//    let expected = Sequent ([], parse_term @"12 * 12 = 144")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This test requires calc_num module to be initialized
+//
+//[<Test>]
+//let ``{EVERY_CONV convl conv} Applies in sequence all the conversions in a given list of conversions``() =
+//    let actual = EVERY_CONV [BETA_CONV; NUM_ADD_CONV] (parse_term @"(\x. x + 2) 5")
+//    let expected = Sequent ([], parse_term @"(\x. x + 2) 5 = 7")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+[<Test>]
+let ``{REPEATC conv} Repeatedly apply a conversion (zero or more times) until it fails``() =
+    let actual = REPEATC BETA_CONV (parse_term @"(\x. (\y. x /\ y) (x /\ T)) (T : bool)")
+    let expected = Sequent ([], parse_term @"(\x. (\y. x /\ y) (x /\ T)) (T : bool) = (T /\ T /\ T)")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+//// This test requires calc_num module to be initialized
+//
+//[<Test>]
+//let ``{CHANGED_CONV conv} Makes a conversion fail if applying it leaves a term unchanged``() =
+//    let actual = REPEATC(CHANGED_CONV(ONCE_DEPTH_CONV num_CONV)) (parse_term @"6")
+//    let expected = Sequent ([], parse_term @"6 = SUC (SUC (SUC (SUC (SUC (SUC 0)))))")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+[<Test>]
+let ``{TRY_CONV conv} Attempts to apply a conversion; applies identity conversion in case of failure``() =
+    let actual = TRY_CONV BETA_CONV (parse_term @"T : bool")
+    let expected = Sequent ([], parse_term @"(T : bool) = T")
+
+    actual
+    |> evaluate
+    |> assertEqual expected

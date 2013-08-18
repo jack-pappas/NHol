@@ -167,7 +167,7 @@ let MK_BINOP op (lth, rth) =
     choice {
         let! lth = lth
         let! rth = rth
-        let! th1 = AP_TERM op lth
+        let! th1 = AP_TERM op (Choice.result lth)
         return! MK_COMB(Choice.result th1, Choice.result rth)
     }
 

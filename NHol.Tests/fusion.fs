@@ -57,13 +57,15 @@ let ``{get_type_arity} fails if there is no type constructor of that name``() =
 [<Test>]
 let ``{new_type {"t",n}} declares a new {n}-ary type constructor called {t}``() =
 
+    let old_type_constants = !the_type_constants
+
     let expected = [("set",0); ("bool",0); ("fun",2)]
+    the_type_constants := [("bool",0); ("fun",2)]
 
     new_type ("set",0) |> ignore
-
     let actual = !the_type_constants
 
-    the_type_constants := [("bool",0); ("fun",2)]
+    the_type_constants := old_type_constants
 
     actual
     |> assertEqual expected
