@@ -388,8 +388,15 @@ let pp_print_term =
                 | Error _ -> 
                     match dest_list tm with
                     | Success tms ->
-                         try 
-                             if fst(Choice.get <| dest_type(hd(snd(Choice.get <| dest_type(Choice.get <| type_of tm))))) <> "char" then fail()
+                         try
+                             // CLEAN : Rename this value to something sensible.
+                             let foo1 =
+                                type_of tm
+                                |> Choice.bind dest_type
+                                |> Choice.bind (snd >> hd >> dest_type)
+                                |> Choice.map fst
+                                |> ExtCore.Choice.bindOrRaise
+                             if foo1 <> "char" then fail()
                              else 
                                  let ccs = map (String.make 1 << Char.chr << code_of_term) tms
                                  let s = "\"" + String.escaped(implode ccs) + "\""
