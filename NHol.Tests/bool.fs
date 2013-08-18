@@ -170,3 +170,65 @@ let ``{DISCH_ALL thm} Discharges all hypotheses of a theorem``() =
     actual
     |> evaluate
     |> assertEqual expected
+
+[<Test>]
+let ``{UNDISCH thm} Undischarges the antecedent of an implicative theorem``() =
+    let actual = UNDISCH(TAUT <| parse_term "p /\ q ==> p")
+    let expected = Sequent ([parse_term @"p /\ q"], parse_term @"p:bool")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{UNDISCH_ALL thm} Iteratively undischarges antecedents in a chain of implications``() =
+    let actual = UNDISCH_ALL(TAUT <| parse_term "p ==> q ==> r ==> p /\ q /\ r")
+    let expected = Sequent ([parse_term @"p:bool"; parse_term @"q:bool"; parse_term @"r:bool"], parse_term @"p /\ q /\ r")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{IMP_ANTISYM_RULE thm1 thm2} Deduces equality of boolean terms from forward and backward implications``() =
+    let th1 = TAUT <| parse_term @"p /\ q ==> q /\ p"
+    let th2 = TAUT <| parse_term @"q /\ p ==> p /\ q"
+    let actual = IMP_ANTISYM_RULE th1 th2
+    let expected = Sequent ([], parse_term @"p /\ q <=> q /\ p")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{ADD_ASSUM term thm} Adds an assumption to a theorem``() =
+    let tm1 = parse_term @"p:bool"
+    let tm2 = parse_term @"q:bool"
+    let actual = ADD_ASSUM tm2 (ASSUME tm1)
+    let expected = Sequent ([tm1; tm2], tm1)
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+open NHol.theorems
+
+[<Test>]
+let ``{EQ_IMP_RULE thm} Derives forward and backward implication from equality of boolean terms``() =
+    let actual = EQ_IMP_RULE (SPEC_ALL CONJ_SYM)
+    let expected = Choice.result <| Sequent ([], parse_term @"t1 /\ t2 ==> t2 /\ t1"),
+                   Choice.result <| Sequent ([], parse_term @"t2 /\ t1 ==> t1 /\ t2")
+
+    actual
+    |> assertEqual expected
+
+[<Test>]
+let ``{IMP_TRANS thm1 thm2} Implements the transitivity of implication``() =
+    let th1 = TAUT <| parse_term @"p /\ q /\ r ==> p /\ q"
+    let th2 = TAUT <| parse_term @"p /\ q ==> p"
+    let actual = IMP_TRANS th1 th2
+    let expected = Sequent ([], parse_term @"p /\ q /\ r ==> p")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
