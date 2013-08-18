@@ -96,57 +96,50 @@ let private checkStringIsSingleChar c =
 /// Tests if a one-character string is some kind of space.
 let isspace c =
     // Preconditions
-#if BUGGY
-    checkStringIsSingleChar c
-#endif
+    //checkStringIsSingleChar c
+
     Array.get ctable (charcode c) = 1
 
 /// Tests if a one-character string is a separator.
 let issep c =
     // Preconditions
-#if BUGGY
-    checkStringIsSingleChar c
-#endif
+    //checkStringIsSingleChar c
+
     Array.get ctable (charcode c) = 2
 
 /// Tests if a one-character string is some kind of bracket.
 let isbra c =
     // Preconditions
-#if BUGGY
-    checkStringIsSingleChar c
-#endif
+    //checkStringIsSingleChar c
+
     Array.get ctable (charcode c) = 4
 
 /// Tests if a one-character string is a symbol other than bracket or separator.
 let issymb c =
     // Preconditions
-#if BUGGY
-    checkStringIsSingleChar c
-#endif
+    //checkStringIsSingleChar c
+
     Array.get ctable (charcode c) = 8
 
 /// Tests if a one-character string is alphabetic.
 let isalpha c =
     // Preconditions
-#if BUGGY
-    checkStringIsSingleChar c
-#endif
+    //checkStringIsSingleChar c
+
     Array.get ctable (charcode c) = 16
 
 /// Tests if a one-character string is a decimal digit.
 let isnum c =
     // Preconditions
-#if BUGGY
-    checkStringIsSingleChar c
-#endif
+    //checkStringIsSingleChar c
+
     Array.get ctable (charcode c) = 32
 
 /// Tests if a one-character string is alphanumeric.
 let isalnum c =
     // Preconditions
-#if BUGGY
-    checkStringIsSingleChar c
-#endif
+    //checkStringIsSingleChar c
+
     Array.get ctable (charcode c) >= 16
 
 
