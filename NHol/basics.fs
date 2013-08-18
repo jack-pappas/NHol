@@ -370,26 +370,30 @@ let thm_frees th =
 (* ------------------------------------------------------------------------- *)
 
 /// Tests if one term is free in another.
-let rec free_in tm1 tm2 = 
-    // NOTE: this function should be lifted to Protected<bool>
-    if aconv tm1 tm2 then true
+let rec free_in tm1 tm2 : Protected<bool> =
+    choice {
+    if aconv tm1 tm2 then
+        return true
     elif is_comb tm2 then
-        match dest_comb tm2 with
-        | Success(l, r ) ->
-            free_in tm1 l || free_in tm1 r
-        | Error _ -> false
-    elif is_abs tm2 then 
-        match dest_abs tm2 with
-        | Success(bv, bod) ->
-            not(vfree_in bv tm1) && free_in tm1 bod
-        | Error _ -> false
-    else false
+        let! l, r = dest_comb tm2
+        let! l_result = free_in tm1 l
+        if l_result then return true
+        else
+            return! free_in tm1 r
+    elif is_abs tm2 then
+        let! bv, bod = dest_abs tm2
+        if not <| vfree_in bv tm1 then
+            return! free_in tm1 bod
+        else return false
+    else return false
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Searching for terms.                                                      *)
 (* ------------------------------------------------------------------------- *)
 
 /// Searches a term for a subterm that satisfies a given predicate.
+// TODO : Modify this function to accept a protected predicate, i.e., (p : term -> Protected<bool>)
 let rec find_term p tm : Protected<term> =
     choice {
     if p tm then return tm

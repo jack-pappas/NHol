@@ -1155,7 +1155,7 @@ let define_type_raw_001 =
                 else 
                     let! t1, t2 = dest_pair tup
                     let! PAIR_th = 
-                        ISPECL [t1; t2] (if free_in v t1 then FST else SND)
+                        ISPECL [t1; t2] (if Choice.get <| free_in v t1 then FST else SND)
                     let! tup' = rand(concl PAIR_th)
                     if tup' = v then 
                         return PAIR_th
@@ -1201,7 +1201,7 @@ let define_type_raw_001 =
                     let args, bod = strip_abs tm3
                     let! ccitm, rtm = dest_comb bod
                     let! cctm, itm = dest_comb ccitm
-                    let rargs, iargs = partition (C free_in rtm) args
+                    let rargs, iargs = partition (fun x -> free_in x rtm |> Choice.get) args
                     let xths = map (extract_arg itm) iargs
                     let! cargs' = Choice.List.map (Choice.bind (subst [i, itm]) << Choice.bind lhand << Choice.map concl) xths
                     let! indices = Choice.List.map sucivate (0 -- (length rargs - 1))
@@ -2258,7 +2258,7 @@ let define_type_raw =
                         return! Choice.List.forall (fun u -> 
                                     choice {
                                         let! tm = rand u
-                                        return not(free_in x tm)
+                                        return not(Choice.get <| free_in x tm)
                                     }) hyps
                     }) hyps
                 |> Choice.bind (Option.toChoiceWithError "find")
@@ -2603,14 +2603,14 @@ let UNWIND_CONV, MATCH_CONV =
                             let! l, r = dest_eq tm
                             return
                                 is_eq tm &&
-                                (mem l evs && not(free_in l r)) || 
-                                (mem r evs && not(free_in r l))
+                                (mem l evs && not(Choice.get <| free_in l r)) || 
+                                (mem r evs && not(Choice.get <| free_in r l))
                         }) eqs
                     |> Choice.bind (Option.toChoiceWithError "find")
 
                 let! l, r = dest_eq eq
                 let v = 
-                    if mem l evs && not(free_in l r)
+                    if mem l evs && not(Choice.get <| free_in l r)
                     then l
                     else r
                 let cjs' = eq :: (subtract eqs [eq])
@@ -2731,14 +2731,14 @@ let FORALL_UNWIND_CONV =
                         let! l, r = dest_eq tm
                         return
                             is_eq tm && 
-                            (mem l avs && not(free_in l r)) || 
-                            (mem r avs && not(free_in r l))
+                            (mem l avs && not(Choice.get <| free_in l r)) || 
+                            (mem r avs && not(Choice.get <| free_in r l))
                     }) eqs
                 |> Choice.bind (Option.toChoiceWithError "find")
 
             let! l, r = dest_eq eq
             let v = 
-                if mem l avs && not(free_in l r) then l
+                if mem l avs && not(Choice.get <| free_in l r) then l
                 else r
 
             let cjs' = eq :: (subtract eqs [eq])

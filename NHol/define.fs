@@ -904,8 +904,11 @@ let instantiate_casewise_recursion,
           | "admissible", _ when is_abs bod -> 
               return! APPLY_PROFORMA_TAC ADMISSIBLE_LAMBDA gl
           // Choice.get is safe to use after is_*
-          | "admissible", _ when is_comb bod && Choice.get <| rator bod = f -> 
-              if free_in f (Choice.get <| rand bod) then 
+          | "admissible", _ when is_comb bod && Choice.get <| rator bod = f ->
+              // CLEAN : Rename these values to something sensible.
+              let! foo1 = rand bod
+              let! rand_bod_is_free_in_f = free_in f foo1
+              if rand_bod_is_free_in_f then
                   return! APPLY_PROFORMA_TAC ADMISSIBLE_NEST gl
               else 
                   return! APPLY_PROFORMA_TAC ADMISSIBLE_BASE gl

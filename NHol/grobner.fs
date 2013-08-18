@@ -947,7 +947,7 @@ let NUM_SIMPLIFY_CONV =
         else 
           return!
             choice { 
-                let! t = find_term (fun t -> is_pre t && free_in t tm) tm
+                let! t = find_term (fun t -> is_pre t && Choice.get <| free_in t tm) tm
                 let! ty = type_of t
                 let v = genvar ty
                 let! tm1 = subst [v, t] tm
@@ -962,7 +962,7 @@ let NUM_SIMPLIFY_CONV =
             }
             |> Choice.bindError (fun _ ->
                 choice { 
-                    let! t = find_term (fun t -> is_sub t && free_in t tm) tm
+                    let! t = find_term (fun t -> is_sub t && Choice.get <| free_in t tm) tm
                     let! ty = type_of t
                     let v = genvar ty
                     let! tm1 = subst [v, t] tm
@@ -978,7 +978,7 @@ let NUM_SIMPLIFY_CONV =
                 }
                 |> Choice.bindError (fun _ ->
                     choice { 
-                        let! t = find_term (fun t -> is_divmod t && free_in t tm) tm
+                        let! t = find_term (fun t -> is_divmod t && Choice.get <| free_in t tm) tm
                         let! x = lhand t
                         let! y = rand t
                         let! tm1 = mk_comb(div_tm, x)

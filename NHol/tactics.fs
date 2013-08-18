@@ -813,9 +813,9 @@ let SUBST_VAR_TAC (th : Protected<thm0>) g : goalstate =
             return! ALL_TAC g
         elif not(subset (frees eq) (freesl asm)) then 
             return! Choice.failwith ""
-        elif (is_const l || is_var l) && not(free_in l r) then 
+        elif (is_const l || is_var l) && not(Choice.get <| free_in l r) then 
             return! SUBST_ALL_TAC (Choice.result th) g
-        elif (is_const r || is_var r) && not(free_in r l) then
+        elif (is_const r || is_var r) && not(Choice.get <| free_in r l) then
             return! SUBST_ALL_TAC (SYM (Choice.result th)) g
         else 
             return! Choice.failwith ""

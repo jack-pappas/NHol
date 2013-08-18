@@ -1643,7 +1643,7 @@ let INTEGER_TAC_001 =
         let pth() = INT_ARITH(parse_term @"!a x. a = &0 <=> x = x + a")
         let is_defined v t = 
             let mons = striplist (Choice.toOption << dest_binary "int_add") t
-            mem v mons && forall (fun m -> v = m || not(free_in v m)) mons
+            mem v mons && forall (fun m -> v = m || not(Choice.get <| free_in v m)) mons
         fun vars tm -> 
             choice {
                 let! th = INT_POLYEQ_CONV tm
@@ -1727,7 +1727,7 @@ let INTEGER_TAC_001 =
 
         let find_multipliers v mons = 
             choice {
-                let mons1 = filter (fun m -> free_in v m) mons
+                let mons1 = filter (fun m -> Choice.get <| free_in v m) mons
                 let! mons2 = Choice.List.map (scrub_var v) mons1
                 if mons2 = [] then 
                     return zero_tm

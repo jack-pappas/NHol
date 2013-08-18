@@ -1070,7 +1070,7 @@ let HIGHER_REWRITE_CONV =
         fun top tm -> 
             choice {
                 // NOTE: suppress errors in look_fn
-                let pred t = not(look_fn t = Choice.result []) && free_in t tm
+                let pred t = not(look_fn t = Choice.result []) && (Choice.get <| free_in t tm)
 
                 let! (thl, ass_list, mnet) = v
 
@@ -1080,7 +1080,7 @@ let HIGHER_REWRITE_CONV =
                         return! find_term pred tm
                     else
                         let! tms = find_terms pred tm
-                        return hd(sort free_in tms)
+                        return hd(sort (fun x y -> free_in x y |> Choice.get) tms)
                     }
                 let! stm' = look_fn stm
                 let pat = hd stm'

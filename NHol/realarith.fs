@@ -842,7 +842,7 @@ let GEN_REAL_ARITH =
 
         let eliminate_construct p c tm = 
             choice {
-                let! t = find_term (fun t -> p t && free_in t tm) tm
+                let! t = find_term (fun t -> p t && Choice.get <| free_in t tm) tm
                 let! ty1 = type_of t
                 let v = genvar ty1
                 let! tm1 = subst [v, t] tm

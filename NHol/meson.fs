@@ -974,7 +974,7 @@ let GEN_MESON_TAC =
 
                 let acc = itlist (subterms_irrefl lconsts) noneqs []
                 let uts = itlist (itlist(subterms_irrefl lconsts) << snd << strip_comb) eqs acc
-                let sts = sort (fun s t -> not(free_in s t)) uts
+                let sts = sort (fun s t -> not(Choice.get <| free_in s t)) uts
                 return! BRAND sts th
             }
 

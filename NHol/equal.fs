@@ -469,7 +469,7 @@ let PATH_CONV =
 let PAT_CONV = 
     let rec PCONV xs pat conv = 
         if mem pat xs then conv
-        elif not(exists (fun x -> free_in x pat) xs) then ALL_CONV
+        elif not(exists (fun x -> free_in x pat |> Choice.get) xs) then ALL_CONV
         elif is_comb pat then
             let rat = rator pat
             let ran = rand pat

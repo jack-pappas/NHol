@@ -155,7 +155,7 @@ let net_of_thm rep (th : Protected<thm0>) (net : net<int * (term -> Protected<_>
             let conv tm =
                 choice {
                     match tm with
-                    | Abs(y, Comb(t, y')) when y = y' && not(free_in y t) ->
+                    | Abs(y, Comb(t, y')) when y = y' && not(Choice.get <| free_in y t) ->
                         let! inst = term_match [] v t
                         return! INSTANTIATE inst (Choice.result th)
                     | _ ->
@@ -163,7 +163,7 @@ let net_of_thm rep (th : Protected<thm0>) (net : net<int * (term -> Protected<_>
                 }
             return! enter lconsts (l, (1, conv)) net
         | Comb(Comb(Const("=", _), l), r) ->
-            if rep && free_in l r then
+            if rep && Choice.get <| free_in l r then
                 let! th' = EQT_INTRO (Choice.result th)
                 return! enter lconsts (l, (1, REWR_CONV (Choice.result th'))) net
             elif rep && matchable l r && matchable r l then
@@ -171,7 +171,7 @@ let net_of_thm rep (th : Protected<thm0>) (net : net<int * (term -> Protected<_>
             else 
                 return! enter lconsts (l, (1, REWR_CONV (Choice.result th))) net
         | Comb(Comb(_, t), Comb(Comb(Const("=", _), l), r)) -> 
-            if rep && free_in l r then
+            if rep && Choice.get <| free_in l r then
                 let! th' = DISCH t (EQT_INTRO(UNDISCH (Choice.result th)))
                 return! enter lconsts (l, (3, IMP_REWR_CONV (Choice.result th'))) net
             elif rep && matchable l r && matchable r l then

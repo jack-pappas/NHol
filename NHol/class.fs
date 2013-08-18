@@ -289,13 +289,16 @@ let (TAUT_001 : conv) =
         // NOTE: return false in erroneous cases
         let ok t = 
             match type_of t with
-            | Success ty -> ty = bool_ty && Choice.isResult <| find_term is_var t && free_in t w
+            | Success ty ->
+                ty = bool_ty
+                && Choice.isResult <| find_term is_var t
+                && (Choice.get <| free_in t w)
             | Error _ -> false
 
         (PROP_REWRITE_TAC
             |> THEN <| W
                 (THEN (REWRITE_TAC []) << BOOL_CASES_TAC 
-                    << hd << sort free_in << Choice.get << find_terms ok << snd)) (asl, w)
+                    << hd << sort (fun x y -> free_in x y |> Choice.get) << Choice.get << find_terms ok << snd)) (asl, w)
 
     let TAUT_001_TAC = REPEAT (GEN_TAC |> ORELSE <| CONJ_TAC)
                         |> THEN <| REPEAT RTAUT_001_TAC
@@ -570,12 +573,14 @@ let (TAUT : conv) =
     let RTAUT_TAC(asl, w) = 
         // NOTE: rewrite this function
         let ok t =
-            Choice.get <| type_of t = bool_ty && Choice.isResult <| find_term is_var t && free_in t w
+            Choice.get <| type_of t = bool_ty
+            && Choice.isResult <| find_term is_var t
+            && Choice.get <| free_in t w
 
         (PROP_REWRITE_TAC
          |> THEN <| W
                 (THEN (REWRITE_TAC []) << BOOL_CASES_TAC 
-                 << hd << sort free_in << Choice.get << find_terms ok << snd))(asl, w)
+                 << hd << sort (fun x y -> free_in x y |> Choice.get) << Choice.get << find_terms ok << snd))(asl, w)
     let TAUT_TAC = REPEAT(GEN_TAC
                           |> ORELSE <| CONJ_TAC)
                    |> THEN <| REPEAT RTAUT_TAC
