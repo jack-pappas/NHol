@@ -16,7 +16,10 @@ limitations under the License.
 
 *)
 
-[<NUnit.Framework.TestFixture>]
+[<NUnit.Framework.TestFixture(
+    Category = "LongRunning",
+    Ignore = true,
+    IgnoreReason = "This text fixture is currently broken.")>]
 module Tests.NHol.Tutorial
 
 open NUnit.Framework
@@ -44,25 +47,25 @@ open NHol.quot
 open NHol.pair
 open NHol.nums
 open NHol.recursion
-open NHol.arith   
+open NHol.arith
 open NHol.wf
 open NHol.calc_num
 open NHol.normalizer
 open NHol.grobner
 open NHol.ind_types
 open NHol.lists
-open NHol.realax   
-open NHol.calc_int 
+open NHol.realax
+open NHol.calc_int
 open NHol.realarith
 open NHol.real
-open NHol.calc_rat 
+open NHol.calc_rat
 open NHol.int
-open NHol.sets     
+open NHol.sets
 open NHol.iterate
-open NHol.cart     
+open NHol.cart
 open NHol.define
 
-#if LONGRUNNING
+
 [<TestFixtureSetUp>]
 let SetUp () =
     printfn "I'm set up for the fixture"
@@ -109,4 +112,4 @@ let ``tautology shouldn't fail``() =
       (input_b ==> (output <=> F))
       ==> (output <=> ~(input_a \/ input_b))"
     |> ignore
-#endif
+
