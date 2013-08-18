@@ -319,3 +319,194 @@ let ``{TRY_CONV conv} Attempts to apply a conversion; applies identity conversio
     actual
     |> evaluate
     |> assertEqual expected
+
+//// This currently fails due to different type vars
+//
+//[<Test>]
+//let ``{RATOR_CONV conv} Applies a conversion to the operator of an application``() =
+//    let actual = RATOR_CONV BETA_CONV (parse_term @"(\x y. x /\ y) (T : bool) (F : bool)")
+//    let expected = Sequent ([], parse_term @"(\x y. x /\ y) (T : bool) (F : bool) = (\y. T /\ y) F")
+//
+//    actual
+//    |> evaluate
+//    |> string_of_thm
+//    |> assertEqual (string_of_thm expected)
+
+//// This tests require nums module to be initialized
+//
+//[<Test>]
+//let ``{RAND_CONV conv} Applies a conversion to the operator of an application``() =
+//    let actual = RAND_CONV num_CONV (parse_term @"SUCC 2")
+//    let expected = Sequent ([], parse_term @"SUC 2 = SUC (SUC 1)")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+// This tests require nums module to be initialized
+
+//[<Test>]
+//let ``{LAND_CONV conv} Apply a conversion to left-hand argument of binary operator``() =
+//    let actual = LAND_CONV NUM_ADD_CONV (parse_term "(2 + 2) + (2 + 2)")
+//    let expected = Sequent ([], parse_term @"(2 + 2) + 2 + 2 = 4 + 2 + 2")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This tests require nums module to be initialized
+//
+//[<Test>]
+//let ``{ABS_CONV conv} Applies a conversion to the body of an abstraction``() =
+//    let actual = ABS_CONV SYM_CONV (parse_term @"\x. 1 = x")
+//    let expected = Sequent ([], parse_term @"(\x. 1 = x) = (\x. x = 1)")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This tests require nums module to be initialized
+//
+//[<Test>]
+//let ``{BINDER_CONV conv} Applies conversion to the body of a binder``() =
+//    let actual = BINDER_CONV SYM_CONV (parse_term "@n. n = m + 1")
+//    let expected = Sequent ([], parse_term @"(@n. n = m + 1) = (@n. m + 1 = n)")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This tests require nums module to be initialized
+//
+//[<Test>]
+//let ``{BINOP_CONV conv} Applies a conversion to both arguments of a binary operator``() =
+//    let actual = BINOP_CONV NUM_ADD_CONV (parse_term "(1 + 1) * (2 + 2)")
+//    let expected = Sequent ([], parse_term @"(1 + 1) * (2 + 2) = 2 * 4")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This tests require nums module to be initialized
+//
+//[<Test>]
+//let ``{ONCE_DEPTH_CONV conv} Applies a conversion to both arguments of a binary operator``() =
+//    let actual = ONCE_DEPTH_CONV BETA_CONV (parse_term @"(\x. (\y. y + x) 1) 2")
+//    let expected = Sequent ([], parse_term @"(\x. (\y. y + x) 1) 2 = (\y. y + 2) 1")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This tests require nums module to be initialized
+//
+//[<Test>]
+//let ``{DEPTH_CONV conv} Applies a conversion to both arguments of a binary operator``() =
+//    let actual = DEPTH_CONV BETA_CONV (parse_term @"(\x. (\y. y + x) 1) 2")
+//    let expected = Sequent ([], parse_term @"(\x. (\y. y + x) 1) 2 = 1 + 2")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This tests require nums module to be initialized
+//
+//[<Test>]
+//let ``{REDEPTH_CONV conv} Applies a conversion bottom-up to all subterms, retraversing changed ones``() =
+//    let actual = REDEPTH_CONV BETA_CONV (parse_term @"(\f x. (f x) + 1) (\y.y) 2")
+//    let expected = Sequent ([], parse_term @"(\f x. f x + 1) (\y. y) 2 = 2 + 1")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This crashes VS test runner
+//
+//[<Test>]
+//let ``{TOP_DEPTH_CONV conv} Applies a conversion top-down to all subterms, retraversing changed ones``() =
+//    let actual = TOP_DEPTH_CONV BETA_CONV (parse_term @"(\x. (\y. (\z. z + y) (y + 1)) (x + 2)) 3")
+//    let expected = Sequent ([], parse_term @"(\x. (\y. (\z. z + y) (y + 1)) (x + 2)) 3 = ((3 + 2) + 1) + 3 + 2")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This tests require nums module to be initialized
+//
+//[<Test>]
+//let ``{PATH_CONV string conv} Applies a conversion to the subterm indicated by a path string``() =
+//    let actual = PATH_CONV "rlr" NUM_ADD_CONV (parse_term @"(1 + 2) + (3 + 4) + (5 + 6)")
+//    let expected = Sequent ([], parse_term @"(1 + 2) + (3 + 4) + 5 + 6 = (1 + 2) + 7 + 5 + 6")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This tests require nums module to be initialized
+//
+//[<Test>]
+//let ``{PAT_CONV term conv} Apply a conversion at subterms identified by a ''pattern'' lambda-abstraction``() =
+//    let actual = PAT_CONV (parse_term @"\x. x + a + x") NUM_ADD_CONV (parse_term @"(1 + 2) + (3 + 4) + (5 + 6)")
+//    let expected = Sequent ([], parse_term @"(1 + 2) + (3 + 4) + 5 + 6 = 3 + (3 + 4) + 11")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+[<Test>]
+let ``{SYM_CONV} Interchanges the left and right-hand sides of an equation``() =
+    let actual = SYM_CONV (parse_term @"(F : bool) = x") 
+    let expected = Sequent ([], parse_term @"(F : bool) = x <=> x = F")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{CONV_RULE conv thm} Makes an inference rule from a conversion``() =
+    let tm = parse_term @"(\x. x \/ (F : bool)) (T: bool)"
+    let actual = CONV_RULE BETA_CONV (ASSUME tm)
+    let expected = Sequent ([tm], parse_term @"(T : bool) \/ (F : bool)")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+//// This test requires uninitialized modules
+//
+//open NHol.int
+//
+//[<Test>]
+//let ``{SUBS_CONV thml} Substitution conversion``() =
+//    let tm = parse_term @"(\x. x \/ (F : bool)) (T: bool)"
+//    let actual = SUBS_CONV [ARITH_RULE (parse_term @"x + 0 = x")] (parse_term @"(x + 0) + (y + 0) + (x + 0) + (0 + 0)")
+//    let expected = Sequent ([], parse_term @"(x + 0) + (y + 0) + (x + 0) + 0 + 0 = x + (y + 0) + x + 0 + 0")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This test fails due to different type vars
+//
+//[<Test>]
+//let ``{BETA_RULE thm} Beta-reduces all the beta-redexes in the conclusion of a theorem``() =
+//    let tm = parse_term @"f = ((\x y. x + y) y)"
+//    let actual = BETA_RULE (ASSUME tm)
+//    let expected = Sequent ([tm], parse_term @"f = ((\x y. x + y) y)")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
+
+//// This test requires uninitialized modules
+//
+//open NHol.arith
+//
+//[<Test>]
+//let ``{GSYM thm} everses the first equation(s) encountered in a top-down search``() =
+//    let actual = GSYM ADD
+//    let expected = Sequent ([], parse_term @"(!n. n = 0 + n) /\ (!m n. SUC (m + n) = SUC m + n)")
+//
+//    actual
+//    |> evaluate
+//    |> assertEqual expected
