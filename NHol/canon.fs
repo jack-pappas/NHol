@@ -81,7 +81,6 @@ let (CONJ_ACI_RULE : conv) =
             let! fn' = mk_fun th2 fn
             return! mk_fun th1 fn'
         else
-            // NOTE: add this to fall back to thm0
             let! th = th 
             return (tm |-> th) fn
       }

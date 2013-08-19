@@ -639,7 +639,7 @@ let NUM_SUC_CONV,NUM_ADD_CONV,NUM_MULT_CONV,NUM_EXP_CONV =
           let mk_mul tm = Choice.get << mk_binop (parse_term @"(* )") tm
           let odds = map (fun x -> 2 * x + 1) (0 -- 7)
 
-          // NOTE: add argument tm for easy conversion
+          // NOTE: add argument tm for propagating errors
           fun tm ->
             choice {
               let! nums = Choice.List.map (fun n -> mk_raw_numeral(Int n)) odds

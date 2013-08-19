@@ -94,6 +94,7 @@ let mk_pair_def =
     new_definition(parse_term @"mk_pair (x:A) (y:B) = \a b. (a = x) /\ (b = y)")
 
 let PAIR_EXISTS_THM = 
+    logEntryExitProtected "PAIR_EXISTS_THM" <| fun () ->
     prove((parse_term @"?x. ?(a:A) (b:B). x = mk_pair a b"), MESON_TAC [])
 
 let prod_tybij = 

@@ -1106,8 +1106,7 @@ let GEN_MESON_TAC =
                                 | Success th, Success th' -> dest_thm th <= dest_thm th'
                                 | _ -> false) 
                             equals_thm 
-                            // NOTE: the use of Some here is incorrect
-                            (mapfilter (Some << C INST_TYPE th) tyins)
+                            (mapfilter (Choice.toOption << Choice.map Choice.result << C INST_TYPE th) tyins)
                     if ths' = [] then 
                         warn true "No useful-looking instantiations of lemma"
                         return [th]

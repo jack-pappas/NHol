@@ -48,10 +48,20 @@ open NHol.drule
 open NHol.tactics
 open NHol.itab
 open NHol.simp
+open NHol.theorems
 
 fsi.AddPrinter string_of_type;;
 fsi.AddPrinter string_of_term;;
 fsi.AddPrinter string_of_thm;;
+
+fsi.AddPrinter string_of_justification;;
+fsi.AddPrinter string_of_refinement;;
+fsi.AddPrinter string_of_tactic;;
+fsi.AddPrinter string_of_thm_tactic;;
+fsi.AddPrinter string_of_thm_tactical;;
+fsi.AddPrinter string_of_goal;;
+fsi.AddPrinter string_of_goalstack;;
+fsi.AddPrinter string_of_goalstate;;
 
 BETA_RULE;;                 // forces equal module evaluation: maybe not needed
 mk_iff;;                    // forces bool module evaluation
@@ -148,9 +158,10 @@ e (DISCH_TAC);;
 e (PURE_ASM_REWRITE_TAC []);;
 e REFL_TAC;;
 
-let EQ_TRANS_revisited = 
-    prove
-        ((parse_term @"!(x:A) y z. (x = y) /\ (y = z) ==> (x = z)"), 
-         REPEAT GEN_TAC |> THEN <| DISCH_TAC
-         |> THEN <| PURE_ASM_REWRITE_TAC []
-         |> THEN <| REFL_TAC)
+// Analysis of ABS_SIMP
+
+g (parse_term "!(t1:A) (t2:B). (\x. t1) t2 = t1");;
+//e (REPEAT GEN_TAC |> THEN <| REWRITE_TAC [BETA_THM; REFL_CLAUSE]);;
+e (GEN_TAC);;
+//e (REPEAT GEN_TAC);;
+e (REWRITE_TAC [BETA_THM; REFL_CLAUSE]);;

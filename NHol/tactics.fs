@@ -1576,29 +1576,30 @@ let pp_print_goal fmt (gl : goal) =
         then " " + string n
         else string n
     let pp_print_hyp fmt n (s, th : Protected<thm0>) =
-        let th = ExtCore.Choice.bindOrRaise th
-        Format.pp_open_hbox fmt ()
-        Format.pp_print_string fmt (string3 n)
-        Format.pp_print_string fmt  " ["
-        Format.pp_open_hbox fmt ()
-        pp_print_qterm fmt (concl th)
-        Format.pp_close_box fmt ()
-        Format.pp_print_string fmt  "]"
-        (if not(s = "")
-         then (Format.pp_print_string fmt (" (" + s + ")"))
-         else ())
-        Format.pp_close_box fmt ()
-        Format.pp_print_newline fmt ()
+        match th with
+        | Success th ->
+            Format.pp_open_hbox fmt ()
+            Format.pp_print_string fmt (string3 n)
+            Format.pp_print_string fmt  " ["
+            Format.pp_open_hbox fmt ()
+            pp_print_qterm fmt (concl th)
+            Format.pp_close_box fmt ()
+            Format.pp_print_string fmt  "]"
+            (if not(s = "") then (Format.pp_print_string fmt (" (" + s + ")"))
+             else ())
+            Format.pp_close_box fmt ()
+            Format.pp_print_newline fmt ()
+        | Error e ->
+            let msg = Printf.sprintf "Error in theorem: %O" e
+            Format.pp_print_string fmt msg
     let rec pp_print_hyps fmt n asl = 
-        if asl = []
-        then ()
+        if asl = [] then ()
         else 
             (pp_print_hyp fmt n (hd asl)
              pp_print_hyps fmt (n + 1) (tl asl))
     let pp_print_asl_term fmt (asl, w) =
             Format.pp_print_newline fmt ()
-            if asl <> []
-            then 
+            if asl <> [] then 
                 (pp_print_hyps fmt 0 (rev asl)
                  Format.pp_print_newline fmt ())
             else ()
@@ -1671,26 +1672,27 @@ let pp_print_goalstack fmt gs =
             do_list (pp_print_goal fmt << C el gl) (rev(0 -- (k - 1)))
 
     let pp_print_goalstates fmt (l : goalstate list) =
-        // TEMP : Un-protect the goalstates.
-        let l = l |> List.map ExtCore.Choice.bindOrRaise
-
-        // OPTIMIZE : Use pattern-matching here -- it's faster than checking the length
-        // of the list, since we don't need to traverse the entire list.
-        match l.Length with
-        | 0 ->
-            Format.pp_print_string fmt "Empty goalstack"
-        | 1 -> 
-            let gs = hd l
-            pp_print_goalstate fmt 1 gs
-        | _ -> 
-            let (_, gl, _ as gs) = hd l
-            let (_, gl0, _) = hd(tl l)
-            let p = length gl - length gl0
-            let p' = 
-                if p < 1
-                then 1
-                else p + 1
-            pp_print_goalstate fmt p' gs
+        match Choice.List.map id l with
+        | Success l ->
+            // OPTIMIZE : Use pattern-matching here -- it's faster than checking the length
+            // of the list, since we don't need to traverse the entire list.
+            match l with
+            | [] ->
+                Format.pp_print_string fmt "Empty goalstack"
+            | [x] -> 
+                let gs = x
+                pp_print_goalstate fmt 1 gs
+            | x :: y :: _ -> 
+                let (_, gl, _ as gs) = x
+                let (_, gl0, _) = y
+                let p = length gl - length gl0
+                let p' = 
+                    if p < 1 then 1
+                    else p + 1
+                pp_print_goalstate fmt p' gs
+        | Error e -> 
+            let msg = Printf.sprintf "Error in goalstack: %O" e
+            Format.pp_print_string fmt msg
     pp_print_goalstates fmt gs
 
 /// Print a goalstack to standard output, with no following newline.
@@ -1861,7 +1863,7 @@ let prove(t, tac) : Protected<thm0> =
             logger.Info(Printf.sprintf "Proved \"%s\"" (string_of_term t))
             Choice.result th
         | Error e ->
-            logger.Error(Printf.sprintf "Failed at proving \"%s\"." (string_of_term t))
+            logger.Error(Printf.sprintf "Failed at proving \"%s\"" (string_of_term t))
             logger.Error(Printf.sprintf "Currently return %O" e)
             Choice.error e
 
@@ -1924,17 +1926,28 @@ let p() = !current_goalstack
 
 /// Returns the actual internal structure of the current goal.
 let top_realgoal() = 
-    match !current_goalstack with
-    | Success(_, ((asl, w) :: _), _) :: _ -> asl, w
-    | _ -> failwith "top_realgoal: Unhandled case."
+    choice {
+        match !current_goalstack with
+        | Success(_, ((asl, w) :: _), _) :: _ -> return asl, w
+        | Error e :: _ -> return! Choice.error e
+        | _ -> 
+            return! Choice.failwith "top_realgoal: Unhandled case."
+    }
 
 /// Returns the current goal of the subgoal package.
 let top_goal() = 
-    let asl, w = top_realgoal()
-    map (concl << Choice.get << snd) asl, w
+    choice {
+        let! asl, w = top_realgoal()
+        let! tms = Choice.List.map (Choice.map concl << snd) asl
+        return tms, w
+    }
 
 /// Returns the theorem just proved using the subgoal package.
 let top_thm() = 
-    match !current_goalstack with
-    | Success(_, [], f) :: _ -> f null_inst []
-    | _ -> failwith "top_thm: Unhandled case."
+    choice {
+        match !current_goalstack with
+        | Success(_, [], f) :: _ -> return! f null_inst []
+        | Error e :: _ -> return! Choice.error e
+        | _ -> 
+            return! Choice.failwith "top_thm: Unhandled case."
+    }

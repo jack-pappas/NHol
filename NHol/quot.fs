@@ -198,7 +198,6 @@ let lift_function =
                             let ethlist = CONJUNCTS th2b @ map REFL qvs
                             let! tms2 = Choice.List.map 
                                          (fun v -> 
-                                            // NOTE: could two exceptions be equal here?
                                             Choice.List.tryFind (fun th -> 
                                                 choice {
                                                     let! th = th
