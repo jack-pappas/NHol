@@ -55,6 +55,8 @@
     <Compile Include="bool.fs" />
     <Compile Include="drule.fs" />
     <Compile Include="tactics.fs" />
+    <Compile Include="itab.fs" />
+    <Compile Include="simp.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ExtCore">
