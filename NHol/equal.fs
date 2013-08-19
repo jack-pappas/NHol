@@ -130,7 +130,7 @@ let SYM (th : Protected<thm0>) : Protected<thm0> =
     choice {
         let! th = th
         let tm = concl th
-        let! l, r = dest_eq tm
+        let! l, _ = dest_eq tm
         let! lth = REFL l
         let! tm' = rator tm
         let! tm'' = rator tm'
@@ -185,7 +185,7 @@ let MK_BINOP op (lth, rth) =
 
 /// Conversion that always fails.
 let NO_CONV : conv =
-    fun tm -> Choice.failwith "NO_CONV"
+    fun _ -> Choice.failwith "NO_CONV"
 
 /// Conversion that always succeeds and leaves a term unchanged.
 let ALL_CONV : conv = REFL
@@ -440,7 +440,7 @@ let TOP_SWEEP_CONV (c : conv) : conv = TRY_CONV (TOP_SWEEP_QCONV c)
 /// Applied a conversion to the leaves of a tree of binary operator expressions.
 let rec DEPTH_BINOP_CONV op (conv : conv) tm : Protected<thm0> = 
     match tm with
-    | Comb(Comb(op', l), r) when op' = op ->
+    | Comb(Comb(op', _), _) when op' = op ->
         choice {
         let! l, r = dest_binop op tm
         let! lth = DEPTH_BINOP_CONV op conv l

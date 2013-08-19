@@ -53,7 +53,7 @@ logger.Trace("Entering itab.fs")
 
 /// Unify free variables in theorem and metavariables in goal to accept theorem.
 let UNIFY_ACCEPT_TAC mvs (th : Protected<thm0>) : tactic =
-    fun (asl, w) ->
+    fun (_, w) ->
         choice {
         let! th' = th
         let! insts = term_unify mvs (concl th') w

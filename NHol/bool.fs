@@ -300,7 +300,7 @@ let CONJ_PAIR th : Protected<thm0> * Protected<thm0> =
 /// Recursively splits conjunctions into a list of conjuncts.
 let CONJUNCTS = striplist (fun th ->
                     match CONJ_PAIR th with
-                    | (Success th1, Success th2) as th' -> Some th'
+                    | (Success _, Success _) as th' -> Some th'
                     | _ -> None)
 
 (* ------------------------------------------------------------------------- *)
@@ -703,7 +703,7 @@ let EXISTS =
         choice {
         let! pth = pth
         let! th = th
-        let! qf, abs = dest_comb etm
+        let! _, abs = dest_comb etm
         let! foo1 = mk_comb(abs, stm)
         let! bth = BETA_CONV foo1
         let! sty = type_of stm
@@ -1014,7 +1014,7 @@ let EQF_ELIM =
         // CLEAN : Rename these values to something sensible.
         let! foo1 = rator tm
         let! foo2 = rand foo1
-        let! foo3 = INST [tm, P] (Choice.result pth)
+        let! foo3 = INST [foo2, P] (Choice.result pth)
         return! MP (Choice.result foo3) (Choice.result th)
         }
         |> Choice.mapError (fun e -> nestedFailure e "EQF_ELIM") : Protected<thm0>
