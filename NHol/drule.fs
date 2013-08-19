@@ -1068,8 +1068,15 @@ let HIGHER_REWRITE_CONV =
 
         fun top tm -> 
             choice {
-                // NOTE: suppress errors in look_fn
-                let pred t = not(look_fn t = Choice.result []) && (Choice.get <| free_in t tm)
+                let pred t = 
+                    choice {
+                        let! tms = look_fn t
+                        if List.isEmpty tms then
+                            return false
+                        else
+                            let! b = free_in t tm
+                            return b
+                    }
 
                 let! (_, ass_list, _) = v
 

@@ -846,7 +846,14 @@ let REAL_FIELD =
   
   let BASIC_REAL_FIELD tm = 
       choice {
-          let is_freeinv t = is_inv t && (Choice.get <| free_in t tm)
+          let is_freeinv t = 
+            choice {
+                if not (is_inv t) then
+                    return false
+                else
+                    return! free_in t tm
+            }
+
           let! tms1 = find_terms is_freeinv tm
           let! tms2 = Choice.List.map rand tms1
           let itms = setify tms2

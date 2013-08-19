@@ -793,7 +793,7 @@ let SELECT_ELIM_TAC =
                 }
         fun tm -> 
             choice {
-                let! tms = find_terms is_select tm
+                let! tms = find_terms (Choice.result << is_select) tm
                 return! PURE_REWRITE_CONV (map SELECT_ELIM_THM tms) tm
             }
 
@@ -817,7 +817,7 @@ let SELECT_ELIM_TAC =
 
         let SELECT_ELIM_ICONV tm = 
             choice {
-                let! t = find_term is_select tm
+                let! t = find_term (Choice.result << is_select) tm
                 let th1 = SELECT_AX_THM t
                 let! tm1 = Choice.map concl th1
                 let! itm = mk_imp(tm1, tm)

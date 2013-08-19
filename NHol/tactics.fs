@@ -1214,8 +1214,10 @@ let (MATCH_ACCEPT_TAC : thm_tactic) =
             let just = propagate_thm (Choice.result ith)
             return (null_meta, [], just)
         }
-        |> Choice.mapError (fun e -> nestedFailure e "ACCEPT_TAC")
-    fun th -> REPEAT GEN_TAC |> THEN <| rawtac th
+        |> Choice.mapError (fun e -> nestedFailure e "MATCH_ACCEPT_TAC")
+    fun th -> 
+        REPEAT GEN_TAC 
+        |> THEN <| rawtac th
 
 /// Reduces the goal using a supplied implication, with matching.
 let (MATCH_MP_TAC : thm_tactic) = 

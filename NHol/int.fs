@@ -1925,7 +1925,7 @@ let INTEGER_TAC =
                        // NOTE: add arguments to propagate errors
                        fun gl ->
                         choice {
-                           let! gts = find_terms (Choice.isResult << dest_gcd) w
+                           let! gts = find_terms (Choice.result << Choice.isResult << dest_gcd) w
                            let! ths = 
                                Choice.List.map (fun tm -> 
                                    choice {
@@ -2046,7 +2046,7 @@ let ARITH_RULE =
         let! th1 = init_conv tm
         let! tm1 = rand(concl th1)
         let avs, bod = strip_forall tm1
-        let! tm2 = find_terms is_numimage bod
+        let! tm2 = find_terms (Choice.result << is_numimage) bod
         let nim = setify tm2
         let! gvs = Choice.List.map (Choice.map genvar << type_of) nim
         let! pths = Choice.List.map (fun v -> 

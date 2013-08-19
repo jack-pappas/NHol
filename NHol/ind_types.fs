@@ -1453,7 +1453,7 @@ let define_type_raw_002 =
                     let! bods = mk_inls ty
                     return! Choice.List.map (fun t -> 
                         choice {
-                            let! tm1 = find_term is_var t
+                            let! tm1 = find_term (Choice.result << is_var) t
                             return! mk_abs(tm1, t)
                         }) bods
                 }

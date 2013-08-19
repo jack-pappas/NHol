@@ -1021,9 +1021,10 @@ let GEN_MESON_TAC =
 
         let find_eqs = 
             find_terms(fun t -> 
-                match dest_const t with
-                | Success (s, _) -> s = "="
-                | Error _ -> false)
+                choice {
+                    let! (s, _) = dest_const t
+                    return s = "="
+                })
 
         let REFLEXATE ths = 
             choice {
@@ -1035,7 +1036,7 @@ let GEN_MESON_TAC =
 
         fun ths -> 
             // NOTE: review this
-            if exists (function Success th -> (Choice.isResult << find_term is_eq << concl) th
+            if exists (function Success th -> (Choice.isResult << find_term (Choice.result << is_eq) << concl) th
                               | Error _ -> false) ths then 
                 let ths' = map BRAND_CONGS ths
                 let ths'' = itlist (union' equals_thm << Choice.get << BRAND_TRANS) ths' []
@@ -1073,7 +1074,7 @@ let GEN_MESON_TAC =
                     let! tm1 = rand tm
                     return! grab_constants tm1 acc
                 else
-                    let! tms = find_terms is_const tm
+                    let! tms = find_terms (Choice.result << is_const) tm
                     return union tms acc
             }
 
