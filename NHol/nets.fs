@@ -112,10 +112,14 @@ let enter : _ -> _ -> _ -> Protected<net<'T>> =
         }
 
     let canon_eq x y = 
-        Unchecked.compare x y = 0
+        // NOTE: unsafe comparison could fail
+        // Revise this to ensure original intentions
+        try Unchecked.compare x y = 0 
+        with _ -> false
 
     let canon_lt x y = 
-        Unchecked.compare x y < 0
+        try Unchecked.compare x y < 0
+        with _ -> false
 
     let rec sinsert x l =
         choice {

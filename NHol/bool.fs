@@ -957,7 +957,7 @@ let NOT_INTRO =
         // CLEAN : Rename these values to something sensible.
         let! foo1 = rator tm
         let! foo2 = rand foo1
-        let! foo4 = INST [tm, P] (Choice.result pth)
+        let! foo4 = INST [foo2, P] (Choice.result pth)
         return! EQ_MP (Choice.result foo4) (Choice.result th)
         }
         |> Choice.mapError (fun e -> nestedFailure e "NOT_INTRO") : Protected<thm0>

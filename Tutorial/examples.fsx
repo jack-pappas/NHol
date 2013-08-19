@@ -38,7 +38,7 @@ open NHol.trivia
 open NHol.canon
 open NHol.meson
 open NHol.quot
-//open NHol.pair: pair module has to be checked
+//open NHol.pair
 //open NHol.nums
 //open NHol.recursion
 //open NHol.arith   
@@ -55,12 +55,12 @@ _FALSITY_;;                 // forces tactics module evaluation
 ITAUT_TAC;;                 // forces itab module evaluation: maybe not needd
 mk_rewrites;;               // forces simp module evaluation
 EQ_REFL;;                   // forces theorems module evaluation
-//EXISTS_EQUATION;;           // forces ind_defs module evaluation
-//ETA_AX;;                    // forces class module evaluation
-//o_DEF;;                     // forces trivia module evaluation
-//CONJ_ACI_RULE;;             // forces canon module evaluation
-//ASM_MESON_TAC;;             // forces meson module evaluation
-//lift_function;;             // forces quot module evaluation
+EXISTS_EQUATION;;           // forces ind_defs module evaluation
+ETA_AX;;                    // forces class module evaluation
+o_DEF;;                     // forces trivia module evaluation
+CONJ_ACI_RULE;;             // forces canon module evaluation
+ASM_MESON_TAC;;             // forces meson module evaluation
+lift_function;;             // forces quot module evaluation
 ////LET_DEF;;                 // forces pair module evaluation: pair module has to be checked
 //ONE_ONE;;                   // forces num module evaluation
 //PRE;;                       // forces arith module evaluation
@@ -68,10 +68,15 @@ EQ_REFL;;                   // forces theorems module evaluation
 //SEMIRING_NORMALIZERS_CONV;; // forces normalizer module evaluation
 //RING_AND_IDEAL_CONV;;       // forces grobner module evaluation
 
+
+let th = TAUT <| parse_term @"F ==> F";;
+let actual = NOT_INTRO th;;
+let expected = Sequent ([], parse_term @"~F");;
+
 // Analysis of ABS_SIMP
 
 g (parse_term "!(t1:A) (t2:B). (\x. t1) t2 = t1");;
 //e (REPEAT GEN_TAC |> THEN <| REWRITE_TAC [BETA_THM; REFL_CLAUSE]);;
-e (GEN_TAC);;
-//e (REPEAT GEN_TAC);;
+//e (GEN_TAC);;
+e (REPEAT GEN_TAC);;
 e (REWRITE_TAC [BETA_THM; REFL_CLAUSE]);;

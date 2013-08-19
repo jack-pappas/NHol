@@ -24,7 +24,7 @@
     <DefineConstants>TRACE;DEBUG</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\Debug\NHol.XML</DocumentationFile>
-    <OtherFlags>--mlcompatibility</OtherFlags>
+    <OtherFlags>--mlcompatibility --warnon:1182</OtherFlags>
     <NoWarn>49</NoWarn>
     <StartAction>Program</StartAction>
     <StartProgram>C:\Program Files (x86)\Microsoft SDKs\F#\3.0\Framework\v4.0\Fsi.exe</StartProgram>
