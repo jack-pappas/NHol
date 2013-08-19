@@ -39,6 +39,7 @@
   <ItemGroup>
     <None Include="app.config" />
     <None Include="packages.config" />
+    <Compile Include="GenericAssert.fs" />
     <Compile Include="TestHelpers.fs" />
     <Compile Include="Tutorial.fs" />
     <Compile Include="lib.fs" />
@@ -49,6 +50,11 @@
     <Compile Include="preterm.fs" />
     <Compile Include="parser.fs" />
     <Compile Include="equal.fs" />
+    <Compile Include="bool.fs" />
+    <Compile Include="drule.fs" />
+    <Compile Include="tactics.fs" />
+    <Compile Include="itab.fs" />
+    <Compile Include="simp.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ExtCore">
