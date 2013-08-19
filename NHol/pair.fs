@@ -292,7 +292,7 @@ let new_definition =
                 }
             | e -> Choice.error e)
         |> Choice.mapError (fun e ->
-                logger.Error(Printf.sprintf "%O" e)
+                logger.Error(Printf.sprintf "new_definition of %s returns %O" (string_of_term tm) e)
                 e)
 
 (* ------------------------------------------------------------------------- *)

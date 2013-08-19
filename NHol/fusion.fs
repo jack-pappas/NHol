@@ -1011,7 +1011,7 @@ module Hol_kernel =
                 return! Choice.failwith "new_basic_definition"
         }
         |> Choice.mapError (fun e ->
-            logger.Error(Printf.sprintf "%O" e)
+            logger.Error(Printf.sprintf "new_basic_definition returns %O" e)
             e)
 
     (* ------------------------------------------------------------------------- *)

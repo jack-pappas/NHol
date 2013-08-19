@@ -117,7 +117,7 @@ type goalstate = Protected<goalstate0>
 (* A goalstack is just a list of goalstates. Could go for more...            *)
 (* ------------------------------------------------------------------------- *)
 
-type goalstack = goalstate list
+type goalstack = goalstate0 list
 
 (* ------------------------------------------------------------------------- *)
 (* A refinement, applied to a goalstate [A1 ?- g1; ...; An ?- gn]            *)
@@ -239,6 +239,7 @@ let mk_fthm =
             let! th2 = itlist ADD_ASSUM (rev asl) (Choice.result th1)
             return! PROVE_HYP (Choice.result qth) (Choice.result th2)
         }
+        |> Choice.mapError (fun e -> nestedFailure e "mk_fthm")
 
 (* ------------------------------------------------------------------------- *)
 (* Validity checking of tactics. This cannot be 100% accurate without making *)
@@ -1671,28 +1672,23 @@ let pp_print_goalstack fmt gs =
         if not <| List.isEmpty gl then
             do_list (pp_print_goal fmt << C el gl) (rev(0 -- (k - 1)))
 
-    let pp_print_goalstates fmt (l : goalstate list) =
-        match Choice.List.map id l with
-        | Success l ->
-            // OPTIMIZE : Use pattern-matching here -- it's faster than checking the length
-            // of the list, since we don't need to traverse the entire list.
-            match l with
-            | [] ->
-                Format.pp_print_string fmt "Empty goalstack"
-            | [x] -> 
-                let gs = x
-                pp_print_goalstate fmt 1 gs
-            | x :: y :: _ -> 
-                let (_, gl, _ as gs) = x
-                let (_, gl0, _) = y
-                let p = length gl - length gl0
-                let p' = 
-                    if p < 1 then 1
-                    else p + 1
-                pp_print_goalstate fmt p' gs
-        | Error e -> 
-            let msg = Printf.sprintf "Error in goalstack: %O" e
-            Format.pp_print_string fmt msg
+    let pp_print_goalstates fmt (l : goalstack) =
+        // OPTIMIZE : Use pattern-matching here -- it's faster than checking the length
+        // of the list, since we don't need to traverse the entire list.
+        match l with
+        | [] ->
+            Format.pp_print_string fmt "Empty goalstack"
+        | [x] -> 
+            let gs = x
+            pp_print_goalstate fmt 1 gs
+        | x :: y :: _ -> 
+            let (_, gl, _ as gs) = x
+            let (_, gl0, _) = y
+            let p = length gl - length gl0
+            let p' = 
+                if p < 1 then 1
+                else p + 1
+            pp_print_goalstate fmt p' gs
     pp_print_goalstates fmt gs
 
 /// Print a goalstack to standard output, with no following newline.
@@ -1875,16 +1871,19 @@ let prove(t, tac) : Protected<thm0> =
 let current_goalstack = ref([] : goalstack)
 
 /// Applies a refinement to the current goalstack.
-let (refine : refinement -> goalstack) = 
+let (refine : refinement -> Protected<goalstack>) = 
     fun r -> 
-        let l = !current_goalstack
-        if l.IsEmpty then 
-            failwith "No current goal"
-        else 
-            let h = hd l
-            let res = r h :: l
-            current_goalstack := res
-            !current_goalstack
+        choice {
+            let l = !current_goalstack
+            if l.IsEmpty then 
+                return! Choice.failwith "No current goal"
+            else 
+                let h = hd l
+                let! h' = r (Choice.result h)
+                let res = h' :: l
+                current_goalstack := res
+                return !current_goalstack
+        }
 
 /// Eliminate all but the current goalstate from the current goalstack.
 let flush_goalstack() = 
@@ -1899,14 +1898,16 @@ let r n = refine(rotate n)
 
 /// Initializes the subgoal package with a new goal.
 let set_goal(asl, w) = 
-    current_goalstack := [mk_goalstate(map (fun t -> "", ASSUME t) asl, w)]
-    !current_goalstack
+    choice {
+        let! gs = mk_goalstate(map (fun t -> "", ASSUME t) asl, w)
+        current_goalstack := [gs]
+        return !current_goalstack
+    }
 
 /// Initializes the subgoal package with a new goal which has no assumptions.
 let g t = 
     let fvs = sort (<) (map (fst << Choice.get << dest_var) (frees t))
-    (if fvs <> []
-     then 
+    (if fvs <> [] then 
          let errmsg = end_itlist (fun s t -> s + ", " + t) fvs
          warn true ("Free variables in goal: " + errmsg)
      else ())
@@ -1915,8 +1916,8 @@ let g t =
 /// Restores the proof state, undoing the effects of a previous expansion.
 let b() = 
     let l = !current_goalstack
-    if List.length l = 1
-    then failwith "Can't back up any more"
+    if List.length l = 1 then 
+        failwith "Can't back up any more"
     else 
         current_goalstack := tl l
         !current_goalstack
@@ -1928,8 +1929,8 @@ let p() = !current_goalstack
 let top_realgoal() = 
     choice {
         match !current_goalstack with
-        | Success(_, ((asl, w) :: _), _) :: _ -> return asl, w
-        | Error e :: _ -> return! Choice.error e
+        | (_, ((asl, w) :: _), _) :: _ -> 
+            return asl, w
         | _ -> 
             return! Choice.failwith "top_realgoal: Unhandled case."
     }
@@ -1946,8 +1947,8 @@ let top_goal() =
 let top_thm() = 
     choice {
         match !current_goalstack with
-        | Success(_, [], f) :: _ -> return! f null_inst []
-        | Error e :: _ -> return! Choice.error e
+        | (_, [], f) :: _ -> 
+            return! f null_inst []
         | _ -> 
             return! Choice.failwith "top_thm: Unhandled case."
     }

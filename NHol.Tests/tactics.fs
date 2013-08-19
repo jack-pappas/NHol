@@ -68,8 +68,8 @@ let ``{ACCEPT_TAC} Solves a goal if supplied with the desired theorem (up to alp
     let _ = g <| parse_term @"!x. (x <=> T) \/ (x <=> F)"
     let gs = e (ACCEPT_TAC BOOL_CASES_AX)
 
-    List.isEmpty gs
-    |> assertEqual true
+    Choice.map List.isEmpty gs
+    |> assertEqual (Choice.result true)
 
 //[<Test>]
 //let ``{SUBST1_TAC} Makes a simple term substitution in a goal using a single equational theorem``() =
@@ -95,6 +95,6 @@ let ``{MATCH_ACCEPT_TAC} Solves a goal which is an instance of the supplied theo
     let HD = Choice.result <| Sequent([], parse_term @"!h t. HD(CONS h t) = h")
     let gs = e (MATCH_ACCEPT_TAC HD)
 
-    List.isEmpty gs
-    |> assertEqual true
+    Choice.map List.isEmpty gs
+    |> assertEqual (Choice.result true)
 

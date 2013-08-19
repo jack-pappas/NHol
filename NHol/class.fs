@@ -230,7 +230,7 @@ let new_type_definition tyname (absname, repname) (th : Protected<thm0>) : Prote
                 return tth
             }
         | e ->
-            logger.Error(Printf.sprintf "%O" e) 
+            logger.Error(Printf.sprintf "new_type_definition of %s returns %O" tyname e)
             Choice.error e
         );;
 

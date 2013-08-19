@@ -40,8 +40,8 @@ let ``{ITAUT_TAC} Simple intuitionistic logic prover``() =
     let _ = e ITAUT_TAC
     let gs = e (MESON_TAC [])
 
-    List.isEmpty gs
-    |> assertEqual true
+    Choice.map List.isEmpty gs
+    |> assertEqual (Choice.result true)
 
 //// This crashes VS test runner
 //[<Test>]
