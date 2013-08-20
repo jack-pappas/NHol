@@ -110,14 +110,11 @@ let BETA_THM =
 
 let ABS_SIMP =
     logEntryExitProtected "ABS_SIMP" <| fun () ->
-#if BUGGY
-    prove
+    assumeProof
+        prove
         ((parse_term @"!(t1:A) (t2:B). (\x. t1) t2 = t1"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [BETA_THM; REFL_CLAUSE])
-#else
-    Choice.result <| Sequent([], parse_term @"!(t1:A) (t2:B). (\x. t1) t2 = t1") : Protected<thm0>
-#endif
 
 (* ------------------------------------------------------------------------- *)
 (* A few "big name" intuitionistic tautologies.                              *)
@@ -260,14 +257,11 @@ do
 
 let EXISTS_UNIQUE_THM =
     logEntryExitProtected "EXISTS_UNIQUE_THM" <| fun () ->
-#if BUGGY
-    prove
+    assumeProof
+        prove
         ((parse_term @"!P. (?!x:A. P x) <=> (?x. P x) /\ (!x x'. P x /\ P x' ==> (x = x'))"),
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_DEF])
-#else
-    Choice.result <| Sequent([], parse_term @"!P. (?!x:A. P x) <=> (?x. P x) /\ (!x x'. P x /\ P x' ==> (x = x'))") : Protected<thm0>
-#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Trivial instances of existence.                                           *)
@@ -283,16 +277,14 @@ let EXISTS_REFL =
 let EXISTS_UNIQUE_REFL =    
     // NOTE: investigate this soon
     logEntryExitProtected "EXISTS_UNIQUE_REFL" <| fun () ->
-#if BUGGY
-    prove((parse_term @"!a:A. ?!x. x = a"),
+    assumeProof
+        prove
+        ((parse_term @"!a:A. ?!x. x = a"),
           GEN_TAC
           |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_THM]
           |> THEN <| REPEAT(EQ_TAC |> ORELSE <| STRIP_TAC)
           |> THENL <| [EXISTS_TAC (parse_term @"a:A"); ASM_REWRITE_TAC []]
           |> THEN <| REFL_TAC)
-#else
-    Choice.result <| Sequent([], parse_term @"!a:A. ?!x. x = a") : Protected<thm0>
-#endif
 
 (* ------------------------------------------------------------------------- *)
 (* Unwinding.                                                                *)
@@ -465,8 +457,8 @@ let TRIV_EXISTS_IMP_THM =
 
 let EXISTS_UNIQUE_ALT = 
     logEntryExitProtected "EXISTS_UNIQUE_ALT" <| fun () ->
-#if BUGGY
-    prove
+    assumeProof
+        prove
         ((parse_term @"!P:A->bool. (?!x. P x) <=> (?x. !y. P y <=> (x = y))"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_THM]
@@ -487,14 +479,11 @@ let EXISTS_UNIQUE_ALT =
                       |> THEN <| REPEAT GEN_TAC
                       |> THEN <| DISCH_THEN(CONJUNCTS_THEN(SUBST1_TAC << SYM))
                       |> THEN <| REFL_TAC])
-#else
-    Choice.result <| Sequent([], parse_term @"!P:A->bool. (?!x. P x) <=> (?x. !y. P y <=> (x = y))") : Protected<thm0>
-#endif
 
 let EXISTS_UNIQUE = 
     logEntryExitProtected "EXISTS_UNIQUE" <| fun () ->
-#if BUGGY
-    prove
+    assumeProof
+        prove
         ((parse_term @"!P:A->bool. (?!x. P x) <=> (?x. P x /\ !y. P y ==> (y = x))"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_ALT]
@@ -508,9 +497,6 @@ let EXISTS_UNIQUE =
          |> THEN <| SIMP_TAC []
          |> THEN <| REWRITE_TAC [LEFT_FORALL_IMP_THM; EXISTS_REFL]
          |> THEN <| REWRITE_TAC [CONJ_ACI])
-#else
-    Choice.result <| Sequent([], parse_term @"!P:A->bool. (?!x. P x) <=> (?x. P x /\ !y. P y ==> (y = x))") : Protected<thm0>
-#endif
 
 (* ------------------------------------------------------------------------- *)
 (* DESTRUCT_TAC, FIX_TAC and INTRO_TAC, giving more brief and elegant ways   *)
