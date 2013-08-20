@@ -16,8 +16,8 @@ limitations under the License.
 
 *)
 
-/// Tests for functions in the NHol.simp module.
-module Tests.NHol.simp
+/// Tests for functions in the NHol.ind_defs module.
+module Tests.NHol.ind_defs
 
 open NHol.lib
 open NHol.fusion
@@ -32,21 +32,3 @@ open NHol.theorems
 open NHol.``class``
 
 open NUnit.Framework
-
-[<Test>]
-let ``{REWR_CONV} Uses an instance of a given equation to rewrite a term``() =
-    let actual = REWR_CONV EQ_SYM_EQ <| parse_term @"(T : bool) = F"
-    let expected = Sequent([], parse_term @"(T : bool) = F <=> F = T")
-
-    actual
-    |> evaluate
-    |> assertEqual expected
-
-[<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "term_pmatch")>]
-let ``{REWR_CONV} Fails on unmatched terms``() =
-    let actual = REWR_CONV EQ_SYM_EQ <| parse_term @"(T : bool) ==> F"
-
-    actual
-    |> evaluate
-    |> ignore

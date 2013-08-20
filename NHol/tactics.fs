@@ -92,7 +92,7 @@ let equals_goal ((a, w) : goal) ((a', w') : goal) =
 type justification = instantiation -> thm0 list -> Protected<thm0>
 
 /// Prints a justification signature to formatter.
-let pp_print_justification fmt (just : justification) =
+let pp_print_justification fmt (_ : justification) =
     pp_print_string fmt "instantiation -> thm list -> thm = <fun>" 
 
 /// Prints a justification signature to the standard output.
@@ -117,7 +117,7 @@ type goalstate = Protected<goalstate0>
 (* A goalstack is just a list of goalstates. Could go for more...            *)
 (* ------------------------------------------------------------------------- *)
 
-type goalstack = goalstate list
+type goalstack = goalstate0 list
 
 (* ------------------------------------------------------------------------- *)
 (* A refinement, applied to a goalstate [A1 ?- g1; ...; An ?- gn]            *)
@@ -128,7 +128,7 @@ type goalstack = goalstate list
 type refinement = goalstate -> goalstate
 
 /// Prints a refinement signature to formatter.
-let pp_print_refinement fmt (r : refinement) =
+let pp_print_refinement fmt (_ : refinement) =
     pp_print_string fmt "goalstate -> goalstate = <fun>"
 
 /// Prints a refinement signature to the standard output.
@@ -154,7 +154,7 @@ fsi.AddPrinter string_of_refinement
 type tactic = goal -> goalstate
 
 /// Prints a tactic signature to formatter.
-let pp_print_tactic fmt (t : tactic) =
+let pp_print_tactic fmt (_ : tactic) =
     pp_print_string fmt "goal -> goalstate = <fun>"
 
 /// Prints a tactic signature to the standard output.
@@ -170,7 +170,7 @@ fsi.AddPrinter string_of_tactic
 type thm_tactic = Protected<thm0> -> tactic
 
 /// Prints a thm_tactic signature to formatter.
-let pp_print_thm_tactic fmt (tt : tactic) =
+let pp_print_thm_tactic fmt (_ : tactic) =
     pp_print_string fmt "thm -> tactic = <fun>"
 
 /// Prints a thm_tactic signature to the standard output.
@@ -186,7 +186,7 @@ fsi.AddPrinter string_of_thm_tactic
 type thm_tactical = thm_tactic -> thm_tactic
 
 /// Prints a thm_tactical signature to formatter.
-let pp_print_thm_tactical fmt (tt : thm_tactical) =
+let pp_print_thm_tactical fmt (_ : thm_tactical) =
     pp_print_string fmt "thm_tactic -> thm_tactic = <fun>"
 
 /// Prints a thm_tactical signature to the standard output.
@@ -239,6 +239,7 @@ let mk_fthm =
             let! th2 = itlist ADD_ASSUM (rev asl) (Choice.result th1)
             return! PROVE_HYP (Choice.result qth) (Choice.result th2)
         }
+        |> Choice.mapError (fun e -> nestedFailure e "mk_fthm")
 
 (* ------------------------------------------------------------------------- *)
 (* Validity checking of tactics. This cannot be 100% accurate without making *)
@@ -256,7 +257,7 @@ let (VALID : tactic -> tactic) =
     let false_tm = parse_term @"_FALSITY_"
     fun tac (asl, w) -> 
         choice {
-            let! ((mvs, i), gls, just as res) = tac(asl, w)
+            let! ((_, i), gls, just as res) = tac(asl, w)
             let! ths = Choice.List.map fake_thm gls
             let! thm = just null_inst ths
             let asl', w' = dest_thm thm
@@ -355,7 +356,7 @@ let THEN, THENL =
 let (ORELSE : tactic -> tactic -> tactic) = 
     fun tac1 tac2 g -> 
         choice {
-            let! (_, gls, just as gstate) = tac1 g
+            let! gstate = tac1 g
             return gstate
         }
         |> Choice.bindError (function
@@ -409,7 +410,7 @@ let MAP_FIRST tacf lst = FIRST(map tacf lst)
 let (CHANGED_TAC : tactic -> tactic) = 
     fun tac g -> 
         choice {
-            let! (meta, gl, just as gstate) = tac g
+            let! (meta, gl, _ as gstate) = tac g
             if meta = null_meta && length gl = 1 && equals_goal (hd gl) g then 
                 return! Choice.failwith "CHANGED_TAC"
             else
@@ -436,7 +437,7 @@ let (THEN_TCL : thm_tactical -> thm_tactical -> thm_tactical) =
 let (ORELSE_TCL : thm_tactical -> thm_tactical -> thm_tactical) = 
     fun ttcl1 ttcl2 ttac th g -> 
         choice {
-            let! (_, gls, just as gstate) = ttcl1 ttac th g
+            let! gstate = ttcl1 ttac th g
             return gstate
         }
         |> Choice.bindError (function
@@ -453,7 +454,7 @@ let (REPEAT_GTCL : thm_tactical -> thm_tactical) =
     let rec REPEAT_GTCL ttcl ttac th g = 
         choice {
             let! th = th
-            let! (_, gls, just as gstate) = ttcl (REPEAT_GTCL ttcl ttac) (Choice.result th) g
+            let! gstate = ttcl (REPEAT_GTCL ttcl ttac) (Choice.result th) g
             return gstate
         }
         |> Choice.bindError (function
@@ -516,7 +517,7 @@ let (FIND_ASSUM : thm_tactic -> term -> tactic) =
             let! asl = Choice.List.map snd asl
             let! th1 = find (fun th -> concl th = t) asl
                        |> Option.toChoiceWithError "find"
-            let! (_, gls, just as gstate) = ttac (Choice.result th1) g
+            let! gstate = ttac (Choice.result th1) g
             return gstate
         }
 
@@ -574,14 +575,14 @@ let (RULE_ASSUM_TAC : (Protected<thm0> -> Protected<thm0>) -> tactic) =
 
 /// Apply a theorem tactic to named assumption.
 let (USE_THEN : string -> thm_tactic -> tactic) = 
-    fun s ttac (asl, w as gl) -> 
+    fun s ttac (asl, _ as gl) -> 
         choice {
             let! th =            
                 match assoc s asl with
                 | Some thm -> thm
                 | None -> Choice.failwith ("USE_TAC: didn't find assumption " + s)
 
-            let! (_, gls, just as gstate) = ttac (Choice.result th) gl
+            let! gstate = ttac (Choice.result th) gl
             return gstate
         }
 
@@ -596,7 +597,7 @@ let (REMOVE_THEN : string -> thm_tactic -> tactic) =
         let asl1, asl2 = chop_list (index s (map fst asl)) asl
         let asl' = asl1 @ tl asl2
         let! _ = Choice.List.map snd asl'
-        let! (_, gls, just as gstate) = ttac (Choice.result th) (asl', w)
+        let! gstate = ttac (Choice.result th) (asl', w)
         return gstate
         }
 
@@ -608,7 +609,7 @@ let (REMOVE_THEN : string -> thm_tactic -> tactic) =
 
 /// Augments a tactic's theorem list with the assumptions.
 let ASM : (Protected<thm0> list -> tactic) -> Protected<thm0> list -> tactic = 
-    fun tltac ths (asl, w as g) ->
+    fun tltac ths (asl, _ as g) ->
         choice {
             let asl0 = map snd asl @ ths
             let! _ = Choice.List.map id asl0
@@ -641,7 +642,7 @@ let (ACCEPT_TAC : thm_tactic) =
         match x with
         | [] -> INSTANTIATE_ALL i th
         | _ -> Choice.failwith  "propagate_thm: Unhandled case."
-    fun th (asl, w) -> 
+    fun th (_, w) -> 
         choice {
             let! th = th
             let tm = concl th
@@ -701,7 +702,7 @@ let (REFL_TAC : tactic) =
         choice {
             let! tm = rand w
             let! th1 = REFL tm
-            let! (_, gls, just as gstate) = ACCEPT_TAC (Choice.result th1) g
+            let! gstate = ACCEPT_TAC (Choice.result th1) g
             return gstate
         }
         |> Choice.mapError (fun e -> nestedFailure e "REFL_TAC")
@@ -1190,7 +1191,7 @@ let (CONTR_TAC : thm_tactic) =
         match l with
         | [] -> INSTANTIATE_ALL i th
         | _ -> Choice.failwith "CONTR_TAC.propagate_thm: Unhandled case."
-    fun cth (asl, w) -> 
+    fun cth (_, w) -> 
         choice { 
             let! cth = cth
             // CAUTION: it's extremely weird that when I return early in case th is an error, ITAUT function doesn't terminate
@@ -1206,15 +1207,17 @@ let (MATCH_ACCEPT_TAC : thm_tactic) =
         match l with
         | [] -> INSTANTIATE_ALL i th
         | _ -> Choice.failwith "MATCH_ACCEPT_TAC.propagate_thm: Unhandled case."
-    let rawtac th (asl,w) =
+    let rawtac th (_,w) =
         choice {
             let! th = th
             let! ith = PART_MATCH Choice.result (Choice.result th) w
             let just = propagate_thm (Choice.result ith)
             return (null_meta, [], just)
         }
-        |> Choice.mapError (fun e -> nestedFailure e "ACCEPT_TAC")
-    fun th -> REPEAT GEN_TAC |> THEN <| rawtac th
+        |> Choice.mapError (fun e -> nestedFailure e "MATCH_ACCEPT_TAC")
+    fun th -> 
+        REPEAT GEN_TAC 
+        |> THEN <| rawtac th
 
 /// Reduces the goal using a supplied implication, with matching.
 let (MATCH_MP_TAC : thm_tactic) = 
@@ -1330,7 +1333,7 @@ let (ANTE_RES_THEN : thm_tactical) =
                           let f = ttac (MATCH_MP imp ante)
                           if Choice.isResult <| f gl then Some f else None) asl
             match tacs with
-            | [] -> fun tm -> Choice.failwith "IMP_RES_THEN"
+            | [] -> fun _ -> Choice.failwith "IMP_RES_THEN"
             | _ -> EVERY tacs) gl
 
 /// Resolves an implication with the assumptions of a goal.
@@ -1343,14 +1346,14 @@ let (IMP_RES_THEN : thm_tactical) =
                            let f = ttac (MATCH_MP imp ante)
                            if Choice.isResult <| f gl then Some f else None) asl
             match tacs with
-            | [] -> fun tm -> Choice.failwith "IMP_RES_THEN"
+            | [] -> fun _ -> Choice.failwith "IMP_RES_THEN"
             | _ -> EVERY tacs) gl
 
 /// Splits a theorem into a list of theorems and then adds them to the assumptions.
 let STRIP_ASSUME_TAC = 
     let DISCARD_TAC th = 
         let tm = Choice.map concl th
-        fun (asl, w as g) -> 
+        fun (asl, _ as g) -> 
             choice {
                 let! tm = tm
                 let! asl' = Choice.List.map snd asl
@@ -1570,10 +1573,8 @@ let ANTS_TAC =
 /// Prints a goal to formatter.
 let pp_print_goal fmt (gl : goal) = 
     let string3 n = 
-        if n < 10
-        then "  " + string n
-        elif n < 100
-        then " " + string n
+        if n < 10 then "  " + string n
+        elif n < 100 then " " + string n
         else string n
     let pp_print_hyp fmt n (s, th : Protected<thm0>) =
         match th with
@@ -1671,28 +1672,23 @@ let pp_print_goalstack fmt gs =
         if not <| List.isEmpty gl then
             do_list (pp_print_goal fmt << C el gl) (rev(0 -- (k - 1)))
 
-    let pp_print_goalstates fmt (l : goalstate list) =
-        match Choice.List.map id l with
-        | Success l ->
-            // OPTIMIZE : Use pattern-matching here -- it's faster than checking the length
-            // of the list, since we don't need to traverse the entire list.
-            match l with
-            | [] ->
-                Format.pp_print_string fmt "Empty goalstack"
-            | [x] -> 
-                let gs = x
-                pp_print_goalstate fmt 1 gs
-            | x :: y :: _ -> 
-                let (_, gl, _ as gs) = x
-                let (_, gl0, _) = y
-                let p = length gl - length gl0
-                let p' = 
-                    if p < 1 then 1
-                    else p + 1
-                pp_print_goalstate fmt p' gs
-        | Error e -> 
-            let msg = Printf.sprintf "Error in goalstack: %O" e
-            Format.pp_print_string fmt msg
+    let pp_print_goalstates fmt (l : goalstack) =
+        // OPTIMIZE : Use pattern-matching here -- it's faster than checking the length
+        // of the list, since we don't need to traverse the entire list.
+        match l with
+        | [] ->
+            Format.pp_print_string fmt "Empty goalstack"
+        | [x] -> 
+            let gs = x
+            pp_print_goalstate fmt 1 gs
+        | x :: y :: _ -> 
+            let (_, gl, _ as gs) = x
+            let (_, gl0, _) = y
+            let p = length gl - length gl0
+            let p' = 
+                if p < 1 then 1
+                else p + 1
+            pp_print_goalstate fmt p' gs
     pp_print_goalstates fmt gs
 
 /// Print a goalstack to standard output, with no following newline.
@@ -1875,16 +1871,19 @@ let prove(t, tac) : Protected<thm0> =
 let current_goalstack = ref([] : goalstack)
 
 /// Applies a refinement to the current goalstack.
-let (refine : refinement -> goalstack) = 
+let (refine : refinement -> Protected<goalstack>) = 
     fun r -> 
-        let l = !current_goalstack
-        if l.IsEmpty then 
-            failwith "No current goal"
-        else 
-            let h = hd l
-            let res = r h :: l
-            current_goalstack := res
-            !current_goalstack
+        choice {
+            let l = !current_goalstack
+            if l.IsEmpty then 
+                return! Choice.failwith "No current goal"
+            else 
+                let h = hd l
+                let! h' = r (Choice.result h)
+                let res = h' :: l
+                current_goalstack := res
+                return !current_goalstack
+        }
 
 /// Eliminate all but the current goalstate from the current goalstack.
 let flush_goalstack() = 
@@ -1899,14 +1898,16 @@ let r n = refine(rotate n)
 
 /// Initializes the subgoal package with a new goal.
 let set_goal(asl, w) = 
-    current_goalstack := [mk_goalstate(map (fun t -> "", ASSUME t) asl, w)]
-    !current_goalstack
+    choice {
+        let! gs = mk_goalstate(map (fun t -> "", ASSUME t) asl, w)
+        current_goalstack := [gs]
+        return !current_goalstack
+    }
 
 /// Initializes the subgoal package with a new goal which has no assumptions.
 let g t = 
     let fvs = sort (<) (map (fst << Choice.get << dest_var) (frees t))
-    (if fvs <> []
-     then 
+    (if fvs <> [] then 
          let errmsg = end_itlist (fun s t -> s + ", " + t) fvs
          warn true ("Free variables in goal: " + errmsg)
      else ())
@@ -1915,8 +1916,8 @@ let g t =
 /// Restores the proof state, undoing the effects of a previous expansion.
 let b() = 
     let l = !current_goalstack
-    if List.length l = 1
-    then failwith "Can't back up any more"
+    if List.length l = 1 then 
+        failwith "Can't back up any more"
     else 
         current_goalstack := tl l
         !current_goalstack
@@ -1928,8 +1929,8 @@ let p() = !current_goalstack
 let top_realgoal() = 
     choice {
         match !current_goalstack with
-        | Success(_, ((asl, w) :: _), _) :: _ -> return asl, w
-        | Error e :: _ -> return! Choice.error e
+        | (_, ((asl, w) :: _), _) :: _ -> 
+            return asl, w
         | _ -> 
             return! Choice.failwith "top_realgoal: Unhandled case."
     }
@@ -1946,8 +1947,8 @@ let top_goal() =
 let top_thm() = 
     choice {
         match !current_goalstack with
-        | Success(_, [], f) :: _ -> return! f null_inst []
-        | Error e :: _ -> return! Choice.error e
+        | (_, [], f) :: _ -> 
+            return! f null_inst []
         | _ -> 
             return! Choice.failwith "top_thm: Unhandled case."
     }

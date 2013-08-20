@@ -396,28 +396,35 @@ let rec free_in tm1 tm2 : Protected<bool> =
 // TODO : Modify this function to accept a protected predicate, i.e., (p : term -> Protected<bool>)
 let rec find_term p tm : Protected<term> =
     choice {
-    if p tm then return tm
-    elif is_abs tm then
-        let! bod = body tm
-        return! find_term p bod
-    elif is_comb tm then
-        let! l, r = dest_comb tm
-        return!
-            find_term p l
-            |> Choice.bindError (function
-                    | Failure _ -> find_term p r
-                    | e -> Choice.error e)
-    else
-        return! Choice.failwith "find_term"
+        let! b = p tm
+        if b then 
+            return tm
+        elif is_abs tm then
+            let! bod = body tm
+            return! find_term p bod
+        elif is_comb tm then
+            let! l, r = dest_comb tm
+            return!
+                find_term p l
+                |> Choice.bindError (function
+                        | Failure _ -> find_term p r
+                        | e -> Choice.error e)
+        else
+            return! Choice.failwith "find_term"
     }
 
 /// Searches a term for all subterms that satisfy a predicate.
 let find_terms =
     let rec accum tl p tm = 
         choice {
-            let tl' = 
-                if p tm then insert tm tl
-                else tl
+            let! tl' = 
+                choice {
+                    let! b = p tm
+                    if b then 
+                        return insert tm tl
+                    else 
+                        return tl
+                }
             if is_abs tm then 
                 let! tm' = body tm
                 return! accum tl' p tm'

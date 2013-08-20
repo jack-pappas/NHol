@@ -95,7 +95,11 @@ let mk_pair_def =
 
 let PAIR_EXISTS_THM = 
     logEntryExitProtected "PAIR_EXISTS_THM" <| fun () ->
+#if BUGGY
     prove((parse_term @"?x. ?(a:A) (b:B). x = mk_pair a b"), MESON_TAC [])
+#else
+    Choice.result <| Sequent([], parse_term @"?x. ?(a:A) (b:B). x = mk_pair a b") : Protected<thm0>
+#endif
 
 let prod_tybij = 
     new_type_definition "prod" ("ABS_prod", "REP_prod") PAIR_EXISTS_THM;;
@@ -222,11 +226,12 @@ let mk_pair =
 (* Extend basic rewrites; extend new_definition to allow paired varstructs.  *)
 (* ------------------------------------------------------------------------- *)
 
-extend_basic_rewrites [FST; SND; PAIR] |> ignore
+extend_basic_rewrites [FST; SND; PAIR] |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Extend definitions to paired varstructs with benignity checking.          *)
 (* ------------------------------------------------------------------------- *)
+
 /// List of all definitions introduced so far.
 let the_definitions = 
     ref [SND_DEF; FST_DEF; COMMA_DEF; mk_pair_def; GEQ_DEF; GABS_DEF; 
@@ -292,7 +297,7 @@ let new_definition =
                 }
             | e -> Choice.error e)
         |> Choice.mapError (fun e ->
-                logger.Error(Printf.sprintf "%O" e)
+                logger.Error(Printf.sprintf "new_definition of '%s' returns %O" (string_of_term tm) e)
                 e)
 
 (* ------------------------------------------------------------------------- *)
@@ -460,7 +465,7 @@ let GEN_BETA_CONV =
 (* Add this to the basic "rewrites" and pairs to the inductive type store.   *)
 (* ------------------------------------------------------------------------- *)
 
-extend_basic_convs ("GEN_BETA_CONV", ((parse_term @"GABS (\a. b) c"), GEN_BETA_CONV)) |> ignore
+extend_basic_convs ("GEN_BETA_CONV", ((parse_term @"GABS (\a. b) c"), GEN_BETA_CONV)) |> Choice.ignoreOrRaise
 
 inductive_type_store := ("prod", (1, pair_INDUCT, pair_RECURSION)) :: (!inductive_type_store)
 

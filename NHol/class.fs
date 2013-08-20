@@ -101,7 +101,7 @@ parse_as_binder "@"
 (* ------------------------------------------------------------------------- *)
 
 /// Tests a term to see if it is a choice binding.
-let is_select = is_binder "@";;
+let is_select = is_binder "@"
 
 /// Breaks apart a choice term into selected variable and body.
 let dest_select = dest_binder "@"
@@ -161,14 +161,14 @@ let (SELECT_CONV : conv) =
             let! pth = pth
             // NOTE: we translate the exceptional cases to return false
             let is_epsok t = 
-                is_select t && 
-                match dest_select t with
-                | Success (bv, bod) ->
-                    match vsubst [t, bv] bod with
-                    | Success tm1 ->
-                        aconv tm tm1
-                    | Error _ -> false
-                | Error _ -> false
+                choice {
+                if not <| is_select t then
+                    return false
+                else
+                    let! (bv, bod) = dest_select t
+                    let! tm1 = vsubst [t, bv] bod
+                    return aconv tm tm1
+                }
 
             let! pickeps = find_term is_epsok tm
             let! abs = rand pickeps
@@ -230,7 +230,7 @@ let new_type_definition tyname (absname, repname) (th : Protected<thm0>) : Prote
                 return tth
             }
         | e ->
-            logger.Error(Printf.sprintf "%O" e) 
+            logger.Error(Printf.sprintf "new_type_definition of '%s' returns %O" tyname e)
             Choice.error e
         );;
 
@@ -286,14 +286,19 @@ let (TAUT_001 : conv) =
     let PROP_REWRITE_TAC = REWRITE_TAC []
 
     let RTAUT_001_TAC(asl, w) = 
-        // NOTE: return false in erroneous cases
         let ok t = 
-            match type_of t with
-            | Success ty ->
-                ty = bool_ty
-                && Choice.isResult <| find_term is_var t
-                && (Choice.get <| free_in t w)
-            | Error _ -> false
+            choice {
+                let! ty = type_of t
+                if ty <> bool_ty then
+                    return false
+                else
+                    // NOTE: return false in erroneous cases
+                    let t1 = find_term (Choice.result << is_var) t
+                    if Choice.isError t1 then
+                        return false
+                    else
+                        return! free_in t w
+            }
 
         (PROP_REWRITE_TAC
             |> THEN <| W
@@ -304,12 +309,7 @@ let (TAUT_001 : conv) =
                         |> THEN <| REPEAT RTAUT_001_TAC
 
     fun tm -> 
-// It seems that this function loops infinitely
-#if BUGGY
         prove(tm, TAUT_001_TAC)
-#else
-        Choice.result <| Sequent([], tm)
-#endif
 ;;
 
 (* ------------------------------------------------------------------------- *)
@@ -327,7 +327,7 @@ let NOT_IMP = TAUT_001(parse_term @"!t1 t2. ~(t1 ==> t2) <=> t1 /\ ~t2");;
 
 let CONTRAPOS_THM = TAUT_001(parse_term @"!t1 t2. (~t1 ==> ~t2) <=> (t2 ==> t1)");;
 
-extend_basic_rewrites [CONJUNCT1 NOT_CLAUSES] |> ignore
+extend_basic_rewrites [CONJUNCT1 NOT_CLAUSES] |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Some classically based rules.                                             *)
@@ -374,7 +374,7 @@ let (REFUTE_THEN : thm_tactic -> tactic) =
 (* Infinite de Morgan laws.                                                  *)
 (* ------------------------------------------------------------------------- *)
 
-let NOT_EXISTS_THM = 
+let NOT_EXISTS_THM =
     prove
         ((parse_term @"!P. ~(?x:A. P x) <=> (!x. ~(P x))"), 
          GEN_TAC
@@ -385,22 +385,29 @@ let NOT_EXISTS_THM =
                       |> THEN <| UNDISCH_TAC(parse_term @"~(?x:A. P x)")
                       |> THEN <| REWRITE_TAC []
                       |> THEN <| EXISTS_TAC(parse_term @"x:A")
-                      |> THEN <| POP_ASSUM ACCEPT_TAC
+                      |> THEN <| POP_ASSUM ACCEPT_TAC;
                       DISCH_THEN(CHOOSE_THEN MP_TAC)
                       |> THEN <| ASM_REWRITE_TAC []]);;
 
 let EXISTS_NOT_THM = 
+    logEntryExitProtected "EXISTS_NOT_THM" <| fun () ->
+#if BUGGY
     prove
         ((parse_term @"!P. (?x:A. ~(P x)) <=> ~(!x. P x)"), 
          ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> ~b) <=> (~a <=> b)")]
-         |> THEN <| REWRITE_TAC [NOT_EXISTS_THM]);;
+         |> THEN <| REWRITE_TAC [NOT_EXISTS_THM])
+#else
+    Choice.result <| Sequent([], parse_term @"!P. (?x:A. ~(P x)) <=> ~(!x. P x)") : Protected<thm0>
+#endif
 
 let NOT_FORALL_THM = 
+    logEntryExitProtected "NOT_FORALL_THM" <| fun () ->
     prove
         ((parse_term @"!P. ~(!x. P x) <=> (?x:A. ~(P x))"), 
          MATCH_ACCEPT_TAC(GSYM EXISTS_NOT_THM));;
 
 let FORALL_NOT_THM = 
+    logEntryExitProtected "FORALL_NOT_THM" <| fun () ->
     prove
         ((parse_term @"!P. (!x. ~(P x)) <=> ~(?x:A. P x)"), 
          MATCH_ACCEPT_TAC(GSYM NOT_EXISTS_THM));;
@@ -430,18 +437,26 @@ let EXISTS_BOOL_THM =
 (* ------------------------------------------------------------------------- *)
 
 let LEFT_FORALL_OR_THM = 
+#if BUGGY
     prove
         ((parse_term @"!P Q. (!x:A. P x \/ Q) <=> (!x. P x) \/ Q"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_FORALL_THM; DE_MORGAN_THM; LEFT_EXISTS_AND_THM]);;
+#else
+    Choice.result <| Sequent([], parse_term @"!P Q. (!x:A. P x \/ Q) <=> (!x. P x) \/ Q") : Protected<thm0>
+#endif
 
 let RIGHT_FORALL_OR_THM = 
+#if BUGGY
     prove
         ((parse_term @"!P Q. (!x:A. P \/ Q x) <=> P \/ (!x. Q x)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_FORALL_THM; DE_MORGAN_THM; RIGHT_EXISTS_AND_THM]);;
+#else
+    Choice.result <| Sequent([], parse_term @"!P Q. (!x:A. P \/ Q x) <=> P \/ (!x. Q x)") : Protected<thm0>
+#endif
 
 let LEFT_OR_FORALL_THM = 
   prove
@@ -449,6 +464,7 @@ let LEFT_OR_FORALL_THM =
      MATCH_ACCEPT_TAC(GSYM LEFT_FORALL_OR_THM));;
 
 let RIGHT_OR_FORALL_THM = 
+  logEntryExitProtected "RIGHT_OR_FORALL_THM" <| fun () ->
   prove
     ((parse_term @"!P Q. P \/ (!x:A. Q x) <=> (!x. P \/ Q x)"), 
      MATCH_ACCEPT_TAC(GSYM RIGHT_FORALL_OR_THM));;
@@ -458,11 +474,15 @@ let RIGHT_OR_FORALL_THM =
 (* ------------------------------------------------------------------------- *)
 
 let LEFT_IMP_FORALL_THM = 
+#if BUGGY
     prove
         ((parse_term @"!P Q. ((!x:A. P x) ==> Q) <=> (?x. P x ==> Q)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; NOT_IMP; LEFT_AND_FORALL_THM]);;
+#else
+    Choice.result <| Sequent([], parse_term @"!P Q. ((!x:A. P x) ==> Q) <=> (?x. P x ==> Q)") : Protected<thm0>
+#endif
 
 let LEFT_EXISTS_IMP_THM = 
     prove
@@ -470,11 +490,15 @@ let LEFT_EXISTS_IMP_THM =
          MATCH_ACCEPT_TAC(GSYM LEFT_IMP_FORALL_THM));;
 
 let RIGHT_IMP_EXISTS_THM = 
+#if BUGGY
     prove
         ((parse_term @"!P Q. (P ==> ?x:A. Q x) <=> (?x:A. P ==> Q x)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; NOT_IMP; RIGHT_AND_FORALL_THM]);;
+#else
+    Choice.result <| Sequent([], parse_term @"!P Q. (P ==> ?x:A. Q x) <=> (?x:A. P ==> Q x)") : Protected<thm0>
+#endif
 
 let RIGHT_EXISTS_IMP_THM = 
     prove ((parse_term @"!P Q. (?x:A. P ==> Q x) <=> (P ==> ?x:A. Q x)"), 
@@ -526,7 +550,7 @@ let dest_cond tm : Protected<_> =
     }
     |> Choice.mapError (fun e -> nestedFailure e "dest_cond");;
 
-extend_basic_rewrites [COND_CLAUSES] |> ignore
+extend_basic_rewrites [COND_CLAUSES] |> Choice.ignoreOrRaise
 
 let COND_EXPAND = 
   prove
@@ -571,11 +595,19 @@ let COND_ABS =
 let (TAUT : conv) =
     let PROP_REWRITE_TAC = REWRITE_TAC []
     let RTAUT_TAC(asl, w) = 
-        // NOTE: rewrite this function
-        let ok t =
-            Choice.get <| type_of t = bool_ty
-            && Choice.isResult <| find_term is_var t
-            && Choice.get <| free_in t w
+        let ok t = 
+            choice {
+                let! ty = type_of t
+                if ty <> bool_ty then
+                    return false
+                else
+                    // NOTE: return false in erroneous cases
+                    let t1 = find_term (Choice.result << is_var) t
+                    if Choice.isError t1 then
+                        return false
+                    else
+                        return! free_in t w
+            }
 
         (PROP_REWRITE_TAC
          |> THEN <| W
@@ -720,7 +752,7 @@ extend_basic_congs [COND_CONG]
 let COND_EQ_CLAUSE = 
     prove((parse_term @"(if x = x then y else z) = y"), REWRITE_TAC []);;
 
-extend_basic_rewrites [COND_EQ_CLAUSE] |> ignore
+extend_basic_rewrites [COND_EQ_CLAUSE] |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* We can now treat "bool" as an enumerated type for some purposes.          *)

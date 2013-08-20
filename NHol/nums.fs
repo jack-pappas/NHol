@@ -52,13 +52,13 @@ open trivia
 open canon
 open meson
 open quot
-//open pair
+open pair
 #endif
 
 logger.Trace("Entering nums.fs")
 
 
-let result = new_type("ind", 0)
+new_type("ind", 0) |> Choice.ignoreOrRaise
 
 let ONE_ONE = 
     new_definition
@@ -96,7 +96,7 @@ let NUM_REP_RULES, NUM_REP_INDUCT, NUM_REP_CASES =
 
 let num_tydef = 
     new_basic_type_definition "num" ("mk_num", "dest_num") 
-        (CONJUNCT1 NUM_REP_RULES)
+        (CONJUNCT1 NUM_REP_RULES);;
 
 let ZERO_DEF = new_definition(parse_term @"_0 = mk_num IND_0")
 
@@ -194,7 +194,7 @@ let num_Axiom_001 =
                        |> THEN <| MATCH_MP_TAC num_INDUCTION_001
                        |> THEN <| ASM_REWRITE_TAC []
                        |> THEN <| REPEAT STRIP_TAC
-                       |> THEN <| ASM_REWRITE_TAC []])
+                       |> THEN <| ASM_REWRITE_TAC []]);;
 
 let NUMERAL = new_definition(parse_term @"NUMERAL (n:num) = n")
 

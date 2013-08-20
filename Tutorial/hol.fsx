@@ -16,12 +16,17 @@ limitations under the License.
 
 *)
 
+#I "./../packages"
+
+#r "FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
+#r "FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
+#r "FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
+#r "ExtCore.0.8.33/lib/net40/ExtCore.dll"
+#r "NLog.2.0.1.2/lib/net40/NLog.dll"
+
 #I "./../NHol"
 
-// Disable "Incomplete pattern matches on this expression." warnings.
-// Some of these are true warnings, but should be fixed in the code.
-// No sense in seeing these warnings when using F# interactive.
-#nowarn "25"
+#nowarn "44"
 
 // Disable "Uppercase variable identifiers should not generally be used in patterns, and may indicate a misspelt pattern name."
 #nowarn "49"
@@ -29,7 +34,9 @@ limitations under the License.
 (* ------------------------------------------------------------------------- *)  
 (* Various tweaks to OCaml and general library functions.                    *)  
 (* ------------------------------------------------------------------------- *)   
-#load "system.fsx"       (* Set up proper parsing and load bignums            *)   
+#load "init.fsx" 
+#load "Logging.fs"      
+#load "system.fs"       (* Set up proper parsing and load bignums            *)   
 #load "lib.fs"          (* Various useful general library functions          *)  
 (* ------------------------------------------------------------------------- *)  
 (* The logical core.                                                         *)   
@@ -66,13 +73,13 @@ limitations under the License.
 (* Mathematical theories and additional proof tools.                         *)  
 (* ------------------------------------------------------------------------- *)  
 //#load "pair.fs"         (* Theory of pairs                                   *)  
-#load "nums.fs"         (* Axiom of Infinity, definition of natural numbers  *)  
-#load "recursion.fs"    (* Tools for primitive recursion on inductive types  *)  
-#load "arith.fs"        (* Natural number arithmetic                         *)  
-//#load "wf.fs"           (* Theory of wellfounded relations                   *)  
-#load "calc_num.fs"     (* Calculation with natural numbers                  *)  
-#load "normalizer.fs"   (* Polynomial normalizer for rings and semirings     *)  
-#load "grobner.fs"      (* Groebner basis procedure for most semirings.      *)  
+//#load "nums.fs"         (* Axiom of Infinity, definition of natural numbers  *)  
+//#load "recursion.fs"    (* Tools for primitive recursion on inductive types  *)  
+//#load "arith.fs"        (* Natural number arithmetic                         *)  
+////#load "wf.fs"           (* Theory of wellfounded relations                   *)  
+//#load "calc_num.fs"     (* Calculation with natural numbers                  *)  
+//#load "normalizer.fs"   (* Polynomial normalizer for rings and semirings     *)  
+//#load "grobner.fs"      (* Groebner basis procedure for most semirings.      *)  
 //#load "ind_types.fs"    (* Tools for defining inductive types                *)  
 //#load "lists.fs"        (* Theory of lists                                   *)  
 //#load "realax.fs"       (* Definition of real numbers                        *)  

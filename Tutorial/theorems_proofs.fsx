@@ -21,7 +21,7 @@ limitations under the License.
 #r "FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
 #r "FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
 #r "FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
-#r "ExtCore.0.8.32/lib/net40/ExtCore.dll"
+#r "ExtCore.0.8.33/lib/net40/ExtCore.dll"
 
 #I "./../NHol"
 #r @"bin/Debug/NHol.dll"
@@ -66,9 +66,10 @@ fsi.AddPrinter string_of_goalstate;;
 BETA_RULE;;                 // forces equal module evaluation: maybe not needed
 mk_iff;;                    // forces bool module evaluation
 MK_CONJ;;                   // forces drule module evaluation
-_FALSITY_;;                 // forces tactics module evaluation
-ITAUT_TAC;;                 // forces itab module evaluation: maybe not needd
+let falsity = _FALSITY_;;   // forces tactics module evaluation
+ITAUT_TAC;;                 // forces itab module evaluation: maybe not needed
 mk_rewrites;;               // forces simp module evaluation
+EQ_REFL;;                   // forces theorems module evaluation
 
 (* EQ_REFL: |- !x:A. x = x *)
 

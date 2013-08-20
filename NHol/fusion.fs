@@ -973,7 +973,7 @@ module Hol_kernel =
             return! Choice.failwith "new_axiom: Not a proposition"
         }
         |> Choice.mapError (fun e ->
-            logger.Error(Printf.sprintf "%O" e)
+            logger.Error(Printf.sprintf "new_axiom returns %O" e)
             e)
     
     (* ------------------------------------------------------------------------- *)
@@ -1011,7 +1011,7 @@ module Hol_kernel =
                 return! Choice.failwith "new_basic_definition"
         }
         |> Choice.mapError (fun e ->
-            logger.Error(Printf.sprintf "%O" e)
+            logger.Error(Printf.sprintf "new_basic_definition returns %O" e)
             e)
 
     (* ------------------------------------------------------------------------- *)
@@ -1079,6 +1079,9 @@ module Hol_kernel =
 
                     return Choice.result (Sequent([], tm2)), Choice.result (Sequent([], tm6))
         }
+        |> Choice.mapError (fun e ->
+            logger.Error(Printf.sprintf "new_basic_type_definition of '%s' returns %O" tyname e)
+            e)
         |> Choice.getOrFailure2 "new_basic_type_definition"
 
 (* ------------------------------------------------------------------------- *)

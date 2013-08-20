@@ -124,7 +124,7 @@ open NUnit.Framework
 [<Test>]
 let ``{BETAS_CONV} Beta conversion over multiple arguments``() =
     let actual = BETAS_CONV <| parse_term @"(\x y. x /\ y) T F"
-    let expected = Sequent ([], parse_term @"(\x y. x /\ y) T F = T /\ F")
+    let expected = Sequent ([], parse_term @"(\x y. x /\ y) T F = (T /\ F)")
 
     actual
     |> evaluate

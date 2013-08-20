@@ -917,7 +917,7 @@ let NUM_SIMPLIFY_CONV =
         let is_mod = is_binop mod_tm
         fun tm -> is_div tm || is_mod tm
     let contains_quantifier = 
-        Choice.isResult << find_term(fun t -> is_forall t || is_exists t || is_uexists t)
+        Choice.isResult << find_term(fun t -> Choice.result (is_forall t || is_exists t || is_uexists t))
     let BETA2_CONV = RATOR_CONV BETA_CONV
                      |> THENC <| BETA_CONV
     let PRE_ELIM_THM'' = CONV_RULE (RAND_CONV NNF_CONV) PRE_ELIM_THM
@@ -947,7 +947,7 @@ let NUM_SIMPLIFY_CONV =
         else 
           return!
             choice { 
-                let! t = find_term (fun t -> is_pre t && Choice.get <| free_in t tm) tm
+                let! t = find_term (fun t -> Choice.result (is_pre t && Choice.get <| free_in t tm)) tm
                 let! ty = type_of t
                 let v = genvar ty
                 let! tm1 = subst [v, t] tm
@@ -962,7 +962,7 @@ let NUM_SIMPLIFY_CONV =
             }
             |> Choice.bindError (fun _ ->
                 choice { 
-                    let! t = find_term (fun t -> is_sub t && Choice.get <| free_in t tm) tm
+                    let! t = find_term (fun t -> Choice.result (is_sub t && Choice.get <| free_in t tm)) tm
                     let! ty = type_of t
                     let v = genvar ty
                     let! tm1 = subst [v, t] tm
@@ -978,7 +978,7 @@ let NUM_SIMPLIFY_CONV =
                 }
                 |> Choice.bindError (fun _ ->
                     choice { 
-                        let! t = find_term (fun t -> is_divmod t && Choice.get <| free_in t tm) tm
+                        let! t = find_term (fun t -> Choice.result (is_divmod t && Choice.get <| free_in t tm)) tm
                         let! x = lhand t
                         let! y = rand t
                         let! tm1 = mk_comb(div_tm, x)

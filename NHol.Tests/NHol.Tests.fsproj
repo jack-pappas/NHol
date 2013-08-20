@@ -57,10 +57,16 @@
     <Compile Include="tactics.fs" />
     <Compile Include="itab.fs" />
     <Compile Include="simp.fs" />
+    <Compile Include="theorems.fs" />
+    <Compile Include="ind_defs.fs" />
+    <Compile Include="class.fs" />
+    <Compile Include="trivia.fs" />
+    <Compile Include="canon.fs" />
+    <Compile Include="meson.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ExtCore">
-      <HintPath>..\packages\ExtCore.0.8.32\lib\net40\ExtCore.dll</HintPath>
+      <HintPath>..\packages\ExtCore.0.8.33\lib\net40\ExtCore.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="FsCheck">

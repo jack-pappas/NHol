@@ -65,10 +65,12 @@ open NUnit.Framework
 
 [<Test>]
 let ``{ACCEPT_TAC} Solves a goal if supplied with the desired theorem (up to alpha-conversion)``() =
+    ETA_AX |> ignore
     let _ = g <| parse_term @"!x. (x <=> T) \/ (x <=> F)"
     let gs = e (ACCEPT_TAC BOOL_CASES_AX)
-
-    List.isEmpty gs
+    Printf.printfn "bca: %A" (Choice.map string_of_thm BOOL_CASES_AX)
+    Printf.printfn "gs: %A" (Choice.map string_of_goalstack gs)
+    noSubgoal gs
     |> assertEqual true
 
 //[<Test>]
@@ -95,6 +97,6 @@ let ``{MATCH_ACCEPT_TAC} Solves a goal which is an instance of the supplied theo
     let HD = Choice.result <| Sequent([], parse_term @"!h t. HD(CONS h t) = h")
     let gs = e (MATCH_ACCEPT_TAC HD)
 
-    List.isEmpty gs
+    noSubgoal gs
     |> assertEqual true
 

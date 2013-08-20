@@ -320,12 +320,12 @@ let ``{TRY_CONV conv} Attempts to apply a conversion; applies identity conversio
     |> evaluate
     |> assertEqual expected
 
-//// This currently fails due to different type vars
+//// This test crashes VS test runner
 //
 //[<Test>]
 //let ``{RATOR_CONV conv} Applies a conversion to the operator of an application``() =
-//    let actual = RATOR_CONV BETA_CONV (parse_term @"(\x y. x /\ y) (T : bool) (F : bool)")
-//    let expected = Sequent ([], parse_term @"(\x y. x /\ y) (T : bool) (F : bool) = (\y. T /\ y) F")
+//    let actual = RATOR_CONV BETA_CONV (parse_term @"(\x y. x /\ y) T F")
+//    let expected = Sequent ([], parse_term @"(\x y. x /\ y) T F = (\y. T /\ y) F")
 //
 //    actual
 //    |> evaluate
@@ -486,17 +486,17 @@ let ``{CONV_RULE conv thm} Makes an inference rule from a conversion``() =
 //    |> evaluate
 //    |> assertEqual expected
 
-//// This test fails due to different type vars
-//
-//[<Test>]
-//let ``{BETA_RULE thm} Beta-reduces all the beta-redexes in the conclusion of a theorem``() =
-//    let tm = parse_term @"f = ((\x y. x + y) y)"
-//    let actual = BETA_RULE (ASSUME tm)
-//    let expected = Sequent ([tm], parse_term @"f = ((\x y. x + y) y)")
-//
-//    actual
-//    |> evaluate
-//    |> assertEqual expected
+[<Test>]
+let ``{BETA_RULE thm} Beta-reduces all the beta-redexes in the conclusion of a theorem``() =
+    let tm = parse_term @"f = ((\x y. x + y) y')"
+    let actual = BETA_RULE (ASSUME tm)
+    let expected = Sequent ([tm], parse_term @"f = (\y. y' + y)")
+
+    // Compare concrete form since AST form consists of different type vars
+    actual
+    |> evaluate
+    |> string_of_thm
+    |> assertEqual (string_of_thm expected)
 
 //// This test requires uninitialized modules
 //

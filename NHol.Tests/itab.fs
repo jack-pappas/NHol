@@ -29,19 +29,19 @@ open NHol.tactics
 open NHol.itab
 open NHol.simp
 open NHol.``class``
-open NHol.meson
 
 open NUnit.Framework
 
-[<Test>]
-let ``{ITAUT_TAC} Simple intuitionistic logic prover``() =
-    let _ = g <| parse_term @"!p q. (p ==> q) <=> (~q ==> ~p)"
-    let _ = e (REPEAT GEN_TAC |> THEN <| EQ_TAC)
-    let _ = e ITAUT_TAC
-    let gs = e (MESON_TAC [])
-
-    List.isEmpty gs
-    |> assertEqual true
+//open NHol.meson
+//[<Test>]
+//let ``{ITAUT_TAC} Simple intuitionistic logic prover``() =
+//    let _ = g <| parse_term @"!p q. (p ==> q) <=> (~q ==> ~p)"
+//    let _ = e (REPEAT GEN_TAC |> THEN <| EQ_TAC)
+//    let _ = e ITAUT_TAC
+//    let gs = e (MESON_TAC [])
+//
+//    noSubgoal gs
+//    |> assertEqual true
 
 //// This crashes VS test runner
 //[<Test>]

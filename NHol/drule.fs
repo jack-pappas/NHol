@@ -215,7 +215,7 @@ let MK_EXISTS =
 let MP_CONV (cnv : conv) (th : Protected<thm0>) : Protected<thm0> = 
     choice {
     let! th = th
-    let! l, r = dest_imp <| concl th
+    let! l, _ = dest_imp <| concl th
     let! ath = cnv l
     let! th1 = EQT_ELIM (Choice.result ath)
     return!
@@ -229,13 +229,15 @@ let MP_CONV (cnv : conv) (th : Protected<thm0>) : Protected<thm0> =
 
 /// Beta conversion over multiple arguments.
 let rec BETAS_CONV tm : Protected<thm0> =
-    match tm with
-    | Comb(Abs(_, _), _) ->
-        BETA_CONV tm
-    | Comb(Comb(_, _), _) ->
-        (RATOR_CONV(THENC BETAS_CONV BETA_CONV)) tm
-    | _ ->
-        Choice.failwith "BETAS_CONV"
+    choice {
+        match tm with
+        | Comb(Abs(_, _), _) ->
+            return! BETA_CONV tm
+        | Comb(Comb(_, _), _) ->
+            return! (RATOR_CONV BETAS_CONV |> THENC <| BETA_CONV) tm
+        | _ ->
+            return! Choice.failwith "BETAS_CONV"
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Instantiators.                                                            *)
@@ -438,7 +440,7 @@ let INSTANTIATE_ALL : instantiation -> Protected<thm0> -> Protected<thm0> =
                             return not(intersect tvs tvs' = [])
                             })
                 
-                let tmrel, tmirrel =
+                let tmrel, _ =
                     if List.isEmpty tmin then
                         [], tyiirel
                     else
@@ -449,9 +451,7 @@ let INSTANTIATE_ALL : instantiation -> Protected<thm0> -> Protected<thm0> =
                             not(intersect vs vs' = []))
                 
                 let rhyps = union tyrel tmrel
-                let! th1 =
-                    // TODO : Modify this to use Choice.List.fold/foldBack.
-                    Choice.List.fold (fun acc x -> DISCH x (Choice.result acc)) th rhyps
+                let! th1 = Choice.List.fold (fun acc x -> DISCH x (Choice.result acc)) th rhyps
                 let! th2 = INSTANTIATE i (Choice.result th1)
                 return! Choice.funpow (length rhyps) (UNDISCH << Choice.result) th2
         }
@@ -1058,7 +1058,7 @@ let HIGHER_REWRITE_CONV =
         let look_fn t =
             choice {
                 // CLEAN : Rename this value to something reasonable.
-                let! (thl, ass_list, mnet) = v
+                let! (_, _, mnet) = v
                 let! foo1 = lookup t mnet
                 return
                     foo1
@@ -1070,10 +1070,17 @@ let HIGHER_REWRITE_CONV =
 
         fun top tm -> 
             choice {
-                // NOTE: suppress errors in look_fn
-                let pred t = not(look_fn t = Choice.result []) && (Choice.get <| free_in t tm)
+                let pred t = 
+                    choice {
+                        let! tms = look_fn t
+                        if List.isEmpty tms then
+                            return false
+                        else
+                            let! b = free_in t tm
+                            return b
+                    }
 
-                let! (thl, ass_list, mnet) = v
+                let! (_, ass_list, _) = v
 
                 let! stm = 
                     choice {
@@ -1085,7 +1092,7 @@ let HIGHER_REWRITE_CONV =
                     }
                 let! stm' = look_fn stm
                 let pat = hd stm'
-                let! _, tmin, tyin = term_match [] pat stm
+                let! _, tmin, _ = term_match [] pat stm
                 let! pred, (th, beta_fn) =
                     assoc pat ass_list
                     |> Option.toChoiceWithError "find"
@@ -1135,5 +1142,5 @@ let new_definition tm : Protected<thm0> =
         return! itlist GEN rvs (itlist GEN avs th2)
     }
     |> Choice.mapError (fun e ->
-        logger.Error(Printf.sprintf "%O" e)
+        logger.Error(Printf.sprintf "new_definition of '%s' returns %O" (string_of_term tm) e)
         e)
