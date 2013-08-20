@@ -57,6 +57,12 @@
     <Compile Include="tactics.fs" />
     <Compile Include="itab.fs" />
     <Compile Include="simp.fs" />
+    <Compile Include="theorems.fs" />
+    <Compile Include="ind_defs.fs" />
+    <Compile Include="class.fs" />
+    <Compile Include="trivia.fs" />
+    <Compile Include="canon.fs" />
+    <Compile Include="meson.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ExtCore">
