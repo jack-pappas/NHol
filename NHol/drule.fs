@@ -1140,5 +1140,5 @@ let new_definition tm : Protected<thm0> =
         return! itlist GEN rvs (itlist GEN avs th2)
     }
     |> Choice.mapError (fun e ->
-        logger.Error(Printf.sprintf "new_definition of %s returns %O" (string_of_term tm) e)
+        logger.Error(Printf.sprintf "new_definition of '%s' returns %O" (string_of_term tm) e)
         e)

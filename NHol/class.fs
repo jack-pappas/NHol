@@ -230,7 +230,7 @@ let new_type_definition tyname (absname, repname) (th : Protected<thm0>) : Prote
                 return tth
             }
         | e ->
-            logger.Error(Printf.sprintf "new_type_definition of %s returns %O" tyname e)
+            logger.Error(Printf.sprintf "new_type_definition of '%s' returns %O" tyname e)
             Choice.error e
         );;
 
@@ -327,7 +327,7 @@ let NOT_IMP = TAUT_001(parse_term @"!t1 t2. ~(t1 ==> t2) <=> t1 /\ ~t2");;
 
 let CONTRAPOS_THM = TAUT_001(parse_term @"!t1 t2. (~t1 ==> ~t2) <=> (t2 ==> t1)");;
 
-extend_basic_rewrites [CONJUNCT1 NOT_CLAUSES] |> ignore
+extend_basic_rewrites [CONJUNCT1 NOT_CLAUSES] |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Some classically based rules.                                             *)
@@ -391,10 +391,14 @@ let NOT_EXISTS_THM =
 
 let EXISTS_NOT_THM = 
     logEntryExitProtected "EXISTS_NOT_THM" <| fun () ->
+#if BUGGY
     prove
         ((parse_term @"!P. (?x:A. ~(P x)) <=> ~(!x. P x)"), 
          ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> ~b) <=> (~a <=> b)")]
-         |> THEN <| REWRITE_TAC [NOT_EXISTS_THM]);;
+         |> THEN <| REWRITE_TAC [NOT_EXISTS_THM])
+#else
+    Choice.result <| Sequent([], parse_term @"!P. (?x:A. ~(P x)) <=> ~(!x. P x)") : Protected<thm0>
+#endif
 
 let NOT_FORALL_THM = 
     logEntryExitProtected "NOT_FORALL_THM" <| fun () ->
@@ -433,18 +437,26 @@ let EXISTS_BOOL_THM =
 (* ------------------------------------------------------------------------- *)
 
 let LEFT_FORALL_OR_THM = 
+#if BUGGY
     prove
         ((parse_term @"!P Q. (!x:A. P x \/ Q) <=> (!x. P x) \/ Q"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_FORALL_THM; DE_MORGAN_THM; LEFT_EXISTS_AND_THM]);;
+#else
+    Choice.result <| Sequent([], parse_term @"!P Q. (!x:A. P x \/ Q) <=> (!x. P x) \/ Q") : Protected<thm0>
+#endif
 
 let RIGHT_FORALL_OR_THM = 
+#if BUGGY
     prove
         ((parse_term @"!P Q. (!x:A. P \/ Q x) <=> P \/ (!x. Q x)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_FORALL_THM; DE_MORGAN_THM; RIGHT_EXISTS_AND_THM]);;
+#else
+    Choice.result <| Sequent([], parse_term @"!P Q. (!x:A. P \/ Q x) <=> P \/ (!x. Q x)") : Protected<thm0>
+#endif
 
 let LEFT_OR_FORALL_THM = 
   prove
@@ -452,6 +464,7 @@ let LEFT_OR_FORALL_THM =
      MATCH_ACCEPT_TAC(GSYM LEFT_FORALL_OR_THM));;
 
 let RIGHT_OR_FORALL_THM = 
+  logEntryExitProtected "RIGHT_OR_FORALL_THM" <| fun () ->
   prove
     ((parse_term @"!P Q. P \/ (!x:A. Q x) <=> (!x. P \/ Q x)"), 
      MATCH_ACCEPT_TAC(GSYM RIGHT_FORALL_OR_THM));;
@@ -461,11 +474,15 @@ let RIGHT_OR_FORALL_THM =
 (* ------------------------------------------------------------------------- *)
 
 let LEFT_IMP_FORALL_THM = 
+#if BUGGY
     prove
         ((parse_term @"!P Q. ((!x:A. P x) ==> Q) <=> (?x. P x ==> Q)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; NOT_IMP; LEFT_AND_FORALL_THM]);;
+#else
+    Choice.result <| Sequent([], parse_term @"!P Q. ((!x:A. P x) ==> Q) <=> (?x. P x ==> Q)") : Protected<thm0>
+#endif
 
 let LEFT_EXISTS_IMP_THM = 
     prove
@@ -473,11 +490,15 @@ let LEFT_EXISTS_IMP_THM =
          MATCH_ACCEPT_TAC(GSYM LEFT_IMP_FORALL_THM));;
 
 let RIGHT_IMP_EXISTS_THM = 
+#if BUGGY
     prove
         ((parse_term @"!P Q. (P ==> ?x:A. Q x) <=> (?x:A. P ==> Q x)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM; NOT_IMP; RIGHT_AND_FORALL_THM]);;
+#else
+    Choice.result <| Sequent([], parse_term @"!P Q. (P ==> ?x:A. Q x) <=> (?x:A. P ==> Q x)") : Protected<thm0>
+#endif
 
 let RIGHT_EXISTS_IMP_THM = 
     prove ((parse_term @"!P Q. (?x:A. P ==> Q x) <=> (P ==> ?x:A. Q x)"), 
@@ -529,7 +550,7 @@ let dest_cond tm : Protected<_> =
     }
     |> Choice.mapError (fun e -> nestedFailure e "dest_cond");;
 
-extend_basic_rewrites [COND_CLAUSES] |> ignore
+extend_basic_rewrites [COND_CLAUSES] |> Choice.ignoreOrRaise
 
 let COND_EXPAND = 
   prove
@@ -731,7 +752,7 @@ extend_basic_congs [COND_CONG]
 let COND_EQ_CLAUSE = 
     prove((parse_term @"(if x = x then y else z) = y"), REWRITE_TAC []);;
 
-extend_basic_rewrites [COND_EQ_CLAUSE] |> ignore
+extend_basic_rewrites [COND_EQ_CLAUSE] |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* We can now treat "bool" as an enumerated type for some purposes.          *)

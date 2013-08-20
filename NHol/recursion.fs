@@ -52,7 +52,7 @@ open trivia
 open canon
 open meson
 open quot
-//open pair
+open pair
 open nums
 #endif
 

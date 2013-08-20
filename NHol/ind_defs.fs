@@ -740,7 +740,7 @@ let prove_inductive_relations_exist, new_inductive_definition =
                 return thtr
             }
             |> Choice.mapError (fun e ->
-                    logger.Error(Printf.sprintf "%O" e)
+                    logger.Error(Printf.sprintf "new_inductive_definition of '%s' returns %O" (string_of_term tm) e)
                     e)
             // We return three exceptions in case of errors. It's still better than raising exceptions directly.
             |> Choice.getOrFailure3 "new_inductive_definition"

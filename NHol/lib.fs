@@ -162,15 +162,6 @@ module Choice =
     let inline fail () : Choice<'T, exn> =
         failwith ""
 
-    let inline failwithPair s =
-        (failwith s, failwith s)
-
-    let inline nestedFailwithPair innerException message =
-        (nestedFailwith innerException message, nestedFailwith innerException message)
-
-    let inline pair (x, y) =
-        (Choice1Of2 x, Choice1Of2 y)
-
     // NOTE : This is slightly different than the Choice.attempt from ExtCore --
     // this one only catches exceptions which match the Failure pattern.
     let attempt f : Choice<'T, exn> = 
