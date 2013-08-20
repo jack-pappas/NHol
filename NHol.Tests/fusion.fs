@@ -183,6 +183,12 @@ let ``{tyvars}, when applied to a type, returns a list, possibly empty, of the t
     tyvars (Tyapp ("fun", [Tyvar "A"; Tyapp ("fun", [Tyvar "A"; Tyvar "B"])]))
     |> assertEqual [Tyvar "A";Tyvar "B"]
 
+(* type_subst  tests *)
+
+(* bool_ty   tests *)
+
+(* aty   tests *)
+
 (* constants tests *)
 
 [<Test>]
@@ -240,6 +246,46 @@ let ``{type_of} returns the type of a term``() =
     |> evaluate
     |> assertEqual (Tyapp ("fun", [aty; Tyapp ("fun",[aty; bool_ty])]))
 
+(* alphaorder  tests *)
+
+(* is_var   tests *)
+
+(* is_const   tests *)
+
+(* is_abs   tests *)
+
+(* is_comb   tests *)
+
+(* mk_var   tests *)
+
+(* mk_const   tests *)
+
+(* mk_abs   tests *)
+
+(* mk_comb   tests *)
+
+(* dest_var   tests *)
+
+(* dest_const   tests *)
+
+(* dest_comb   tests *)
+
+(* dest_abs   tests *)
+
+(* frees   tests *)
+
+(* freesl    tests *)
+
+(* freesin    tests *)
+
+(* vfree_in    tests *)
+
+(* type_vars_in_term    tests *)
+
+(* variant    tests *)
+
+(* vsubst    tests *)
+
 (* inst tests *)
 
 [<Test>]
@@ -268,6 +314,18 @@ let ``{inst [ty1,tv1; _ ; tyn,tvn] t} will systematically replace each type vari
     actual
     |> evaluate
     |> assertEqual expected
+
+(* rand  tests *)
+
+(* rator  tests *)
+
+(* dest_eq  tests *)
+
+(* dest_thm  tests *)
+
+(* hyp  tests *)
+
+(* concl   tests *)
 
 (* REFL tests *)
 
@@ -302,6 +360,18 @@ let ``{REFL} maps any term {t} to the corresponding theorem {|- t = t}``() =
     |> evaluate
     |> assertEqual expected
 
+(* TRANS  tests *)
+
+(* MK_COMB  tests *)
+
+(* ABS  tests *)
+
+(* BETA  tests *)
+
+(* ASSUME  tests *)
+
+(* EQ_MP  tests *)
+
 [<Test>]
 let ``{EQ_MP th1 th2} equality version of modus ponens rule``() =
 
@@ -315,4 +385,30 @@ let ``{EQ_MP th1 th2} equality version of modus ponens rule``() =
     |> evaluate
     |> assertEqual expected
 
+(* DEDUCT_ANTISYM_RULE   tests *)
 
+(* INST_TYPE   tests *)
+
+(* INST   tests *)
+
+(* axioms   tests *)
+
+(* new_axiom   tests *)
+
+(* definitions   tests *)
+
+(* new_basic_definition    tests *)
+
+(* new_basic_type_definition    tests *)
+
+(* mk_fun_ty   tests *)
+
+(* bty   tests *)
+
+(* is_eq   tests *)
+
+(* mk_eq   tests *)
+
+(* aconv   tests *)
+
+(* equals_thm   tests *)

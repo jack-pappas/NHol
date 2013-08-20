@@ -301,7 +301,7 @@ let ``check func<'a, 'b> against Map<'a, 'b> model in F# Core``() =
 
 // Note: Many of the next test cases came from the HOL Light reference manual
 
-(* failtests *)
+(* fail tests *)
 
 [<Test>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "")>]
@@ -357,6 +357,8 @@ let ``{W f x} duplicates function argument, {W f x} = {f x x}``() =
 
     W (+) 4
     |> assertEqual 8
+
+(* >> , OCaml o tests *)
 
 (* F_F (||>>) tests *)
 
@@ -1327,6 +1329,12 @@ let ``{gcd m n} returns zero if both {m} and {n} are zero``() =
     gcd 0 0
     |> assertEqual 0
 
+(* num_0 tests *)
+
+(* num_1 tests *)
+
+(* num_10 tests *)
+
 (* pow2 tests *)
 
 [<Test>]
@@ -1534,9 +1542,9 @@ let ``{allpairs} compute list of all results from applying function to pairs fro
 //
 //    testPrintf report "Proof completed OK"
 //    |> assertEqual "Proof completed OK\r\n"
-//
-//(* warn tests *)
-//
+
+(* warn tests *)
+
 //[<Test>]
 //let ``{warn b s} prints out {Warning: s} and a following newline to the terminal if {b} is true``() =
 //
@@ -1552,9 +1560,9 @@ let ``{allpairs} compute list of all results from applying function to pairs fro
 //
 //    testPrintf (warn (n <> 0)) "Nonzero value" // here testPrintf is a litle bit tricky 
 //    |> assertEqual ""
-//
-//(* remark tests *)
-//
+
+(* remark tests *)
+
 //[<Test>]
 //let ``{remark s} prints the string {s} and a following newline if and only if {verbose} flag is set to {true}``() =
 //
@@ -1572,9 +1580,9 @@ let ``{allpairs} compute list of all results from applying function to pairs fro
 //
 //    actual
 //    |> assertEqual ""
-//
-//(* time tests *)
-//
+
+(* time tests *)
+
 //[<Test>]
 //let ``{time f x} report CPU time taken by a function, if {report_timing} is set to {true}``() =
 //
@@ -1679,6 +1687,102 @@ let ``{undefined} is the "empty" finite partial function that is nowhere defined
     apply undefined "anything" // note that apply is defined later in Lib module
     |> assertEqual None
 
+(* is_undefined tests *)
+
+[<Test>]
+let ``{is_undefined} return {true} if the argument is the completely undefined function``() = 
+
+    let x = undefined
+
+    is_undefined x
+    |> assertEqual true
+
+[<Test>]
+let ``{is_undefined} return {false} if the argument is defined somewhere``() = 
+
+    let y = (1 |=> 2)
+
+    is_undefined y
+    |> assertEqual false
+
+
+
+(* mapf tests *)
+
+[<Test>]
+let ``{mapf f p} applies the, ordinary, function {f} to all  the range elements of a finite partial function``() = 
+
+    let f = (1 |=> 2)
+
+    let string_of_int x = x.ToString()
+
+    let mappedF = mapf string_of_int f
+
+    apply mappedF 1
+    |> assertEqual (Some "2")
+
+(* foldl tests *)
+
+[<Test>]
+let ``{foldl f a p} returns { f {f _ {f {f a x1 y1} x2 y2} _ } xn yn }``() = 
+
+    let f = (1 |-> 2) (2 |=> 3) 
+
+    foldl (fun a x y -> (x,y)::a) [] f  // The {graph} function is implemented based on the following invocation of {foldl}
+    |> assertEqual [(1, 2); (2, 3)]    //Note that in this case the order happened to be the same, but this is an accident.
+
+(* foldr tests *)
+
+[<Test>]
+let ``{foldr f a p} returns { f x1 y1 {f x2 y2 {f x3 y3 {f _ {f xn yn a} _ }}} }``() = 
+
+    let f = (1 |-> 2) (2 |=> 3) 
+
+    foldr (fun x y a -> (x,y)::a) f []  
+    |> assertEqual [(2, 3); (1, 2)]  
+    
+    // Note how the pairs are actually processed in the opposite order to the order in 
+    // which they are presented by {graph}. The order will in general not be obvious, 
+    // and generally this is applied to operations with appropriate commutativity 
+    // properties.
+
+(* graph tests *)
+
+[<Test>]
+let ``{graph} function takes a finite partial function and returns its graph as a list``() = 
+
+    graph (1 |=> 2)
+    |> assertEqual [(1, 2)]
+
+[<Test>]
+let ``{graph} returns an empty list if the argument is the undefined function``() = 
+
+    graph undefined
+    |> assertEqual []
+
+// TODO: a fails unit test for types that don't permit comparisons
+
+(* dom tests *)
+
+[<Test>]
+let ``{dom} returns the domain of a function``() = 
+
+    dom(itlist I [2|->4; 3|->6] undefined)
+    |> assertEqual [2; 3]
+
+// TODO: a fails unit test for types that don't permit comparisons
+
+(* ran tests *)
+
+[<Test>]
+let ``{ran} returns the domain of a function``() = 
+
+    ran(itlist I [2|->4; 3|->6] undefined)
+    |> assertEqual [4; 6]
+
+// TODO: a fails unit test for types that don't permit comparisons
+
+
 (* applyd tests *)
 
 [<Test>]
@@ -1767,6 +1871,8 @@ let ``{{x |-> y} f}, if {f} is a finite partial function, gives a modified versi
     (valueBeforeModification,valueAfterModification)
     |> assertEqual (Some(2),Some(3))
 
+(* combine tests *)
+
 (* (|=>) tests *)
 
 [<Test>]
@@ -1785,99 +1891,6 @@ let ``{x |=> y} is undefined for all arguments other than {x}``() =
     apply f 2
     |> assertEqual None
 
-(* is_undefined tests *)
-
-[<Test>]
-let ``{is_undefined} return {true} if the argument is the completely undefined function``() = 
-
-    let x = undefined
-
-    is_undefined x
-    |> assertEqual true
-
-[<Test>]
-let ``{is_undefined} return {false} if the argument is defined somewhere``() = 
-
-    let y = (1 |=> 2)
-
-    is_undefined y
-    |> assertEqual false
-
-(* mapf tests *)
-
-[<Test>]
-let ``{mapf f p} applies the, ordinary, function {f} to all  the range elements of a finite partial function``() = 
-
-    let f = (1 |=> 2)
-
-    let string_of_int x = x.ToString()
-
-    let mappedF = mapf string_of_int f
-
-    apply mappedF 1
-    |> assertEqual (Some "2")
-
-(* foldl tests *)
-
-[<Test>]
-let ``{foldl f a p} returns { f {f _ {f {f a x1 y1} x2 y2} _ } xn yn }``() = 
-
-    let f = (1 |-> 2) (2 |=> 3) 
-
-    foldl (fun a x y -> (x,y)::a) [] f  // The {graph} function is implemented based on the following invocation of {foldl}
-    |> assertEqual [(1, 2); (2, 3)]    //Note that in this case the order happened to be the same, but this is an accident.
-
-(* foldr tests *)
-
-[<Test>]
-let ``{foldr f a p} returns { f x1 y1 {f x2 y2 {f x3 y3 {f _ {f xn yn a} _ }}} }``() = 
-
-    let f = (1 |-> 2) (2 |=> 3) 
-
-    foldr (fun x y a -> (x,y)::a) f []  
-    |> assertEqual [(2, 3); (1, 2)]  
-    
-    // Note how the pairs are actually processed in the opposite order to the order in 
-    // which they are presented by {graph}. The order will in general not be obvious, 
-    // and generally this is applied to operations with appropriate commutativity 
-    // properties.
-
-(* graph tests *)
-
-[<Test>]
-let ``{graph} function takes a finite partial function and returns its graph as a list``() = 
-
-    graph (1 |=> 2)
-    |> assertEqual [(1, 2)]
-
-[<Test>]
-let ``{graph} returns an empty list if the argument is the undefined function``() = 
-
-    graph undefined
-    |> assertEqual []
-
-// TODO: a fails unit test for types that don't permit comparisons
-
-(* dom tests *)
-
-[<Test>]
-let ``{dom} returns the domain of a function``() = 
-
-    dom(itlist I [2|->4; 3|->6] undefined)
-    |> assertEqual [2; 3]
-
-// TODO: a fails unit test for types that don't permit comparisons
-
-(* ran tests *)
-
-[<Test>]
-let ``{ran} returns the domain of a function``() = 
-
-    ran(itlist I [2|->4; 3|->6] undefined)
-    |> assertEqual [4; 6]
-
-// TODO: a fails unit test for types that don't permit comparisons
-
 (* choose tests *)
 
 [<Test>]
@@ -1895,6 +1908,8 @@ let ``{choose f} fails if {f} is the completely undefined function``() =
     choose undefined
     |> ExtCore.Choice.bindOrRaise
     |> ignore
+
+(* print_fpf tests *)
 
 (* mem' tests *)
 
