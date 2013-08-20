@@ -130,3 +130,9 @@ let assertProp testName (property : 'Testable) =
 /// Evaluate a choice, either returning results or raising exceptions
 let inline evaluate choice : 'T =
     ExtCore.Choice.bindOrRaise choice
+
+let noSubgoal gs =
+    match gs with
+    | Success ((_, [], _) :: _) -> true
+    | _ -> false
+

@@ -321,15 +321,15 @@ let ``{EQF_ELIM thm} Replaces equality with F by negation``() =
 //    |> evaluate
 //    |> assertEqual expected
 
-open NHol.meson
-
 [<Test>]
 let ``{EXISTENCE thm} Deduces existence from unique existence``() =
-    let th = MESON [] <| parse_term @"?!n. n = m"
+    let th = Choice.result <| Sequent([], parse_term @"?!n. n = m")
     let actual = EXISTENCE th
     let expected = Sequent ([], parse_term @"?n. n = m")
 
+    // Compare concrete form since AST form consists of different type vars
     actual
     |> evaluate
-    |> assertEqual expected
+    |> string_of_thm
+    |> assertEqual (string_of_thm expected)
 

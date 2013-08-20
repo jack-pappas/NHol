@@ -30,7 +30,6 @@ open NHol.itab
 open NHol.simp
 open NHol.theorems
 open NHol.``class``
-open NHol.meson
 
 open NUnit.Framework
 
