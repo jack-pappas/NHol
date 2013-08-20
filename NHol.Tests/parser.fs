@@ -1,6 +1,6 @@
 ﻿(*
 
-Copyright 2013 Jack Pappas, Anh-Dung Phan
+Copyright 2013 Jack Pappas, Anh-Dung Phan, Eric Taucher
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,52 @@ module Tests.NHol.parser
 
 open NUnit.Framework
 
+(* (<|>) - OCaml ||  tests *)
 
+(* (.>>.) - OCaml ++  tests *)
 
+(* many  tests *)
 
+(* (|>>) - OCaml >>  tests *)
 
+(* fix  tests *)
 
+(* listof  tests *)
+
+(* nothing  tests *)
+
+(* elistof  tests *)
+
+(* leftbin  tests *)
+
+(* rightbin  tests *)
+
+(* possibly  tests *)
+
+(* some  tests *)
+
+(* a  tests *)
+
+(* atleast  tests *)
+
+(* finished  tests *)
+
+(* comment_token  tests *)
+
+(* lex  tests *)
+
+(* parse_pretype  tests *)
+
+(* install_parser  tests *)
+
+(* xyzdelete_parser  tests *)
+
+(* installed_parsers  tests *)
+
+(* try_user_parser  tests *)
+
+(* parse_preterm  tests *)
+
+(* parse_type  tests *)
+
+(* parse_term  tests *)
