@@ -31,6 +31,24 @@ open NHol.``class``
 
 open NUnit.Framework
 
+(* null_inst  tests *)
+
+(* null_meta  tests *)
+
+(* equals_goal  tests *)
+
+(* inst_goal  tests *)
+
+(* compose_insts  tests *)
+
+(* _FALSITY_  tests *)
+
+(* mk_fthm  tests *)
+
+(* VALID  tests *)
+
+(* THEN  tests *)
+
 //// This test crashes VS test runner
 //
 //[<Test>]
@@ -42,6 +60,18 @@ open NUnit.Framework
 //    List.isEmpty gs
 //    |> assertEqual true
 
+(* THENL  tests *)
+
+(* ORELSE  tests *)
+
+(* FAIL_TAC  tests *)
+
+(* NO_TAC  tests *)
+
+(* ALL_TAC  tests *)
+
+(* TRY  tests *)
+
 //[<Test>]
 //let ``{TRY} Applies two tactics in sequence``() =
 //    let _ = g <| parse_term @"(x + 1) EXP 2 = x EXP 2 + 2 * x + 1 /\
@@ -51,6 +81,42 @@ open NUnit.Framework
 //
 //    List.length gs
 //    |> assertEqual 1
+
+(* REPEAT  tests *)
+
+(* EVERY  tests *)
+
+(* FIRST  tests *)
+
+(* MAP_EVERY  tests *)
+
+(* MAP_FIRST  tests *)
+
+(* CHANGED_TAC  tests *)
+
+(* REPLICATE_TAC  tests *)
+
+(* THEN_TCL  tests *)
+
+(* ORELSE_TCL  tests *)
+
+(* REPEAT_TCL  tests *)
+
+(* REPEAT_GTCL  tests *)
+
+(* ALL_THEN  tests *)
+
+(* NO_THEN  tests *)
+
+(* EVERY_TCL  tests *)
+
+(* FIRST_TCL  tests *)
+
+(* LABEL_TAC  tests *)
+
+(* ASSUME_TAC  tests *)
+
+(* FIND_ASSUM  tests *)
 
 //[<Test>]
 //let ``{FIND_ASSUM} Apply a theorem-tactic to the the first assumption equal to given terms``() =
@@ -63,6 +129,28 @@ open NUnit.Framework
 //    List.isEmpty gs
 //    |> assertEqual true
 
+(* POP_ASSUM  tests *)
+
+(* ASSUM_LIST  tests *)
+
+(* POP_ASSUM_LIST  tests *)
+
+(* EVERY_ASSUM  tests *)
+
+(* FIRST_ASSUM  tests *)
+
+(* RULE_ASSUM_TAC  tests *)
+
+(* USE_THEN  tests *)
+
+(* REMOVE_THEN  tests *)
+
+(* ASM  tests *)
+
+(* HYP  tests *)
+
+(* ACCEPT_TAC  tests *)
+
 [<Test>]
 let ``{ACCEPT_TAC} Solves a goal if supplied with the desired theorem (up to alpha-conversion)``() =
     ETA_AX |> ignore
@@ -72,6 +160,22 @@ let ``{ACCEPT_TAC} Solves a goal if supplied with the desired theorem (up to alp
     Printf.printfn "gs: %A" (Choice.map string_of_goalstack gs)
     noSubgoal gs
     |> assertEqual true
+
+(* CONV_TAC  tests *)
+
+(* REFL_TAC  tests *)
+
+(* ABS_TAC  tests *)
+
+(* MK_COMB_TAC  tests *)
+
+(* AP_TERM_TAC  tests *)
+
+(* AP_THM_TAC  tests *)
+
+(* BINOP_TAC  tests *)
+
+(* SUBST1_TAC  tests *)
 
 [<Test>]
 let ``{SUBST1_TAC} Makes a simple term substitution in a goal using a single equational theorem``() =
@@ -83,6 +187,28 @@ let ``{SUBST1_TAC} Makes a simple term substitution in a goal using a single equ
     noSubgoal gs
     |> assertEqual true
 
+(* SUBST_ALL_TAC  tests *)
+
+(* BETA_TAC  tests *)
+
+(* SUBST_VAR_TAC  tests *)
+
+(* DISCH_TAC  tests *)
+
+(* MP_TAC  tests *)
+
+(* EQ_TAC  tests *)
+
+(* UNDISCH_TAC  tests *)
+
+(* SPEC_TAC  tests *)
+
+(* X_GEN_TAC  tests *)
+
+(* X_CHOOSE_TAC  tests *)
+
+(* EXISTS_TAC  tests *)
+
 //[<Test>]
 //let ``{EXISTS_TAC} Solves a goal if supplied with the desired theorem (up to alpha-conversion)``() =
 //    let _ = g <| parse_term @"?x. 1 < x /\ x < 3"
@@ -90,6 +216,22 @@ let ``{SUBST1_TAC} Makes a simple term substitution in a goal using a single equ
 //
 //    List.isEmpty gs
 //    |> assertEqual true
+
+(* GEN_TAC  tests *)
+
+(* CHOOSE_TAC  tests *)
+
+(* CONJ_TAC  tests *)
+
+(* DISJ1_TAC  tests *)
+
+(* DISJ2_TAC  tests *)
+
+(* DISJ_CASES_TAC  tests *)
+
+(* CONTR_TAC  tests *)
+
+(* MATCH_ACCEPT_TAC  tests *)
 
 [<Test>]
 let ``{MATCH_ACCEPT_TAC} Solves a goal which is an instance of the supplied theorem``() =
@@ -100,3 +242,94 @@ let ``{MATCH_ACCEPT_TAC} Solves a goal which is an instance of the supplied theo
     noSubgoal gs
     |> assertEqual true
 
+(* MATCH_MP_TAC  tests *)
+
+(* CONJUNCTS_THEN2  tests *)
+
+(* CONJUNCTS_THEN  tests *)
+
+(* DISJ_CASES_THEN2  tests *)
+
+(* DISJ_CASES_THEN  tests *)
+
+(* DISCH_THEN  tests *)
+
+(* X_CHOOSE_THEN  tests *)
+
+(* CHOOSE_THEN  tests *)
+
+(* STRIP_THM_THEN  tests *)
+
+(* ANTE_RES_THEN  tests *)
+
+(* IMP_RES_THEN  tests *)
+
+(* STRIP_ASSUME_TAC  tests *)
+
+(* STRUCT_CASES_THEN  tests *)
+
+(* STRUCT_CASES_TAC  tests *)
+
+(* STRIP_GOAL_THEN  tests *)
+
+(* STRIP_TAC  tests *)
+
+(* UNDISCH_THEN  tests *)
+
+(* FIRST_X_ASSUM  tests *)
+
+(* SUBGOAL_THEN  tests *)
+
+(* SUBGOAL_TAC  tests *)
+
+(* FREEZE_THEN  tests *)
+
+(* X_META_EXISTS_TAC  tests *)
+
+(* META_EXISTS_TAC  tests *)
+
+(* META_SPEC_TAC  tests *)
+
+(* CHEAT_TAC  tests *)
+
+(* RECALL_ACCEPT_TAC  tests *)
+
+(* ANTS_TAC  tests *)
+
+(* print_goal  tests *)
+
+(* print_goalstack  tests *)
+
+(* by  tests *)
+
+(* rotate  tests *)
+
+(* mk_goalstate  tests *)
+
+(* TAC_PROOF  tests *)
+
+(* prove  tests *)
+
+(* current_goalstack  tests *)
+
+(* refine  tests *)
+
+(* flush_goalstack  tests *)
+
+(* e  tests *)
+
+(* r  tests *)
+
+(* set_goal  tests *)
+
+(* g  tests *)
+
+(* b  tests *)
+
+(* p  tests *)
+
+(* top_realgoal  tests *)
+
+(* top_goal  tests *)
+
+(* top_thm  tests *)
