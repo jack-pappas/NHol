@@ -98,6 +98,19 @@ open NHol.calc_num
 //    |> assertEqual expected
 
 [<Test>]
+let ``{CONJ thm} Introduces a conjunction``() =
+
+    let given1 = Choice1Of2 (Sequent ([(parse_term "Gamma:bool")], (parse_term "th1:bool")))
+    let given2 = Choice1Of2 (Sequent ([(parse_term "Delta:bool")], (parse_term "th2:bool")))
+
+    let actual = CONJ given1 given2
+    let expected = Sequent ([parse_term @"Delta:bool"; parse_term @"Gamma:bool"], parse_term @"th1:bool /\ th2:bool")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
 let ``{CONJUNCT1 thm} Extracts left conjunct of theorem``() =
     let actual = CONJUNCT1(ASSUME <| parse_term @"p /\ q")
     let expected = Sequent ([parse_term @"p /\ q"], parse_term @"p:bool")
