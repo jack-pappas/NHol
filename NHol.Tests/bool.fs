@@ -321,7 +321,7 @@ let ``{EQF_ELIM thm} Replaces equality with F by negation``() =
     |> evaluate
     |> assertEqual expected
 
-//// This test requires nums module to be initialized
+//// This test requires calc_num module to be initialized
 //open NHol.simp
 //
 //[<Test>]

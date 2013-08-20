@@ -216,15 +216,16 @@ let NUMERAL = new_definition(parse_term @"NUMERAL (n:num) = n")
 
 let NOT_SUC, num_INDUCTION, num_Axiom = 
     let xFuncs =
-        let th = prove((parse_term @"_0 = 0"), REWRITE_TAC [NUMERAL])
-        map (GEN_REWRITE_RULE DEPTH_CONV [th]) 
-            [NOT_SUC_001; num_INDUCTION_001; num_Axiom_001]
+        choice {
+        let! th = prove((parse_term @"_0 = 0"), REWRITE_TAC [NUMERAL])
+        let! ths = Choice.List.map (GEN_REWRITE_RULE DEPTH_CONV [Choice.result th]) [NOT_SUC_001; num_INDUCTION_001; num_Axiom_001]
+        return List.map Choice.result ths
+        }
     match xFuncs with
-    | [not_suc; num_induction; num_axiom] -> not_suc, num_induction, num_axiom
+    | Success [not_suc; num_induction; num_axiom] -> not_suc, num_induction, num_axiom
     | _ -> 
-        Choice.failwith "xFuncs: Unhandled case.",
-        Choice.failwith "xFuncs: Unhandled case.",
-        Choice.failwith "xFuncs: Unhandled case."
+        let failVal = Choice.failwith "xFuncs: Unhandled case."
+        failVal, failVal, failVal
 
 /// Performs tactical proof by mathematical induction on the natural numbers.
 let (INDUCT_TAC : tactic) = 
@@ -235,14 +236,19 @@ let (INDUCT_TAC : tactic) =
                  |> THEN <| DISCH_TAC]
 
 let num_RECURSION = 
-#if BUGGY
     choice {
-        let! (avs, _) = Choice.map (strip_forall << concl) num_Axiom
-        return! GENL avs (EXISTENCE(SPECL avs num_Axiom))
+        let! num_Axiom = num_Axiom
+        let (avs, _) = strip_forall <| concl num_Axiom
+        return! GENL avs (EXISTENCE(SPECL avs (Choice.result num_Axiom)))
     }
-#else
-    Choice.result <| Sequent([], parse_term @"!e f. ?fn. fn 0 = e /\ (!n. fn (SUC n) = f (fn n) n)") : Protected<thm0>
-#endif
+    // TODO: remove this when num_RECURSION is correct
+    |> function
+        | Success th -> 
+            warnf "Theorem num_RECURSION '%s' has been proved. Can safely remove this block." (string_of_thm th)
+            Choice.result th
+        | Error _ ->
+            errorf "Assume that num_RECURSION holds using its result."
+            Choice.result <| Sequent([], parse_term @"!e f. ?fn. fn 0 = e /\ (!n. fn (SUC n) = f (fn n) n)")
 
 let num_CASES = 
     assumeProof

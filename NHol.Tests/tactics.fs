@@ -73,15 +73,15 @@ let ``{ACCEPT_TAC} Solves a goal if supplied with the desired theorem (up to alp
     noSubgoal gs
     |> assertEqual true
 
-//[<Test>]
-//let ``{SUBST1_TAC} Makes a simple term substitution in a goal using a single equational theorem``() =
-//    let _ = g <| parse_term @"!p x y. 1 = x /\ p(1) ==> p(x)"
-//    let _ = e (REPEAT STRIP_TAC)
-//    let _ = e (FIRST_X_ASSUM(SUBST1_TAC << SYM))
-//    let gs = e (ASM_REWRITE_TAC [])
-//
-//    List.isEmpty gs
-//    |> assertEqual true
+[<Test>]
+let ``{SUBST1_TAC} Makes a simple term substitution in a goal using a single equational theorem``() =
+    let _ = g <| parse_term @"!p x y. 1 = x /\ p(1) ==> p(x)"
+    let _ = e (REPEAT STRIP_TAC)
+    let _ = e (FIRST_X_ASSUM(SUBST1_TAC << SYM))
+    let gs = e (ASM_REWRITE_TAC [])
+
+    noSubgoal gs
+    |> assertEqual true
 
 //[<Test>]
 //let ``{EXISTS_TAC} Solves a goal if supplied with the desired theorem (up to alpha-conversion)``() =

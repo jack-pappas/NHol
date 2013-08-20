@@ -106,6 +106,7 @@ open NUnit.Framework
 //    |> evaluate
 //    |> assertEqual expected
 
+//// This test requires uninitialized module
 //[<Test>]
 //let ``{INSTANTIATE} Apply a higher-order instantiation to conclusion of a theorem.``() =
 //    let actual = 
@@ -115,6 +116,7 @@ open NUnit.Framework
 //            let! i = term_match [] t <| parse_term @"~(!n. prime(n) ==> ODD(n))"
 //            return! INSTANTIATE i (Choice.result th)
 //        }
+//
 //    let expected = Sequent ([], parse_term @"~(!x. prime x ==> ODD x) <=> (?x. ~(prime x ==> ODD x))")
 //
 //    actual
@@ -161,13 +163,14 @@ let ``{PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
 //    |> evaluate
 //    |> assertEqual expected
 
-//[<Test>]
-//let ``{HIGHER_REWRITE_CONV} Rewrite once using more general higher order matching``() =
-//    let t = parse_term @"z = if x = 0 then if y = 0 then 0 else x + y else x + y"
-//    let actual = HIGHER_REWRITE_CONV [COND_ELIM_THM] true t
-//    let expected = Sequent ([], parse_term @"z = (if x = 0 then if y = 0 then 0 else x + y else x + y) <=>
-//       (x = 0 ==> z = (if y = 0 then 0 else x + y)) /\ (~(x = 0) ==> z = x + y)")
-//
-//    actual
-//    |> evaluate
-//    |> assertEqual expected
+[<Test>]
+let ``{HIGHER_REWRITE_CONV} Rewrite once using more general higher order matching``() =
+    NHol.nums.ONE_ONE |> ignore
+    let t = parse_term @"z = if x = 0 then if y = 0 then 0 else x + y else x + y"
+    let actual = HIGHER_REWRITE_CONV [COND_ELIM_THM] true t
+    let expected = Sequent ([], parse_term @"z = (if x = 0 then if y = 0 then 0 else x + y else x + y) <=>
+       (x = 0 ==> z = (if y = 0 then 0 else x + y)) /\ (~(x = 0) ==> z = x + y)")
+
+    actual
+    |> evaluate
+    |> assertEqual expected

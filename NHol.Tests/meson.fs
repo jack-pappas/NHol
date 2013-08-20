@@ -30,9 +30,11 @@ open NHol.itab
 open NHol.simp
 open NHol.theorems
 open NHol.``class``
+open NHol.meson
 
 open NUnit.Framework
 
+//// This crashes VS test runner
 //[<Test>]
 //let ``{MESON} doesn't fail on this simple term``() =
 //    let actual = MESON [] <| parse_term @"?!n. n = m"
