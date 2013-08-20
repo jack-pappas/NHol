@@ -229,13 +229,15 @@ let MP_CONV (cnv : conv) (th : Protected<thm0>) : Protected<thm0> =
 
 /// Beta conversion over multiple arguments.
 let rec BETAS_CONV tm : Protected<thm0> =
-    match tm with
-    | Comb(Abs(_, _), _) ->
-        BETA_CONV tm
-    | Comb(Comb(_, _), _) ->
-        (RATOR_CONV(THENC BETAS_CONV BETA_CONV)) tm
-    | _ ->
-        Choice.failwith "BETAS_CONV"
+    choice {
+        match tm with
+        | Comb(Abs(_, _), _) ->
+            return! BETA_CONV tm
+        | Comb(Comb(_, _), _) ->
+            return! (RATOR_CONV BETAS_CONV |> THENC <| BETA_CONV) tm
+        | _ ->
+            return! Choice.failwith "BETAS_CONV"
+    }
 
 (* ------------------------------------------------------------------------- *)
 (* Instantiators.                                                            *)
