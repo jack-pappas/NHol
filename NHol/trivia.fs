@@ -47,7 +47,7 @@ open ind_defs
 open ``class``
 #endif
 
-logger.Trace("Entering trivia.fs")
+infof "Entering trivia.fs"
 
 parse_as_infix("o", (26, "right"))
 
@@ -75,10 +75,14 @@ let o_ASSOC =
          |> THEN <| CONV_TAC(REDEPTH_CONV BETA_CONV)
          |> THEN <| REFL_TAC)
 
-let I_THM = prove((parse_term @"!x:A. I x = x"), REWRITE_TAC [I_DEF])
+let I_THM = 
+    assumeProof
+        prove
+        ((parse_term @"!x:A. I x = x"), REWRITE_TAC [I_DEF])
 
 let I_O_ID = 
-    prove
+    assumeProof
+        prove
         ((parse_term @"!f:A->B. (I o f = f) /\ (f o I = f)"), 
          REPEAT STRIP_TAC
          |> THEN <| REWRITE_TAC [FUN_EQ_THM; o_DEF; I_THM])
@@ -125,7 +129,9 @@ let one_RECURSION =
                                                 |> THEN <| REFL_TAC)
 
 let one_Axiom = 
-    prove((parse_term @"!e:A. ?!fn. fn one = e"), GEN_TAC
+    assumeProof
+        prove
+        ((parse_term @"!e:A. ?!fn. fn one = e"), GEN_TAC
                                                  |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_THM; one_RECURSION]
                                                  |> THEN <| REPEAT STRIP_TAC
                                                  |> THEN <| ONCE_REWRITE_TAC [FUN_EQ_THM]

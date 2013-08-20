@@ -61,7 +61,7 @@ open calc_num
 open normalizer
 #endif
 
-logger.Trace("Entering ind_types.fs")
+infof "Entering ind_types.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Abstract left inverses for binary injections (we could construct them...) *)

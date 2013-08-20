@@ -50,7 +50,7 @@ open simp
 open theorems
 #endif
 
-logger.Trace("Entering ind_defs.fs")
+infof "Entering ind_defs.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Strip off exactly n arguments from combination.                           *)
@@ -735,7 +735,10 @@ let prove_inductive_relations_exist, new_inductive_definition =
                 let! i = i
                 let! c = c
 
-                let thtr = GENL avs (Choice.result r), GENL avs (Choice.result i), GENL avs (Choice.result c)
+                let! th1' = GENL avs (Choice.result r)
+                let! th2' = GENL avs (Choice.result i)
+                let! th3' = GENL avs (Choice.result c)
+                let thtr = Choice.result th1', Choice.result th2', Choice.result th3' 
                 the_inductive_definitions := thtr :: (!the_inductive_definitions)
                 return thtr
             }

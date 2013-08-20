@@ -35,7 +35,7 @@ open system
 open lib
 #endif
 
-logger.Trace("Entering fusion.fs")
+infof "Entering fusion.fs"
 
 [<AutoOpen>]
 module Hol_kernel =

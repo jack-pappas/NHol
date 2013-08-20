@@ -51,15 +51,15 @@ open trivia
 open canon
 open meson
 open quot
-//open pair
+open pair
 open nums
 open recursion
 open arith
-//open wf
+open wf
 open calc_num
 #endif
 
-logger.Trace("Entering normalizer.fs")
+infof "Entering normalizer.fs"
 
 
 /// Produces normalizer functions over a ring or even a semiring.

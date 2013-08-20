@@ -36,7 +36,7 @@ open fusion.Hol_kernel
 open basics
 #endif
 
-logger.Trace("Entering nets.fs")
+infof "Entering nets.fs"
 
 
 (* TODO :   If possible, modify the Lcnet and Cnet cases of 'term_label' by removing

@@ -56,7 +56,7 @@ open nums
 open recursion
 #endif
 
-logger.Trace("Entering arith.fs")
+infof "Entering arith.fs"
 
 parse_as_infix("<", (12, "right"))
 parse_as_infix("<=", (12, "right"))

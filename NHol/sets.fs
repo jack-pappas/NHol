@@ -70,7 +70,7 @@ open calc_rat
 open int
 #endif
 
-logger.Trace("Entering sets.fs")
+infof "Entering sets.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Infix symbols for set operations.                                         *)

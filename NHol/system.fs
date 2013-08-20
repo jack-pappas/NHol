@@ -27,7 +27,7 @@ open NHol
 #endif
 
 // Log module entry.
-tracef "Entering system.fs"
+infof "Entering system.fs"
 
 (*
 

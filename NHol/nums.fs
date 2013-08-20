@@ -55,8 +55,7 @@ open quot
 open pair
 #endif
 
-logger.Trace("Entering nums.fs")
-
+infof "Entering nums.fs"
 
 new_type("ind", 0) |> Choice.ignoreOrRaise
 
@@ -357,11 +356,16 @@ let new_specification =
                             warn true ("Benign respecification")
                             return! sth
                         }
-                        |> Choice.bindError (fun _ ->
-                            let sth = specifies (!specification_counter) names th
-                            the_specifications := ((names, th), sth) :: (!the_specifications)
-                            specification_counter := !specification_counter +/ Int(length names)
-                            sth)
+                        |> Choice.bindError (function
+                            | Failure _ ->
+                                 choice {
+                                    let! th = th
+                                    let! sth = specifies (!specification_counter) names (Choice.result th)
+                                    the_specifications := ((names, Choice.result th), Choice.result sth) :: (!the_specifications)
+                                    specification_counter := !specification_counter +/ Int(length names)
+                                    return sth
+                                 }
+                            | e -> Choice.error e)
         }
         |> Choice.mapError (fun e ->
             logger.Error(Printf.sprintf "%O" e)

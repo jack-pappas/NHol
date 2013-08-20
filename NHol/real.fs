@@ -57,14 +57,14 @@ open wf
 open calc_num
 open normalizer
 open grobner
-//open ind_types
-//open lists
+open ind_types
+open lists
 open realax
 open calc_int
 open realarith
 #endif
 
-logger.Trace("Entering real.fs")
+infof "Entering real.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Additional commutativity properties of the inclusion map.                 *)

@@ -41,7 +41,7 @@ open preterm
 open parser
 #endif
 
-logger.Trace("Entering equal.fs")
+infof "Entering equal.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Type abbreviation for conversions.                                        *)
@@ -547,7 +547,8 @@ let SUBS_CONV (ths : Protected<thm0> list) tm : Protected<thm0> =
             let! th0 = REFL abs
             let! th =
                 Choice.List.fold (fun x y -> 
-                    CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(Choice.result x, y))) th0 ths
+                    CONV_RULE (THENC (RAND_CONV BETA_CONV) (LAND_CONV BETA_CONV)) (MK_COMB(Choice.result x, Choice.result y))) 
+                        th0 ths'
             let! tm' = rand <| concl th
             if tm' = tm then
                 return! REFL tm

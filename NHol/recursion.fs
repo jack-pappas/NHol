@@ -56,7 +56,7 @@ open pair
 open nums
 #endif
 
-logger.Trace("Entering recursion.fs")
+infof "Entering recursion.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Prove existence of recursive function. The inner "raw" version requires   *)
@@ -223,9 +223,9 @@ let new_recursive_definition =
                 let! tms = Choice.List.map (Choice.map fst << dest_var) evs
                 let dth = new_specification tms eth
                 let dths = map2 SPECL fvs (CONJUNCTS dth)
-                let th = end_itlist CONJ dths
-                the_recursive_definitions := th :: (!the_recursive_definitions)
-                return! th
+                let! th = end_itlist CONJ dths
+                the_recursive_definitions := Choice.result th :: (!the_recursive_definitions)
+                return th
             })
         |> Choice.mapError (fun e ->
             logger.Error(Printf.sprintf "%O" e)

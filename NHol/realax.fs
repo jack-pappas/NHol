@@ -59,11 +59,11 @@ open wf
 open calc_num
 open normalizer
 open grobner
-//open ind_types
-//open lists
+open ind_types
+open lists
 #endif
 
-logger.Trace("Entering realax.fs")
+infof "Entering realax.fs"
 
 parse_as_infix("++", (16, "right"))
 parse_as_infix("**", (20, "right"))
