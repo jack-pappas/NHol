@@ -23,7 +23,7 @@ limitations under the License.
 #r "./../packages/FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
 #r "./../packages/FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
 #r "./../packages/FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
-#r "./../packages/ExtCore.0.8.32/lib/net40/ExtCore.dll"
+#r "./../packages/ExtCore.0.8.33/lib/net40/ExtCore.dll"
 #r @"./../packages/NLog.2.0.1.2/lib/net40/NLog.dll"
 #else
 #I "./../packages"
@@ -31,7 +31,7 @@ limitations under the License.
 #r "FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
 #r "FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
 #r "FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
-#r "ExtCore.0.8.32/lib/net40/ExtCore.dll"
+#r "ExtCore.0.8.33/lib/net40/ExtCore.dll"
 #r @"NLog.2.0.1.2/lib/net40/NLog.dll"
 #endif
 
