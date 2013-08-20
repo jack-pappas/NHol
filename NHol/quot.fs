@@ -53,7 +53,7 @@ open canon
 open meson
 #endif
 
-logger.Trace("Entering quot.fs")
+infof "Entering quot.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Given a type name "ty" and a curried binary relation R, this defines      *)
@@ -239,7 +239,9 @@ let lift_function =
 /// Lifts a theorem to quotient type from representing type.
 let lift_theorem = 
     let pth = 
-        prove
+        // NOTE: investigate this soon
+        assumeProof
+            prove
             ((parse_term @"(!x:Repty. R x x) /\ (!x y. R x y <=> R y x) /\ (!x y z. R x y /\ R y z ==> R x z) /\ (!a. mk(dest a) = a) /\ (!r. (?x. r = R x) <=> (dest(mk r) = r)) ==> (!x y. R x y <=> (mk(R x) = mk(R y))) /\ (!P. (!x. P(mk(R x))) <=> (!x. P x)) /\ (!P. (?x. P(mk(R x))) <=> (?x. P x)) /\ (!x:Absty. mk(R((@)(dest x))) = x)"), 
              STRIP_TAC
              |> THEN <| SUBGOAL_THEN 

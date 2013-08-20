@@ -45,7 +45,7 @@ open drule
 open tactics
 #endif
 
-logger.Trace("Entering itab.fs")
+infof "Entering itab.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Accept a theorem modulo unification.                                      *)

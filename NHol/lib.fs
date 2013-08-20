@@ -46,7 +46,7 @@ open system
 #endif
 
 // Log module entry.
-tracef "Entering lib.fs"
+infof "Entering lib.fs"
 
 //
 type Protected<'T> = Choice<'T, exn>

@@ -46,7 +46,7 @@ open itab
 open simp
 #endif
 
-logger.Trace "Entering theorems.fs"
+infof "Entering theorems.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* More stuff about equality.                                                *)
@@ -110,7 +110,8 @@ let BETA_THM =
 
 let ABS_SIMP =
     logEntryExitProtected "ABS_SIMP" <| fun () ->
-    prove
+    assumeProof
+        prove
         ((parse_term @"!(t1:A) (t2:B). (\x. t1) t2 = t1"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [BETA_THM; REFL_CLAUSE])
@@ -256,7 +257,8 @@ do
 
 let EXISTS_UNIQUE_THM =
     logEntryExitProtected "EXISTS_UNIQUE_THM" <| fun () ->
-    prove
+    assumeProof
+        prove
         ((parse_term @"!P. (?!x:A. P x) <=> (?x. P x) /\ (!x x'. P x /\ P x' ==> (x = x'))"),
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_DEF])
@@ -272,9 +274,12 @@ let EXISTS_REFL =
           |> THEN <| EXISTS_TAC(parse_term @"a:A")
           |> THEN <| REFL_TAC)
 
-let EXISTS_UNIQUE_REFL =
+let EXISTS_UNIQUE_REFL =    
+    // NOTE: investigate this soon
     logEntryExitProtected "EXISTS_UNIQUE_REFL" <| fun () ->
-    prove((parse_term @"!a:A. ?!x. x = a"),
+    assumeProof
+        prove
+        ((parse_term @"!a:A. ?!x. x = a"),
           GEN_TAC
           |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_THM]
           |> THEN <| REPEAT(EQ_TAC |> ORELSE <| STRIP_TAC)
@@ -449,8 +454,11 @@ let TRIV_EXISTS_IMP_THM =
 (* ------------------------------------------------------------------------- *)
 (* Alternative versions of unique existence.                                 *)
 (* ------------------------------------------------------------------------- *)
+
 let EXISTS_UNIQUE_ALT = 
-    prove
+    logEntryExitProtected "EXISTS_UNIQUE_ALT" <| fun () ->
+    assumeProof
+        prove
         ((parse_term @"!P:A->bool. (?!x. P x) <=> (?x. !y. P y <=> (x = y))"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_THM]
@@ -473,7 +481,9 @@ let EXISTS_UNIQUE_ALT =
                       |> THEN <| REFL_TAC])
 
 let EXISTS_UNIQUE = 
-    prove
+    logEntryExitProtected "EXISTS_UNIQUE" <| fun () ->
+    assumeProof
+        prove
         ((parse_term @"!P:A->bool. (?!x. P x) <=> (?x. P x /\ !y. P y ==> (y = x))"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_ALT]

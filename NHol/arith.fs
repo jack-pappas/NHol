@@ -56,7 +56,7 @@ open nums
 open recursion
 #endif
 
-logger.Trace("Entering arith.fs")
+infof "Entering arith.fs"
 
 parse_as_infix("<", (12, "right"))
 parse_as_infix("<=", (12, "right"))
@@ -91,7 +91,7 @@ let PRE =
 
 let ADD = 
     new_recursive_definition num_RECURSION (parse_term @"(!n. 0 + n = n) /\
-   (!m n. (SUC m) + n = SUC(m + n))")
+   (!m n. (SUC m) + n = SUC(m + n))");;
 
 let ADD_0 = 
     prove((parse_term @"!m. m + 0 = m"), INDUCT_TAC
@@ -151,7 +151,7 @@ let EQ_ADD_RCANCEL_0 =
     prove
         ((parse_term @"!m n. (m + n = n) <=> (m = 0)"), 
          ONCE_REWRITE_TAC [ADD_SYM]
-         |> THEN <| MATCH_ACCEPT_TAC EQ_ADD_LCANCEL_0)
+         |> THEN <| MATCH_ACCEPT_TAC EQ_ADD_LCANCEL_0);;
 
 (* ------------------------------------------------------------------------- *)
 (* Now define "bitwise" binary representation of numerals.                   *)
@@ -174,7 +174,7 @@ let BIT0_THM =
 let BIT1_THM = 
     prove
         ((parse_term @"!n. NUMERAL (BIT1 n) = SUC(NUMERAL n + NUMERAL n)"), 
-         REWRITE_TAC [NUMERAL; BIT1])
+         REWRITE_TAC [NUMERAL; BIT1]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Following is handy before num_CONV arrives.                               *)
@@ -191,7 +191,7 @@ let TWO =
           REWRITE_TAC [BIT0;
                        BIT1;
                        REWRITE_RULE [NUMERAL] ADD_CLAUSES;
-                       NUMERAL])
+                       NUMERAL]);;
 
 (* ------------------------------------------------------------------------- *)
 (* One immediate consequence.                                                *)
@@ -302,7 +302,7 @@ let MULT_EQ_1 =
                                  BIT1_THM
                                  GSYM NOT_SUC]
          |> THEN <| REWRITE_TAC [SUC_INJ; ADD_EQ_0; MULT_EQ_0]
-         |> THEN <| CONV_TAC TAUT)
+         |> THEN <| CONV_TAC TAUT);;
 
 (* ------------------------------------------------------------------------- *)
 (* Exponentiation.                                                           *)
@@ -377,7 +377,7 @@ let EXP_MULT =
                       |> THEN <| INDUCT_TAC
                       |> THEN <| ASM_REWRITE_TAC [EXP; MULT_CLAUSES]
                       REWRITE_TAC [MULT_EXP]
-                      |> THEN <| MATCH_ACCEPT_TAC MULT_SYM])
+                      |> THEN <| MATCH_ACCEPT_TAC MULT_SYM]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Define the orderings recursively too.                                     *)
@@ -393,7 +393,7 @@ let LT =
 
 let GE = new_definition(parse_term @"m >= n <=> n <= m")
 
-let GT = new_definition(parse_term @"m > n <=> n < m")
+let GT = new_definition(parse_term @"m > n <=> n < m");;
 
 (* ------------------------------------------------------------------------- *)
 (* Maximum and minimum of natural numbers.                                   *)
@@ -432,7 +432,7 @@ let LE_SUC =
 let LT_SUC = 
     prove
         ((parse_term @"!m n. (SUC m < SUC n) <=> (m < n)"), 
-         REWRITE_TAC [LT_SUC_LE; LE_SUC_LT])
+         REWRITE_TAC [LT_SUC_LE; LE_SUC_LT]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Base cases.                                                               *)
@@ -484,7 +484,7 @@ let LTE_ANTISYM =
     prove
         ((parse_term @"!m n. ~(m < n /\ n <= m)"), 
          ONCE_REWRITE_TAC [CONJ_SYM]
-         |> THEN <| REWRITE_TAC [LET_ANTISYM])
+         |> THEN <| REWRITE_TAC [LET_ANTISYM]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Transitivity.                                                             *)
@@ -516,7 +516,7 @@ let LTE_TRANS =
         ((parse_term @"!m n p. m < n /\ n <= p ==> m < p"), 
          REPEAT INDUCT_TAC
          |> THEN <| ASM_REWRITE_TAC [LE_SUC; LT_SUC; LT_0]
-         |> THEN <| REWRITE_TAC [LT; LE; NOT_SUC])
+         |> THEN <| REWRITE_TAC [LT; LE; NOT_SUC]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Totality.                                                                 *)
@@ -613,7 +613,7 @@ let EQ_IMP_LE =
     prove
         ((parse_term @"!m n. (m = n) ==> m <= n"), 
          REPEAT STRIP_TAC
-         |> THEN <| ASM_REWRITE_TAC [LE_REFL])
+         |> THEN <| ASM_REWRITE_TAC [LE_REFL]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Often useful to shuffle between different versions of "0 < n".            *)
@@ -684,7 +684,7 @@ let LT_EXISTS =
                        |> THEN <| DISJ2_TAC
                        |> THEN <| REWRITE_TAC [SUC_INJ;
                                                EQ_ADD_LCANCEL;
-                                               GSYM EXISTS_REFL]])
+                                               GSYM EXISTS_REFL]]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Interaction with addition.                                                *)
@@ -768,7 +768,7 @@ let LT_ADD2 =
          |> THEN <| MATCH_MP_TAC LTE_ADD2
          |> THEN <| ASM_REWRITE_TAC []
          |> THEN <| MATCH_MP_TAC LT_IMP_LE
-         |> THEN <| ASM_REWRITE_TAC [])
+         |> THEN <| ASM_REWRITE_TAC []);;
 
 (* ------------------------------------------------------------------------- *)
 (* And multiplication.                                                       *)
@@ -848,7 +848,7 @@ let LE_SQUARE_REFL =
     prove
         ((parse_term @"!n. n <= n * n"), 
          INDUCT_TAC
-         |> THEN <| REWRITE_TAC [MULT_CLAUSES; LE_0; LE_ADDR])
+         |> THEN <| REWRITE_TAC [MULT_CLAUSES; LE_0; LE_ADDR]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Useful "without loss of generality" lemmas.                               *)
@@ -915,7 +915,7 @@ let num_MAX =
                                     |> THEN <| ASM_REWRITE_TAC []];
                        REPEAT STRIP_TAC
                        |> THEN <| EXISTS_TAC(parse_term @"m:num")
-                       |> THEN <| ASM_REWRITE_TAC []])
+                       |> THEN <| ASM_REWRITE_TAC []]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Oddness and evenness (recursively rather than inductively!)               *)
@@ -1089,7 +1089,7 @@ let EVEN_ODD_DECOMPOSITION =
           |> THEN <| X_GEN_TAC(parse_term @"p:num")
           |> THEN <| DISCH_THEN(X_CHOOSE_THEN (parse_term @"k:num") STRIP_ASSUME_TAC)
           |> THEN <| EXISTS_TAC(parse_term @"SUC k")
-          |> THEN <| ASM_REWRITE_TAC [EXP; MULT_ASSOC])
+          |> THEN <| ASM_REWRITE_TAC [EXP; MULT_ASSOC]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Cutoff subtraction, also defined recursively. (Not the HOL88 defn.)       *)
@@ -1212,7 +1212,7 @@ let ODD_SUB =
         ((parse_term @"!m n. ODD(m - n) <=> n < m /\ ~(ODD m <=> ODD n)"), 
          REWRITE_TAC [GSYM NOT_EVEN
                       EVEN_SUB; DE_MORGAN_THM; NOT_LE]
-         |> THEN <| CONV_TAC TAUT)
+         |> THEN <| CONV_TAC TAUT);;
 
 (* ------------------------------------------------------------------------- *)
 (* The factorial function.                                                   *)
@@ -1249,7 +1249,7 @@ let FACT_MONO =
           |> THEN <| ASM_REWRITE_TAC []
           |> THEN <| GEN_REWRITE_TAC LAND_CONV [GSYM(el 2 (CONJUNCTS MULT_CLAUSES))]
           |> THEN <| REWRITE_TAC [LE_MULT_RCANCEL]
-          |> THEN <| REWRITE_TAC [ONE; LE_SUC; LE_0])
+          |> THEN <| REWRITE_TAC [ONE; LE_SUC; LE_0]);;
 
 (* ------------------------------------------------------------------------- *)
 (* More complicated theorems about exponential.                              *)
@@ -1393,7 +1393,7 @@ let EXP_MONO_EQ =
         ((parse_term @"!x y n. x EXP n = y EXP n <=> x = y \/ n = 0"), 
          REWRITE_TAC [GSYM LE_ANTISYM
                       EXP_MONO_LE]
-         |> THEN <| CONV_TAC TAUT)
+         |> THEN <| CONV_TAC TAUT);;
 
 (* ------------------------------------------------------------------------- *)
 (* Division and modulus, via existence proof of their basic property.        *)
@@ -1431,7 +1431,7 @@ let DIVMOD_EXIST_0 =
                 else m = q * n + r /\ r < n"),
           REPEAT GEN_TAC
           |> THEN <| ASM_CASES_TAC(parse_term @"n = 0")
-          |> THEN <| ASM_SIMP_TAC [DIVMOD_EXIST; RIGHT_EXISTS_AND_THM; EXISTS_REFL])
+          |> THEN <| ASM_SIMP_TAC [DIVMOD_EXIST; RIGHT_EXISTS_AND_THM; EXISTS_REFL]);;
 
 let DIVISION_0 = 
     new_specification ["DIV"; "MOD"] (REWRITE_RULE [SKOLEM_THM] DIVMOD_EXIST_0)
@@ -1943,7 +1943,7 @@ let MOD_MOD_EXP_MIN =
                        |> THEN <| ASM_SIMP_TAC [DIVISION; EXP_EQ_0; LE_EXP; LE_ADD];
                        SUBGOAL_THEN (parse_term @"?d. m = n + d") (CHOOSE_THEN SUBST1_TAC)
                        |> THENL <| [ASM_MESON_TAC [LE_CASES; LE_EXISTS];
-                                    ASM_SIMP_TAC [EXP_ADD; MOD_MOD; MULT_EQ_0; EXP_EQ_0]]])
+                                    ASM_SIMP_TAC [EXP_ADD; MOD_MOD; MULT_EQ_0; EXP_EQ_0]]]);;
 
 (* ------------------------------------------------------------------------- *)
 (* Theorems for eliminating cutoff subtraction, predecessor, DIV and MOD.    *)
@@ -2004,7 +2004,7 @@ let DIVMOD_ELIM_THM' =
             (INST 
                  [(parse_term @"\x:num y:num. ~P x y"), 
                   (parse_term @"P:num->num->bool")] DIVMOD_ELIM_THM)
-        |> THEN <| MESON_TAC [])
+        |> THEN <| MESON_TAC []);;
 
 (* ------------------------------------------------------------------------- *)
 (* Crude but useful conversion for cancelling down equations.                *)
@@ -2121,4 +2121,4 @@ let TRANSITIVE_STEPWISE_LE =
         ==> !m n. m <= n ==> R m n"),
           REPEAT GEN_TAC
           |> THEN <| MATCH_MP_TAC(TAUT(parse_term @"(a /\ a' ==> (c <=> b)) ==> a /\ a' /\ b ==> c"))
-          |> THEN <| MATCH_ACCEPT_TAC TRANSITIVE_STEPWISE_LE_EQ)
+          |> THEN <| MATCH_ACCEPT_TAC TRANSITIVE_STEPWISE_LE_EQ);;

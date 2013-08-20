@@ -73,7 +73,7 @@ open iterate
 open cart
 #endif
 
-logger.Trace("Entering define.fs")
+infof "Entering define.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Constant supporting casewise definitions.                                 *)
@@ -1384,8 +1384,8 @@ let define =
                     let th2 = new_specification [s1] th1
                     let! sht = dest_var f
                     let! g = mk_mconst sht
-                    let th3 = PROVE_HYP th2 (INST [g, f] (Choice.result th))
-                    the_definitions := th3 :: (!the_definitions)
-                    return! th3
+                    let! th3 = PROVE_HYP th2 (INST [g, f] (Choice.result th))
+                    the_definitions := (Choice.result th3) :: (!the_definitions)
+                    return th3
                 }
             | e -> Choice.error e)

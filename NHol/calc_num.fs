@@ -52,14 +52,14 @@ open trivia
 open canon
 open meson
 open quot
-//open pair
+open pair
 open nums
 open recursion
 open arith
-//open wf
+open wf
 #endif
 
-logger.Trace("Entering calc_num.fs")
+infof "Entering calc_num.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Simple rule to get rid of NUMERAL constant.                               *)

@@ -51,7 +51,7 @@ open ``class``
 open trivia
 #endif
 
-logger.Trace("Entering canon.fs")
+infof "Entering canon.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Pre-simplification.                                                       *)
@@ -224,7 +224,9 @@ let (GEN_NNF_CONV : bool -> conv * (term -> Protected<thm0> * Protected<thm0>) -
 
     let pth_triple = 
         let pth_notFuncs =
-            (CONJUNCTS << prove)
+            (CONJUNCTS << 
+                assumeProof
+                    prove)
               ((parse_term @"(~((!) P) <=> ?x:A. ~(P x)) /\
                 (~((?) P) <=> !x:A. ~(P x)) /\
                 (~((?!) P) <=> (!x:A. ~(P x)) \/ ?x y. P x /\ P y /\ ~(y = x))"), 
@@ -237,7 +239,8 @@ let (GEN_NNF_CONV : bool -> conv * (term -> Protected<thm0> * Protected<thm0>) -
         | _ -> Choice.failwith "pth_notFuncs: Unhandled case."
 
     let pth_exu = 
-        prove
+        assumeProof
+            prove
             ((parse_term @"((?!) P) <=> (?x:A. P x) /\ !x y. ~(P x) \/ ~(P y) \/ (y = x)"), 
              GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM ETA_AX]
              |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_DEF; TAUT(parse_term @"a /\ b ==> c <=> ~a \/ ~b \/ c")]
@@ -899,7 +902,8 @@ let LAMBDA_ELIM_CONV =
 
     let APPLY_PTH = 
         let pth = 
-            prove
+            assumeProof
+                prove
                 ((parse_term @"(!a. (a = c) ==> (P = Q a)) ==> (P <=> !a. (a = c) ==> Q a)"), 
                  SIMP_TAC [LEFT_FORALL_IMP_THM; EXISTS_REFL])
         MATCH_MP pth

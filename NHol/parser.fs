@@ -39,7 +39,7 @@ open printer
 open preterm
 #endif
 
-logger.Trace("Entering parser.fs")
+infof "Entering parser.fs"
 
 (* TODO :   Re-name operators and functions for parser-combinators (below) to the
             equivalents from fparsec:

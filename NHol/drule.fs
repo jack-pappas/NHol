@@ -46,7 +46,7 @@ open equal
 open bool
 #endif
 
-logger.Trace("Entering drule.fs")
+infof "Entering drule.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Type of instantiations, with terms, types and higher-order data.          *)
@@ -1132,14 +1132,15 @@ let new_definition tm : Protected<thm0> =
             // NOTE: this is rewritten from rev_itlist
             Choice.List.fold (fun acc tm -> 
                 choice {
-                    let! ith = AP_THM acc tm
+                    let! ith = AP_THM (Choice.result acc) tm
                     let! tm1 = rand <| concl ith
                     let! th2 = BETA_CONV tm1
-                    return TRANS (Choice.result ith) (Choice.result th2)
-                }) (Choice.result th1) largs
+                    return! TRANS (Choice.result ith) (Choice.result th2)
+                }) th1 largs
 
         let rvs = filter (not << C mem avs) largs
-        return! itlist GEN rvs (itlist GEN avs th2)
+        let! th3 = itlist GEN avs (Choice.result th2)
+        return! itlist GEN rvs (Choice.result th3)
     }
     |> Choice.mapError (fun e ->
         logger.Error(Printf.sprintf "new_definition of '%s' returns %O" (string_of_term tm) e)

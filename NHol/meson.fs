@@ -52,7 +52,7 @@ open trivia
 open canon
 #endif
 
-logger.Trace("Entering meson.fs")
+infof "Entering meson.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Some parameters controlling MESON behaviour.                              *)

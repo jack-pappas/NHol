@@ -55,8 +55,7 @@ open quot
 open pair
 #endif
 
-logger.Trace("Entering nums.fs")
-
+infof "Entering nums.fs"
 
 new_type("ind", 0) |> Choice.ignoreOrRaise
 
@@ -69,7 +68,8 @@ let ONTO = new_definition(parse_term @"ONTO(f:A->B) = !y. ?x. y = f x")
 let INFINITY_AX = new_axiom(parse_term @"?f:ind->ind. ONE_ONE f /\ ~(ONTO f)")
 
 let IND_SUC_0_EXISTS = 
-    prove
+    assumeProof
+        prove
         ((parse_term @"?(f:ind->ind) z. (!x1 x2. (f x1 = f x2) = (x1 = x2)) /\ (!x. ~(f x = z))"), 
          X_CHOOSE_TAC (parse_term @"f:ind->ind") INFINITY_AX
          |> THEN <| EXISTS_TAC(parse_term @"f:ind->ind")
@@ -94,16 +94,26 @@ let NUM_REP_RULES, NUM_REP_INDUCT, NUM_REP_CASES =
     new_inductive_definition(parse_term @"NUM_REP IND_0 /\
     (!i. NUM_REP i ==> NUM_REP (IND_SUC i))")
 
+/// This theorem should have no assumption
+let NUM_REP_RULES2 =
+#if BUGGY
+    NUM_REP_RULES
+#else
+    Choice.result <| Sequent([], parse_term @"NUM_REP IND_0 /\ (!i. NUM_REP i ==> NUM_REP (IND_SUC i))") : Protected<thm0>
+#endif
+
 let num_tydef = 
     new_basic_type_definition "num" ("mk_num", "dest_num") 
-        (CONJUNCT1 NUM_REP_RULES);;
+        (CONJUNCT1 NUM_REP_RULES2);;
 
 let ZERO_DEF = new_definition(parse_term @"_0 = mk_num IND_0")
 
-let SUC_DEF = new_definition(parse_term @"SUC n = mk_num(IND_SUC(dest_num n))")
+let SUC_DEF = new_definition(parse_term @"SUC n = mk_num(IND_SUC(dest_num n))");;
 
 let NOT_SUC_001 = 
-    prove((parse_term @"!n. ~(SUC n = _0)"), 
+    assumeProof
+        prove
+        ((parse_term @"!n. ~(SUC n = _0)"), 
            REWRITE_TAC [SUC_DEF; ZERO_DEF]
            |> THEN <| MESON_TAC [NUM_REP_RULES;
                                  fst num_tydef;
@@ -111,7 +121,9 @@ let NOT_SUC_001 =
                                  IND_SUC_0])
 
 let SUC_INJ = 
-    prove((parse_term @"!m n. SUC m = SUC n <=> m = n"), 
+    assumeProof
+        prove
+        ((parse_term @"!m n. SUC m = SUC n <=> m = n"), 
           REPEAT GEN_TAC
           |> THEN <| REWRITE_TAC [SUC_DEF]
           |> THEN <| EQ_TAC
@@ -130,7 +142,9 @@ let SUC_INJ =
           |> THEN <| REWRITE_TAC [fst num_tydef])
 
 let num_INDUCTION_001 = 
-    prove((parse_term @"!P. P(_0) /\ (!n. P(n) ==> P(SUC n)) ==> !n. P n"), 
+    assumeProof
+        prove
+        ((parse_term @"!P. P(_0) /\ (!n. P(n) ==> P(SUC n)) ==> !n. P n"), 
           REPEAT STRIP_TAC
           |> THEN <| MP_TAC(SPEC (parse_term @"\i. NUM_REP i /\ P(mk_num i):bool") NUM_REP_INDUCT)
           |> THEN <| ASM_REWRITE_TAC [GSYM ZERO_DEF;
@@ -152,7 +166,9 @@ let num_INDUCTION_001 =
                                                snd num_tydef]])
 
 let num_Axiom_001 = 
-    prove((parse_term @"!(e:A) f. ?!fn. (fn _0 = e) /\
+    assumeProof
+        prove
+        ((parse_term @"!(e:A) f. ?!fn. (fn _0 = e) /\
                         (!n. fn (SUC n) = f (fn n) n)"),
           REPEAT GEN_TAC
           |> THEN <| ONCE_REWRITE_TAC [EXISTS_UNIQUE_THM]
@@ -219,18 +235,26 @@ let (INDUCT_TAC : tactic) =
                  |> THEN <| DISCH_TAC]
 
 let num_RECURSION = 
+#if BUGGY
     choice {
         let! (avs, _) = Choice.map (strip_forall << concl) num_Axiom
         return! GENL avs (EXISTENCE(SPECL avs num_Axiom))
     }
+#else
+    Choice.result <| Sequent([], parse_term @"!e f. ?fn. fn 0 = e /\ (!n. fn (SUC n) = f (fn n) n)") : Protected<thm0>
+#endif
 
 let num_CASES = 
-    prove((parse_term @"!m. (m = 0) \/ (?n. m = SUC n)"), 
+    assumeProof
+        prove
+        ((parse_term @"!m. (m = 0) \/ (?n. m = SUC n)"), 
           INDUCT_TAC
           |> THEN <| MESON_TAC [])
 
 let num_RECURSION_STD = 
-    prove((parse_term @"!e:Z f. ?fn. (fn 0 = e) /\ (!n. fn (SUC n) = f n (fn n))"), 
+    assumeProof
+        prove
+        ((parse_term @"!e:Z f. ?fn. (fn 0 = e) /\ (!n. fn (SUC n) = f n (fn n))"), 
           REPEAT GEN_TAC
           |> THEN <| MP_TAC(ISPECL [(parse_term @"e:Z");
                                     (parse_term @"(\z n. (f:num->Z->Z) n z)")] num_RECURSION)
@@ -357,11 +381,16 @@ let new_specification =
                             warn true ("Benign respecification")
                             return! sth
                         }
-                        |> Choice.bindError (fun _ ->
-                            let sth = specifies (!specification_counter) names th
-                            the_specifications := ((names, th), sth) :: (!the_specifications)
-                            specification_counter := !specification_counter +/ Int(length names)
-                            sth)
+                        |> Choice.bindError (function
+                            | Failure _ ->
+                                 choice {
+                                    let! th = th
+                                    let! sth = specifies (!specification_counter) names (Choice.result th)
+                                    the_specifications := ((names, Choice.result th), Choice.result sth) :: (!the_specifications)
+                                    specification_counter := !specification_counter +/ Int(length names)
+                                    return sth
+                                 }
+                            | e -> Choice.error e)
         }
         |> Choice.mapError (fun e ->
             logger.Error(Printf.sprintf "%O" e)

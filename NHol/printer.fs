@@ -38,7 +38,7 @@ open basics
 open nets
 #endif
 
-logger.Trace("Entering printer.fs")
+infof "Entering printer.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Character discrimination.                                                 *)

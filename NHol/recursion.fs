@@ -56,7 +56,7 @@ open pair
 open nums
 #endif
 
-logger.Trace("Entering recursion.fs")
+infof "Entering recursion.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Prove existence of recursive function. The inner "raw" version requires   *)
@@ -68,12 +68,13 @@ logger.Trace("Entering recursion.fs")
 let prove_recursive_functions_exist = 
     let prove_raw_recursive_functions_exist ax tm = 
         choice {
+            let! ax = ax
             let rawcls = conjuncts tm
             let spcls = map (snd << strip_forall) rawcls
             let! lpats = Choice.List.map (Choice.map strip_comb << lhand) spcls
             let ufns = itlist (insert << fst) lpats []
-            let axth = SPEC_ALL ax
-            let! exvs, axbody = Choice.map (strip_exists << concl) axth
+            let! axth = SPEC_ALL (Choice.result ax)
+            let exvs, axbody = strip_exists <| concl axth
             let axcls = conjuncts axbody
             let f = 
                 Choice.map fst << Choice.bind dest_const 
@@ -99,8 +100,8 @@ let prove_recursive_functions_exist =
             let! urtm = list_mk_exists(urfns, tm)
 
             let! insts = term_match [] axtm urtm
-            let ixth = INSTANTIATE insts axth
-            let! ixvs, ixbody = Choice.map (strip_exists << concl) ixth
+            let! ixth = INSTANTIATE insts (Choice.result axth)
+            let ixvs, ixbody = strip_exists <| concl ixth
             let! ixtm = subst (zip urfns ixvs) ixbody
             let ixths = CONJUNCTS(ASSUME ixtm)
 
@@ -113,14 +114,14 @@ let prove_recursive_functions_exist =
                                     }) ixths
                                     |> Choice.bind (Option.toChoiceWithError "find")) rawcls
 
-            let rixth = itlist SIMPLE_EXISTS ufns (end_itlist CONJ rixths)
-            return! PROVE_HYP ixth (itlist SIMPLE_CHOOSE urfns rixth)
+            let! rixth = itlist SIMPLE_EXISTS ufns (end_itlist CONJ rixths)
+            return! PROVE_HYP (Choice.result ixth) (itlist SIMPLE_CHOOSE urfns (Choice.result rixth))
         }
 
     let canonize t = 
         choice {
             let avs, bod = strip_forall t
-            let! l, r =dest_eq bod
+            let! l, r = dest_eq bod
             let fn, args = strip_comb l
             let rarg = hd args
             let vargs = tl args
@@ -129,19 +130,20 @@ let prove_recursive_functions_exist =
             let fvs = frees rarg
             let! tm1 = mk_eq(l', r')
             let! tm2 = list_mk_forall(fvs, tm1)
-            let def = ASSUME(tm2)
-            return! GENL avs (RIGHT_BETAS vargs (SPECL fvs def))
+            let! def = ASSUME(tm2)
+            return! GENL avs (RIGHT_BETAS vargs (SPECL fvs (Choice.result def)))
         }
 
     let prove_canon_recursive_functions_exist ax tm = 
         choice {
-            let ths = map canonize (conjuncts tm)
-            let! atm = list_mk_conj(map (hd << hyp << Choice.get) ths)
+            let! ax = ax
+            let! ths = Choice.List.map canonize (conjuncts tm)
+            let! atm = list_mk_conj(map (hd << hyp) ths)
             let aths = CONJUNCTS(ASSUME atm)
-            let rth = end_itlist CONJ (map2 PROVE_HYP aths ths)
-            let eth = prove_raw_recursive_functions_exist ax atm
-            let! (evs, _) = Choice.map (strip_exists << concl) eth
-            return! PROVE_HYP eth (itlist SIMPLE_CHOOSE evs (itlist SIMPLE_EXISTS evs rth))
+            let! rth = end_itlist CONJ (map2 PROVE_HYP aths (List.map Choice.result ths))
+            let! eth = prove_raw_recursive_functions_exist (Choice.result ax) atm
+            let (evs, _) = strip_exists <| concl eth
+            return! PROVE_HYP (Choice.result eth) (itlist SIMPLE_CHOOSE evs (itlist SIMPLE_EXISTS evs (Choice.result rth)))
         }
 
     let reshuffle fn args acc = 
@@ -159,31 +161,34 @@ let prove_recursive_functions_exist =
                 let! tm0 = list_mk_comb(fn', gvs')
                 let! tm1 = list_mk_abs(gvs, tm0)
                 let! def = mk_eq(fn, tm1)
-                return (ASSUME def) :: acc
+                let! th1 = ASSUME def
+                return (Choice.result th1) :: acc
         }
 
     let scrub_def t th = 
         choice {
+            let! th = th
             let! l, r = dest_eq t
-            return! MP (INST [r, l] (DISCH t th)) (REFL r)
+            return! MP (INST [r, l] (DISCH t (Choice.result th))) (REFL r)
         }
 
     fun ax tm -> 
         choice {
+            let! ax = ax
             let rawcls = conjuncts tm
             let spcls = map (snd << strip_forall) rawcls
             let! lpats = Choice.List.map (Choice.map strip_comb << lhand) spcls
             let ufns = itlist (insert << fst) lpats []
             let! uxargs = Choice.List.map (fun x -> assoc x lpats |> Option.toChoiceWithError "find") ufns
             let! trths = Choice.List.fold2 (fun acc x y -> reshuffle x y acc) [] ufns uxargs 
-            let tth = GEN_REWRITE_CONV REDEPTH_CONV (BETA_THM :: trths) tm
-            let! tm1 = Choice.bind (rand << concl) tth
-            let eth = prove_canon_recursive_functions_exist ax tm1
-            let! evs, ebod = Choice.map (strip_exists << concl) eth
-            let fth = itlist SIMPLE_EXISTS ufns (EQ_MP (SYM tth) (ASSUME ebod))
+            let! tth = GEN_REWRITE_CONV REDEPTH_CONV (BETA_THM :: trths) tm
+            let! tm1 = rand <| concl tth
+            let! eth = prove_canon_recursive_functions_exist (Choice.result ax) tm1
+            let evs, ebod = strip_exists <| concl eth
+            let! fth = itlist SIMPLE_EXISTS ufns (EQ_MP (SYM (Choice.result tth)) (ASSUME ebod))
             let! tms1 = Choice.List.map (Choice.map concl) trths
-            let gth = itlist scrub_def tms1 fth
-            return! PROVE_HYP eth (itlist SIMPLE_CHOOSE evs gth)
+            let! gth = itlist scrub_def tms1 (Choice.result fth)
+            return! PROVE_HYP (Choice.result eth) (itlist SIMPLE_CHOOSE evs (Choice.result gth))
         }
 
 (* ------------------------------------------------------------------------- *)
@@ -196,37 +201,40 @@ let new_recursive_definition =
 
     let find_redefinition tm th = 
         choice {
-            let th' = PART_MATCH Choice.result th tm
-            let! th1 = th
-            ignore (PART_MATCH Choice.result th' (concl th1))
-            return! th'
+            let! th' = PART_MATCH Choice.result th tm
+            let! th = th
+            ignore (PART_MATCH Choice.result (Choice.result th') (concl th))
+            return th'
         }
 
     fun ax tm -> 
         choice { 
-            let th = tryfind (Choice.toOption << find_redefinition tm) (!the_recursive_definitions)
-                     |> Option.toChoiceWithError "tryfind"
+            let! th = tryfind (Choice.toOption << find_redefinition tm) (!the_recursive_definitions)
+                      |> Option.toChoiceWithError "tryfind"
             warn true "Benign redefinition of recursive function"
-            return! th
+            return th
         }
-        |> Choice.bindError (fun _ ->
-            choice {
-                let rawcls = conjuncts tm
-                let spcls = map (snd << strip_forall) rawcls
-                let! lpats = Choice.List.map (Choice.map strip_comb << lhand) spcls
-                let ufns = itlist (insert << fst) lpats []
-                let fvs = map (fun t -> subtract (frees t) ufns) rawcls
-                let! gcls = Choice.List.map2 (curry list_mk_forall) fvs rawcls
-                let! tm1 = list_mk_conj gcls
-                let eth = prove_recursive_functions_exist ax tm1
-                let! evs, bod = Choice.map (strip_exists << concl) eth
-                let! tms = Choice.List.map (Choice.map fst << dest_var) evs
-                let dth = new_specification tms eth
-                let dths = map2 SPECL fvs (CONJUNCTS dth)
-                let th = end_itlist CONJ dths
-                the_recursive_definitions := th :: (!the_recursive_definitions)
-                return! th
-            })
+        |> Choice.bindError (function
+            | Failure _ ->
+                choice {
+                    let! ax = ax
+                    let rawcls = conjuncts tm
+                    let spcls = map (snd << strip_forall) rawcls
+                    let! lpats = Choice.List.map (Choice.map strip_comb << lhand) spcls
+                    let ufns = itlist (insert << fst) lpats []
+                    let fvs = map (fun t -> subtract (frees t) ufns) rawcls
+                    let! gcls = Choice.List.map2 (curry list_mk_forall) fvs rawcls
+                    let! tm1 = list_mk_conj gcls
+                    let! eth = prove_recursive_functions_exist (Choice.result ax) tm1
+                    let evs, _ = strip_exists <| concl eth
+                    let! tms = Choice.List.map (Choice.map fst << dest_var) evs
+                    let! dth = new_specification tms (Choice.result eth)
+                    let dths = map2 SPECL fvs (CONJUNCTS (Choice.result dth))
+                    let! th = end_itlist CONJ dths
+                    the_recursive_definitions := Choice.result th :: (!the_recursive_definitions)
+                    return th
+                }
+            | e -> Choice.error e)
         |> Choice.mapError (fun e ->
-            logger.Error(Printf.sprintf "%O" e)
+            errorf "new_recursive_definition returns %O" e
             e)
