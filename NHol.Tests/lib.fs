@@ -196,11 +196,6 @@ let ``subset implies union``() =
         if union xs ys = ys then subset xs ys else not <| subset xs ys
 
 [<Test>]
-let ``explode and implode inverse each other``() =
-    assertProp "explode-implode" <| fun s ->
-        implode (explode s) = s
-
-[<Test>]
 let ``uniq doesn't contain adjacent equal elements``() =
     let rec hasAdjacentEqual = function
         | [] | [_] -> false
@@ -1279,17 +1274,109 @@ let ``{implode []} returns the empty string``() =
 
 (* explode tests *)
 
-[<Test>]
-let ``{explode} converts a string into a list of single-character strings``() =
-
-    explode "example"
-    |> assertEqual ["e"; "x"; "a"; "m"; "p"; "l"; "e"]
+// Note: NHol.lib.explode has a precondition
+//   checkNonNull "s" s
+// that is not tested here.
 
 [<Test>]
-let ``{explode ""} returns the empty list``() =
+let ``explode and implode inverse each other``() =
+    assertProp "explode-implode" <| fun s ->
+        implode (explode s) = s
 
-    explode ""
-    |> assertEqual []
+let private explodeValues : (string * string list)[] = [|
+    (
+        // idx 0
+        // lib.explode.01
+        // empty string using double quotes
+        "",
+        []
+    );
+    (
+        // idx 1
+        // lib.explode.02
+        // empty string using the empty string literal
+        String.empty,
+        []
+    );
+    (
+        // idx 2
+        // lib.explode.
+        // one character string
+        "a",
+        ["a"]
+    );
+    (
+        // idx 3
+        // lib.explode.04
+        // two character string
+        "ab",
+        ["a"; "b"]
+    );
+    (
+        // idx 4
+        // lib.explode.0
+        // three character string
+        "abc",
+        ["a"; "b"; "c"]
+    );
+    (
+        // idx 5
+        // lib.explode.0
+        // Example for HOL Light reference
+        "example",
+        ["e"; "x"; "a"; "m"; "p"; "l"; "e"]
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "lib.explode.01")>]
+[<TestCase(1, TestName = "lib.explode.02")>]
+[<TestCase(2, TestName = "lib.explode.03")>]
+[<TestCase(3, TestName = "lib.explode.04")>]
+[<TestCase(4, TestName = "lib.explode.05")>]
+let ``function explode`` idx =
+    let (input, _) = explodeValues.[idx]
+    let (_, result) = explodeValues.[idx]
+    let explodeResult = NHol.lib.explode input
+//    printfn "%A" explodeResult
+    explodeResult |> assertEqual result
+
+// Note: The max length of a .NET string is
+//   Int32.MaxValue
+//   = 2^31 - 1
+//   = 2,147,483,547
+// .NET strings are unicode so use two bytes for each character.
+// This is about 4GB of memory for a max string.
+
+let private explodeLimitValues : (int)[] = [|
+    (
+        // idx 0
+        // lib.explode.01
+        // string of length Int16.MaxValue
+        int(System.Int16.MaxValue)
+    );
+    (
+        // idx 1
+        // lib.explode.02
+        // string of length UInt16.MaxValue
+        int(System.UInt16.MaxValue)
+    );
+    (
+        // idx 2
+        // lib.explode.
+        // string of length Int32.MaxValue
+        int(System.Int32.MaxValue)
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "lib.explode.01", Category = "Limits")>]
+[<TestCase(1, TestName = "lib.explode.02", Category = "Limits")>]
+[<TestCase(2, TestName = "lib.explode.03", ExpectedException=typeof<System.OutOfMemoryException>, Category = "Limits")>]
+let ``function explode limits`` idx =
+    let (size) = explodeLimitValues.[idx]
+    let input = lazy (String.replicate size "a")
+    NHol.lib.explode (input.Force ()) |> ignore
 
 (* gcd tests *)
 
