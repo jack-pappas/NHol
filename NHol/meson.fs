@@ -186,14 +186,16 @@ let GEN_MESON_TAC =
 
         let hol_of_bumped_var v = 
             hol_of_var v            
-            |> Choice.bindError (fun _ ->
-                choice {
-                    let v' = v % offinc
-                    let! hv' = hol_of_var v'
-                    let! gv = Choice.map genvar (type_of hv')
-                    gstore := (gv, v) :: (!gstore)
-                    return gv
-                })
+            |> Choice.bindError (function
+                | Failure _ ->
+                    choice {
+                        let v' = v % offinc
+                        let! hv' = hol_of_var v'
+                        let! gv = Choice.map genvar (type_of hv')
+                        gstore := (gv, v) :: (!gstore)
+                        return gv
+                    }
+                | e -> Choice.error e)
 
         reset_vars, fol_of_var, hol_of_bumped_var
 
@@ -254,7 +256,7 @@ let GEN_MESON_TAC =
             let! p, a = fol_of_atom env consts tm'
             return -p, a
         }
-        |> Choice.bindError (fun _ -> fol_of_atom env consts tm)
+        |> Choice.bindError (function Failure _ -> fol_of_atom env consts tm | e -> Choice.error e)
 
     let rec fol_of_form env consts tm = 
         choice { 
@@ -263,21 +265,28 @@ let GEN_MESON_TAC =
             let! fbod = fol_of_form (v :: env) (subtract consts [v]) bod
             return Forallq(fv, fbod)
         }
-        |> Choice.bindError (fun _ -> 
+        |> Choice.bindError (function
+            | Failure _ -> 
                 choice { 
                     let! l, r = dest_conj tm
                     let! fl = fol_of_form env consts l
                     let! fr = fol_of_form env consts r
                     return Conj(fl, fr)
                 }
-                |> Choice.bindError (fun _ ->
-                    choice { 
-                        let l, r = Choice.get <| dest_disj tm
-                        let! fl = fol_of_form env consts l
-                        let! fr = fol_of_form env consts r
-                        return Disj(fl, fr)
-                    }
-                    |> Choice.bindError (fun _ -> fol_of_literal env consts tm |> Choice.map Atom)))
+                |> Choice.bindError (function
+                    | Failure _ ->
+                        choice { 
+                            let! l, r = dest_disj tm
+                            let! fl = fol_of_form env consts l
+                            let! fr = fol_of_form env consts r
+                            return Disj(fl, fr)
+                        }
+                        |> Choice.bindError (function 
+                            | Failure _ -> 
+                                fol_of_literal env consts tm |> Choice.map Atom 
+                            | e -> Choice.error e)
+                    | e -> Choice.error e)
+            | e -> Choice.error e)
 
     (* ----------------------------------------------------------------------- *)
     (* Further translation functions for HOL formulas.                         *)
@@ -304,7 +313,8 @@ let GEN_MESON_TAC =
     let hol_of_literal(p, args) = 
         choice {
             if p < 0 then 
-                return! Choice.bind mk_neg (hol_of_atom(-p, args))
+                let! tm = hol_of_atom(-p, args)
+                return! mk_neg tm
             else 
                 return! hol_of_atom (p, args)
         }
@@ -371,7 +381,7 @@ let GEN_MESON_TAC =
                         // We only recover on a specific kind of error
                         |> Choice.bindError (function Failure "find" -> Choice.result false | e -> Choice.error e)
 
-            | Fnapp(f, args) -> 
+            | Fnapp(_, args) -> 
                 let! b = Choice.List.exists (istriv env x) args 
                 if b then 
                     return! Choice.failwith "cyclic"
@@ -396,8 +406,13 @@ let GEN_MESON_TAC =
                  }
                  |> Choice.bindError (function 
                         | Failure "find" -> 
-                            istriv sofar x' tm1
-                            |> Choice.map (fun b -> if b then sofar else (tm1, x') :: sofar)
+                            choice {
+                                let! b = istriv sofar x' tm1
+                                if b then 
+                                    return sofar 
+                                else 
+                                    return (tm1, x') :: sofar
+                            }
                         | e -> Choice.error e)
             | Fvar(x), _ ->
                return!  
@@ -407,9 +422,14 @@ let GEN_MESON_TAC =
                  }
                  |> Choice.bindError (function 
                         | Failure "find" -> 
+                            choice {
                                 let tm2' = fol_subst_bump offset [] tm2
-                                istriv sofar x tm2'
-                                |> Choice.map (fun b -> if b then sofar else (tm2', x) :: sofar)
+                                let! b = istriv sofar x tm2'
+                                if b then 
+                                    return sofar 
+                                else 
+                                    return (tm2', x) :: sofar
+                            }
                         | e -> Choice.error e)
         }
 
@@ -447,7 +467,7 @@ let GEN_MESON_TAC =
 
     let cacheconts f = 
         let memory = ref []
-        fun (gg, (insts, offset, size) as input) -> 
+        fun (_, (insts, _, size) as input) -> 
             if exists (fun (_, (insts', _, size')) -> insts = insts' && (size <= size' || !meson_depth)) (!memory) then 
                 failwith "cachecont"
             else 
@@ -477,7 +497,9 @@ let GEN_MESON_TAC =
     let insertan insts (p, a) ancestors = 
         let p' = -p
         let t' = (p', a)
-        let ourancp, otheranc = remove (fun (pr, _) -> pr = p') ancestors |> Option.fill((p', []), ancestors)
+        let ourancp, otheranc = 
+            remove (fun (pr, _) -> pr = p') ancestors 
+            |> Option.fill((p', []), ancestors)
         let ouranc = snd ourancp
         if exists (fun u -> fol_atom_eq insts t' (snd(fst u))) ouranc then 
             Choice.failwith "insertan: loop"
@@ -517,7 +539,7 @@ let GEN_MESON_TAC =
 
     let meson_single_expand loffset rule ((g, ancestors), (insts, offset, size)) = 
         choice {
-            let (hyps, conc), tag = rule
+            let (hyps, conc), _ = rule
             let! allins = Choice.List.foldBack2 (fol_unify loffset) (snd g) (snd conc) insts
             let locin, globin = separate_insts offset insts allins
             let mk_ihyp h = 
@@ -537,7 +559,10 @@ let GEN_MESON_TAC =
 
     let meson_expand_cont loffset rules state cont = 
         // NOTE: we change cont to return option (the original version throws exceptions)
-        tryfind (fun r -> cont (snd r) (Choice.get <| meson_single_expand loffset r state)) rules
+        tryfind (fun r -> 
+            try
+                cont (snd r) (Choice.get <| meson_single_expand loffset r state)
+            with Failure _ -> None) rules
         |> Option.getOrFailWith "tryfind"
 
     (* ----------------------------------------------------------------------- *)
@@ -575,25 +600,27 @@ let GEN_MESON_TAC =
     (* Simple Prolog engine organizing search and backtracking.                *)
     (* ----------------------------------------------------------------------- *)
 
+    // TODO: we change cont to return option but exceptions are still raised.
+    // Ideally this should be changed to Choice<_, _, _> where there is another case for Cut exceptions
     let expand_goal rules = 
         let rec expand_goal depth ((g, _), (insts, offset, size) as state) cont = 
             if depth < 0 then Choice.failwith "expand_goal: too deep"
             else 
                 meson_expand rules state (fun apprule (_, (pinsts, _, _) as newstate) -> 
                         expand_goals (depth - 1) newstate (cacheconts(fun (gs, (newinsts, newoffset, newsize)) -> 
-                                                                   let locin, globin = separate_insts offset pinsts newinsts
-                                                                   let g' = Subgoal(g, gs, apprule, offset, locin)
-                                                                   if globin = insts && gs = [] then 
-                                                                       try 
-                                                                           cont(g', (globin, newoffset, size))
-                                                                       with
-                                                                       | Failure _ -> raise Cut
-                                                                   else 
-                                                                       try 
-                                                                           cont(g', (globin, newoffset, newsize))
-                                                                       with
-                                                                       | Cut as e -> nestedFailwith e "expand_goal"
-                                                                       | Failure _ as e -> nestedFailwith e "expand_goal")))
+                            let locin, globin = separate_insts offset pinsts newinsts
+                            let g' = Subgoal(g, gs, apprule, offset, locin)
+                            if globin = insts && gs = [] then 
+                                try 
+                                    cont(g', (globin, newoffset, size))
+                                with
+                                | Failure _ -> raise Cut
+                            else 
+                                try 
+                                    cont(g', (globin, newoffset, newsize))
+                                with
+                                | Cut as e -> nestedFailwith e "expand_goal"
+                                | Failure _ as e -> nestedFailwith e "expand_goal")))
 
         and expand_goals depth (gl, (insts, offset, size as tup)) cont = 
             match gl with
@@ -615,10 +642,9 @@ let GEN_MESON_TAC =
                         expand_goals depth (rgoals, (insts, offset, lsize)) 
                             (cacheconts(fun (rg', (i, off, n)) -> 
                                      expand_goals depth (lgoals, (i, off, n + rsize)) (cacheconts(fun (lg', ((_, _, fsize) as ztup)) -> 
-                                                                                               if n + rsize <= lsize + fsize then 
-                                                                                                   failwith 
-                                                                                                       "repetition of demigoal pair"
-                                                                                               else cont(lg' @ rg', ztup)))))
+                                        if n + rsize <= lsize + fsize then 
+                                            failwith "repetition of demigoal pair"
+                                        else cont(lg' @ rg', ztup)))))
                 else 
                     match gl with
                     | g :: gs -> 
@@ -627,7 +653,7 @@ let GEN_MESON_TAC =
                                  (fun (g', stup) -> 
                                  expand_goals depth (gs, stup) (cacheconts(fun (gs', ftup) -> cont(g' :: gs', ftup))))) 
                         |> Choice.toOption
-                    | _ -> None // failwith "expand_goal: Unhandled case."
+                    | _ -> None 
         
         fun g maxdep maxinf cont -> expand_goal maxdep (g, ([], 2 * offinc, maxinf)) cont
 
@@ -685,13 +711,14 @@ let GEN_MESON_TAC =
 
         let fol_of_hol_clause th = 
             choice {
-                let! lconsts = Choice.map (freesl << hyp) th
-                let! tm = Choice.map concl th
+                let! th = th
+                let lconsts = freesl <| hyp th
+                let tm = concl th
                 let hlits = disjuncts tm
                 let! flits = Choice.List.map (fol_of_literal [] lconsts) hlits
-                let basics = mk_contraposes 0 th [] flits []
+                let basics = mk_contraposes 0 (Choice.result th) [] flits []
                 if forall (fun (p, _) -> p < 0) flits then 
-                    return ((map mk_negated flits, (1, [])), (-1, th)) :: basics
+                    return ((map mk_negated flits, (1, [])), (-1, Choice.result th)) :: basics
                 else 
                     return basics
             }
@@ -732,33 +759,35 @@ let GEN_MESON_TAC =
 
         let make_hol_contrapos(n, th) = 
             choice {
-                let! tm = Choice.map concl th
+                let! th = th
+                let tm = concl th
                 let key = (n, tm)
                 match assoc key !memory with
                 | Some th' -> return! th'
                 | None ->
                     if n < 0 then 
                         return! CONV_RULE (pull_CONV
-                                           |> THENC <| imf_CONV) th
+                                           |> THENC <| imf_CONV) (Choice.result th)
                     else 
                         let djs = disjuncts tm
-                        let acth =
+                        let! acth =
                             choice { 
                                 if n = 0 then 
-                                    return! th
+                                    return th
                                 else 
                                     let ldjs, rdjs = chop_list n djs
                                     let ndjs = (hd rdjs) :: (ldjs @ (tl rdjs))
                                     let! tm0 = list_mk_disj ndjs
                                     let! tm1 = mk_eq(tm, tm0)
-                                    return! EQ_MP (DISJ_AC tm1) th
+                                    return! EQ_MP (DISJ_AC tm1) (Choice.result th)
                             }
-                        let fth = 
-                            if length djs = 1 then acth
+                        let! fth = 
+                            if length djs = 1 then 
+                                Choice.result acth
                             else CONV_RULE (imp_CONV
-                                            |> THENC <| push_CONV) acth
-                        memory := (key, fth) :: (!memory)
-                        return! fth
+                                            |> THENC <| push_CONV) (Choice.result acth)
+                        memory := (key, Choice.result fth) :: (!memory)
+                        return fth
             }
         clear_contrapos_cache, make_hol_contrapos
 
@@ -769,7 +798,7 @@ let GEN_MESON_TAC =
     let meson_to_hol = 
         let hol_negate tm = 
             dest_neg tm
-            |> Choice.bindError (fun _ -> mk_neg tm)
+            |> Choice.bindError (function Failure _ -> mk_neg tm | e -> Choice.error e)
 
         let merge_inst (t, x) current = (fol_subst current t, x) :: current
 
@@ -777,21 +806,26 @@ let GEN_MESON_TAC =
             GEN_REWRITE_RULE I [TAUT(parse_term @"(~p ==> p) <=> p");
                                 TAUT(parse_term @"(p ==> ~p) <=> ~p")]
 
-        let rec meson_to_hol insts (Subgoal(g, gs, (n, th), offset, locin)) = 
+        let rec meson_to_hol insts (Subgoal(g, gs, (n, th), _, locin)) = 
             choice {
                 let newins = itlist merge_inst locin insts
                 let g' = fol_inst newins g
                 let! hol_g = hol_of_literal g'
                 let ths = map (meson_to_hol newins) gs
-                let hth = 
-                    if equals_thm th TRUTH then ASSUME hol_g
-                    else 
-                        let cth = make_hol_contrapos(n, th)
-                        if ths = [] then cth
-                        else MATCH_MP cth (end_itlist CONJ ths)
-                let ith = PART_MATCH Choice.result hth hol_g
-                let! tm1 = Choice.bind (hol_negate << concl) ith
-                return! finish_RULE (DISCH tm1 ith)
+                let! hth = 
+                    choice {
+                        if equals_thm th TRUTH then 
+                            return! ASSUME hol_g
+                        else 
+                            let! cth = make_hol_contrapos(n, th)
+                            if ths = [] then 
+                                return cth
+                            else 
+                                return! MATCH_MP (Choice.result cth) (end_itlist CONJ ths)
+                    }
+                let! ith = PART_MATCH Choice.result (Choice.result hth) hol_g
+                let! tm1 = hol_negate <| concl ith
+                return! finish_RULE (DISCH tm1 (Choice.result ith))
             }
         meson_to_hol
 
@@ -894,11 +928,11 @@ let GEN_MESON_TAC =
                 let largs = map genvar ctys
                 let rargs = map genvar ctys
                 let! th0 = (REFL tm)
-                let tms = map (ASSUME << Choice.get << mk_eq) (zip largs rargs)
-                let th1 = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, x)) th0 tms
-                let th2 = if pflag then eq_elim_RULE th1 else th1
-                let! tms = Choice.map hyp th2
-                return! itlist (fun e th -> CONV_RULE imp_elim_CONV (DISCH e th)) tms th2
+                let! tms = Choice.List.map (Choice.bind ASSUME << mk_eq) (zip largs rargs)
+                let! th1 = Choice.List.fold (fun acc x -> MK_COMB(Choice.result acc, Choice.result x)) th0 tms
+                let! th2 = if pflag then eq_elim_RULE (Choice.result th1) else Choice.result th1
+                let tms' = hyp th2
+                return! itlist (fun e th -> CONV_RULE imp_elim_CONV (DISCH e th)) tms' (Choice.result th2)
             }
 
         fun tms -> 
@@ -932,7 +966,7 @@ let GEN_MESON_TAC =
         let rec subterms_irrefl lconsts tm acc = 
             if is_var tm || is_const tm then acc
             else 
-                let fn, args = strip_comb tm
+                let _, args = strip_comb tm
                 itlist (subterms_refl lconsts) args acc
 
         and subterms_refl lconsts tm acc = 
@@ -941,32 +975,34 @@ let GEN_MESON_TAC =
                 else acc
             elif is_const tm then insert tm acc
             else 
-                let fn, args = strip_comb tm
+                let _, args = strip_comb tm
                 itlist (subterms_refl lconsts) args (insert tm acc)
 
         let CLAUSIFY = CONV_RULE(REWR_CONV(TAUT(parse_term @"a ==> b <=> ~a \/ b")))
 
         let rec BRAND tms th = 
             choice {
+                let! th = th
                 if tms = [] then 
-                    return! th
+                    return th
                 else 
                     let tm = hd tms
                     let! gv = Choice.map genvar (type_of tm)
                     let! eq = mk_eq(gv, tm)
-                    let! th' = CLAUSIFY(DISCH eq (SUBS [SYM(ASSUME eq)] th))
+                    let! th' = CLAUSIFY(DISCH eq (SUBS [SYM(ASSUME eq)] (Choice.result th)))
                     let! tms' = Choice.List.map (subst [gv, tm]) (tl tms)
                     return! BRAND tms' (Choice.result th')
             }
 
         let BRAND_CONGS th = 
             choice {
-                let! lconsts = Choice.map (freesl << hyp) th
-                let! lits = Choice.map (disjuncts << concl) th
+                let! th = th
+                let lconsts = freesl <| hyp th
+                let lits = disjuncts <| concl th
                 let! atoms = 
                     Choice.List.map (fun t -> 
                         dest_neg t
-                        |> Choice.bindError (fun _ -> Choice.result t)) lits
+                        |> Choice.bindError (function Failure _ -> Choice.result t | e -> Choice.error e)) lits
 
                 let! eqs, noneqs = 
                     Choice.List.partition (fun t -> 
@@ -975,48 +1011,56 @@ let GEN_MESON_TAC =
                 let acc = itlist (subterms_irrefl lconsts) noneqs []
                 let uts = itlist (itlist(subterms_irrefl lconsts) << snd << strip_comb) eqs acc
                 let sts = sort (fun s t -> not(Choice.get <| free_in s t)) uts
-                return! BRAND sts th
+                return! BRAND sts (Choice.result th)
             }
 
         let BRANDE th = 
             choice {
-                let! tm = Choice.map concl th
+                let! th = th
+                let tm = concl th
                 let! l, r = dest_eq tm
                 let! gv = Choice.map genvar (type_of l)
                 let! eq = mk_eq(r, gv)
                 let! tm1 = rator tm
-                return! CLAUSIFY(DISCH eq (EQ_MP (AP_TERM tm1 (ASSUME eq)) th))
+                return! CLAUSIFY(DISCH eq (EQ_MP (AP_TERM tm1 (ASSUME eq)) (Choice.result th)))
             }
 
         let LDISJ_CASES th lth rth = 
             choice {
-                let! tm1 = Choice.map concl rth
-                let! tm2 = Choice.map concl lth
-                return! DISJ_CASES th (DISJ1 lth tm1) (DISJ2 tm2 rth)
+                let! rth = rth
+                let! lth = lth
+                let! th = th
+                let tm1 = concl rth
+                let tm2 = concl lth
+                return! DISJ_CASES (Choice.result th) (DISJ1 (Choice.result lth) tm1) (DISJ2 tm2 (Choice.result rth))
             }
 
         let ASSOCIATE = CONV_RULE(REWR_CONV(GSYM DISJ_ASSOC))
 
         let rec BRAND_TRANS th = 
             choice {
-                let! tm = Choice.map concl th
+                let! th = th
+                let tm = concl th
                 return! 
                     choice { 
                         let! l, r = dest_disj tm
                         if is_eq l then 
-                            let lth = ASSUME l
-                            let lth1 = BRANDE lth
-                            let lth2 = BRANDE(SYM lth)
+                            let! lth = ASSUME l
+                            let! lth1 = BRANDE (Choice.result lth)
+                            let! lth2 = BRANDE(SYM (Choice.result lth))
                             let! rth = BRAND_TRANS(ASSUME r)
-                            return map (ASSOCIATE << LDISJ_CASES th lth1) rth @ map (ASSOCIATE << LDISJ_CASES th lth2) rth
+                            return map (ASSOCIATE << LDISJ_CASES (Choice.result th) (Choice.result lth1)) rth
+                                   @ map (ASSOCIATE << LDISJ_CASES (Choice.result th) (Choice.result lth2)) rth
                         else 
                             let! rth = BRAND_TRANS(ASSUME r)
-                            return map (LDISJ_CASES th (ASSUME l)) rth
+                            return map (LDISJ_CASES (Choice.result th) (ASSUME l)) rth
                     }
-                    |> Choice.bindError (fun _ ->
-                        if is_eq tm then 
-                            Choice.result [BRANDE th; BRANDE(SYM th)]
-                        else Choice.result [th])
+                    |> Choice.bindError (function
+                        | Failure _ ->
+                            if is_eq tm then 
+                                Choice.result [BRANDE (Choice.result th); BRANDE(SYM (Choice.result th))]
+                            else Choice.result [Choice.result th]
+                        | e -> Choice.error e)
             }
 
         let find_eqs = 
@@ -1210,9 +1254,10 @@ let GEN_MESON_TAC =
                     (repeat
                         (fun th -> 
                             choice {
-                                let! (tm1, _) = Choice.bind (dest_forall << concl) th
+                                let! th = th
+                                let! (tm1, _) = dest_forall <| concl th
                                 let! ty1 = type_of tm1
-                                return SPEC (genvar ty1) th
+                                return SPEC (genvar ty1) (Choice.result th)
                             }
                             |> Choice.toOption))
         |> THEN <| REPEAT(FIRST_X_ASSUM(CONJUNCTS_THEN' ASSUME_TAC))

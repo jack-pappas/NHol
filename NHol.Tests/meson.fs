@@ -36,6 +36,18 @@ open NUnit.Framework
 
 //// This crashes VS test runner
 //[<Test>]
+//let ``{MESON_TAC} Automated first-order proof search tactic``() =
+//    let _ = g <| parse_term @"(!x. x <= x) /\
+//       (!x y z. x <= y /\ y <= z ==> x <= z) /\
+//       (!x y. f(x) <= y <=> x <= g(y))
+//       ==> (!x y. x <= y ==> f(x) <= f(y))"
+//    let gs = e (MESON_TAC[])
+//
+//    noSubgoal gs
+//    |> assertEqual true
+
+//// This crashes VS test runner
+//[<Test>]
 //let ``{MESON} doesn't fail on this simple term``() =
 //    let actual = MESON [] <| parse_term @"?!n. n = m"
 //    let expected = Sequent ([], parse_term @"?!n. n = m")
