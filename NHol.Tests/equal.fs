@@ -223,7 +223,7 @@ open NHol.calc_num
 
 [<Test>]
 let ``{ALPHA_CONV tm1 tm2} Renames the bound variable of a lambda-abstraction``() =
-    ONE_ONE |> ignore
+    loadNumsModule()
     let actual = ALPHA_CONV (parse_term @"y:num") (parse_term @"\x. x + 1")
     let expected = Sequent ([], parse_term @"(\x. x + 1) = (\y. y + 1)")
 
@@ -409,7 +409,7 @@ let ``{TRY_CONV conv} Attempts to apply a conversion; applies identity conversio
 
 [<Test>]
 let ``{ABS_CONV conv} Applies a conversion to the body of an abstraction``() =
-    ONE_ONE |> ignore
+    loadNumsModule()
     let actual = ABS_CONV SYM_CONV (parse_term @"\x. 1 = x")
     let expected = Sequent ([], parse_term @"(\x. 1 = x) = (\x. x = 1)")
 

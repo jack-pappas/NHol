@@ -199,7 +199,7 @@ let ``{PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
 
 [<Test>]
 let ``{HIGHER_REWRITE_CONV} Rewrite once using more general higher order matching``() =
-    NHol.nums.ONE_ONE |> ignore
+    loadNumsModule()
     let t = parse_term @"z = if x = 0 then if y = 0 then 0 else x + y else x + y"
     let actual = HIGHER_REWRITE_CONV [COND_ELIM_THM] true t
     let expected = Sequent ([], parse_term @"z = (if x = 0 then if y = 0 then 0 else x + y else x + y) <=>

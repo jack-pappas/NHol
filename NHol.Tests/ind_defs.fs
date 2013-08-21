@@ -36,7 +36,7 @@ open NUnit.Framework
 
 [<Test>]
 let ``{RIGHT_BETAS} Apply and beta-reduce equational theorem with abstraction on RHS``() =
-    NHol.nums.ONE_ONE |> ignore
+    loadNumsModule()
     let th = ASSUME <| parse_term @"f = \a b c. a + b + c + 1"
     let actual = RIGHT_BETAS [parse_term @"x:num"; parse_term @"y:num"] th
     let expected = Sequent([parse_term @"f = \a b c. a + b + c + 1"], parse_term @"f x y = (\c. x + y + c + 1)")
@@ -47,7 +47,7 @@ let ``{RIGHT_BETAS} Apply and beta-reduce equational theorem with abstraction on
 
 [<Test>]
 let ``{EXISTS_EQUATION} Derives existence from explicit equational constraint``() =
-    NHol.nums.ONE_ONE |> ignore
+    loadNumsModule()
     let th = REFL <| parse_term @"x:num"
     let actual = EXISTS_EQUATION (parse_term @"x = 1") th
     let expected = Sequent([], parse_term @"?x. x = x")

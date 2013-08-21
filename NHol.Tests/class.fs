@@ -35,7 +35,7 @@ open NUnit.Framework
 
 [<Test>]
 let ``{ETA_CONV} Performs a toplevel eta-conversion``() =
-    NHol.nums.ONE_ONE |> ignore
+    loadNumsModule()
     let actual = ETA_CONV (parse_term @"\n. 1 + n")
     let expected = Sequent([], parse_term @"(\n. 1 + n) = (+) 1")
 
@@ -81,7 +81,7 @@ let ``{TAUT} Proves a propositional tautology 2``() =
 
 [<Test>]
 let ``{TAUT} Proves a propositional tautology 3``() =
-    NHol.nums.ONE_ONE |> ignore
+    loadNumsModule()
     let actual = TAUT_001 <| parse_term @"(x > 2 ==> y > 3) \/ (y < 3 ==> x > 2)"
     let expected = Sequent([], parse_term @"(x > 2 ==> y > 3) \/ (y < 3 ==> x > 2)")
 
