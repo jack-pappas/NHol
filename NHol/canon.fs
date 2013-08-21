@@ -57,7 +57,7 @@ infof "Entering canon.fs"
 (* Pre-simplification.                                                       *)
 (* ------------------------------------------------------------------------- *)
 
-/// Applies basic propositional simplications and some miniscoping.
+/// Applies basic propositional simplifications and some miniscoping.
 let (PRESIMP_CONV : conv) = 
     GEN_REWRITE_CONV TOP_DEPTH_CONV 
         [NOT_CLAUSES; AND_CLAUSES; OR_CLAUSES; IMP_CLAUSES; EQ_CLAUSES; 

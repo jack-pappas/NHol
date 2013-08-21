@@ -92,7 +92,7 @@ let FUN_EQ_THM =
                       MATCH_ACCEPT_TAC EQ_EXT]);;
 
 
-let result = new_constant("@", parse_type @"(A->bool)->A")
+new_constant("@", parse_type @"(A->bool)->A") |> Choice.ignoreOrRaise
 
 parse_as_binder "@"
 
@@ -159,7 +159,6 @@ let (SELECT_CONV : conv) =
     fun tm -> 
         choice { 
             let! pth = pth
-            // NOTE: we translate the exceptional cases to return false
             let is_epsok t = 
                 choice {
                 if not <| is_select t then
@@ -194,8 +193,7 @@ let SELECT_UNIQUE =
          |> THEN <| GEN_REWRITE_TAC (LAND_CONV << RAND_CONV) [GSYM ETA_AX]
          |> THEN <| ASM_REWRITE_TAC [SELECT_REFL]);;
 
-extend_basic_rewrites [SELECT_REFL]
-|> Choice.ignoreOrRaise
+extend_basic_rewrites [SELECT_REFL] |> Choice.ignoreOrRaise
 
 (* ------------------------------------------------------------------------- *)
 (* Now we can derive type definitions from existence; check benignity.       *)
@@ -230,7 +228,7 @@ let new_type_definition tyname (absname, repname) (th : Protected<thm0>) : Prote
                 return tth
             }
         | e ->
-            logger.Error(Printf.sprintf "new_type_definition of '%s' returns %O" tyname e)
+            errorf "new_type_definition of '%s' returns %O" tyname e
             Choice.error e
         );;
 
@@ -364,7 +362,7 @@ let (CONTRAPOS_CONV : conv) =
 let (REFUTE_THEN : thm_tactic -> tactic) = 
     let f_tm = (parse_term @"F")
     let conv = REWR_CONV(TAUT_001(parse_term @"p <=> ~p ==> F"))
-    fun ttac (asl, w as gl) -> 
+    fun ttac (_, w as gl) -> 
             if w = f_tm then ALL_TAC gl
             elif is_neg w then DISCH_THEN ttac gl
             else (CONV_TAC conv
@@ -662,7 +660,7 @@ let (COND_CASES_TAC : tactic) =
     |> THENL <| [DISCH_THEN(fun th -> ASSUME_TAC th
                                       |> THEN <| SUBST1_TAC(EQT_INTRO th))
                  DISCH_THEN(fun th gl -> 
-                         // NOTE: execute the tactics to check for failures
+                         // NOTE: execute the tactic to check for failures
                          choice { 
                              let! th' = DENEG_RULE th
                              return!
@@ -752,8 +750,7 @@ let COND_CONG =
         (~g' ==> (e = e')) ==>
         ((if g then t else e) = (if g' then t' else e'))")
 
-extend_basic_congs [COND_CONG]
-|> Choice.ignoreOrRaise
+extend_basic_congs [COND_CONG] |> Choice.ignoreOrRaise
 
 
 let COND_EQ_CLAUSE = 

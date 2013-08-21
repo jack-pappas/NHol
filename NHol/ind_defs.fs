@@ -389,14 +389,14 @@ let derive_nonschematic_inductive_relations : conv =
                     let avs, bod = strip_forall tm
                     let! il, r = dest_comb bod
                     let! i, l = dest_comb il
-                    let bth = RIGHT_BETAS avs (REFL dtm)
-                    let munb = AP_THM (AP_TERM i bth) r
+                    let! bth = RIGHT_BETAS avs (REFL dtm)
+                    let! munb = AP_THM (AP_TERM i (Choice.result bth)) r
                     let! tm1 = double_fn l
                     let! tm2 = mk_comb(i, tm1)
-                    let iunb = AP_TERM tm2 bth
+                    let! iunb = AP_TERM tm2 (Choice.result bth)
                     let! tm3 = mk_comb(i, r)
-                    let junb = AP_TERM tm3 bth
-                    let quantify = itlist MK_FORALL avs
+                    let! junb = AP_TERM tm3 (Choice.result bth)
+                    let quantify th = itlist MK_FORALL avs (Choice.result th)
                     return (quantify munb, (quantify iunb, quantify junb))
                 }
 
@@ -484,7 +484,7 @@ let monotonicity_theorems =
 (* ------------------------------------------------------------------------- *)
 
 /// Attempt to prove monotonicity theorem automatically.
-let MONO_TAC : goal -> Protected<goalstate0> = 
+let MONO_TAC : tactic = 
     let imp = (parse_term @"(==>)")
     let IMP_REFL = ITAUT(parse_term @"!p. p ==> p")
     let BACKCHAIN_TAC th = 
@@ -512,6 +512,7 @@ let MONO_TAC : goal -> Protected<goalstate0> =
             let! hd1' = BETA_CONV hd1
             let! th1 = Choice.List.fold (fun acc x -> AP_THM (Choice.result acc) x) hd1' args1
             let! hd2' = BETA_CONV hd2
+            // The OCaml version also uses args1. Is this a bug?
             let! th2 = Choice.List.fold (fun acc x -> AP_THM (Choice.result acc) x) hd2' args1
             let! th3 = MK_COMB(AP_TERM imp (Choice.result th1), Choice.result th2)
             let! _ = Choice.List.map snd asl
@@ -689,6 +690,8 @@ let prove_inductive_relations_exist, new_inductive_definition =
     let find_redefinition tm (rth, ith, cth as trip) = 
         choice {
             let! rth = rth
+            let! _ = ith
+            let! _ = cth
             let tm1 = concl rth
             if aconv tm tm1 then 
                 return trip
@@ -795,7 +798,7 @@ let derive_strong_induction : Protected<thm0> * Protected<thm0> -> Protected<thm
             if is_conj tm1 then 
                 return! CONJ (weaken_triv(CONJUNCT1 (Choice.result th))) (weaken_triv(CONJUNCT2 (Choice.result th)))
             else 
-                let avs, bod = strip_forall <| concl th
+                let avs, _ = strip_forall <| concl th
                 let! th1 = SPECL avs (Choice.result th)
                 let! (a, _) = dest_imp <| concl th1
                 return! GENL avs (DISCH a (CONJUNCT2(UNDISCH (Choice.result th1))))
@@ -814,7 +817,7 @@ let derive_strong_induction : Protected<thm0> * Protected<thm0> -> Protected<thm
             let rs, ps = unzip prrs
             let! bods = variables ibod
             let! gs = variants bods ps
-            let svs, tvs = chop_list (length ovs - length ns) ovs
+            let svs, _ = chop_list (length ovs - length ns) ovs
             let! sth = SPECL svs (Choice.result rth)
             let! jth = SPECL svs (Choice.result ith)
             let! gimps = subst (zip gs rs) icon
@@ -823,7 +826,7 @@ let derive_strong_induction : Protected<thm0> * Protected<thm0> -> Protected<thm
                     (fun n (r, p) -> 
                         choice {
                             let! tyr = type_of r
-                            let! tys, ty = Choice.List.nsplit dest_fun_ty (1 -- n) tyr
+                            let! tys, _ = Choice.List.nsplit dest_fun_ty (1 -- n) tyr
                             let gvs = map genvar tys
                             let! tm1 = list_mk_comb(r, gvs)
                             let! tm2 = list_mk_comb(p, gvs)
