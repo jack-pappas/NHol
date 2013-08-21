@@ -559,7 +559,10 @@ let GEN_MESON_TAC =
 
     let meson_expand_cont loffset rules state cont = 
         // NOTE: we change cont to return option (the original version throws exceptions)
-        tryfind (fun r -> cont (snd r) (Choice.get <| meson_single_expand loffset r state)) rules
+        tryfind (fun r -> 
+            try
+                cont (snd r) (Choice.get <| meson_single_expand loffset r state)
+            with Failure _ -> None) rules
         |> Option.getOrFailWith "tryfind"
 
     (* ----------------------------------------------------------------------- *)
@@ -597,6 +600,8 @@ let GEN_MESON_TAC =
     (* Simple Prolog engine organizing search and backtracking.                *)
     (* ----------------------------------------------------------------------- *)
 
+    // TODO: we change cont to return option but exceptions are still raised.
+    // Ideally this should be changed to Choice<_, _, _> where there is another case for Cut exceptions
     let expand_goal rules = 
         let rec expand_goal depth ((g, _), (insts, offset, size) as state) cont = 
             if depth < 0 then Choice.failwith "expand_goal: too deep"
@@ -605,7 +610,6 @@ let GEN_MESON_TAC =
                         expand_goals (depth - 1) newstate (cacheconts(fun (gs, (newinsts, newoffset, newsize)) -> 
                             let locin, globin = separate_insts offset pinsts newinsts
                             let g' = Subgoal(g, gs, apprule, offset, locin)
-                            // NOTE: review this since cont has been changed to return options
                             if globin = insts && gs = [] then 
                                 try 
                                     cont(g', (globin, newoffset, size))
