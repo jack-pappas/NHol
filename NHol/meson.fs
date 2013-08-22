@@ -558,11 +558,10 @@ let GEN_MESON_TAC =
     (* ----------------------------------------------------------------------- *)
 
     let meson_expand_cont loffset rules state cont = 
-        // NOTE: we change cont to return option (the original version throws exceptions)
+        // NOTE: the body of tryfind should capture all Failures and return None
+        // Or better yet, remove all exceptions by using Choice
         tryfind (fun r -> 
-            try
-                cont (snd r) (Choice.get <| meson_single_expand loffset r state)
-            with Failure _ -> None) rules
+            cont (snd r) (Choice.get <| meson_single_expand loffset r state)) rules
         |> Option.getOrFailWith "tryfind"
 
     (* ----------------------------------------------------------------------- *)

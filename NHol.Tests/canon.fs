@@ -34,7 +34,6 @@ open NHol.canon
 
 open NUnit.Framework
 
-// This test is very slow
 [<Test>]
 let ``{PRESIMP_CONV} Applies basic propositional simplifications and some miniscoping``() =
     loadNumsModule()
@@ -154,7 +153,6 @@ let ``{WEAK_CNF_CONV} Converts a term already in negation normal form into conju
     |> evaluate
     |> assertEqual expected
 
-// This test is very slow
 [<Test>]
 let ``{CNF_CONV} Converts a term already in negation normal form into conjunctive normal form``() =
     let actual = CNF_CONV (parse_term @"(a /\ b) \/ (a /\ b /\ c) \/ d")
