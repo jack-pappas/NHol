@@ -157,7 +157,6 @@ let finished input =
     if input = [] then 0, input
     else failwith "Unparsed input"
 
-
 /// The basic lexical classes: identifiers, strings and reserved words.
 type lexcode =
     /// Identifier.

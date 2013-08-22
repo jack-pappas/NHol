@@ -35,6 +35,7 @@ open NHol.pair
 open NUnit.Framework
 
 [<Test>]
+[<Category("Fails")>]
 let ``{let_CONV} Eliminates a single local variable``() =
     let actual = let_CONV (parse_term @"let x = T in x \/ y")
     let expected = Sequent([], parse_term @"(let x = T in x \/ y) = T \/ y")
@@ -44,6 +45,7 @@ let ``{let_CONV} Eliminates a single local variable``() =
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{let_CONV} Eliminates a tuple binding``() =
     loadNumsModule()
     let actual = let_CONV (parse_term @"let (x,y) = (1,2) in x+y")
@@ -54,6 +56,7 @@ let ``{let_CONV} Eliminates a tuple binding``() =
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{let_CONV} Eliminates two bindings``() =
     loadNumsModule()
     let actual = let_CONV (parse_term @"let x = 1 and y = 2 in x + y + z")
