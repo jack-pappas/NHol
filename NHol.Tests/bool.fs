@@ -238,6 +238,32 @@ let ``{UNDISCH thm} Undischarges the antecedent of an implicative theorem``() =
     |> evaluate
     |> assertEqual expected
 
+[<Test>]
+let ``{UNDISCH a implies b} should return a concludes b``() =
+
+    T_DEF |> ignore
+
+    let given = Choice1Of2 (Sequent ([], (parse_term @"a:bool ==> b:bool")))
+    let actual = UNDISCH given
+    let expected = Sequent ([parse_term @"a:bool"], parse_term @"b:bool")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{UNDISCH FALSISTY implies F} should return FALSITY concludes F``() =
+
+    T_DEF |> ignore
+
+    let given = Choice1Of2 (Sequent ([], (parse_term @"_FALSITY_:bool ==> F:bool")))
+    let actual = UNDISCH given
+    let expected = Sequent ([parse_term @"_FALSITY_:bool"], parse_term @"F:bool")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
 (* UNDISCH_ALL  tests *)
 
 [<Test>]
@@ -281,6 +307,18 @@ open NHol.theorems
 
 [<Test>]
 let ``{EQ_IMP_RULE thm} Derives forward and backward implication from equality of boolean terms``() =
+    let actual = EQ_IMP_RULE (SPEC_ALL CONJ_SYM)
+    let expected = Choice.result <| Sequent ([], parse_term @"t1 /\ t2 ==> t2 /\ t1"),
+                   Choice.result <| Sequent ([], parse_term @"t2 /\ t1 ==> t1 /\ t2")
+
+    actual
+    |> assertEqual expected
+
+[<Test>]
+let ``{EQ_IMP_RULE thm} Derives forward and backward implication from equality of boolean terms 2``() =
+
+    mk_iff |> ignore
+
     let actual = EQ_IMP_RULE (SPEC_ALL CONJ_SYM)
     let expected = Choice.result <| Sequent ([], parse_term @"t1 /\ t2 ==> t2 /\ t1"),
                    Choice.result <| Sequent ([], parse_term @"t2 /\ t1 ==> t1 /\ t2")

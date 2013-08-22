@@ -45,6 +45,43 @@ open NUnit.Framework
 
 (* mk_fthm  tests *)
 
+[<Test>]
+let ``mk_fthm1``() =
+
+    _FALSITY_ |> ignore
+
+    let thm = _FALSITY_                                                // |- _FALSITY_ <==> F  
+    let expected = Sequent ([], parse_term @"_FALSITY_ <==> F")
+
+    thm
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``mk_fthm2``() =
+
+    _FALSITY_ |> ignore
+
+    let thm = fst (EQ_IMP_RULE _FALSITY_)                                  // |- _FALSITY_ ==> F  
+    let expected = Sequent ([], parse_term @"_FALSITY_ ==> F")
+
+    thm
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``mk_fthm3``() =
+
+    _FALSITY_ |> ignore
+
+    let thm = fst (EQ_IMP_RULE _FALSITY_)                                  // |- _FALSITY_ ==> F
+    let pth = UNDISCH thm                                                  // _FALSITY_ |- F    
+    let expected = Sequent ([parse_term @"_FALSITY_";], parse_term @"F")
+
+    pth
+    |> evaluate
+    |> assertEqual expected
+
 (* VALID  tests *)
 
 (* THEN  tests *)

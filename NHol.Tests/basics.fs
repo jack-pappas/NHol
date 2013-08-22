@@ -20,6 +20,9 @@ limitations under the License.
 module Tests.NHol.basics
 
 open NUnit.Framework
+open NHol.lib
+open NHol.fusion
+open NHol.basics
 
 (* genvar tests *)
 
@@ -44,6 +47,28 @@ open NUnit.Framework
 (* is_binary tests *)
 
 (* dest_binary tests *)
+[<Test>]
+let ``{dest_binary s tm} breaks apart an instance of a binary operator with given name``() =
+    let s = "==>"
+
+    let tm = 
+        Comb
+            (
+             Comb(
+                  Const("==>", 
+                        Tyapp("fun", 
+                              [Tyapp("bool", [])
+                               Tyapp("fun", 
+                                     [Tyapp("bool", [])
+                                      Tyvar "?0"])])), Var("a", Tyapp("bool", []))), 
+             Var("b", Tyapp("bool", [])))
+
+    let actual = dest_binary s tm
+    let expected = (Var ("a", Tyapp ("bool", [])), Var ("b", Tyapp ("bool", [])))
+
+    actual
+    |> evaluate
+    |> assertEqual expected
 
 (* mk_binary tests *)
 
