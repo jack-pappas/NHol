@@ -29,10 +29,194 @@ open NUnit.Framework
 (* isalpha  tests *)
 (* isnum  tests *)
 (* isalnum  tests *)
+
 (* reserve_words  tests *)
+
 (* unreserve_words  tests *)
+
 (* is_reserved_word  tests *)
+
+let private is_reserved_wordValues : (string * bool)[] = [|
+    (
+        // idx 0
+        // printer.is_reserved_word.01
+        "(",
+        true
+    );
+    (
+        // idx 1
+        // printer.is_reserved_word.02
+        ")",
+        true
+    );
+    (
+        // idx 2
+        // printer.is_reserved_word.03
+        "[",
+        true
+    );
+    (
+        // idx 3
+        // printer.is_reserved_word.04
+        "]",
+        true
+    );
+    (
+        // idx 4
+        // printer.is_reserved_word.05
+        "{",
+        true
+    );
+    (
+        // idx 5
+        // printer.is_reserved_word.06
+        "}",
+        true
+    );
+    (
+        // idx 6
+        // printer.is_reserved_word.07
+        ":",
+        true
+    );
+    (
+        // idx 7
+        // printer.is_reserved_word.08
+        ";",
+        true
+    );
+    (
+        // idx 8
+        // printer.is_reserved_word.09
+        ".",
+        true
+    );
+    (
+        // idx 9
+        // printer.is_reserved_word.10
+        "|",
+        true
+    );
+    (
+        // idx 10
+        // printer.is_reserved_word.11
+        "let",
+        true
+    );
+    (
+        // idx 11
+        // printer.is_reserved_word.12
+        "in",
+        true
+    );
+    (
+        // idx 12
+        // printer.is_reserved_word.13
+        "and",
+        true
+    );
+    (
+        // idx 13
+        // printer.is_reserved_word.14
+        "if",
+        true
+    );
+    (
+        // idx 14
+        // printer.is_reserved_word.15
+        "then",
+        true
+    );
+    (
+        // idx 15
+        // printer.is_reserved_word.16
+        "else",
+        true
+    );
+    (
+        // idx 16
+        // printer.is_reserved_word.17
+        "match",
+        true
+    );
+    (
+        // idx 17
+        // printer.is_reserved_word.18
+        "with",
+        true
+    );
+    (
+        // idx 18
+        // printer.is_reserved_word.19
+        "function",
+        true
+    );
+    (
+        // idx 19
+        // printer.is_reserved_word.20
+        "->",
+        true
+    );
+    (
+        // idx 20
+        // printer.is_reserved_word.21
+        "when",
+        true
+    );
+    (
+        // idx 21
+        // printer.is_reserved_word.22
+        "",
+        false
+    );
+    (
+        // idx 22
+        // printer.is_reserved_word.23
+        "a",
+        false
+    );
+    (
+        // idx 23
+        // printer.is_reserved_word.24
+        "#",
+        false
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "printer.is_reserved_word.01")>]
+[<TestCase(1, TestName = "printer.is_reserved_word.02")>]
+[<TestCase(2, TestName = "printer.is_reserved_word.03")>]
+[<TestCase(3, TestName = "printer.is_reserved_word.04")>]
+[<TestCase(4, TestName = "printer.is_reserved_word.05")>]
+[<TestCase(5, TestName = "printer.is_reserved_word.06")>]
+[<TestCase(6, TestName = "printer.is_reserved_word.07")>]
+[<TestCase(7, TestName = "printer.is_reserved_word.08")>]
+[<TestCase(8, TestName = "printer.is_reserved_word.09")>]
+[<TestCase(9, TestName = "printer.is_reserved_word.10")>]
+[<TestCase(10, TestName = "printer.is_reserved_word.11")>]
+[<TestCase(11, TestName = "printer.is_reserved_word.12")>]
+[<TestCase(12, TestName = "printer.is_reserved_word.13")>]
+[<TestCase(13, TestName = "printer.is_reserved_word.14")>]
+[<TestCase(14, TestName = "printer.is_reserved_word.15")>]
+[<TestCase(15, TestName = "printer.is_reserved_word.16")>]
+[<TestCase(16, TestName = "printer.is_reserved_word.17")>]
+[<TestCase(17, TestName = "printer.is_reserved_word.18")>]
+[<TestCase(18, TestName = "printer.is_reserved_word.19")>]
+[<TestCase(19, TestName = "printer.is_reserved_word.20")>]
+[<TestCase(20, TestName = "printer.is_reserved_word.21")>]
+[<TestCase(21, TestName = "printer.is_reserved_word.22")>]
+[<TestCase(22, TestName = "printer.is_reserved_word.23")>]
+[<TestCase(23, TestName = "printer.is_reserved_word.24")>]
+let ``function end_itlist - type string`` idx =
+    let (word, _) = is_reserved_wordValues.[idx]
+    let (_, result) = is_reserved_wordValues.[idx]
+    let end_itlistResult = NHol.printer.is_reserved_word word
+//    printfn "%A" end_itlistResult
+    end_itlistResult |> assertEqual result
+
 (* reserved_words  tests *)
+
 (* unparse_as_binder  tests *)
 (* parse_as_binder  tests *)
 (* parses_as_binder  tests *)
