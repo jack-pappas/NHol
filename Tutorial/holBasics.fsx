@@ -109,6 +109,16 @@ type_abbrevs();;                                                                
 //the_inductive_definitions;;   only in ind_defs
 //inductive_type_store;;        only after class
 
+//* Parser Module *//
+types();;                                                                           // the_type_constants database doesn't change
+constants();;
+infixes();;
+//val it : (string * (int * string)) list = [(",", (14, "right"))]
+axioms();;                                                                          // the_axioms database doesn't change
+definitions();;                                                                     // the_definitions doesn't change
+!the_implicit_types;;                                                               // no change
+type_abbrevs();;  
+
 //* Bool Module *//
 
 mk_iff;; // forces bool module evaluation
@@ -203,6 +213,7 @@ constants();;                                                                   
 //   ("F", bool); ("\/", bool->bool->bool); ("?", (A->bool)->bool);
 //   ("!", (A->bool)->bool); ("==>", bool->bool->bool); ("/\", bool->bool->bool);
 //   ("T", bool); ("=", A->A->bool)]
+infixes();; 
 axioms();;                                                                          // new axioms: SELECT, ETA
 //  [|- !P x. P x ==> P ((@) P); |- !t. (\x. t x) = t]
 definitions();;                                                                     // new COND definition
