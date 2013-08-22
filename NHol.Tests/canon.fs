@@ -43,7 +43,8 @@ let ``{PRESIMP_CONV} Applies basic propositional simplifications and some minisc
 
     actual
     |> evaluate
-    |> assertEqual expected
+    |> string_of_thm
+    |> assertEqual (string_of_thm expected)
 
 [<Test>]
 let ``{CONJ_ACI_RULE} Proves equivalence of two conjunctions containing same set of conjuncts``() =
@@ -70,7 +71,8 @@ let ``{CONJ_CANON_CONV} Puts an iterated conjunction in canonical form``() =
 
     actual
     |> evaluate
-    |> assertEqual expected
+    |> string_of_thm
+    |> assertEqual (string_of_thm expected)
 
 [<Test>]
 let ``{DISJ_CANON_CONV} Puts an iterated disjunction in canonical form``() =
@@ -79,17 +81,19 @@ let ``{DISJ_CANON_CONV} Puts an iterated disjunction in canonical form``() =
 
     actual
     |> evaluate
-    |> assertEqual expected
+    |> string_of_thm
+    |> assertEqual (string_of_thm expected)
 
 [<Test>]
 let ``{NNF_CONV} Convert a term to negation normal form``() =
     let actual = NNF_CONV (parse_term @"(!x. p(x) <=> q(x)) ==> ~ ?y. p(y) /\ ~q(y)")
     let expected = Sequent([], parse_term @"(!x. p x <=> q x) ==> ~(?y. p y /\ ~q y) <=>
        (?x. p x /\ ~q x \/ ~p x /\ q x) \/ (!y. ~p y \/ q y)")
-
+    
     actual
     |> evaluate
-    |> assertEqual expected
+    |> string_of_thm 
+    |> assertEqual (string_of_thm expected)
 
 [<Test>]
 let ``{NNFC_CONV} Convert a term to negation normal form``() =
@@ -99,7 +103,8 @@ let ``{NNFC_CONV} Convert a term to negation normal form``() =
 
     actual
     |> evaluate
-    |> assertEqual expected
+    |> string_of_thm
+    |> assertEqual (string_of_thm expected)
 
 [<Test>]
 let ``{SKOLEM_CONV} Completely Skolemize a term already in negation normal form``() =
@@ -109,7 +114,8 @@ let ``{SKOLEM_CONV} Completely Skolemize a term already in negation normal form`
 
     actual
     |> evaluate
-    |> assertEqual expected
+    |> string_of_thm
+    |> assertEqual (string_of_thm expected)
 
 [<Test>]
 let ``{PRENEX_CONV} Puts a term already in NNF into prenex form``() =
@@ -119,7 +125,8 @@ let ``{PRENEX_CONV} Puts a term already in NNF into prenex form``() =
 
     actual
     |> evaluate
-    |> assertEqual expected
+    |> string_of_thm
+    |> assertEqual (string_of_thm expected)
 
 [<Test>]
 let ``{WEAK_DNF_CONV} Converts a term already in negation normal form into disjunctive normal form``() =
@@ -134,11 +141,13 @@ let ``{WEAK_DNF_CONV} Converts a term already in negation normal form into disju
 [<Test>]
 let ``{DNF_CONV} Converts a term already in negation normal form into disjunctive normal form``() =
     let actual = DNF_CONV (parse_term @"(a \/ b) /\ (a \/ c /\ e)")
-    let expected = Sequent([], parse_term @"(a \/ b) /\ (a \/ c /\ e) <=> a \/ a /\ b \/ a /\ c /\ e \/ b /\ c /\ e")
+    let expected = Sequent([], parse_term @"(a \/ b) /\ (a \/ c /\ e)
+ <=> a \/ a /\ b \/ a /\ c /\ e \/ b /\ c /\ e")
 
     actual
     |> evaluate
-    |> assertEqual expected
+    |> string_of_thm
+    |> assertEqual (string_of_thm expected)
 
 [<Test>]
 let ``{WEAK_CNF_CONV} Converts a term already in negation normal form into conjunctive normal form``() =
@@ -161,7 +170,8 @@ let ``{CNF_CONV} Converts a term already in negation normal form into conjunctiv
 
     actual
     |> evaluate
-    |> assertEqual expected
+    |> string_of_thm
+    |> assertEqual (string_of_thm expected)
 
 [<Test>]
 let ``{ASSOC_CONV} Right-associates a term with respect to an associative binary operator``() =

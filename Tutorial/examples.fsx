@@ -38,21 +38,21 @@ open NHol.trivia
 open NHol.canon
 open NHol.meson
 open NHol.quot
-//open NHol.pair
-//open NHol.nums
-//open NHol.recursion
+open NHol.pair
+open NHol.nums
+open NHol.recursion
 //open NHol.arith   
-////open NHol.wf: depends on pair module
+////open NHol.wf
 //open NHol.calc_num
 //open NHol.normalizer
 //open NHol.grobner
 
 // Modules Evaluation
-BETA_RULE;;                 // forces equal module evaluation: maybe not needed
+BETA_RULE;;                 // forces equal module evaluation
 mk_iff;;                    // forces bool module evaluation
 MK_CONJ;;                   // forces drule module evaluation
 _FALSITY_;;                 // forces tactics module evaluation
-ITAUT_TAC;;                 // forces itab module evaluation: maybe not needed
+ITAUT_TAC;;                 // forces itab module evaluation
 mk_rewrites;;               // forces simp module evaluation
 EQ_REFL;;                   // forces theorems module evaluation
 EXISTS_EQUATION;;           // forces ind_defs module evaluation
@@ -61,8 +61,8 @@ o_DEF;;                     // forces trivia module evaluation
 CONJ_ACI_RULE;;             // forces canon module evaluation
 ASM_MESON_TAC;;             // forces meson module evaluation
 lift_function;;             // forces quot module evaluation
-////LET_DEF;;                 // forces pair module evaluation: pair module has to be checked
-//ONE_ONE;;                   // forces num module evaluation
+LET_DEF;;                 // forces pair module evaluation
+ONE_ONE;;                   // forces num module evaluation
 //PRE;;                       // forces arith module evaluation
 //ARITH_ZERO;;                // forces calc_num module evaluation
 //SEMIRING_NORMALIZERS_CONV;; // forces normalizer module evaluation
@@ -71,7 +71,7 @@ lift_function;;             // forces quot module evaluation
 let noSubgoal gs =
     match gs with
     | Success ((_, [], _) :: _) -> true
-    | _ -> false
+    | _ -> false;;
 
 //let gs1 = g <| parse_term @"!x. (x <=> T) \/ (x <=> F)";;
 //let gs2 = e (ACCEPT_TAC BOOL_CASES_AX);;
@@ -94,5 +94,25 @@ let noSubgoal gs =
 
 //BETAS_CONV <| parse_term @"(\x y. x /\ y) T F";;
 
-let th : Protected<thm0> = Choice.result <| Sequent([], parse_term @"?!n. n = m");;
-let actual = EXISTENCE th;;
+//let th : Protected<thm0> = Choice.result <| Sequent([], parse_term @"?!n. n = m");;
+//let actual = EXISTENCE th;;
+
+// Copy part of arith
+
+parse_as_infix("<", (12, "right"))
+parse_as_infix("<=", (12, "right"))
+parse_as_infix(">", (12, "right"))
+parse_as_infix(">=", (12, "right"))
+parse_as_infix("+", (16, "right"))
+parse_as_infix("-", (18, "left"))
+parse_as_infix("*", (20, "right"))
+parse_as_infix("EXP", (24, "left"))
+parse_as_infix("DIV", (22, "left"))
+parse_as_infix("MOD", (22, "left"));;
+
+//parse_term "!m. m + 0 = m";; // SOE
+parse_term @"!m n. m + (SUC n) = SUC(m + n)";; // OK
+//parse_term @"(!n. 0 + n = n) /\
+//    (!m. m + 0 = m) /\
+//    (!m n. (SUC m) + n = SUC(m + n)) /\
+//    (!m n. m + (SUC n) = SUC(m + n))";;
