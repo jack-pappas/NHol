@@ -34,6 +34,7 @@ open NHol.``class``
 open NUnit.Framework
 
 [<Test>]
+[<Category("Fails")>]
 let ``{REWR_CONV} Uses an instance of a given equation to rewrite a term``() =
     let actual = REWR_CONV EQ_SYM_EQ <| parse_term @"(T : bool) = F"
     let expected = Sequent([], parse_term @"(T : bool) = F <=> F = T")
@@ -43,6 +44,7 @@ let ``{REWR_CONV} Uses an instance of a given equation to rewrite a term``() =
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 [<ExpectedException(typeof<System.Exception>, ExpectedMessage = "term_pmatch")>]
 let ``{REWR_CONV} Fails on unmatched terms``() =
     let actual = REWR_CONV EQ_SYM_EQ <| parse_term @"(T : bool) ==> F"

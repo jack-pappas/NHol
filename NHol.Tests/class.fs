@@ -34,6 +34,7 @@ open NHol.``class``
 open NUnit.Framework
 
 [<Test>]
+[<Category("Fails")>]
 let ``{ETA_CONV} Performs a toplevel eta-conversion``() =
     loadNumsModule()
     let actual = ETA_CONV (parse_term @"\n. 1 + n")
@@ -44,6 +45,7 @@ let ``{ETA_CONV} Performs a toplevel eta-conversion``() =
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{SELECT_RULE} Introduces an epsilon term in place of an existential quantifier``() =
     let actual = SELECT_RULE NHol.nums.INFINITY_AX
     let expected = Sequent([], parse_term @"ONE_ONE (@(f:ind->ind). ONE_ONE f /\ ~ONTO f) /\ ~ONTO (@(f:ind->ind). ONE_ONE f /\ ~ONTO f)")
@@ -53,6 +55,7 @@ let ``{SELECT_RULE} Introduces an epsilon term in place of an existential quanti
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{BOOL_CASES_TAC} Performs boolean case analysis on a (free) term in the goal``() =
     let _ = g <| parse_term @"(b ==> ~b) ==> (b ==> a)"
     let _ = e (BOOL_CASES_TAC <| parse_term @"b:bool")
@@ -62,6 +65,7 @@ let ``{BOOL_CASES_TAC} Performs boolean case analysis on a (free) term in the go
     |> assertEqual true
 
 [<Test>]
+[<Category("Fails")>]
 let ``{TAUT} Proves a propositional tautology 1``() =
     let actual = TAUT_001 <| parse_term @"a \/ b ==> c <=> (a ==> c) /\ (b ==> c)"
     let expected = Sequent([], parse_term @"a \/ b ==> c <=> (a ==> c) /\ (b ==> c)")
@@ -71,6 +75,7 @@ let ``{TAUT} Proves a propositional tautology 1``() =
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{TAUT} Proves a propositional tautology 2``() =
     let actual = TAUT_001 <| parse_term @"(p ==> q) \/ (q ==> p)"
     let expected = Sequent([], parse_term @"(p ==> q) \/ (q ==> p)")
@@ -80,6 +85,7 @@ let ``{TAUT} Proves a propositional tautology 2``() =
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{TAUT} Proves a propositional tautology 3``() =
     loadNumsModule()
     let actual = TAUT_001 <| parse_term @"(x > 2 ==> y > 3) \/ (y < 3 ==> x > 2)"

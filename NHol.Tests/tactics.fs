@@ -89,6 +89,7 @@ let ``mk_fthm3``() =
 //// This test crashes VS test runner
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{THEN} Applies two tactics in sequence``() =
 //    let _ = g <| parse_term @"!x y. (x INSERT s) DELETE y =
 //             if x = y then s DELETE y else x INSERT (s DELETE y)"
@@ -110,6 +111,7 @@ let ``mk_fthm3``() =
 (* TRY  tests *)
 
 //[<Test>]
+//[<Category("Doesn't compile")>]
 //let ``{TRY} Applies two tactics in sequence``() =
 //    let _ = g <| parse_term @"(x + 1) EXP 2 = x EXP 2 + 2 * x + 1 /\
 //       (x EXP 2 = y EXP 2 ==> x = y) /\
@@ -156,6 +158,7 @@ let ``mk_fthm3``() =
 (* FIND_ASSUM  tests *)
 
 //[<Test>]
+////[<Category("Doesn't compile")>]
 //let ``{FIND_ASSUM} Apply a theorem-tactic to the the first assumption equal to given terms``() =
 //    let _ = g <| parse_term @"0 = x /\ y = 0 ==> f(x + f(y)) = f(f(f(x) * x * y))"
 //    let _ = e STRIP_TAC
@@ -189,6 +192,7 @@ let ``mk_fthm3``() =
 (* ACCEPT_TAC  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{ACCEPT_TAC} Solves a goal if supplied with the desired theorem (up to alpha-conversion)``() =
     ETA_AX |> ignore
     let _ = g <| parse_term @"!x. (x <=> T) \/ (x <=> F)"
@@ -215,6 +219,7 @@ let ``{ACCEPT_TAC} Solves a goal if supplied with the desired theorem (up to alp
 (* SUBST1_TAC  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{SUBST1_TAC} Makes a simple term substitution in a goal using a single equational theorem``() =
     let _ = g <| parse_term @"!p x y. 1 = x /\ p(1) ==> p(x)"
     let _ = e (REPEAT STRIP_TAC)
@@ -247,6 +252,7 @@ let ``{SUBST1_TAC} Makes a simple term substitution in a goal using a single equ
 (* EXISTS_TAC  tests *)
 
 //[<Test>]
+//[<Category("Doesn't compile")>]
 //let ``{EXISTS_TAC} Solves a goal if supplied with the desired theorem (up to alpha-conversion)``() =
 //    let _ = g <| parse_term @"?x. 1 < x /\ x < 3"
 //    let gs = e (EXISTS_TAC (parse_term @"2") |> THEN <| NHol.int.ARITH_TAC)
@@ -271,6 +277,7 @@ let ``{SUBST1_TAC} Makes a simple term substitution in a goal using a single equ
 (* MATCH_ACCEPT_TAC  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{MATCH_ACCEPT_TAC} Solves a goal which is an instance of the supplied theorem``() =
     let _ = g <| parse_term @"HD [T;F] = T"
     let HD = Choice.result <| Sequent([], parse_term @"!h t. HD(CONS h t) = h")

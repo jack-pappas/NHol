@@ -38,6 +38,7 @@ open NUnit.Framework
 (* MK_CONJ  tests *)
 
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{MK_CONJ} Conjoin both sides of two equational theorems``() =
 //    
 //    let given1 = NHol.int.ARITH_RULE <| parse_term @"0 < n <=> ~(n = 0)"
@@ -53,6 +54,7 @@ open NUnit.Framework
 (* MK_DISJ  tests *)
 
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{MK_DISJ} Disjoin both sides of two equational theorems``() =
 //    
 //    let given1 = NHol.int.ARITH_RULE <| parse_term @"1 < x <=> 1 <= x - 1"
@@ -68,6 +70,7 @@ open NUnit.Framework
 (* MK_FORALL  tests *)
 
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{MK_FORALL} Universally quantifies both sides of equational theorem``() =
 //    
 //    let th = NHol.int.ARITH_RULE <| parse_term @"f(x:A) >= 1 <=> ~(f(x) = 0)"
@@ -83,6 +86,7 @@ open NUnit.Framework
 (* MK_EXISTS  tests *)
 
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{MK_EXISTS} Existentially quantifies both sides of equational theorem``() =
 //    
 //    let th = NHol.int.ARITH_RULE <| parse_term @"f(x:A) >= 1 <=> ~(f(x) = 0)"
@@ -102,6 +106,7 @@ open NUnit.Framework
 //open NHol.realarith
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{MP_CONV} Removes antecedent of implication theorem by solving it with a conversion``() =
 //    
 //    let th = MESON [LE_REFL]
@@ -126,6 +131,7 @@ open NUnit.Framework
 
 //// This test requires uninitialized module
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{INSTANTIATE} Apply a higher-order instantiation to conclusion of a theorem.``() =
 //    let actual = 
 //        choice {
@@ -142,6 +148,7 @@ open NUnit.Framework
 //    |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{BETAS_CONV} Beta conversion over multiple arguments``() =
     let actual = BETAS_CONV <| parse_term @"(\x y. x /\ y) T F"
     let expected = Sequent ([], parse_term @"(\x y. x /\ y) T F = (T /\ F)")
@@ -161,6 +168,7 @@ let ``{BETAS_CONV} Beta conversion over multiple arguments``() =
 (* PART_MATCH  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
     let th = Choice.result <| Sequent([], parse_term @"!x. x ==> x")
     let actual = PART_MATCH (Choice.map fst << dest_imp) th <| parse_term @"T"
@@ -173,6 +181,7 @@ let ``{PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
 (* GEN_PART_MATCH  tests *)
 
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{GEN_PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
 //    let th = NHol.int.ARITH_RULE <| parse_term @"m = n ==> m + p = n + p"
 //    let actual = GEN_PART_MATCH lhand th <| parse_term @"n:num = p"
@@ -185,6 +194,7 @@ let ``{PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
 (* MATCH_MP  tests *)
 
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{MATCH_MP} Modus Ponens inference rule with automatic matching``() =
 //    let ith = NHol.int.ARITH_RULE <| parse_term @"!x z:num. x = y ==> (w + z) + x = (w + z) + y"
 //    let th = ASSUME <| parse_term @"w:num = z"
@@ -198,6 +208,7 @@ let ``{PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
 (* HIGHER_REWRITE_CONV  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{HIGHER_REWRITE_CONV} Rewrite once using more general higher order matching``() =
     loadNumsModule()
     let t = parse_term @"z = if x = 0 then if y = 0 then 0 else x + y else x + y"

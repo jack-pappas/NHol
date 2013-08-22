@@ -35,6 +35,7 @@ open NHol.canon
 open NUnit.Framework
 
 [<Test>]
+[<Category("Fails")>]
 let ``{PRESIMP_CONV} Applies basic propositional simplifications and some miniscoping``() =
     loadNumsModule()
     let actual = PRESIMP_CONV (parse_term @"?x. x = 1 /\ y = 1 \/ F \/ T /\ y = 2")
@@ -47,6 +48,7 @@ let ``{PRESIMP_CONV} Applies basic propositional simplifications and some minisc
     |> assertEqual (string_of_thm expected)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{CONJ_ACI_RULE} Proves equivalence of two conjunctions containing same set of conjuncts``() =
     let actual = CONJ_ACI_RULE (parse_term @"(a /\ b) /\ (a /\ c) <=> (a /\ (c /\ a)) /\ b")
     let expected = Sequent([], parse_term @"(a /\ b) /\ a /\ c <=> (a /\ c /\ a) /\ b")
@@ -56,6 +58,7 @@ let ``{CONJ_ACI_RULE} Proves equivalence of two conjunctions containing same set
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{DISJ_ACI_RULE} Proves equivalence of two disjunctions containing same set of disjuncts``() =
     let actual = DISJ_ACI_RULE (parse_term @"(p \/ q) \/ (q \/ r) <=> r \/ q \/ p")
     let expected = Sequent([], parse_term @"(p \/ q) \/ q \/ r <=> r \/ q \/ p")
@@ -65,6 +68,7 @@ let ``{DISJ_ACI_RULE} Proves equivalence of two disjunctions containing same set
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{CONJ_CANON_CONV} Puts an iterated conjunction in canonical form``() =
     let actual = CONJ_CANON_CONV (parse_term @"(a /\ b) /\ ((b /\ d) /\ a) /\ c")
     let expected = Sequent([], parse_term @"(a /\ b) /\ ((b /\ d) /\ a) /\ c <=> a /\ b /\ c /\ d")
@@ -75,6 +79,7 @@ let ``{CONJ_CANON_CONV} Puts an iterated conjunction in canonical form``() =
     |> assertEqual (string_of_thm expected)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{DISJ_CANON_CONV} Puts an iterated disjunction in canonical form``() =
     let actual = DISJ_CANON_CONV (parse_term @"(c \/ a \/ b) \/ (b \/ a \/ d)")
     let expected = Sequent([], parse_term @"(c \/ a \/ b) \/ b \/ a \/ d <=> a \/ b \/ c \/ d")
@@ -85,6 +90,7 @@ let ``{DISJ_CANON_CONV} Puts an iterated disjunction in canonical form``() =
     |> assertEqual (string_of_thm expected)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{NNF_CONV} Convert a term to negation normal form``() =
     let actual = NNF_CONV (parse_term @"(!x. p(x) <=> q(x)) ==> ~ ?y. p(y) /\ ~q(y)")
     let expected = Sequent([], parse_term @"(!x. p x <=> q x) ==> ~(?y. p y /\ ~q y) <=>
@@ -96,6 +102,7 @@ let ``{NNF_CONV} Convert a term to negation normal form``() =
     |> assertEqual (string_of_thm expected)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{NNFC_CONV} Convert a term to negation normal form``() =
     let actual = NNFC_CONV (parse_term @"(!x. p(x) <=> q(x)) ==> ~ ?y. p(y) /\ ~q(y)")
     let expected = Sequent([], parse_term @"(!x. p x <=> q x) ==> ~(?y. p y /\ ~q y) <=>
@@ -107,6 +114,7 @@ let ``{NNFC_CONV} Convert a term to negation normal form``() =
     |> assertEqual (string_of_thm expected)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{SKOLEM_CONV} Completely Skolemize a term already in negation normal form``() =
     let actual = SKOLEM_CONV (parse_term @"(!x. ?y. P x y) \/ (?u. !v. ?z. P (f u v) z)")
     let expected = Sequent([], parse_term @"(!x. ?y. P x y) \/ (?u. !v. ?z. P (f u v) z) <=>
@@ -118,6 +126,7 @@ let ``{SKOLEM_CONV} Completely Skolemize a term already in negation normal form`
     |> assertEqual (string_of_thm expected)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{PRENEX_CONV} Puts a term already in NNF into prenex form``() =
     let actual = PRENEX_CONV (parse_term @"(!x. ?y. P x y) \/ (?u. !v. ?w. Q u v w)")
     let expected = Sequent([], parse_term @"(!x. ?y. P x y) \/ (?u. !v. ?w. Q u v w) <=>
@@ -129,6 +138,7 @@ let ``{PRENEX_CONV} Puts a term already in NNF into prenex form``() =
     |> assertEqual (string_of_thm expected)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{WEAK_DNF_CONV} Converts a term already in negation normal form into disjunctive normal form``() =
     let actual = WEAK_DNF_CONV (parse_term @"(a \/ b) /\ (a \/ c /\ e)")
     let expected = Sequent([], parse_term @"(a \/ b) /\ (a \/ c /\ e) <=>
@@ -139,6 +149,7 @@ let ``{WEAK_DNF_CONV} Converts a term already in negation normal form into disju
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{DNF_CONV} Converts a term already in negation normal form into disjunctive normal form``() =
     let actual = DNF_CONV (parse_term @"(a \/ b) /\ (a \/ c /\ e)")
     let expected = Sequent([], parse_term @"(a \/ b) /\ (a \/ c /\ e)
@@ -150,6 +161,7 @@ let ``{DNF_CONV} Converts a term already in negation normal form into disjunctiv
     |> assertEqual (string_of_thm expected)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{WEAK_CNF_CONV} Converts a term already in negation normal form into conjunctive normal form``() =
     let actual = WEAK_CNF_CONV (parse_term @"(a /\ b) \/ (a /\ b /\ c) \/ d")
     let expected = Sequent([], parse_term @"a /\ b \/ a /\ b /\ c \/ d <=>
@@ -163,6 +175,7 @@ let ``{WEAK_CNF_CONV} Converts a term already in negation normal form into conju
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{CNF_CONV} Converts a term already in negation normal form into conjunctive normal form``() =
     let actual = CNF_CONV (parse_term @"(a /\ b) \/ (a /\ b /\ c) \/ d")
     let expected = Sequent([], parse_term @"a /\ b \/ a /\ b /\ c \/ d <=>
@@ -174,6 +187,7 @@ let ``{CNF_CONV} Converts a term already in negation normal form into conjunctiv
     |> assertEqual (string_of_thm expected)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{ASSOC_CONV} Right-associates a term with respect to an associative binary operator``() =
     let actual = ASSOC_CONV CONJ_ASSOC (parse_term @"((p /\ q) /\ (r /\ s)) /\ t")
     let expected = Sequent([], parse_term @"((p /\ q) /\ r /\ s) /\ t <=> p /\ q /\ r /\ s /\ t")
@@ -184,6 +198,7 @@ let ``{ASSOC_CONV} Right-associates a term with respect to an associative binary
 
 //// This test crashes VS test runner
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{CONDS_ELIM_CONV} Remove all conditional expressions from a Boolean formula``() =
 //    let actual = CONDS_ELIM_CONV (parse_term @"!x y. (if x <= y then y else x) <= z ==> x <= z")
 //    let expected = Sequent([], parse_term @"(!x y. (if x <= y then y else x) <= z ==> x <= z) <=>
@@ -192,9 +207,10 @@ let ``{ASSOC_CONV} Right-associates a term with respect to an associative binary
 //    actual
 //    |> evaluate
 //    |> assertEqual expected
-
+//
 //// This test crashes VS test runner
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{CONDS_CELIM_CONV} Remove all conditional expressions from a Boolean formula``() =
 //    let actual = CONDS_CELIM_CONV (parse_term @"y <= z ==> !x. (if x <= y then y else x) <= z")
 //    let expected = Sequent([], parse_term @"y <= z ==> (!x. (if x <= y then y else x) <= z) <=>
@@ -205,6 +221,7 @@ let ``{ASSOC_CONV} Right-associates a term with respect to an associative binary
 //    |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{PROP_ATOM_CONV} Applies a conversion to the `atomic subformulas' of a formula``() =
     let actual = PROP_ATOM_CONV(ONCE_DEPTH_CONV SYM_CONV) (parse_term @"(!x. x = y ==> x = z) <=> (y = z <=> 1 + z = z + 1)")
     let expected = Sequent([], parse_term @"((!x. x = y ==> x = z) <=> y = z <=> 1 + z = z + 1) <=>

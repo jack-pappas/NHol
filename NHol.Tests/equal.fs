@@ -222,6 +222,7 @@ open NHol.calc_num
 // This test requires nums module to be initialized
 
 [<Test>]
+[<Category("Fails")>]
 let ``{ALPHA_CONV tm1 tm2} Renames the bound variable of a lambda-abstraction``() =
     loadNumsModule()
     let actual = ALPHA_CONV (parse_term @"y:num") (parse_term @"\x. x + 1")
@@ -245,6 +246,7 @@ let ``{ALPHA_CONV tm1 tm2} Fails on unbounded variables``() =
 //// This test has wrong inputs
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{GEN_ALPHA_CONV tm1 tm2} Renames the bound variable of an abstraction or binder``() =
 //    let actual = GEN_ALPHA_CONV (parse_term @"y") (parse_term @"\x. x /\ y")
 //    let expected = Sequent ([], parse_term @"(\x. x /\ y) = (\y. x /\ x)")
@@ -258,6 +260,7 @@ let ``{ALPHA_CONV tm1 tm2} Fails on unbounded variables``() =
 //// This test requires calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{MK_BINOP tm1 (th1, th2)} Compose equational theorems with binary operator``() =
 //    let th1 = NUM_REDUCE_CONV (parse_term @"2 * 2")
 //    let th2 = NUM_REDUCE_CONV (parse_term @"2 EXP 2")
@@ -277,6 +280,7 @@ let ``{ALPHA_CONV tm1 tm2} Fails on unbounded variables``() =
 //// This test requires calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{THENC conv1 conv2} Applies two conversions in sequence``() =
 //    let actual = (BETA_CONV |> THENC <| NUM_ADD_CONV) (parse_term @"(\x. x + 1) 3")
 //    let expected = Sequent ([], parse_term @"(\x. x + 1) 3 = 4")
@@ -290,6 +294,7 @@ let ``{ALPHA_CONV tm1 tm2} Fails on unbounded variables``() =
 //// This test requires calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{ORELSEC conv1 conv2} Applies the first of two conversions that succeeds``() =
 //    let actual = (NUM_ADD_CONV |> ORELSEC <| NUM_MULT_CONV) (parse_term @"1 * 1")
 //    let expected = Sequent ([], parse_term @"1 * 1 = 1")
@@ -303,6 +308,7 @@ let ``{ALPHA_CONV tm1 tm2} Fails on unbounded variables``() =
 //// This test requires calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{FIRST_CONV convl conv} Apply the first of the conversions in a given list that succeeds``() =
 //    let actual = FIRST_CONV [NUM_ADD_CONV; NUM_MULT_CONV; NUM_EXP_CONV] (parse_term @"12 * 12")
 //    let expected = Sequent ([], parse_term @"12 * 12 = 144")
@@ -316,6 +322,7 @@ let ``{ALPHA_CONV tm1 tm2} Fails on unbounded variables``() =
 //// This test requires calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{EVERY_CONV convl conv} Applies in sequence all the conversions in a given list of conversions``() =
 //    let actual = EVERY_CONV [BETA_CONV; NUM_ADD_CONV] (parse_term @"(\x. x + 2) 5")
 //    let expected = Sequent ([], parse_term @"(\x. x + 2) 5 = 7")
@@ -327,6 +334,7 @@ let ``{ALPHA_CONV tm1 tm2} Fails on unbounded variables``() =
 (* REPEATC  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{REPEATC conv} Repeatedly apply a conversion (zero or more times) until it fails``() =
     let actual = REPEATC BETA_CONV (parse_term @"(\x. (\y. x /\ y) (x /\ T)) (T : bool)")
     let expected = Sequent ([], parse_term @"(\x. (\y. x /\ y) (x /\ T)) (T : bool) = (T /\ T /\ T)")
@@ -340,6 +348,7 @@ let ``{REPEATC conv} Repeatedly apply a conversion (zero or more times) until it
 //// This test requires calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{CHANGED_CONV conv} Makes a conversion fail if applying it leaves a term unchanged``() =
 //    let actual = REPEATC(CHANGED_CONV(ONCE_DEPTH_CONV num_CONV)) (parse_term @"6")
 //    let expected = Sequent ([], parse_term @"6 = SUC (SUC (SUC (SUC (SUC (SUC 0)))))")
@@ -351,6 +360,7 @@ let ``{REPEATC conv} Repeatedly apply a conversion (zero or more times) until it
 (* TRY_CONV  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{TRY_CONV conv} Attempts to apply a conversion; applies identity conversion in case of failure``() =
     let actual = TRY_CONV BETA_CONV (parse_term @"T : bool")
     let expected = Sequent ([], parse_term @"(T : bool) = T")
@@ -364,6 +374,7 @@ let ``{TRY_CONV conv} Attempts to apply a conversion; applies identity conversio
 //// This test crashes VS test runner
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{RATOR_CONV conv} Applies a conversion to the operator of an application``() =
 //    let actual = RATOR_CONV BETA_CONV (parse_term @"(\x y. x /\ y) T F")
 //    let expected = Sequent ([], parse_term @"(\x y. x /\ y) T F = (\y. T /\ y) F")
@@ -378,6 +389,7 @@ let ``{TRY_CONV conv} Attempts to apply a conversion; applies identity conversio
 //// This tests require calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{RAND_CONV conv} Applies a conversion to the operator of an application``() =
 //    let actual = RAND_CONV num_CONV (parse_term @"SUCC 2")
 //    let expected = Sequent ([], parse_term @"SUC 2 = SUC (SUC 1)")
@@ -391,6 +403,7 @@ let ``{TRY_CONV conv} Attempts to apply a conversion; applies identity conversio
 //// This tests require calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{LAND_CONV conv} Apply a conversion to left-hand argument of binary operator``() =
 //    let actual = LAND_CONV NUM_ADD_CONV (parse_term "(2 + 2) + (2 + 2)")
 //    let expected = Sequent ([], parse_term @"(2 + 2) + 2 + 2 = 4 + 2 + 2")
@@ -408,6 +421,7 @@ let ``{TRY_CONV conv} Attempts to apply a conversion; applies identity conversio
 (* ABS_CONV  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{ABS_CONV conv} Applies a conversion to the body of an abstraction``() =
     loadNumsModule()
     let actual = ABS_CONV SYM_CONV (parse_term @"\x. 1 = x")
@@ -422,6 +436,7 @@ let ``{ABS_CONV conv} Applies a conversion to the body of an abstraction``() =
 (* BINDER_CONV  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{BINDER_CONV conv} Applies conversion to the body of a binder``() =
     let actual = BINDER_CONV SYM_CONV (parse_term "@n. n = m + 1")
     let expected = Sequent ([], parse_term @"(@n. n = m + 1) = (@n. m + 1 = n)")
@@ -436,6 +451,7 @@ let ``{BINDER_CONV conv} Applies conversion to the body of a binder``() =
 //// This test requires calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{BINOP_CONV conv} Applies a conversion to both arguments of a binary operator``() =
 //    let actual = BINOP_CONV NUM_ADD_CONV (parse_term "(1 + 1) * (2 + 2)")
 //    let expected = Sequent ([], parse_term @"(1 + 1) * (2 + 2) = 2 * 4")
@@ -449,6 +465,7 @@ let ``{BINDER_CONV conv} Applies conversion to the body of a binder``() =
 (* ONCE_DEPTH_CONV  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{ONCE_DEPTH_CONV conv} Applies a conversion to both arguments of a binary operator``() =
     let actual = ONCE_DEPTH_CONV BETA_CONV (parse_term @"(\x. (\y. y + x) 1) 2")
     let expected = Sequent ([], parse_term @"(\x. (\y. y + x) 1) 2 = (\y. y + 2) 1")
@@ -462,6 +479,7 @@ let ``{ONCE_DEPTH_CONV conv} Applies a conversion to both arguments of a binary 
 // This test requires nums module to be initialized
 
 [<Test>]
+[<Category("Fails")>]
 let ``{DEPTH_CONV conv} Applies a conversion to both arguments of a binary operator``() =
     let actual = DEPTH_CONV BETA_CONV (parse_term @"(\x. (\y. y + x) 1) 2")
     let expected = Sequent ([], parse_term @"(\x. (\y. y + x) 1) 2 = 1 + 2")
@@ -475,6 +493,7 @@ let ``{DEPTH_CONV conv} Applies a conversion to both arguments of a binary opera
 // This test requires nums module to be initialized
 
 [<Test>]
+[<Category("Fails")>]
 let ``{REDEPTH_CONV conv} Applies a conversion bottom-up to all subterms, retraversing changed ones``() =
     let actual = REDEPTH_CONV BETA_CONV (parse_term @"(\f x. (f x) + 1) (\y.y) 2")
     let expected = Sequent ([], parse_term @"(\f x. f x + 1) (\y. y) 2 = 2 + 1")
@@ -488,6 +507,7 @@ let ``{REDEPTH_CONV conv} Applies a conversion bottom-up to all subterms, retrav
 //// This crashes VS test runner
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{TOP_DEPTH_CONV conv} Applies a conversion top-down to all subterms, retraversing changed ones``() =
 //    let actual = TOP_DEPTH_CONV BETA_CONV (parse_term @"(\x. (\y. (\z. z + y) (y + 1)) (x + 2)) 3")
 //    let expected = Sequent ([], parse_term @"(\x. (\y. (\z. z + y) (y + 1)) (x + 2)) 3 = ((3 + 2) + 1) + 3 + 2")
@@ -505,6 +525,7 @@ let ``{REDEPTH_CONV conv} Applies a conversion bottom-up to all subterms, retrav
 //// This test requires calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{PATH_CONV string conv} Applies a conversion to the subterm indicated by a path string``() =
 //    let actual = PATH_CONV "rlr" NUM_ADD_CONV (parse_term @"(1 + 2) + (3 + 4) + (5 + 6)")
 //    let expected = Sequent ([], parse_term @"(1 + 2) + (3 + 4) + 5 + 6 = (1 + 2) + 7 + 5 + 6")
@@ -518,6 +539,7 @@ let ``{REDEPTH_CONV conv} Applies a conversion bottom-up to all subterms, retrav
 //// This tests require calc_num module to be initialized
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{PAT_CONV term conv} Apply a conversion at subterms identified by a ''pattern'' lambda-abstraction``() =
 //    let actual = PAT_CONV (parse_term @"\x. x + a + x") NUM_ADD_CONV (parse_term @"(1 + 2) + (3 + 4) + (5 + 6)")
 //    let expected = Sequent ([], parse_term @"(1 + 2) + (3 + 4) + 5 + 6 = 3 + (3 + 4) + 11")
@@ -540,6 +562,7 @@ let ``{SYM_CONV} Interchanges the left and right-hand sides of an equation``() =
 (* CONV_RULE  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{CONV_RULE conv thm} Makes an inference rule from a conversion``() =
     let tm = parse_term @"(\x. x \/ (F : bool)) (T: bool)"
     let actual = CONV_RULE BETA_CONV (ASSUME tm)
@@ -556,6 +579,7 @@ let ``{CONV_RULE conv thm} Makes an inference rule from a conversion``() =
 //open NHol.int
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{SUBS_CONV thml} Substitution conversion``() =
 //    let tm = parse_term @"(\x. x \/ (F : bool)) (T: bool)"
 //    let actual = SUBS_CONV [ARITH_RULE (parse_term @"x + 0 = x")] (parse_term @"(x + 0) + (y + 0) + (x + 0) + (0 + 0)")
@@ -568,6 +592,7 @@ let ``{CONV_RULE conv thm} Makes an inference rule from a conversion``() =
 (* BETA_RULE  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``{BETA_RULE thm} Beta-reduces all the beta-redexes in the conclusion of a theorem``() =
     let tm = parse_term @"f = ((\x y. x + y) y')"
     let actual = BETA_RULE (ASSUME tm)
@@ -586,6 +611,7 @@ let ``{BETA_RULE thm} Beta-reduces all the beta-redexes in the conclusion of a t
 //open NHol.arith
 //
 //[<Test>]
+//[<Category("Fails")>]
 //let ``{GSYM thm} everses the first equation(s) encountered in a top-down search``() =
 //    let actual = GSYM ADD
 //    let expected = Sequent ([], parse_term @"(!n. n = 0 + n) /\ (!m n. SUC (m + n) = SUC m + n)")

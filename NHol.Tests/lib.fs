@@ -61,11 +61,6 @@ let ``rev_itlist is equivalent to List.fold``() =
         rev_itlist (fun x acc -> acc + x) xs "" = List.fold (fun acc x -> acc + x) "" xs
 
 [<Test>]
-let ``end_itlist is equivalent to List.reduceBack on non-empty lists``() =
-    assertProp "end_itlist" <| fun (xs : string list) f ->
-        xs <> [] ==> lazy (end_itlist f xs = List.reduceBack f xs)
-
-[<Test>]
 let ``itlist2 is equivalent to List.foldBack2 on two same-length lists``() =
     assertProp "itlist2" <| fun zs f ->
         let (xs : int64 list), (ys : int16 list) = List.unzip zs
@@ -623,23 +618,125 @@ let ``{rev_itlist} applies a binary function between adjacent elements of the re
 (* end_itlist tests *)
 
 [<Test>]
-let ``{end_itlist} applies a binary function between adjacent elements of a list``() =
+let ``end_itlist is equivalent to List.reduceBack on non-empty lists``() =
+    assertProp "end_itlist" <| fun (xs : string list) f ->
+        xs <> [] ==> lazy (end_itlist f xs = List.reduceBack f xs)
 
-    end_itlist (+) [1;2;3;4]
-    |> assertEqual 10
+let private end_itlistIntValues : ((int -> int -> int) * int list * int)[] = [|
+    (
+        // idx 0
+        // lib.end_itlist.01
+        // an empty list
+        // throws System.Exception
+        (+),
+        [],
+        -1 // duumy value
+    );
+    (
+        // idx 1
+        // lib.end_itlist.02
+        // a list with one item
+        (+),
+        [1],
+        1
+    );
+    (
+        // idx 2
+        // lib.end_itlist.03
+        // a list with two items
+        (+),
+        [1;2],
+        3
+    );
+    (
+        // idx 3
+        // lib.end_itlist.04
+        // a list with three items
+        (+),
+        [1;2;3],
+        6
+    );
+    (
+        // idx 4
+        // lib.end_itlist.05
+        // a list with four items
+        (+),
+        [1;2;3;4],
+        10
+    );
+    |]
 
 [<Test>]
-let ``{end_itlist} returns {x} for a one-element list {[x]}``() =
+[<TestCase(0, TestName = "lib.end_itlist.01 - {end_itlist} fails if the list is empty", ExpectedException=typeof<System.Exception>, ExpectedMessage = "end_itlist")>]
+[<TestCase(1, TestName = "lib.end_itlist.02 - {end_itlist} returns {x} for a one-element list {[x]}")>]
+[<TestCase(2, TestName = "lib.end_itlist.03")>]
+[<TestCase(3, TestName = "lib.end_itlist.04")>]
+[<TestCase(4, TestName = "lib.end_itlist.05")>]
+let ``function end_itlist - type int`` idx =
+    let (func, _, _) = end_itlistIntValues.[idx]
+    let (_, list, _) = end_itlistIntValues.[idx]
+    let (_, _, result) = end_itlistIntValues.[idx]
+    let end_itlistResult = NHol.lib.end_itlist func list
+//    printfn "%A" end_itlistResult
+    end_itlistResult |> assertEqual result
 
-    end_itlist (+) [4]
-    |> assertEqual 4
+let private end_itlistStringValues : ((string -> string -> string) * string list * string)[] = [|
+    (
+        // idx 0
+        // lib.end_itlist.101
+        // an empty list
+        // throws System.Exception
+        (+),
+        [],
+        "dummy" // duumy value
+    );
+    (
+        // idx 1
+        // lib.end_itlist.102
+        // a list with one item
+        (+),
+        [""],
+        ""
+    );
+    (
+        // idx 2
+        // lib.end_itlist.103
+        // a list with two items
+        (+),
+        ["a";"b"],
+        "ab"
+    );
+    (
+        // idx 3
+        // lib.end_itlist.104
+        // a list with three items
+        (+),
+        ["a";"b";"c"],
+        "abc"
+    );
+    (
+        // idx 4
+        // lib.end_itlist.105
+        // a list with four items
+        (+),
+        ["a";"b";"c";"d"],
+        "abcd"
+    );
+    |]
 
 [<Test>]
-[<ExpectedException(typeof<System.Exception>, ExpectedMessage = "end_itlist")>]
-let ``{end_itlist} fails if the list is empty``() =
-
-    end_itlist (+) [] 
-    |> ignore
+[<TestCase(0, TestName = "lib.end_itlist.101 - {end_itlist} fails if the list is empty", ExpectedException=typeof<System.Exception>, ExpectedMessage = "end_itlist")>]
+[<TestCase(1, TestName = "lib.end_itlist.102 - {end_itlist} returns {x} for a one-element list {[x]}")>]
+[<TestCase(2, TestName = "lib.end_itlist.103")>]
+[<TestCase(3, TestName = "lib.end_itlist.104")>]
+[<TestCase(4, TestName = "lib.end_itlist.105")>]
+let ``function end_itlist - type string`` idx =
+    let (func, _, _) = end_itlistStringValues.[idx]
+    let (_, list, _) = end_itlistStringValues.[idx]
+    let (_, _, result) = end_itlistStringValues.[idx]
+    let end_itlistResult = NHol.lib.end_itlist func list
+//    printfn "%A" end_itlistResult
+    end_itlistResult |> assertEqual result
 
 (* itlist2 tests *)
 
@@ -998,17 +1095,242 @@ let ``{index x l} fails if there isn't any instance of {x} in {l}``() =
 
 (* mem tests *)
 
-[<Test>]
-let ``{mem x [x1;_;xn]} returns {true} if some {xi} in the list is equal to {x}``() =
-    
-    mem 3 [1;2;3;4;5]
-    |> assertEqual true
+let private memValues : (string * string list * bool)[] = [|
+    (
+        // idx 0
+        // lib.mem.001
+        // empty list, empty value
+        "",
+        [],
+        false
+    );
+    (
+        // idx 1
+        // lib.mem.002
+        // empty list, non empty value
+        "a",
+        [],
+        false
+    );
+    (
+        // idx 2
+        // lib.mem.003
+        // one item list with one item, empty value
+        "",
+        ["a"],
+        false
+    );
+    (
+        // idx 3
+        // lib.mem.004
+        // one item list with one item, one value in list
+        "a",
+        ["a"],
+        true
+    );
+    (
+        // idx 4
+        // lib.mem.005
+        // one item list with one item, one value not in list
+        "b",
+        ["a"],
+        false
+    );
+    (
+        // idx 5
+        // lib.mem.006
+        // two item list with two unique items, empty value
+        "",
+        ["a";"b"],
+        false
+    );
+    (
+        // idx 6
+        // lib.mem.007
+        // two item list with two unique items, one value in start of list
+        "a",
+        ["a";"b"],
+        true
+    );
+    (
+        // idx 7
+        // lib.mem.008
+        // two item list with two unique items, one value in end of list
+        "b",
+        ["a";"b"],
+        true
+    );
+    (
+        // idx 8
+        // lib.mem.009
+        // two item list with two unique items, no value in list
+        "c",
+        ["a";"b"],
+        false
+    );
+    (
+        // idx 9
+        // lib.mem.010
+        // two item list with two identical items, empty value
+        "",
+        ["a";"a"],
+        false
+    );
+    (
+        // idx 10
+        // lib.mem.011
+        // two item list with two identical items, two values in the list
+        "a",
+        ["a";"a"],
+        true
+    );
+    (
+        // idx 11
+        // lib.mem.012
+        // two item list with two identical items, no value in list
+        "b",
+        ["a";"a"],
+        false
+    );
+    (
+        // idx 12
+        // lib.mem.013
+        // three item list with three unique items, empty value
+        "",
+        ["a";"b";"c"],
+        false
+    );
+    (
+        // idx 13
+        // lib.mem.014
+        // three item list with three unique items, one value in start of list
+        "a",
+        ["a";"b";"c"],
+        true
+    );
+    (
+        // idx 14
+        // lib.mem.015
+        // three item list with three unique items, one value in middle of list
+        "b",
+        ["a";"b";"c"],
+        true
+    );
+    (
+        // idx 15
+        // lib.mem.016
+        // three item list with three unique items, one value in end of list
+        "c",
+        ["a";"b";"c"],
+        true
+    );
+    (
+        // idx 16
+        // lib.mem.017
+        // three item list with three unique items, no value in list
+        "d",
+        ["a";"b";"c"],
+        false
+    );
+    (
+        // idx 17
+        // lib.mem.018
+        // three item list with two unique items, empty value
+        "",
+        ["a";"b";"a"],
+        false
+    );
+    (
+        // idx 18
+        // lib.mem.019
+        // three item list with two unique items, one value in start of list
+        "a",
+        ["a";"b";"a"],
+        true
+    );
+    (
+        // idx 19
+        // lib.mem.020
+        // three item list with two unique items, one value in middle of list
+        "b",
+        ["a";"b";"a"],
+        true
+    );
+    (
+        // idx 20
+        // lib.mem.021
+        // three item list with two unique items, one value in end list
+        "b",
+        ["a";"a";"b"],
+        true
+    );
+    (
+        // idx 21
+        // lib.mem.022
+        // three item list with two unique items, no value in list
+        "c",
+        ["a";"b";"a"],
+        false
+    );
+    (
+        // idx 22
+        // lib.mem.023
+        // three item list with three identical items, empty value
+        "",
+        ["a";"a";"a"],
+        false
+    );
+    (
+        // idx 23
+        // lib.mem.024
+        // three item list with three identical items, three values in the list
+        "a",
+        ["a";"a";"a"],
+        true
+    );
+    (
+        // idx 24
+        // lib.mem.025
+        // three item list with three identical items, no value in list
+        "b",
+        ["a";"a";"a"],
+        false
+    );
+    |]
 
 [<Test>]
-let ``{mem x [x1;_;xn]} returns {false} if no {xi} in the list is equal to {x}``() =
-    
-    mem 3 [1;2;4;5]
-    |> assertEqual false
+[<TestCase(0, TestName = "lib.mem.01")>]
+[<TestCase(1, TestName = "lib.mem.02")>]
+[<TestCase(2, TestName = "lib.mem.03")>]
+[<TestCase(3, TestName = "lib.mem.04")>]
+[<TestCase(4, TestName = "lib.mem.05")>]
+[<TestCase(5, TestName = "lib.mem.06")>]
+[<TestCase(6, TestName = "lib.mem.07")>]
+[<TestCase(7, TestName = "lib.mem.08")>]
+[<TestCase(8, TestName = "lib.mem.09")>]
+[<TestCase(9, TestName = "lib.mem.10")>]
+[<TestCase(10, TestName = "lib.mem.11")>]
+[<TestCase(11, TestName = "lib.mem.12")>]
+[<TestCase(12, TestName = "lib.mem.13")>]
+[<TestCase(13, TestName = "lib.mem.14")>]
+[<TestCase(14, TestName = "lib.mem.15")>]
+[<TestCase(15, TestName = "lib.mem.16")>]
+[<TestCase(16, TestName = "lib.mem.17")>]
+[<TestCase(17, TestName = "lib.mem.18")>]
+[<TestCase(18, TestName = "lib.mem.19")>]
+[<TestCase(19, TestName = "lib.mem.20")>]
+[<TestCase(20, TestName = "lib.mem.21")>]
+[<TestCase(21, TestName = "lib.mem.22")>]
+[<TestCase(22, TestName = "lib.mem.23")>]
+[<TestCase(23, TestName = "lib.mem.24")>]
+[<TestCase(24, TestName = "lib.mem.25")>]
+let ``function mem`` idx =
+    let (list, _, _) = memValues.[idx]
+    let (_, value, _) = memValues.[idx]
+    let (_, _, result) = memValues.[idx]
+    let memResult = NHol.lib.mem list value
+//    printfn "%A" memResult
+    memResult |> assertEqual result
 
 (* insert tests *)
 
@@ -1300,7 +1622,7 @@ let private explodeValues : (string * string list)[] = [|
     );
     (
         // idx 2
-        // lib.explode.
+        // lib.explode.03
         // one character string
         "a",
         ["a"]
@@ -1314,14 +1636,14 @@ let private explodeValues : (string * string list)[] = [|
     );
     (
         // idx 4
-        // lib.explode.0
+        // lib.explode.05
         // three character string
         "abc",
         ["a"; "b"; "c"]
     );
     (
         // idx 5
-        // lib.explode.0
+        // lib.explode.06
         // Example for HOL Light reference
         "example",
         ["e"; "x"; "a"; "m"; "p"; "l"; "e"]
@@ -1351,28 +1673,30 @@ let ``function explode`` idx =
 let private explodeLimitValues : (int)[] = [|
     (
         // idx 0
-        // lib.explode.01
+        // lib.explode.101
         // string of length Int16.MaxValue
         int(System.Int16.MaxValue)
     );
     (
         // idx 1
-        // lib.explode.02
+        // lib.explode.102
         // string of length UInt16.MaxValue
         int(System.UInt16.MaxValue)
     );
     (
         // idx 2
-        // lib.explode.
+        // lib.explode.103
         // string of length Int32.MaxValue
         int(System.Int32.MaxValue)
     );
     |]
-
-[<Test>]
-[<TestCase(0, TestName = "lib.explode.01", Category = "Limits")>]
-[<TestCase(1, TestName = "lib.explode.02", Category = "Limits")>]
-[<TestCase(2, TestName = "lib.explode.03", ExpectedException=typeof<System.OutOfMemoryException>, Category = "Limits")>]
+    
+// Note: These are commented out so as not to run under code coverage tools
+// which are not aware of NUnit categories.
+//[<Test>]
+//[<TestCase(0, TestName = "lib.explode.101", Category = "Limits")>]
+//[<TestCase(1, TestName = "lib.explode.102", Category = "Limits")>]
+//[<TestCase(2, TestName = "lib.explode.103", ExpectedException=typeof<System.OutOfMemoryException>, Category = "Limits")>]
 let ``function explode limits`` idx =
     let (size) = explodeLimitValues.[idx]
     let input = lazy (String.replicate size "a")

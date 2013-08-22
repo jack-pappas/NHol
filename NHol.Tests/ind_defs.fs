@@ -35,6 +35,7 @@ open NHol.ind_defs
 open NUnit.Framework
 
 [<Test>]
+[<Category("Fails")>]
 let ``{RIGHT_BETAS} Apply and beta-reduce equational theorem with abstraction on RHS``() =
     loadNumsModule()
     let th = ASSUME <| parse_term @"f = \a b c. a + b + c + 1"
@@ -46,6 +47,7 @@ let ``{RIGHT_BETAS} Apply and beta-reduce equational theorem with abstraction on
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{EXISTS_EQUATION} Derives existence from explicit equational constraint``() =
     loadNumsModule()
     let th = REFL <| parse_term @"x:num"
@@ -57,6 +59,7 @@ let ``{EXISTS_EQUATION} Derives existence from explicit equational constraint``(
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``{MONO_TAC} Attempt to prove monotonicity theorem automatically``() =
     let _ = g <| parse_term @"(!x. P x ==> Q x) ==> (?y. P y /\ ~Q y) ==> (?y. Q y /\ ~P y)"
     let _ = e STRIP_TAC
