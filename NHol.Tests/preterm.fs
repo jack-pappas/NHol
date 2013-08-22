@@ -1,6 +1,6 @@
 ﻿(*
 
-Copyright 2013 Jack Pappas, Anh-Dung Phan
+Copyright 2013 Jack Pappas, Anh-Dung Phan, Eric Taucher
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,38 @@ module Tests.NHol.preterm
 
 open NUnit.Framework
 
+(* make_overloadable  tests *)
 
+(* remove_interface  tests *)
 
+(* reduce_interface  tests *)
 
+(* override_interface  tests *)
+
+(* overload_interface  tests *)
+
+(* prioritize_overload  tests *)
+
+(* new_type_abbrev  tests *)
+
+(* remove_type_abbrev  tests *)
+
+(* type_abbrevs  tests *)
+
+(* hide_constant  tests *)
+
+(* unhide_constant  tests *)
+
+(* is_hidden  tests *)
+
+(* dpty  tests *)
+
+(* pretype_of_type  tests *)
+
+(* preterm_of_term  tests *)
+
+(* type_of_pretype  tests *)
+
+(* term_of_preterm  tests *)
+
+(* retypecheck  tests *)

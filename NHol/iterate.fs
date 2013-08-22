@@ -71,7 +71,7 @@ open int
 open sets
 #endif
 
-logger.Trace("Entering iterate.fs")
+infof "Entering iterate.fs"
 
 prioritize_num() |> Choice.ignoreOrRaise;;
 

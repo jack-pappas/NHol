@@ -27,6 +27,16 @@ open NHol.printer
 
 open NUnit.Framework
 
+(* is_iff  tests *)
+
+(* dest_iff  tests *)
+
+(* mk_iff  tests *)
+
+(* PINST  tests *)
+
+(* PROVE_HYP  tests *)
+
 [<Test>]
 let ``{PROVE_HYP} eliminates a provable assumption from a theorem``() =
     
@@ -53,6 +63,10 @@ let ``{PROVE_HYP} should return second theorem if conclusion of the first is not
     |> evaluate
     |> assertEqual expected
 
+(* T_DEF  tests *)
+
+(* TRUTH  tests *)
+
 [<Test>]
 let ``{TRUTH} proves truth``() =
 
@@ -62,6 +76,8 @@ let ``{TRUTH} proves truth``() =
     actual
     |> evaluate
     |> assertEqual expected
+
+(* EQT_ELIM  tests *)
 
 [<Test>]
 let ``{EQT_ELIM th} eliminates equality with T``() =
@@ -75,6 +91,8 @@ let ``{EQT_ELIM th} eliminates equality with T``() =
     |> evaluate
     |> assertEqual expected
 
+(* EQT_INTRO  tests *)
+
 [<Test>]
 let ``{EQT_INTRO th} Introduces equality with T``() =
     let actual = EQT_INTRO (REFL (parse_term @"F"))
@@ -83,6 +101,14 @@ let ``{EQT_INTRO th} Introduces equality with T``() =
     actual
     |> evaluate
     |> assertEqual expected
+
+(* AND_DEF  tests *)
+
+(* mk_conj  tests *)
+
+(* list_mk_conj  tests *)
+
+(* CONJ  tests *)
 
 open NHol.calc_num
 
@@ -110,6 +136,8 @@ let ``{CONJ thm} Introduces a conjunction``() =
     |> evaluate
     |> assertEqual expected
 
+(* CONJUNCT1  tests *)
+
 [<Test>]
 let ``{CONJUNCT1 thm} Extracts left conjunct of theorem``() =
     let actual = CONJUNCT1(ASSUME <| parse_term @"p /\ q")
@@ -118,6 +146,8 @@ let ``{CONJUNCT1 thm} Extracts left conjunct of theorem``() =
     actual
     |> evaluate
     |> assertEqual expected
+
+(* CONJUNCT2  tests *)
 
 [<Test>]
 let ``{CONJUNCT2 thm} Extracts right conjunct of theorem``() =
@@ -128,6 +158,8 @@ let ``{CONJUNCT2 thm} Extracts right conjunct of theorem``() =
     |> evaluate
     |> assertEqual expected
 
+(* CONJ_PAIR  tests *)
+
 [<Test>]
 let ``{CONJ_PAIR thm} Extracts both conjuncts of a conjunction``() =
     let actual = CONJ_PAIR(ASSUME <| parse_term @"p /\ q")
@@ -136,6 +168,8 @@ let ``{CONJ_PAIR thm} Extracts both conjuncts of a conjunction``() =
 
     actual
     |> assertEqual expected
+
+(* CONJUNCTS  tests *)
 
 [<Test>]
 let ``{CONJUNCTS thm} Extracts right conjunct of theorem``() =
@@ -150,6 +184,12 @@ let ``{CONJUNCTS thm} Extracts right conjunct of theorem``() =
     |> List.map evaluate
     |> assertEqual expected
 
+(* IMP_DEF  tests *)
+
+(* mk_imp  tests *)
+
+(* MP  tests *)
+
 open NHol.``class``
 
 [<Test>]
@@ -163,6 +203,7 @@ let ``{MP thm1 thm2} Implements the Modus Ponens inference rule``() =
     |> evaluate
     |> assertEqual expected
 
+(* DISCH  tests *)
 
 [<Test>]
 let ``{DISCH term thm} Discharges an assumption``() =
@@ -174,6 +215,8 @@ let ``{DISCH term thm} Discharges an assumption``() =
     |> evaluate
     |> assertEqual expected
 
+(* DISCH_ALL  tests *)
+
 [<Test>]
 let ``{DISCH_ALL thm} Discharges all hypotheses of a theorem``() =
     let ths = end_itlist CONJ (map ASSUME [parse_term @"p:bool"; parse_term @"q:bool"; parse_term @"r:bool"])
@@ -184,6 +227,8 @@ let ``{DISCH_ALL thm} Discharges all hypotheses of a theorem``() =
     |> evaluate
     |> assertEqual expected
 
+(* UNDISCH  tests *)
+
 [<Test>]
 let ``{UNDISCH thm} Undischarges the antecedent of an implicative theorem``() =
     let actual = UNDISCH(TAUT <| parse_term "p /\ q ==> p")
@@ -193,6 +238,8 @@ let ``{UNDISCH thm} Undischarges the antecedent of an implicative theorem``() =
     |> evaluate
     |> assertEqual expected
 
+(* UNDISCH_ALL  tests *)
+
 [<Test>]
 let ``{UNDISCH_ALL thm} Iteratively undischarges antecedents in a chain of implications``() =
     let actual = UNDISCH_ALL(TAUT <| parse_term "p ==> q ==> r ==> p /\ q /\ r")
@@ -201,6 +248,8 @@ let ``{UNDISCH_ALL thm} Iteratively undischarges antecedents in a chain of impli
     actual
     |> evaluate
     |> assertEqual expected
+
+(* IMP_ANTISYM_RULE  tests *)
 
 [<Test>]
 let ``{IMP_ANTISYM_RULE thm1 thm2} Deduces equality of boolean terms from forward and backward implications``() =
@@ -212,6 +261,8 @@ let ``{IMP_ANTISYM_RULE thm1 thm2} Deduces equality of boolean terms from forwar
     actual
     |> evaluate
     |> assertEqual expected
+
+(* ADD_ASSUM  tests *)
 
 [<Test>]
 let ``{ADD_ASSUM term thm} Adds an assumption to a theorem``() =
@@ -226,6 +277,8 @@ let ``{ADD_ASSUM term thm} Adds an assumption to a theorem``() =
 
 open NHol.theorems
 
+(* EQ_IMP_RULE  tests *)
+
 [<Test>]
 let ``{EQ_IMP_RULE thm} Derives forward and backward implication from equality of boolean terms``() =
     let actual = EQ_IMP_RULE (SPEC_ALL CONJ_SYM)
@@ -234,6 +287,8 @@ let ``{EQ_IMP_RULE thm} Derives forward and backward implication from equality o
 
     actual
     |> assertEqual expected
+
+(* IMP_TRANS  tests *)
 
 [<Test>]
 let ``{IMP_TRANS thm1 thm2} Implements the transitivity of implication``() =
@@ -245,6 +300,52 @@ let ``{IMP_TRANS thm1 thm2} Implements the transitivity of implication``() =
     actual
     |> evaluate
     |> assertEqual expected
+
+(* FORALL_DEF  tests *)
+
+(* mk_forall  tests *)
+
+(* list_mk_forall  tests *)
+
+(* SPEC  tests *)
+
+(* SPECL  tests *)
+
+(* SPEC_VAR  tests *)
+
+(* SPEC_ALL  tests *)
+
+(* ISPEC  tests *)
+
+(* ISPECL  tests *)
+
+(* GEN  tests *)
+
+(* GENL  tests *)
+
+(* GEN_ALL  tests *)
+
+(* EXISTS_DEF  tests *)
+
+(* mk_exists  tests *)
+
+(* list_mk_exists  tests *)
+
+(* EXISTS  tests *)
+
+(* SIMPLE_EXISTS  tests *)
+
+(* CHOOSE  tests *)
+
+(* SIMPLE_CHOOSE  tests *)
+
+(* OR_DEF  tests *)
+
+(* mk_disj  tests *)
+
+(* list_mk_disj  tests *)
+
+(* DISJ1  tests *)
 
 // Test cases for SPEC* functions
 
@@ -259,6 +360,8 @@ let ``{DISJ1 thm term} Introduces a right disjunct into the conclusion of a theo
     |> evaluate
     |> assertEqual expected
 
+(* DISJ2  tests *)
+
 [<Test>]
 let ``{DISJ2 term thm} Introduces a left disjunct into the conclusion of a theorem``() =
     let actual = DISJ2 (parse_term @"F") TRUTH
@@ -267,6 +370,10 @@ let ``{DISJ2 term thm} Introduces a left disjunct into the conclusion of a theor
     actual
     |> evaluate
     |> assertEqual expected
+
+(* DISJ_CASES  tests *)
+
+(* SIMPLE_DISJ_CASES  tests *)
 
 [<Test>]
 let ``{SIMPLE_DISJ_CASES thm1 thm2} Disjoins hypotheses of two theorems with same conclusion``() =
@@ -281,6 +388,14 @@ let ``{SIMPLE_DISJ_CASES thm1 thm2} Disjoins hypotheses of two theorems with sam
         |> assertEqual expected
     | _ -> ()
 
+(* F_DEF  tests *)
+
+(* NOT_DEF  tests *)
+
+(* mk_neg  tests *)
+
+(* NOT_ELIM  tests *)
+
 [<Test>]
 let ``{NOT_ELIM thm} Transforms |- ~t into |- t ==> F``() =
     let th = UNDISCH(TAUT <| parse_term @"p ==> ~ ~p")
@@ -290,6 +405,8 @@ let ``{NOT_ELIM thm} Transforms |- ~t into |- t ==> F``() =
     actual
     |> evaluate
     |> assertEqual expected
+
+(* NOT_INTRO  tests *)
 
 [<Test>]
 let ``{NOT_INTRO thm} Transforms |- t ==> F into |- ~t``() =
@@ -301,6 +418,8 @@ let ``{NOT_INTRO thm} Transforms |- t ==> F into |- ~t``() =
     |> evaluate
     |> assertEqual expected
 
+(* EQF_INTRO  tests *)
+
 [<Test>]
 let ``{EQF_INTRO thm} Converts negation to equality with F``() =
     let th = ASSUME (parse_term @"~p")
@@ -310,6 +429,8 @@ let ``{EQF_INTRO thm} Converts negation to equality with F``() =
     actual
     |> evaluate
     |> assertEqual expected
+
+(* EQF_ELIM  tests *)
 
 [<Test>]
 let ``{EQF_ELIM thm} Replaces equality with F by negation``() =
@@ -321,7 +442,9 @@ let ``{EQF_ELIM thm} Replaces equality with F by negation``() =
     |> evaluate
     |> assertEqual expected
 
-//// This test requires nums module to be initialized
+(* CONTR  tests *)
+
+//// This test requires calc_num module to be initialized
 //open NHol.simp
 //
 //[<Test>]
@@ -333,6 +456,12 @@ let ``{EQF_ELIM thm} Replaces equality with F by negation``() =
 //    actual
 //    |> evaluate
 //    |> assertEqual expected
+
+(* EXISTS_UNIQUE_DEF  tests *)
+
+(* mk_uexists  tests *)
+
+(* EXISTENCE  tests *)
 
 [<Test>]
 let ``{EXISTENCE thm} Deduces existence from unique existence``() =

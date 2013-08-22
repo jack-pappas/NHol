@@ -127,6 +127,8 @@ let private nUnitConfig = {
 let assertProp testName (property : 'Testable) =
     Check.One (testName, nUnitConfig, property)
 
+// These are some helpers specific to NHol project
+
 /// Evaluate a choice, either returning results or raising exceptions
 let inline evaluate choice : 'T =
     ExtCore.Choice.bindOrRaise choice
@@ -136,3 +138,6 @@ let noSubgoal gs =
     | Success ((_, [], _) :: _) -> true
     | _ -> false
 
+/// Evaluate values in nums module if they aren't initialized before
+let loadNumsModule() =
+    NHol.nums.ONE_ONE |> ignore

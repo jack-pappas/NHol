@@ -33,6 +33,10 @@ open ExtCore.Control
 
 open NUnit.Framework
 
+(* mk_thm  tests *)
+
+(* MK_CONJ  tests *)
+
 //[<Test>]
 //let ``{MK_CONJ} Conjoin both sides of two equational theorems``() =
 //    
@@ -45,6 +49,8 @@ open NUnit.Framework
 //    actual
 //    |> evaluate
 //    |> assertEqual expected
+
+(* MK_DISJ  tests *)
 
 //[<Test>]
 //let ``{MK_DISJ} Disjoin both sides of two equational theorems``() =
@@ -59,6 +65,8 @@ open NUnit.Framework
 //    |> evaluate
 //    |> assertEqual expected
 
+(* MK_FORALL  tests *)
+
 //[<Test>]
 //let ``{MK_FORALL} Universally quantifies both sides of equational theorem``() =
 //    
@@ -72,6 +80,8 @@ open NUnit.Framework
 //    |> evaluate
 //    |> assertEqual expected
 
+(* MK_EXISTS  tests *)
+
 //[<Test>]
 //let ``{MK_EXISTS} Existentially quantifies both sides of equational theorem``() =
 //    
@@ -84,6 +94,8 @@ open NUnit.Framework
 //    actual
 //    |> evaluate
 //    |> assertEqual expected
+
+(* MP_CONV  tests *)
 
 //open NHol.meson
 //open NHol.arith
@@ -106,6 +118,13 @@ open NUnit.Framework
 //    |> evaluate
 //    |> assertEqual expected
 
+(* BETAS_CONV  tests *)
+
+(* instantiate  tests *)
+
+(* INSTANTIATE  tests *)
+
+//// This test requires uninitialized module
 //[<Test>]
 //let ``{INSTANTIATE} Apply a higher-order instantiation to conclusion of a theorem.``() =
 //    let actual = 
@@ -115,6 +134,7 @@ open NUnit.Framework
 //            let! i = term_match [] t <| parse_term @"~(!n. prime(n) ==> ODD(n))"
 //            return! INSTANTIATE i (Choice.result th)
 //        }
+//
 //    let expected = Sequent ([], parse_term @"~(!x. prime x ==> ODD x) <=> (?x. ~(prime x ==> ODD x))")
 //
 //    actual
@@ -130,6 +150,16 @@ let ``{BETAS_CONV} Beta conversion over multiple arguments``() =
     |> evaluate
     |> assertEqual expected
 
+(* INSTANTIATE_ALL  tests *)
+
+(* term_match  tests *)
+
+(* term_unify  tests *)
+
+(* deep_alpha  tests *)
+
+(* PART_MATCH  tests *)
+
 [<Test>]
 let ``{PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
     let th = Choice.result <| Sequent([], parse_term @"!x. x ==> x")
@@ -140,6 +170,8 @@ let ``{PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
     |> evaluate
     |> assertEqual expected
 
+(* GEN_PART_MATCH  tests *)
+
 //[<Test>]
 //let ``{GEN_PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
 //    let th = NHol.int.ARITH_RULE <| parse_term @"m = n ==> m + p = n + p"
@@ -149,6 +181,8 @@ let ``{PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
 //    actual
 //    |> evaluate
 //    |> assertEqual expected
+
+(* MATCH_MP  tests *)
 
 //[<Test>]
 //let ``{MATCH_MP} Modus Ponens inference rule with automatic matching``() =
@@ -161,13 +195,18 @@ let ``{PART_MATCH} Instantiates a theorem by matching part of it to a term``() =
 //    |> evaluate
 //    |> assertEqual expected
 
-//[<Test>]
-//let ``{HIGHER_REWRITE_CONV} Rewrite once using more general higher order matching``() =
-//    let t = parse_term @"z = if x = 0 then if y = 0 then 0 else x + y else x + y"
-//    let actual = HIGHER_REWRITE_CONV [COND_ELIM_THM] true t
-//    let expected = Sequent ([], parse_term @"z = (if x = 0 then if y = 0 then 0 else x + y else x + y) <=>
-//       (x = 0 ==> z = (if y = 0 then 0 else x + y)) /\ (~(x = 0) ==> z = x + y)")
-//
-//    actual
-//    |> evaluate
-//    |> assertEqual expected
+(* HIGHER_REWRITE_CONV  tests *)
+
+[<Test>]
+let ``{HIGHER_REWRITE_CONV} Rewrite once using more general higher order matching``() =
+    loadNumsModule()
+    let t = parse_term @"z = if x = 0 then if y = 0 then 0 else x + y else x + y"
+    let actual = HIGHER_REWRITE_CONV [COND_ELIM_THM] true t
+    let expected = Sequent ([], parse_term @"z = (if x = 0 then if y = 0 then 0 else x + y else x + y) <=>
+       (x = 0 ==> z = (if y = 0 then 0 else x + y)) /\ (~(x = 0) ==> z = x + y)")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+(* new_definition  tests *)

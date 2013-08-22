@@ -41,7 +41,7 @@ open nets
 open printer
 #endif
 
-logger.Trace("Entering preterm.fs")
+infof "Entering preterm.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Flag to say whether to treat varstruct "\const. bod" as variable.         *)

@@ -60,8 +60,8 @@ open wf
 open calc_num
 open normalizer
 open grobner
-//open ind_types
-//open lists
+open ind_types
+open lists
 open realax
 open calc_int
 open realarith
@@ -69,7 +69,7 @@ open real
 open calc_rat
 #endif
 
-logger.Trace("Entering int.fs")
+infof "Entering int.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Representing predicate. The "is_int" variant is useful for backwards      *)

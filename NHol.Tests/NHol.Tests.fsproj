@@ -43,7 +43,6 @@
     <None Include="packages.config" />
     <Compile Include="GenericAssert.fs" />
     <Compile Include="TestHelpers.fs" />
-    <Compile Include="Tutorial.fs" />
     <Compile Include="lib.fs" />
     <Compile Include="fusion.fs" />
     <Compile Include="basics.fs" />
@@ -63,6 +62,27 @@
     <Compile Include="trivia.fs" />
     <Compile Include="canon.fs" />
     <Compile Include="meson.fs" />
+    <Compile Include="quot.fs" />
+    <Compile Include="pair.fs" />
+    <Compile Include="nums.fs" />
+    <Compile Include="recursion.fs" />
+    <Compile Include="arith.fs" />
+    <Compile Include="wf.fs" />
+    <Compile Include="calc_num.fs" />
+    <Compile Include="normalizer.fs" />
+    <Compile Include="grobner.fs" />
+    <Compile Include="ind_types.fs" />
+    <Compile Include="lists.fs" />
+    <Compile Include="realax.fs" />
+    <Compile Include="calc_int.fs" />
+    <Compile Include="realarith.fs" />
+    <Compile Include="real.fs" />
+    <Compile Include="calc_rat.fs" />
+    <Compile Include="int.fs" />
+    <Compile Include="sets.fs" />
+    <Compile Include="iterate.fs" />
+    <Compile Include="cart.fs" />
+    <Compile Include="define.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ExtCore">

@@ -47,7 +47,7 @@ open ind_defs
 open ``class``
 #endif
 
-logger.Trace("Entering trivia.fs")
+infof "Entering trivia.fs"
 
 parse_as_infix("o", (26, "right"))
 
@@ -75,10 +75,14 @@ let o_ASSOC =
          |> THEN <| CONV_TAC(REDEPTH_CONV BETA_CONV)
          |> THEN <| REFL_TAC)
 
-let I_THM = prove((parse_term @"!x:A. I x = x"), REWRITE_TAC [I_DEF])
+let I_THM = 
+    assumeProof
+        prove
+        ((parse_term @"!x:A. I x = x"), REWRITE_TAC [I_DEF])
 
 let I_O_ID = 
-    prove
+    assumeProof
+        prove
         ((parse_term @"!f:A->B. (I o f = f) /\ (f o I = f)"), 
          REPEAT STRIP_TAC
          |> THEN <| REWRITE_TAC [FUN_EQ_THM; o_DEF; I_THM])
@@ -97,39 +101,42 @@ let one_tydef = new_type_definition "1" ("one_ABS", "one_REP") EXISTS_ONE_REP
 let one_DEF = new_definition(parse_term @"one = @x:1. T")
 
 let one = 
-    prove((parse_term @"!v:1. v = one"), MP_TAC
-                                            (GEN_ALL
-                                                 (SPEC (parse_term @"one_REP a") 
-                                                      (CONJUNCT2 one_tydef)))
-                                        |> THEN 
-                                        <| REWRITE_TAC [CONJUNCT1 one_tydef]
-                                        |> THEN <| DISCH_TAC
-                                        |> THEN <| ONCE_REWRITE_TAC [GSYM(CONJUNCT1 one_tydef)]
-                                        |> THEN <| ASM_REWRITE_TAC [])
+    prove((parse_term @"!v:1. v = one"), 
+          MP_TAC(GEN_ALL(SPEC (parse_term @"one_REP a") (CONJUNCT2 one_tydef)))
+          |> THEN <| REWRITE_TAC [ CONJUNCT1 one_tydef ]
+          |> THEN <| DISCH_TAC
+          |> THEN <| ONCE_REWRITE_TAC [ GSYM(CONJUNCT1 one_tydef) ]
+          |> THEN <| ASM_REWRITE_TAC [])
 
 let one_axiom = 
-    prove((parse_term @"!f g. f = (g:A->1)"), REPEAT GEN_TAC
-                                             |> THEN <| ONCE_REWRITE_TAC [FUN_EQ_THM]
-                                             |> THEN <| GEN_TAC
-                                             |> THEN <| ONCE_REWRITE_TAC [one]
-                                             |> THEN <| REFL_TAC)
+    prove((parse_term @"!f g. f = (g:A->1)"), 
+          REPEAT GEN_TAC
+          |> THEN <| ONCE_REWRITE_TAC [ FUN_EQ_THM ]
+          |> THEN <| GEN_TAC
+          |> THEN <| ONCE_REWRITE_TAC [ one ]
+          |> THEN <| REFL_TAC)
 
 let one_INDUCT = 
-    prove((parse_term @"!P. P one ==> !x. P x"), ONCE_REWRITE_TAC [one]
-                                                |> THEN <| REWRITE_TAC [])
+    prove((parse_term @"!P. P one ==> !x. P x"), 
+            ONCE_REWRITE_TAC [ one ]
+            |> THEN <| REWRITE_TAC [])
 
 let one_RECURSION = 
-    prove((parse_term @"!e:A. ?fn. fn one = e"), GEN_TAC
-                                                |> THEN <| EXISTS_TAC (parse_term @"\x:1. e:A")
-                                                |> THEN <| BETA_TAC
-                                                |> THEN <| REFL_TAC)
+    prove((parse_term @"!e:A. ?fn. fn one = e"), 
+          GEN_TAC
+          |> THEN <| EXISTS_TAC(parse_term @"\x:1. e:A")
+          |> THEN <| BETA_TAC
+          |> THEN <| REFL_TAC)
 
 let one_Axiom = 
-    prove((parse_term @"!e:A. ?!fn. fn one = e"), GEN_TAC
-                                                 |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_THM; one_RECURSION]
-                                                 |> THEN <| REPEAT STRIP_TAC
-                                                 |> THEN <| ONCE_REWRITE_TAC [FUN_EQ_THM]
-                                                 |> THEN <| ONCE_REWRITE_TAC [one]
-                                                 |> THEN <| ASM_REWRITE_TAC [])
+    assumeProof
+        prove
+        ((parse_term @"!e:A. ?!fn. fn one = e"), 
+         GEN_TAC
+         |> THEN <| REWRITE_TAC [ EXISTS_UNIQUE_THM; one_RECURSION ]
+         |> THEN <| REPEAT STRIP_TAC
+         |> THEN <| ONCE_REWRITE_TAC [ FUN_EQ_THM ]
+         |> THEN <| ONCE_REWRITE_TAC [ one ]
+         |> THEN <| ASM_REWRITE_TAC [])
 
 inductive_type_store := ("1", (1, one_INDUCT, one_RECURSION)) :: (!inductive_type_store)

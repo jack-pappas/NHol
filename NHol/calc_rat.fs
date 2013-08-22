@@ -60,15 +60,15 @@ open wf
 open calc_num
 open normalizer
 open grobner
-//open ind_types
-//open lists
+open ind_types
+open lists
 open realax
 open calc_int
 open realarith
 open real
 #endif
 
-logger.Trace("Entering calc_rat.fs")
+infof "Entering calc_rat.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Constant for decimal fractions written #xxx.yyy                           *)

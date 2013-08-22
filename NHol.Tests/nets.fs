@@ -1,6 +1,6 @@
 ﻿(*
 
-Copyright 2013 Jack Pappas, Anh-Dung Phan
+Copyright 2013 Jack Pappas, Anh-Dung Phan, Eric Taucher
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,10 @@ open NHol.fusion
 open NHol.nets
 
 open NUnit.Framework
+
+(* empty_net  tests *)
+
+(* enter tests *)
 
 [<Test>]
 let ``{enter} insert a new element into a net``() =
@@ -49,6 +53,8 @@ let ``{enter} insert a new element into a net``() =
     |> evaluate
     |> Unsafe.assertEqual expected
 
+(* lookup tests *)
+
 //[<Test>]
 //let ``{lookup} looks up a term in a net and return possible matches``() =
 //
@@ -74,5 +80,4 @@ let ``{enter} insert a new element into a net``() =
 //    |> Unsafe.assertEqual bTerm
 
 
-
-
+(* merge_nets  tests *)

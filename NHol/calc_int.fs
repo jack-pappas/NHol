@@ -60,12 +60,12 @@ open wf
 open calc_num
 open normalizer
 open grobner
-//open ind_types
-//open lists
+open ind_types
+open lists
 open realax
 #endif
 
-logger.Trace("Entering calc_int.fs")
+infof "Entering calc_int.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Syntax operations on integer constants of type ":real".                   *)

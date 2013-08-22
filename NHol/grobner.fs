@@ -52,16 +52,16 @@ open trivia
 open canon
 open meson
 open quot
-//open pair
+open pair
 open nums
 open recursion
 open arith
-//open wf
+open wf
 open calc_num
 open normalizer
 #endif
 
-logger.Trace("Entering grobner.fs")
+infof "Entering grobner.fs"
 
 
 (* ------------------------------------------------------------------------- *)

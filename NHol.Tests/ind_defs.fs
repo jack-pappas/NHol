@@ -30,5 +30,37 @@ open NHol.itab
 open NHol.simp
 open NHol.theorems
 open NHol.``class``
+open NHol.ind_defs
 
 open NUnit.Framework
+
+[<Test>]
+let ``{RIGHT_BETAS} Apply and beta-reduce equational theorem with abstraction on RHS``() =
+    loadNumsModule()
+    let th = ASSUME <| parse_term @"f = \a b c. a + b + c + 1"
+    let actual = RIGHT_BETAS [parse_term @"x:num"; parse_term @"y:num"] th
+    let expected = Sequent([parse_term @"f = \a b c. a + b + c + 1"], parse_term @"f x y = (\c. x + y + c + 1)")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{EXISTS_EQUATION} Derives existence from explicit equational constraint``() =
+    loadNumsModule()
+    let th = REFL <| parse_term @"x:num"
+    let actual = EXISTS_EQUATION (parse_term @"x = 1") th
+    let expected = Sequent([], parse_term @"?x. x = x")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
+[<Test>]
+let ``{MONO_TAC} Attempt to prove monotonicity theorem automatically``() =
+    let _ = g <| parse_term @"(!x. P x ==> Q x) ==> (?y. P y /\ ~Q y) ==> (?y. Q y /\ ~P y)"
+    let _ = e STRIP_TAC
+    let gs = e MONO_TAC
+
+    noSubgoal gs
+    |> assertEqual true

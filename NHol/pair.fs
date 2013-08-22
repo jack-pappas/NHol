@@ -54,7 +54,7 @@ open meson
 open quot
 #endif
 
-logger.Trace("Entering pair.fs")
+infof "Entering pair.fs"
 
 (* ------------------------------------------------------------------------- *)
 (* Constants implementing (or at least tagging) syntactic sugar.             *)
@@ -105,7 +105,8 @@ let prod_tybij =
     new_type_definition "prod" ("ABS_prod", "REP_prod") PAIR_EXISTS_THM;;
 
 let REP_ABS_PAIR = 
-    prove
+    assumeProof
+        prove
         ((parse_term @"!(x:A) (y:B). REP_prod (ABS_prod (mk_pair x y)) = mk_pair x y"), 
          MESON_TAC [prod_tybij]);;
 
@@ -118,7 +119,8 @@ let FST_DEF = new_definition(parse_term @"FST (p:A#B) = @x. ?y. p = x,y");;
 let SND_DEF = new_definition(parse_term @"SND (p:A#B) = @y. ?x. p = x,y");;
 
 let PAIR_EQ = 
-    prove
+    assumeProof
+        prove
         ((parse_term @"!(x:A) (y:B) a b. (x,y = a,b) <=> (x = a) /\ (y = b)"), 
          REPEAT GEN_TAC
          |> THEN <| EQ_TAC
@@ -147,7 +149,8 @@ let PAIR_SURJECTIVE =
           |> THEN <| REFL_TAC);;
 
 let FST = 
-    prove
+    assumeProof
+        prove
         ((parse_term @"!(x:A) (y:B). FST(x,y) = x"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [FST_DEF]
@@ -162,7 +165,8 @@ let FST =
          |> THEN <| ASM_REWRITE_TAC []);;
 
 let SND = 
-    prove
+    assumeProof
+        prove
         ((parse_term @"!(x:A) (y:B). SND(x,y) = y"), 
          REPEAT GEN_TAC
          |> THEN <| REWRITE_TAC [SND_DEF]
@@ -193,7 +197,8 @@ let pair_INDUCT =
          |> THEN <| FIRST_ASSUM MATCH_ACCEPT_TAC)
 
 let pair_RECURSION = 
-    prove
+    assumeProof
+        prove
         ((parse_term @"!PAIR'. ?fn:A#B->C. !a0 a1. fn (a0,a1) = PAIR' a0 a1"), 
          GEN_TAC
          |> THEN <| EXISTS_TAC(parse_term @"\p. (PAIR':A->B->C) (FST p) (SND p)")
@@ -278,6 +283,8 @@ let new_definition =
         |> Choice.bindError (function
             | Failure _ ->
                 choice {
+                    let! _ = FST
+                    let! _ = SND
                     let! l, r = dest_eq def
                     let fn, args = strip_comb l
                     let! tms = Choice.List.map depair args
@@ -291,13 +298,13 @@ let new_definition =
                     let! xreps = Choice.List.map (subst slist << fst) reps
                     let threps = map (SYM << PURE_REWRITE_CONV [FST; SND]) xreps
                     let th3 = TRANS th2 (SYM(SUBS_CONV threps r))
-                    let th4 = GEN_ALL(GENL avs th3)
-                    the_definitions := th4 :: (!the_definitions)
-                    return! th4
+                    let! th4 = GEN_ALL(GENL avs th3)
+                    the_definitions := Choice.result th4 :: (!the_definitions)
+                    return th4
                 }
             | e -> Choice.error e)
         |> Choice.mapError (fun e ->
-                logger.Error(Printf.sprintf "new_definition of '%s' returns %O" (string_of_term tm) e)
+                errorf "new_definition of '%s' returns %O" (string_of_term tm) e
                 e)
 
 (* ------------------------------------------------------------------------- *)
@@ -474,10 +481,14 @@ inductive_type_store := ("prod", (1, pair_INDUCT, pair_RECURSION)) :: (!inductiv
 (* ------------------------------------------------------------------------- *)
 
 let FORALL_PAIR_THM = 
-    prove((parse_term @"!P. (!p. P p) <=> (!p1 p2. P(p1,p2))"), MESON_TAC [PAIR])
+    assumeProof
+        prove
+        ((parse_term @"!P. (!p. P p) <=> (!p1 p2. P(p1,p2))"), MESON_TAC [PAIR])
 
 let EXISTS_PAIR_THM = 
-    prove((parse_term @"!P. (?p. P p) <=> ?p1 p2. P(p1,p2)"), MESON_TAC [PAIR])
+    assumeProof
+        prove
+        ((parse_term @"!P. (?p. P p) <=> ?p1 p2. P(p1,p2)"), MESON_TAC [PAIR])
 
 // Error unsolved goal
 let LAMBDA_PAIR_THM = 
@@ -520,18 +531,21 @@ let FORALL_UNCURRY =
 #endif
 
 let EXISTS_UNCURRY = 
-    prove
+    assumeProof
+        prove
         ((parse_term @"!P. (?f:A->B->C. P f) <=> (?f. P (\a b. f(a,b)))"), 
          ONCE_REWRITE_TAC [MESON [] (parse_term @"(?x. P x) <=> ~(!x. ~P x)")]
          |> THEN <| REWRITE_TAC [FORALL_UNCURRY])
 
 let EXISTS_CURRY = 
-    prove
+    assumeProof
+        prove
         ((parse_term @"!P. (?f. P f) <=> (?f. P (\(a,b). f a b))"), 
          REWRITE_TAC [EXISTS_UNCURRY; PAIRED_ETA_THM])
 
-let FORALL_CURRY = 
-    prove
+let FORALL_CURRY =
+    assumeProof 
+        prove
         ((parse_term @"!P. (!f. P f) <=> (!f. P (\(a,b). f a b))"), 
          REWRITE_TAC [FORALL_UNCURRY; PAIRED_ETA_THM])
 
@@ -646,7 +660,8 @@ let (LET_TAC : tactic) =
 
     let PROVE_DEPAIRING_EXISTS = 
         let pth = 
-            prove
+            assumeProof
+                prove
                 ((parse_term @"((x,y) = a) <=> (x = FST a) /\ (y = SND a)"), 
                  MESON_TAC [PAIR; PAIR_EQ])
 
