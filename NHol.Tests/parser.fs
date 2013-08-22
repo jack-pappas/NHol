@@ -66,6 +66,246 @@ let intLexcodeParser (l : lexcode list) : lexcode * lexcode list =
 
 (* many  tests *)
 
+// The first string is what humans expect to read
+// and the second string list is what the function reads.
+// Both are shown to make the test easier to comprehend.
+let private manyStringTypeValues : (string * string list * (string list * string list))[] = [|
+    (
+        // idx 0
+        // parser.many.01
+        // No input
+        "",    // humans read this
+        [],    // the NHol.parser.many function reads this
+        ([],[])
+    );
+    (
+        // idx 1
+        // parser.many.02
+        // one char input, one value that matches
+        "1",
+        ["1"],
+        (["1"],[])
+    );
+    (
+        // idx 2
+        // parser.many.03
+        // one char input, one value that doesn't match
+        "a",
+        ["a"],
+        ([],["a"])
+    );
+    (
+        // idx 3
+        // parser.many.04
+        // two char input, two values that matches
+        "12",
+        ["1";"2"],
+        (["1"; "2"],[])
+    );
+    (
+        // idx 4
+        // parser.many.05
+        // two char input, first value doesn't match, second value matches
+        "a1",
+        ["a";"1"],
+        ([],["a";"1"])
+    );
+    (
+        // idx 5
+        // parser.many.06
+        // two char input, no values match
+        "ab",
+        ["a";"b"],
+        ([],["a";"b"])
+    );
+    (
+        // idx 6
+        // parser.many.07
+        // three char input, no values match
+        "abc",
+        ["a";"b";"c"],
+        ([],["a";"b";"c"])
+    );
+    (
+        // idx 7
+        // parser.many.08
+        // three char input, first values matches
+        "1bc",
+        ["1";"b";"c"],
+        (["1"],["b";"c"])
+    );
+    (
+        // idx 8
+        // parser.many.09
+        // three char input, first two values match
+        "12c",
+        ["1";"2";"c"],
+        (["1";"2"],["c"])
+    );
+    (
+        // idx 9
+        // parser.many.10
+        // three char input, all values match
+        "123",
+        ["1";"2";"3"],
+        (["1";"2";"3"],[])
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "parser.many.01")>]
+[<TestCase(1, TestName = "parser.many.02")>]
+[<TestCase(2, TestName = "parser.many.03")>]
+[<TestCase(3, TestName = "parser.many.04")>]
+[<TestCase(4, TestName = "parser.many.05")>]
+[<TestCase(5, TestName = "parser.many.06")>]
+[<TestCase(6, TestName = "parser.many.07")>]
+[<TestCase(7, TestName = "parser.many.08")>]
+[<TestCase(8, TestName = "parser.many.09")>]
+[<TestCase(9, TestName = "parser.many.010")>]
+let ``function many - type string`` idx =
+    let (externalForm, _, _) = manyStringTypeValues.[idx]
+    let (_, internalForm, _) = manyStringTypeValues.[idx]
+    let (_, _, (currentResult , restResult)) = manyStringTypeValues.[idx]
+
+    // Verify function input form and human form match.
+    let convertedForm = NHol.lib.explode externalForm
+//    printfn "convertedForm: %A" convertedForm
+    Assert.AreEqual(convertedForm, internalForm)
+
+    // Verify result of function
+    let stringParser : string list -> string list * string list = NHol.parser.many intParser
+    let (current, rest) = stringParser internalForm
+//    printfn "current: %A" current
+//    printfn "rest: %A" rest
+    Assert.AreEqual(current, currentResult)
+    Assert.AreEqual(rest, restResult)
+
+// The first sting is what humans expect to read
+// and the second lexcode list is what the function reads.
+// Both are shown to make the test easier to comprehend.
+let private manyLexcodeTypeValues : (string * lexcode list * (lexcode list * lexcode list))[] = [|
+    (
+        // idx 0
+        // parser.many.101
+        // No input
+        "",    // humans read this
+        [],    // the NHol.parser.many function reads this
+        ([],[])
+    );
+    (
+        // idx 1
+        // parser.many.102
+        // one token input, one value that matches
+        "1",
+        [Ident "1"],
+        ([Ident "1"],[])
+    );
+    (
+        // idx 2
+        // parser.many.103
+        // one token input, one value that doesn't match
+        "a",
+        [Ident "a"],
+        ([],[Ident "a"])
+    );
+    (
+        // idx 3
+        // parser.many.104
+        // two token input, one value that matches
+        "12",
+        [Ident "12"],
+        ([Ident "12"],[])
+    );
+    (
+        // idx 4
+        // parser.many.105
+        // two token input, first value doesn't match, second value matches
+        "a 1",
+        [Ident "a"; Ident "1"],
+        ([],[Ident "a"; Ident "1"])
+    );
+    (
+        // idx 5
+        // parser.many.106
+        // two token input with space seperator, first value matches second value doesn't match
+        "12 a",
+        [Ident "12";Ident "a"],
+        ([Ident "12"],[Ident "a"])
+    );
+    (
+        // idx 6
+        // parser.many.107
+        // two token input, first value matches second value doesn't match
+        "12#",
+        [Ident "12";Ident "#"],
+        ([Ident "12"],[Ident "#"])
+    );
+
+    (
+        // idx 7
+        // parser.many.108
+        // three token input, no values match
+        "a b c",
+        [Ident "a";Ident "b";Ident "c"],
+        ([],[Ident "a";Ident "b";Ident "c"])
+    );
+    (
+        // idx 8
+        // parser.many.109
+        // three token input, first values matches
+        "1 b c",
+        [Ident "1";Ident "b";Ident "c"],
+        ([Ident "1"],[Ident "b";Ident "c"])
+    );
+    (
+        // idx 9
+        // parser.many.110
+        // three token input, first two values match
+        "1 2 c",
+        [Ident "1";Ident "2";Ident "c"],
+        ([Ident "1";Ident "2"],[Ident "c"])
+    );
+    (
+        // idx 10
+        // parser.many.111
+        // three token input, all values match
+        "1 2 3",
+        [Ident "1";Ident "2";Ident "3"],
+        ([Ident "1";Ident "2";Ident "3"],[])
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "parser.many.101")>]
+[<TestCase(1, TestName = "parser.many.102")>]
+[<TestCase(2, TestName = "parser.many.103")>]
+[<TestCase(3, TestName = "parser.many.104")>]
+[<TestCase(4, TestName = "parser.many.105")>]
+[<TestCase(5, TestName = "parser.many.106")>]
+[<TestCase(6, TestName = "parser.many.107")>]
+[<TestCase(7, TestName = "parser.many.108")>]
+[<TestCase(8, TestName = "parser.many.109")>]
+[<TestCase(9, TestName = "parser.many.110")>]
+[<TestCase(10, TestName = "parser.many.111")>]
+let ``function many - type lexcode`` idx =
+    let (externalForm, _, _) = manyLexcodeTypeValues.[idx]
+    let (_, internalForm, _) = manyLexcodeTypeValues.[idx]
+    let (_, _, (currentResult , restResult)) = manyLexcodeTypeValues.[idx]
+
+    // Verify function input form and human form match.
+    let convertedForm = (NHol.parser.lex << NHol.lib.explode) externalForm  // Notice use of lex to convert string to lexcode.
+    printfn "convertedForm: %A" convertedForm
+    Assert.AreEqual(convertedForm, internalForm)
+
+    // Verify result of function
+    let lexcodeParser : lexcode list -> lexcode list * lexcode list = NHol.parser.many intLexcodeParser
+    let (current, rest) = lexcodeParser internalForm
+//    printfn "current: %A" current
+//    printfn "rest: %A" rest
+    Assert.AreEqual(current, currentResult)
+    Assert.AreEqual(rest, restResult)
+
 (* (|>>) - OCaml >>  tests *)
 
 (* fix  tests *)
@@ -513,14 +753,13 @@ let ``function listof - type lexcode`` idx =
 // The first string is what humans expect to read
 // and the second string list is what the function reads.
 // Both are shown to make the test easier to comprehend.
-let private possiblyStringTypeValues : (string * string list * string * (string list * string list))[] = [|
+let private possiblyStringTypeValues : (string * string list * (string list * string list))[] = [|
     (
         // idx 0
         // parser.possibly.01
         // No input
         "",    // humans read this
         [],    // the NHol.parser.possibly function reads this
-        "",
         ([],[])  // Notice result is a (string list * string list) and not (string * string list)
     );
     (
@@ -529,7 +768,6 @@ let private possiblyStringTypeValues : (string * string list * string * (string 
         // one char input, one value that matches
         "1",
         ["1"],
-        "",
         (["1"],[])
     );
     (
@@ -538,7 +776,6 @@ let private possiblyStringTypeValues : (string * string list * string * (string 
         // one char input, one value that doesn't match
         "a",
         ["a"],
-        "",
         ([],["a"])
     );
     (
@@ -547,7 +784,6 @@ let private possiblyStringTypeValues : (string * string list * string * (string 
         // two char input, one value that matches
         "12",
         ["1";"2"],
-        "",
         (["1"],["2"])
     );
     (
@@ -556,7 +792,6 @@ let private possiblyStringTypeValues : (string * string list * string * (string 
         // two char input, first value doesn't match, second value matches
         "a1",
         ["a";"1"],
-        "",
         ([],["a";"1"])
     );
     |]
@@ -568,10 +803,9 @@ let private possiblyStringTypeValues : (string * string list * string * (string 
 [<TestCase(3, TestName = "parser.possibly.04")>]
 [<TestCase(4, TestName = "parser.possibly.05")>]
 let ``function possibly - type string`` idx =
-    let (externalForm, _, _, _) = possiblyStringTypeValues.[idx]
-    let (_, internalForm, _, _) = possiblyStringTypeValues.[idx]
-    let (_, _, value, _) = possiblyStringTypeValues.[idx]
-    let (_, _, _, (currentResult , restResult)) = possiblyStringTypeValues.[idx]
+    let (externalForm, _, _) = possiblyStringTypeValues.[idx]
+    let (_, internalForm, _) = possiblyStringTypeValues.[idx]
+    let (_, _, (currentResult , restResult)) = possiblyStringTypeValues.[idx]
 
     // Verify function input form and human form match.
     let convertedForm = NHol.lib.explode externalForm
@@ -589,68 +823,61 @@ let ``function possibly - type string`` idx =
 // The first sting is what humans expect to read
 // and the second lexcode list is what the function reads.
 // Both are shown to make the test easier to comprehend.
-let private possiblyLexcodeTypeValues : (string * lexcode list * lexcode * (lexcode list * lexcode list))[] = [|
+let private possiblyLexcodeTypeValues : (string * lexcode list * (lexcode list * lexcode list))[] = [|
     (
         // idx 0
         // parser.possibly.101
         // No input
         "",    // humans read this
         [],    // the NHol.parser.possibly function reads this
-        Ident "",
         ([],[])  // Notice result is a (lexcode list * lexcode list) and not (lexcode * lexcode list)
     );
     (
         // idx 1
         // parser.possibly.102
-        // one char input, one value that matches
+        // one token input, one value that matches
         "1",
         [Ident "1"],
-        Ident "",
         ([Ident "1"],[])
     );
     (
         // idx 2
         // parser.possibly.103
-        // one char input, one value that doesn't match
+        // one token input, one value that doesn't match
         "a",
         [Ident "a"],
-        Ident "",
         ([],[Ident "a"])
     );
     (
         // idx 3
         // parser.possibly.104
-        // two char input, one value that matches
+        // one token input, one value that matches
         "12",
         [Ident "12"],
-        Ident "",
         ([Ident "12"],[])
     );
     (
         // idx 4
         // parser.possibly.105
-        // two char input, first value doesn't match, second value matches
+        // two token input, no values match
         "a1",
         [Ident "a1"],
-        Ident "",
         ([],[Ident "a1"])
     );
     (
         // idx 5
         // parser.possibly.106
-        // three char input, first value matches second value doesn't match
+        // one token input, no values match
         "12a",
         [Ident "12a"],
-        Ident "",
         ([],[Ident "12a"])
     );
     (
         // idx 6
         // parser.possibly.107
-        // three char input, first value matches second value doesn't match
+        // two token input, first value matches second value doesn't match
         "12#",
         [Ident "12";Ident "#"],
-        Ident "",
         ([Ident "12"],[Ident "#"])
     );
     |]
@@ -664,10 +891,9 @@ let private possiblyLexcodeTypeValues : (string * lexcode list * lexcode * (lexc
 [<TestCase(5, TestName = "parser.possibly.106")>]
 [<TestCase(6, TestName = "parser.possibly.107")>]
 let ``function possibly - type lexcode`` idx =
-    let (externalForm, _, _, _) = possiblyLexcodeTypeValues.[idx]
-    let (_, internalForm, _, _) = possiblyLexcodeTypeValues.[idx]
-    let (_, _, value, _) = possiblyLexcodeTypeValues.[idx]
-    let (_, _, _, (currentResult , restResult)) = possiblyLexcodeTypeValues.[idx]
+    let (externalForm, _, _) = possiblyLexcodeTypeValues.[idx]
+    let (_, internalForm, _) = possiblyLexcodeTypeValues.[idx]
+    let (_, _, (currentResult , restResult)) = possiblyLexcodeTypeValues.[idx]
 
     // Verify function input form and human form match.
     let convertedForm = (NHol.parser.lex << NHol.lib.explode) externalForm  // Notice use of lex to convert string to lexcode.
@@ -773,7 +999,7 @@ let private someLexcodeTypeValues : (string * lexcode list * (lexcode * lexcode 
     (
         // idx 1
         // parser.some.102
-        // one char input, one value that matches
+        // one token input, one value that matches
         "1",
         [Ident "1"],
         (Ident "1",[])
@@ -781,7 +1007,7 @@ let private someLexcodeTypeValues : (string * lexcode list * (lexcode * lexcode 
     (
         // idx 2
         // parser.some.103
-        // one char input, one value that doesn't match
+        // one token input, one value that doesn't match
         // throws NHol.parser.Noparse
         "a",
         [Ident "a"],
@@ -790,7 +1016,7 @@ let private someLexcodeTypeValues : (string * lexcode list * (lexcode * lexcode 
     (
         // idx 3
         // parser.some.104
-        // two char input, one value that matches
+        // two token input, one value that matches
         "12",
         [Ident "12"],
         (Ident "12",[])
@@ -798,7 +1024,7 @@ let private someLexcodeTypeValues : (string * lexcode list * (lexcode * lexcode 
     (
         // idx 4
         // parser.some.105
-        // two char input, first value doesn't match, second value matches
+        // one token input, no matches
         // throws NHol.parser.Noparse
         "a1",
         [Ident "a1"],
@@ -807,18 +1033,18 @@ let private someLexcodeTypeValues : (string * lexcode list * (lexcode * lexcode 
     (
         // idx 5
         // parser.some.106
-        // three char input, first value matches second value doesn't match
+        // one token input, no matches
         // throws NHol.parser.Noparse
         // Note: This throws Noparse exception because "12a" is lexed as "12a" and not "12" and "a",
         // so "12a" is not a num.
         "12a",
         [Ident "12a"],
-        (Ident "",[])
+        (Ident "",[])  // dummy value
     );
     (
         // idx 6
         // parser.some.107
-        // three char input, first value matches second value doesn't match
+        // two token input, first value matches second value doesn't match
         "12#",
         [Ident "12";Ident "#"],
         (Ident "12",[Ident "#"])
@@ -954,7 +1180,7 @@ let private parseraLexcodeTypeValues : (string * lexcode list * lexcode * (lexco
     (
         // idx 1
         // parser.a.102
-        // one char input, empty value
+        // one token input, empty value
         // throws NHol.parser.Noparse
         "(",
         [Resword "("],
@@ -964,7 +1190,7 @@ let private parseraLexcodeTypeValues : (string * lexcode list * lexcode * (lexco
     (
         // idx 2
         // parser.a.103
-        // one char input, value that matches
+        // one token input, value that matches
         "(",
         [Resword "("],
         Resword "(",
@@ -973,7 +1199,7 @@ let private parseraLexcodeTypeValues : (string * lexcode list * lexcode * (lexco
     (
         // idx 3
         // parser.a.104
-        // one char input, value that doesn't match
+        // one token input, value that doesn't match
         // throws NHol.parser.Noparse
         "(",
         [Resword "("],
@@ -983,7 +1209,7 @@ let private parseraLexcodeTypeValues : (string * lexcode list * lexcode * (lexco
     (
         // idx 4
         // parser.a.105
-        // multi char input, value that matches
+        // multi token input, value that matches
         "(5)",
         [Resword "(";Ident "5";Resword ")"],
         Resword "(",

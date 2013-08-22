@@ -46,6 +46,7 @@ open NUnit.Framework
 (* mk_fthm  tests *)
 
 [<Test>]
+[<Category("Fails")>]
 let ``mk_fthm1``() =
 
     _FALSITY_ |> ignore
@@ -58,6 +59,7 @@ let ``mk_fthm1``() =
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``mk_fthm2``() =
 
     _FALSITY_ |> ignore
@@ -70,6 +72,7 @@ let ``mk_fthm2``() =
     |> assertEqual expected
 
 [<Test>]
+[<Category("Fails")>]
 let ``mk_fthm3``() =
 
     _FALSITY_ |> ignore
