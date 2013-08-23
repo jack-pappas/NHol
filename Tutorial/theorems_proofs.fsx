@@ -54,6 +54,13 @@ fsi.AddPrinter string_of_type;;
 fsi.AddPrinter string_of_term;;
 fsi.AddPrinter string_of_thm;;
 
+BETA_RULE;;                 // forces equal module evaluation: maybe not needed
+mk_iff;;                    // forces bool module evaluation
+MK_CONJ;;                   // forces drule module evaluation
+
+_FALSITY_;;                 // forces tactics module evaluation
+
+// for some reason it seems that it is better to call this after the tactics module evaluation
 fsi.AddPrinter string_of_justification;;
 fsi.AddPrinter string_of_refinement;;
 fsi.AddPrinter string_of_tactic;;
@@ -63,10 +70,6 @@ fsi.AddPrinter string_of_goal;;
 fsi.AddPrinter string_of_goalstack;;
 fsi.AddPrinter string_of_goalstate;;
 
-BETA_RULE;;                 // forces equal module evaluation: maybe not needed
-mk_iff;;                    // forces bool module evaluation
-MK_CONJ;;                   // forces drule module evaluation
-let falsity = _FALSITY_;;   // forces tactics module evaluation
 ITAUT_TAC;;                 // forces itab module evaluation: maybe not needed
 mk_rewrites;;               // forces simp module evaluation
 EQ_REFL;;                   // forces theorems module evaluation
