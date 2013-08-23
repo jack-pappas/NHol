@@ -51,6 +51,7 @@ let inline private charcode (s : string) =
 //        logger.Debug ("NHol.printer.charcode: The string should contain exactly one (1) character, but it contains {0} characters. (s = {1})",
 //            String.length s, s)
 //    #endif
+    // Note: In F# 65536 retuns 0, so the max is 65535 in F#.
     int s.[0]
 
 //
