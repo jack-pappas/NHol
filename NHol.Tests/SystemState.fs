@@ -38,16 +38,20 @@ module internal SystemState =
             // Try to get the F# module type from the map containing the types in the assembly.
             match nholAssembly.GetType (moduleStartupTypeName, false) |> Option.ofNull with
             | None ->
-                // TODO : If the module type is None, emit an entry to the NUnit console/log.
+                // If the module's startup type couldn't be found, emit an entry to the NUnit console/log.
                 printfn "Unable to initialize the '%s' module because it could not be found in the NHol assembly. (ModuleStartupTypeName = %s)"
                     moduleName moduleStartupTypeName
 
             | Some moduleType ->
+                // Emit an entry to the NUnit console/log so we know which module we're initializing
+                // in case something goes wrong during the initialization.
+                printfn "Initializing the '%s' module." moduleName
+
                 // Execute the static constructor (class constructor) for the class
                 // representing the specified F# module.
                 RuntimeHelpers.RunClassConstructor moduleType.TypeHandle
 
-                // TODO : Emit an entry to the NUnit console/log stating that the module was successfully initialized.
+                // Emit an entry to the NUnit console/log stating that the module was initialized.
                 printfn "Initialized the '%s' module." moduleName
 
             // Initialize the remaining modules.
