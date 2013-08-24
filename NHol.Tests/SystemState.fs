@@ -18,7 +18,7 @@ limitations under the License.
 
 namespace Tests.NHol
 
-//
+/// Functions for manipulating the NHol system state to facilitate unit testing.
 [<RequireQualifiedAccess>]
 module internal SystemState =
     open System.Reflection
@@ -31,16 +31,16 @@ module internal SystemState =
         match moduleNames with
         | [] -> ()
         | moduleName :: moduleNames ->
-            //
-            let moduleTypeName = "<StartupCode$NHol>.$NHol." + moduleName
+            /// The full name (namespace + name) of the type containing the startup (initialization)
+            /// code for the current NHol module (F# module).
+            let moduleStartupTypeName = "<StartupCode$NHol>.$NHol." + moduleName
 
             // Try to get the F# module type from the map containing the types in the assembly.
-            match nholAssembly.GetType (moduleTypeName, false) |> Option.ofNull with
+            match nholAssembly.GetType (moduleStartupTypeName, false) |> Option.ofNull with
             | None ->
                 // TODO : If the module type is None, emit an entry to the NUnit console/log.
-                printfn "Unable to initialize the '%s' module because it could not be found in the NHol assembly. (ModuleTypeName = %s)"
-                    moduleName moduleTypeName
-                ()
+                printfn "Unable to initialize the '%s' module because it could not be found in the NHol assembly. (ModuleStartupTypeName = %s)"
+                    moduleName moduleStartupTypeName
 
             | Some moduleType ->
                 // Execute the static constructor (class constructor) for the class
@@ -59,12 +59,13 @@ module internal SystemState =
         // TODO : Add logging code here to record that the modules were (or weren't) initialized.
         printfn "Initializing NHol modules prior to running unit tests."
 
-        //
+        /// The NHol assembly.
         let nholAssembly = typeof<NHol.fusion.Hol_kernel.hol_type>.Assembly
 
         // First initialize the module itself.
         // This isn't really necessary, since C# normally doesn't add anything to the
         // module constructor, but it doesn't hurt to be sure.
+        printfn "Running the NHol module (.dll) constructor."
         RuntimeHelpers.RunModuleConstructor nholAssembly.ManifestModule.ModuleHandle
         
         // Now, initialize each of the F# modules in the NHol assembly by executing
@@ -84,17 +85,46 @@ module internal SystemState =
             "drule";
             "tactics";
             "itab";
-            "simp";]
+            "simp";
+            "theorems";
+            "ind_defs";
+            "class";
+            "trivia";
+//            "canon";
+//            "meson";
+//            "quot";
+//            "pair";
+//            "nums";
+//            "recursion";
+//            "arith";
+//            "wf";
+//            "calc_num";
+//            "normalizer";
+//            "grobner";
+//            "ind_types";
+//            "lists";
+//            "realax";
+//            "calc_int";
+//            "realarith";
+//            "real";
+//            "calc_rat";
+//            "int";
+//            "sets";
+//            "iterate";
+//            "cart";
+//            "define";
+//            "help";
+//            "database";
+            ]
 
 
-open NUnit.Framework
-
-//
+/// Global setup/teardown for test fixtures in this project.
 [<Sealed>]
-[<SetUpFixture>]
-type NHolSetupFixture () =
-    //
-    [<SetUp>]
+[<NUnit.Framework.SetUpFixture>]
+type NHolTestSetupFixture () =
+    /// Forces the modules in the NHol assembly to be initialized in the correct order
+    /// if they haven't been already. NUnit calls this method once prior to each test run.
+    [<NUnit.Framework.SetUp>]
     member __.NHolTestsInit () =
         // Initialize the NHol modules in the correct order before running any tests.
         SystemState.initialize ()
