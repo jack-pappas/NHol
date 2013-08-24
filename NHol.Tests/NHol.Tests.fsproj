@@ -43,6 +43,7 @@
     <None Include="packages.config" />
     <Compile Include="GenericAssert.fs" />
     <Compile Include="TestHelpers.fs" />
+    <Compile Include="SystemState.fs" />
     <Compile Include="lib.fs" />
     <Compile Include="fusion.fs" />
     <Compile Include="basics.fs" />

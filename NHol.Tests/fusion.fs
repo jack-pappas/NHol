@@ -25,6 +25,28 @@ open NHol.printer
 
 open NUnit.Framework
 
+
+/// Performs setup for this test fixture.
+/// Executed once prior to running any tests in this fixture.
+[<TestFixtureSetUp>]
+let fixtureSetup () : unit =
+    // TEMP : Until any "real" code is added here (if ever), just emit a message
+    // to the NUnit console/log so we'll know this function has been executed.
+    SetupHelpers.emitEmptyTestFixtureSetupMessage "fusion"
+
+/// Performs setup for each unit test.
+/// Executed once prior to running each unit test in this fixture.
+[<SetUp>]
+let testSetup () : unit =
+    // Emit a message to the NUnit console/log to record when this function is called.
+    SetupHelpers.emitTestSetupModuleResetMessage "fusion"
+
+    // Reset mutable state for this module and those proceeding it before running each unit test.
+    // This helps avoid issues with mutable state which arise because unit tests can run in any order.
+    ModuleReset.lib ()
+    ModuleReset.fusion ()
+
+
 // Note: Many of the next test cases came from the HOL Light reference manual
 
 (* types tests *)

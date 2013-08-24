@@ -42,13 +42,13 @@ infof "Entering basics.fs"
 (* Create probably-fresh variable                                            *)
 (* ------------------------------------------------------------------------- *)
 
+let internal gcounter = ref 0
+
 /// Returns a 'fresh' variable with specified type.
-let genvar = 
-    let gcounter = ref 0
-    fun ty -> 
-        let count = !gcounter
-        gcounter := count + 1
-        mk_var("_" + (string count), ty)
+let genvar ty =
+    let count = !gcounter
+    gcounter := count + 1
+    mk_var("_" + (string count), ty)
 
 (* ------------------------------------------------------------------------- *)
 (* Convenient functions for manipulating types.                              *)
