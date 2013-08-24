@@ -866,10 +866,13 @@ let ``functions reserved_words, reserve_words, reserved_words`` () =
         "with";
         "function";
         "->";
-        "when"]
+        "when";
+        @"//"]
 
     // Check the intial state of the reserved words.
     let initialResult = NHol.printer.reserved_words()
+//    printfn "Reserved words - expected: %A" reserved_words_initial
+//    printfn "Reserved words - result: %A" initialResult
     NUnit.Framework.CollectionAssert.AreEquivalent(initialResult, reserved_words_initial)
 
     let reserved_words_added = [
@@ -894,6 +897,7 @@ let ``functions reserved_words, reserve_words, reserved_words`` () =
         "function";
         "->";
         "when";
+        @"//";
         "TeSt";
         "two words"
         ]
@@ -901,6 +905,8 @@ let ``functions reserved_words, reserve_words, reserved_words`` () =
     // Add some values.
     NHol.printer.reserve_words ["TeSt"; "two words"]
     let addResult = NHol.printer.reserved_words()
+//    printfn "Reserved words - expected: %A" reserved_words_added
+//    printfn "Reserved words - result: %A" addResult
     NUnit.Framework.CollectionAssert.AreEquivalent(addResult, reserved_words_added)
 
     // Test for one of the added values.
@@ -910,6 +916,8 @@ let ``functions reserved_words, reserve_words, reserved_words`` () =
     // Remove added values returning reserved words back to inital state.
     NHol.printer.unreserve_words ["TeSt"; "two words"]
     let removeResult = NHol.printer.reserved_words()
+//    printfn "Reserved words - expected: %A" reserved_words_initial
+//    printfn "Reserved words - result: %A" removeResult
     NUnit.Framework.CollectionAssert.AreEquivalent(removeResult, reserved_words_initial)
 
 (* is_reserved_word  tests *)
