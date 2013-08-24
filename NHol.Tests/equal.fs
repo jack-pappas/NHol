@@ -241,6 +241,17 @@ let ``{ALPHA_CONV tm1 tm2} Fails on unbounded variables``() =
     |> evaluate
     |> ignore
 
+[<Test>]
+let ``{ALPHA_CONV tm1 tm2} Renames the bound variable of a lambda-abstraction 2``() =
+    parse_as_infix("=", (12, "right")) |> ignore
+    parse_as_binder "\\" |> ignore
+    let actual = ALPHA_CONV (parse_term @"y:A") (parse_term @"\x:A. ((t:A->B) x)")
+    let expected = Sequent ([], parse_term @"(\x:A. ((t:A->B) x)) = (\y:A. ((t:A->B) y))")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
+
 (* GEN_ALPHA_CONV  tests *)
 
 //// This test has wrong inputs
