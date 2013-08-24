@@ -65,7 +65,7 @@ module Hol_kernel =
             | Comb(t1, t2) ->
                 sprintf "Comb (%O, %O)" t1 t2
             | Abs(t1, t2) ->
-                sprintf "Abs (\"%O\", %O)" t1 t2
+                sprintf "Abs (%O, %O)" t1 t2
 
     type thm0 =
         | Sequent of term list * term
