@@ -194,7 +194,21 @@ mk_rewrites;; // forces simp module evaluation
 
 //* Theorems Module *//
 EQ_REFL;; // forces theorems module evaluation
-// No Changes in internal databases status: to be checked better
+basic_rewrites();;
+//val it : Protected<thm0> list =
+//  [Choice1Of2 |- x = x <=> T; Choice1Of2 |- (T <=> t) <=> t;
+//   Choice1Of2 |- (t <=> T) <=> t; Choice1Of2 |- (F <=> t) <=> ~t;
+//   Choice1Of2 |- (t <=> F) <=> ~t; Choice1Of2 |- ~T <=> F;
+//   Choice1Of2 |- ~F <=> T; Choice1Of2 |- T /\ t <=> t;
+//   Choice1Of2 |- t /\ T <=> t; Choice1Of2 |- F /\ t <=> F;
+//   Choice1Of2 |- t /\ F <=> F; Choice1Of2 |- t /\ t <=> t;
+//   Choice1Of2 |- T \/ t <=> T; Choice1Of2 |- t \/ T <=> T;
+//   Choice1Of2 |- F \/ t <=> t; Choice1Of2 |- t \/ F <=> t;
+//   Choice1Of2 |- t \/ t <=> t; Choice1Of2 |- T ==> t <=> t;
+//   Choice1Of2 |- t ==> T <=> T; Choice1Of2 |- F ==> t <=> T;
+//   Choice1Of2 |- t ==> t <=> T; Choice1Of2 |- t ==> F <=> ~t;
+//   Choice1Of2 |- (!x. t) <=> t; Choice1Of2 |- (?x. t) <=> t;
+//   Choice1Of2 |- (\x. f x) y = f y; Choice1Of2 |- x = x ==> p <=> p]
 
 //* ind_defs Module *//
 EXISTS_EQUATION;; // forces ind_defs module evaluation
