@@ -259,26 +259,23 @@ module Hol_kernel =
 
     /// Returns the type of a term.
     // OPTIMIZE : Use ChoiceCont from ExtCore here to recurse in bounded stack space.
-    let type_of tm : Protected<hol_type> =
-        let rec type_of tm =
-            choice {
-            match tm with
-            | Var(_, ty) ->
-                return ty
-            | Const(_, ty) ->
-                return ty
-            | Comb(s, _) ->
-                let! type_of_s = type_of s
-                let! dest_type_of_s = dest_type type_of_s
-                return hd (tl (snd dest_type_of_s))
-            | Abs(Var(_, ty), t) ->
-                let! type_of_t = type_of t
-                return Tyapp("fun", [ty; type_of_t])
-            | _ ->
-                return! Choice.failwith "type_of: not a type of a term"
-            }
-
-        type_of tm
+    let rec type_of tm : Protected<hol_type> =
+        choice {
+        match tm with
+        | Var(_, ty) ->
+            return ty
+        | Const(_, ty) ->
+            return ty
+        | Comb(s, _) ->
+            let! type_of_s = type_of s
+            let! dest_type_of_s = dest_type type_of_s
+            return hd (tl (snd dest_type_of_s))
+        | Abs(Var(_, ty), t) ->
+            let! type_of_t = type_of t
+            return Tyapp("fun", [ty; type_of_t])
+        | _ ->
+            return! Choice.failwith "type_of: not a type of a term"
+        }
     
     (* ------------------------------------------------------------------------- *)
     (* Primitive discriminators.                                                 *)
