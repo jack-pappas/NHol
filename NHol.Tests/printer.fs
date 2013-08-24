@@ -191,7 +191,7 @@ let ``function charcode`` () =
 (* isspace tests *)
 
 [<Test>]
-let ``function isspace`` () =
+let ``function isspace - test all single char values`` () =
     // Note: The OCaml char range is 0-255, but in NHol with F# it is 0..65535
     // We expect System.IndexOutOfRangeException for characters with values of 256 or greater.
     let inline charcode (s : string) = int s.[0]
@@ -211,10 +211,79 @@ let ``function isspace`` () =
         | ex ->
             Assert.IsInstanceOf<System.IndexOutOfRangeException>(ex)
 
+let private isspaceValues : (string * bool)[] = [|
+    (
+        // idx 0
+        // printer.isspace.01
+        // empty string
+        // throws System.IndexOutOfRangeException
+        "",
+        false  // dummy value
+    );
+    (
+        // idx 1
+        // printer.isspace.02
+        // empty string using the empty string literal
+        // throws System.IndexOutOfRangeException
+        String.empty,
+        false  // dummy value
+    );
+    (
+        // idx 2
+        // printer.isspace.03
+        // string with two characters, both are not space kind
+        "aa",
+        false
+    );
+    (
+        // idx 3
+        // printer.isspace.04
+        // string with two characters, first character is space kind, second character is not space kind
+        " a",
+        true
+    );
+    (
+        // idx 4
+        // printer.isspace.05
+        // string with two characters, first character is not space kind, second character is space kind
+        "a ",
+        false
+    );
+    (
+        // idx 5
+        // printer.isspace.06
+        // string with two characters, both same space kind
+        "  ",
+        true
+    );
+    (
+        // idx 6
+        // printer.isspace.07
+        // string with two characters, both different space kind
+        "\n\t",
+        true
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "printer.isspace.01", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(1, TestName = "printer.isspace.02", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(2, TestName = "printer.isspace.03")>]
+[<TestCase(3, TestName = "printer.isspace.04")>]
+[<TestCase(4, TestName = "printer.isspace.05")>]
+[<TestCase(5, TestName = "printer.isspace.06")>]
+[<TestCase(6, TestName = "printer.isspace.07")>]
+let ``function isspace`` idx =
+    let (word, _) = isspaceValues.[idx]
+    let (_, result) = isspaceValues.[idx]
+    let isspaceResult = NHol.printer.isspace word
+//    printfn "%A" end_itlistResult
+    isspaceResult |> assertEqual result
+
 (* issep tests *)
 
 [<Test>]
-let ``function issep`` () =
+let ``function issep - test all single char values`` () =
     // Note: The OCaml char range is 0-255, but in NHol with F# it is 0..65535
     // We expect System.IndexOutOfRangeException for characters with values of 256 or greater.
     let inline charcode (s : string) = int s.[0]
@@ -234,10 +303,79 @@ let ``function issep`` () =
         | ex ->
             Assert.IsInstanceOf<System.IndexOutOfRangeException>(ex)
 
+let private issepValues : (string * bool)[] = [|
+    (
+        // idx 0
+        // printer.issep.01
+        // empty string
+        // throws System.IndexOutOfRangeException
+        "",
+        false  // dummy value
+    );
+    (
+        // idx 1
+        // printer.issep.02
+        // empty string using the empty string literal
+        // throws System.IndexOutOfRangeException
+        String.empty,
+        false  // dummy value
+    );
+    (
+        // idx 2
+        // printer.issep.03
+        // string with two characters, both are not separator kind
+        "aa",
+        false
+    );
+    (
+        // idx 3
+        // printer.issep.04
+        // string with two characters, first character is separator kind, second character is not separator kind
+        ",a",
+        true
+    );
+    (
+        // idx 4
+        // printer.issep.05
+        // string with two characters, first character is not separator kind, second character is separator kind
+        "a,",
+        false
+    );
+    (
+        // idx 5
+        // printer.issep.06
+        // string with two characters, both same separator kind
+        ";;",
+        true
+    );
+    (
+        // idx 6
+        // printer.issep.07
+        // string with two characters, both different separator kind
+        ",;",
+        true
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "printer.issep.01", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(1, TestName = "printer.issep.02", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(2, TestName = "printer.issep.03")>]
+[<TestCase(3, TestName = "printer.issep.04")>]
+[<TestCase(4, TestName = "printer.issep.05")>]
+[<TestCase(5, TestName = "printer.issep.06")>]
+[<TestCase(6, TestName = "printer.issep.07")>]
+let ``function issep`` idx =
+    let (word, _) = issepValues.[idx]
+    let (_, result) = issepValues.[idx]
+    let issepResult = NHol.printer.issep word
+//    printfn "%A" end_itlistResult
+    issepResult |> assertEqual result
+
 (* isbra tests *)
 
 [<Test>]
-let ``function isbra`` () =
+let ``function isbra - test all single char values`` () =
     // Note: The OCaml char range is 0-255, but in NHol with F# it is 0..65535
     // We expect System.IndexOutOfRangeException for characters with values of 256 or greater.
     let inline charcode (s : string) = int s.[0]
@@ -257,10 +395,79 @@ let ``function isbra`` () =
         | ex ->
             Assert.IsInstanceOf<System.IndexOutOfRangeException>(ex)
 
+let private isbraValues : (string * bool)[] = [|
+    (
+        // idx 0
+        // printer.isbra.01
+        // empty string
+        // throws System.IndexOutOfRangeException
+        "",
+        false  // dummy value
+    );
+    (
+        // idx 1
+        // printer.isbra.02
+        // empty string using the empty string literal
+        // throws System.IndexOutOfRangeException
+        String.empty,
+        false  // dummy value
+    );
+    (
+        // idx 2
+        // printer.isbra.03
+        // string with two characters, both are not braket kind
+        "aa",
+        false
+    );
+    (
+        // idx 3
+        // printer.isbra.04
+        // string with two characters, first character is braket kind, second character is not braket kind
+        "(a",
+        true
+    );
+    (
+        // idx 4
+        // printer.isbra.05
+        // string with two characters, first character is not braket kind, second character is braket kind
+        "a)",
+        false
+    );
+    (
+        // idx 5
+        // printer.isbra.06
+        // string with two characters, both same braket kind
+        "((",
+        true
+    );
+    (
+        // idx 6
+        // printer.isbra.07
+        // string with two characters, both different braket kind
+        "()",
+        true
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "printer.isbra.01", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(1, TestName = "printer.isbra.02", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(2, TestName = "printer.isbra.03")>]
+[<TestCase(3, TestName = "printer.isbra.04")>]
+[<TestCase(4, TestName = "printer.isbra.05")>]
+[<TestCase(5, TestName = "printer.isbra.06")>]
+[<TestCase(6, TestName = "printer.isbra.07")>]
+let ``function isbra`` idx =
+    let (word, _) = isbraValues.[idx]
+    let (_, result) = isbraValues.[idx]
+    let isbraResult = NHol.printer.isbra word
+//    printfn "%A" end_itlistResult
+    isbraResult |> assertEqual result
+
 (* issymb tests *)
 
 [<Test>]
-let ``function issymb`` () =
+let ``function issymb - test all single char values`` () =
     // Note: The OCaml char range is 0-255, but in NHol with F# it is 0..65535
     // We expect System.IndexOutOfRangeException for characters with values of 256 or greater.
     let inline charcode (s : string) = int s.[0]
@@ -280,10 +487,79 @@ let ``function issymb`` () =
         | ex ->
             Assert.IsInstanceOf<System.IndexOutOfRangeException>(ex)
 
+let private issymbValues : (string * bool)[] = [|
+    (
+        // idx 0
+        // printer.issymb.01
+        // empty string
+        // throws System.IndexOutOfRangeException
+        "",
+        false  // dummy value
+    );
+    (
+        // idx 1
+        // printer.issymb.02
+        // empty string using the empty string literal
+        // throws System.IndexOutOfRangeException
+        String.empty,
+        false  // dummy value
+    );
+    (
+        // idx 2
+        // printer.issymb.03
+        // string with two characters, both are not symbol kind
+        "aa",
+        false
+    );
+    (
+        // idx 3
+        // printer.issymb.04
+        // string with two characters, first character is symbol kind, second character is not symbol kind
+        "=a",
+        true
+    );
+    (
+        // idx 4
+        // printer.issymb.05
+        // string with two characters, first character is not symbol kind, second character is symbol kind
+        "a=",
+        false
+    );
+    (
+        // idx 5
+        // printer.issymb.06
+        // string with two characters, both same symbol kind
+        "--",
+        true
+    );
+    (
+        // idx 6
+        // printer.issymb.07
+        // string with two characters, both different symbol kind
+        ">=",
+        true
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "printer.issymb.01", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(1, TestName = "printer.issymb.02", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(2, TestName = "printer.issymb.03")>]
+[<TestCase(3, TestName = "printer.issymb.04")>]
+[<TestCase(4, TestName = "printer.issymb.05")>]
+[<TestCase(5, TestName = "printer.issymb.06")>]
+[<TestCase(6, TestName = "printer.issymb.07")>]
+let ``function issymb`` idx =
+    let (word, _) = issymbValues.[idx]
+    let (_, result) = issymbValues.[idx]
+    let issymbResult = NHol.printer.issymb word
+//    printfn "%A" end_itlistResult
+    issymbResult |> assertEqual result
+
 (* isalpha tests *)
 
 [<Test>]
-let ``function isalpha`` () =
+let ``function isalpha - test all single char values`` () =
     // Note: The OCaml char range is 0-255, but in NHol with F# it is 0..65535
     // We expect System.IndexOutOfRangeException for characters with values of 256 or greater.
     let (|NHolalphaChar|_|) c =
@@ -305,10 +581,79 @@ let ``function isalpha`` () =
         | ex ->
             Assert.IsInstanceOf<System.IndexOutOfRangeException>(ex)
 
+let private isalphaValues : (string * bool)[] = [|
+    (
+        // idx 0
+        // printer.isalpha.01
+        // empty string
+        // throws System.IndexOutOfRangeException
+        "",
+        false  // dummy value
+    );
+    (
+        // idx 1
+        // printer.isalpha.02
+        // empty string using the empty string literal
+        // throws System.IndexOutOfRangeException
+        String.empty,
+        false  // dummy value
+    );
+    (
+        // idx 2
+        // printer.isalpha.03
+        // string with two characters, both are not alpha kind
+        "--",
+        false
+    );
+    (
+        // idx 3
+        // printer.isalpha.04
+        // string with two characters, first character is alpha kind, second character is not alpha kind
+        "a-",
+        true
+    );
+    (
+        // idx 4
+        // printer.isalpha.05
+        // string with two characters, first character is not alpha kind, second character is alpha kind
+        "-a",
+        false
+    );
+    (
+        // idx 5
+        // printer.isalpha.06
+        // string with two characters, both same alpha kind
+        "aa",
+        true
+    );
+    (
+        // idx 6
+        // printer.isalpha.07
+        // string with two characters, both different alpha kind
+        "ab",
+        true
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "printer.isalpha.01", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(1, TestName = "printer.isalpha.02", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(2, TestName = "printer.isalpha.03")>]
+[<TestCase(3, TestName = "printer.isalpha.04")>]
+[<TestCase(4, TestName = "printer.isalpha.05")>]
+[<TestCase(5, TestName = "printer.isalpha.06")>]
+[<TestCase(6, TestName = "printer.isalpha.07")>]
+let ``function isalpha`` idx =
+    let (word, _) = isalphaValues.[idx]
+    let (_, result) = isalphaValues.[idx]
+    let isalphaResult = NHol.printer.isalpha word
+//    printfn "%A" end_itlistResult
+    isalphaResult |> assertEqual result
+
 (* isnum tests *)
 
 [<Test>]
-let ``function isnum`` () =
+let ``function isnum - test all single char values`` () =
     // Note: The OCaml char range is 0-255, but in NHol with F# it is 0..65535
     // We expect System.IndexOutOfRangeException for characters with values of 256 or greater.
     let inline charcode (s : string) = int s.[0]
@@ -328,10 +673,79 @@ let ``function isnum`` () =
         | ex ->
             Assert.IsInstanceOf<System.IndexOutOfRangeException>(ex)
 
+let private isnumValues : (string * bool)[] = [|
+    (
+        // idx 0
+        // printer.isnum.01
+        // empty string
+        // throws System.IndexOutOfRangeException
+        "",
+        false  // dummy value
+    );
+    (
+        // idx 1
+        // printer.isnum.02
+        // empty string using the empty string literal
+        // throws System.IndexOutOfRangeException
+        String.empty,
+        false  // dummy value
+    );
+    (
+        // idx 2
+        // printer.isnum.03
+        // string with two characters, both are not num kind
+        "aa",
+        false
+    );
+    (
+        // idx 3
+        // printer.isnum.04
+        // string with two characters, first character is num kind, second character is not num kind
+        "1a",
+        true
+    );
+    (
+        // idx 4
+        // printer.isnum.05
+        // string with two characters, first character is not num kind, second character is num kind
+        "a1",
+        false
+    );
+    (
+        // idx 5
+        // printer.isnum.06
+        // string with two characters, both same num kind
+        "11",
+        true
+    );
+    (
+        // idx 6
+        // printer.isnum.07
+        // string with two characters, both different num kind
+        "12",
+        true
+    );
+    |]
+
+[<Test>]
+[<TestCase(0, TestName = "printer.isnum.01", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(1, TestName = "printer.isnum.02", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(2, TestName = "printer.isnum.03")>]
+[<TestCase(3, TestName = "printer.isnum.04")>]
+[<TestCase(4, TestName = "printer.isnum.05")>]
+[<TestCase(5, TestName = "printer.isnum.06")>]
+[<TestCase(6, TestName = "printer.isnum.07")>]
+let ``function isnum`` idx =
+    let (word, _) = isnumValues.[idx]
+    let (_, result) = isnumValues.[idx]
+    let isnumResult = NHol.printer.isnum word
+//    printfn "%A" end_itlistResult
+    isnumResult |> assertEqual result
+
 (* isalnum tests *)
 
 [<Test>]
-let ``function isalnum`` () =
+let ``function isalnum - test all single char values`` () =
     // Note: The OCaml char range is 0-255, but in NHol with F# it is 0..65535
     // We expect System.IndexOutOfRangeException for characters with values of 256 or greater.
     let (|NHolalnumChar|_|) c =
@@ -353,9 +767,150 @@ let ``function isalnum`` () =
         | ex ->
             Assert.IsInstanceOf<System.IndexOutOfRangeException>(ex)
 
-(* reserve_words  tests *)
+let private isalnumValues : (string * bool)[] = [|
+    (
+        // idx 0
+        // printer.isalnum.01
+        // empty string
+        // throws System.IndexOutOfRangeException
+        "",
+        false  // dummy value
+    );
+    (
+        // idx 1
+        // printer.isalnum.02
+        // empty string using the empty string literal
+        // throws System.IndexOutOfRangeException
+        String.empty,
+        false  // dummy value
+    );
+    (
+        // idx 2
+        // printer.isalnum.03
+        // string with two characters, both are not alnum kind
+        "--",
+        false
+    );
+    (
+        // idx 3
+        // printer.isalnum.04
+        // string with two characters, first character is alnum kind, second character is not alnum kind
+        "1-",
+        true
+    );
+    (
+        // idx 4
+        // printer.isalnum.05
+        // string with two characters, first character is not alnum kind, second character is alnum kind
+        "-a",
+        false
+    );
+    (
+        // idx 5
+        // printer.isalnum.06
+        // string with two characters, both same alnum kind
+        "11",
+        true
+    );
+    (
+        // idx 6
+        // printer.isalnum.07
+        // string with two characters, both different alnum kind
+        "1a",
+        true
+    );
+    |]
 
+[<Test>]
+[<TestCase(0, TestName = "printer.isalnum.01", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(1, TestName = "printer.isalnum.02", ExpectedException=typeof<System.IndexOutOfRangeException>, ExpectedMessage = "Index was outside the bounds of the array.")>]
+[<TestCase(2, TestName = "printer.isalnum.03")>]
+[<TestCase(3, TestName = "printer.isalnum.04")>]
+[<TestCase(4, TestName = "printer.isalnum.05")>]
+[<TestCase(5, TestName = "printer.isalnum.06")>]
+[<TestCase(6, TestName = "printer.isalnum.07")>]
+let ``function isalnum`` idx =
+    let (word, _) = isalnumValues.[idx]
+    let (_, result) = isalnumValues.[idx]
+    let isalnumResult = NHol.printer.isalnum word
+//    printfn "%A" end_itlistResult
+    isalnumResult |> assertEqual result
+
+(* reserve_words  tests *)
 (* unreserve_words  tests *)
+(* reserved_words  tests *)
+
+// Note: Since reserve words is based on a mutable list,
+// and the list should remain static for the duration of the core testing,
+// the test are peformed to end with the list back in the inital state.
+[<Test>]
+let ``functions reserved_words, reserve_words, reserved_words`` () =
+    let reserved_words_initial = [
+        "(";
+        ")";
+        "[";
+        "]";
+        "{";
+        "}";
+        ":";
+        ";";
+        ".";
+        "|";
+        "let";
+        "in";
+        "and";
+        "if";
+        "then";
+        "else";
+        "match";
+        "with";
+        "function";
+        "->";
+        "when"]
+
+    // Check the intial state of the reserved words.
+    let initialResult = NHol.printer.reserved_words()
+    NUnit.Framework.CollectionAssert.AreEquivalent(initialResult, reserved_words_initial)
+
+    let reserved_words_added = [
+        "(";
+        ")";
+        "[";
+        "]";
+        "{";
+        "}";
+        ":";
+        ";";
+        ".";
+        "|";
+        "let";
+        "in";
+        "and";
+        "if";
+        "then";
+        "else";
+        "match";
+        "with";
+        "function";
+        "->";
+        "when";
+        "TeSt";
+        "two words"
+        ]
+
+    // Add some values.
+    NHol.printer.reserve_words ["TeSt"; "two words"]
+    let addResult = NHol.printer.reserved_words()
+    NUnit.Framework.CollectionAssert.AreEquivalent(addResult, reserved_words_added)
+
+    // Test for one of the added values.
+    let existResult = NHol.printer.is_reserved_word "two words"
+    existResult |> NUnit.Framework.Assert.True
+
+    // Remove added values returning reserved words back to inital state.
+    NHol.printer.unreserve_words ["TeSt"; "two words"]
+    let removeResult = NHol.printer.reserved_words()
+    NUnit.Framework.CollectionAssert.AreEquivalent(removeResult, reserved_words_initial)
 
 (* is_reserved_word  tests *)
 
@@ -537,8 +1092,6 @@ let ``function is_reserved_word`` idx =
     let end_itlistResult = NHol.printer.is_reserved_word word
 //    printfn "%A" end_itlistResult
     end_itlistResult |> assertEqual result
-
-(* reserved_words  tests *)
 
 (* unparse_as_binder  tests *)
 (* parse_as_binder  tests *)
