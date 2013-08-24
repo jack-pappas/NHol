@@ -169,3 +169,11 @@ g (parse_term "!(t1:A) (t2:B). (\x. t1) t2 = t1");;
 e (GEN_TAC);;
 //e (REPEAT GEN_TAC);;
 e (REWRITE_TAC [BETA_THM; REFL_CLAUSE]);;
+
+open NHol.ind_defs;;
+
+MONO_AND;; // forces ind_defs evaluation
+
+open NHol.``class``;;
+
+ETA_AX;; // forces class evaluation

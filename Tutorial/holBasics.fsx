@@ -135,6 +135,12 @@ infixes();;
 //   ("/\", (8, "right")); ("=", (12, "right")); (",", (14, "right"))]
 axioms();;                                                                          // the_axioms database doesn't change
 definitions();;                                                                     // the_definitions doesn't change
+//  [|- (?!) = (\P. (?) P /\ (!x y. P x /\ P y ==> x = y));
+//   |- (~) = (\p. p ==> F); |- F <=> (!p. p);
+//   |- (\/) = (\p q. !r. (p ==> r) ==> (q ==> r) ==> r);
+//   |- (?) = (\P. !q. (!x. P x ==> q) ==> q); |- (!) = (\P. P = (\x. T));
+//   |- (==>) = (\p q. p /\ q <=> p);
+//   |- (/\) = (\p q. (\f. f p q) = (\f. f T T)); |- T <=> (\p. p) = (\p. p)]
 !the_implicit_types;;                                                               // no change
 type_abbrevs();;                                                                    // no change
 
@@ -150,14 +156,7 @@ types();;                                                                       
 constants();;                                                                       // the_term_constants database doesn't change
 infixes();;                                                                         // no change
 axioms();;                                                                          // the_axioms database doesn't change
-definitions();;                                                                     // new boolean definitions
-//  [|- (?!) = (\P. (?) P /\ (!x y. P x /\ P y ==> x = y));
-//   |- (~) = (\p. p ==> F); |- F <=> (!p. p);
-//   |- (\/) = (\p q. !r. (p ==> r) ==> (q ==> r) ==> r);
-//   |- (?) = (\P. !q. (!x. P x ==> q) ==> q); |- (!) = (\P. P = (\x. T));
-//   |- (==>) = (\p q. p /\ q <=> p);
-//   |- (/\) = (\p q. (\f. f p q) = (\f. f T T)); |- T <=> (\p. p) = (\p. p)]
-
+definitions();;                                                                     // no change
 !the_implicit_types;;                                                               // no change
 type_abbrevs();;                                                                    // no change
 
