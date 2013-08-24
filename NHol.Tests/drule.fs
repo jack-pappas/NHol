@@ -161,6 +161,23 @@ let ``{BETAS_CONV} Beta conversion over multiple arguments``() =
 
 (* term_match  tests *)
 
+[<Test>]
+let ``{term_match} to be defined 1``() =
+    let actual = term_match [] (parse_term @"t1:A") (parse_term @"((f:B->A) (x:B))")
+    let expected = Choice1Of2 ([], [(parse_term @"((f:B->A) (x:B))", parse_term @"t1:A")], [(aty, aty)])
+
+    actual
+    |> assertEqual expected
+
+[<Test>]
+let ``{term_match} to be defined 2``() =
+    parse_as_binder "\\" |> ignore
+    let actual = term_match [] (parse_term @"f:A->B") (parse_term @"\x:A. t1:B")
+    let expected = Choice1Of2 ([], [(parse_term @"\x:A. t1:B", parse_term @"f:A->B")], [(aty, aty); (bty, bty)])
+
+    actual
+    |> assertEqual expected
+
 (* term_unify  tests *)
 
 (* deep_alpha  tests *)
