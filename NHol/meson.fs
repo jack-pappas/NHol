@@ -113,8 +113,8 @@ type fol_goal =
 (* General MESON procedure, using assumptions and with settable limits.      *)
 (* ------------------------------------------------------------------------- *)
 
-/// First-order proof search with specified search limits and increment.
-let GEN_MESON_TAC = 
+/// Holds the internal values and private functions lifted out of GEN_MESON_TAC.
+module internal GenMesonTac =
     let offinc = 10000
     let inferences = ref 0
 
@@ -138,9 +138,8 @@ let GEN_MESON_TAC =
                         qpartition t
                         |> Option.map (fun (yes, no) -> yes, h :: no)
         fun l ->
-            match qpartition l with
-            | Some result -> result
-            | None -> [], l
+            qpartition l
+            |> Option.fillWith (fun () -> [], l)
 
     (* ----------------------------------------------------------------------- *)
     (* Translate a term (in NNF) into the shadow syntax.                       *)
@@ -181,7 +180,7 @@ let GEN_MESON_TAC =
             match rev_assoc v !vstore with
             | Some x -> Choice.result x
             | None ->
-                rev_assoc v (!gstore)
+                rev_assoc v !gstore
                 |> Option.toChoiceWithError "find"
 
         let hol_of_bumped_var v = 
@@ -437,41 +436,41 @@ let GEN_MESON_TAC =
     (* Test for equality under the pending instantiations.                     *)
     (* ----------------------------------------------------------------------- *)
 
-    let rec fol_eq insts tm1 tm2 = 
-        tm1 == tm2 || 
+    let rec fol_eq insts tm1 tm2 =
+        tm1 == tm2 ||
         match tm1, tm2 with
-        | Fnapp(f, fargs), Fnapp(g, gargs) -> 
+        | Fnapp(f, fargs), Fnapp(g, gargs) ->
             f = g && forall2 (fol_eq insts) fargs gargs
-        | _, Fvar(x) -> 
+        | _, Fvar(x) ->
             match rev_assoc x insts with
             | Some tm2' ->
                  fol_eq insts tm1 tm2'
-            | None -> 
+            | None ->
                  istriv insts x tm1
                  |> Choice.fill false
 
-        | Fvar(x), _ -> 
+        | Fvar(x), _ ->
             match rev_assoc x insts with
             | Some tm1' ->
                  fol_eq insts tm1' tm2
-            | None -> 
+            | None ->
                  istriv insts x tm2
                  |> Choice.fill false
 
-    let fol_atom_eq insts (p1, args1) (p2, args2) = 
+    let fol_atom_eq insts (p1, args1) (p2, args2) =
         p1 = p2 && forall2 (fol_eq insts) args1 args2
 
     (* ----------------------------------------------------------------------- *)
     (* Cacheing continuations. Very crude, but it works remarkably well.       *)
     (* ----------------------------------------------------------------------- *)
 
-    let cacheconts f = 
-        let memory = ref []
-        fun (_, (insts, _, size) as input) -> 
-            if exists (fun (_, (insts', _, size')) -> insts = insts' && (size <= size' || !meson_depth)) (!memory) then 
-                failwith "cachecont"
+    let cacheconts f =
+        let cacheconts_memory : ('a * ('b * 'c * 'd)) list ref = ref []
+        fun (_, (insts, _, size) as input) ->
+            if exists (fun (_, (insts', _, size')) -> insts = insts' && (size <= size' || !meson_depth)) !cacheconts_memory then
+                failwith "cacheconts"
             else 
-                memory := input :: (!memory)
+                cacheconts_memory := input :: !cacheconts_memory
                 f input
 
     (* ----------------------------------------------------------------------- *)
@@ -512,11 +511,11 @@ let GEN_MESON_TAC =
 
     let rec fol_subst_partial insts tm = 
         match tm with
-        | Fvar(v) -> 
-            match rev_assoc v insts with
-            | Some t ->
-                 fol_subst_partial insts t             
-            | None -> tm
+        | Fvar v ->
+            rev_assoc v insts
+            |> Option.map (fun t ->
+                fol_subst_partial insts t)
+            |> Option.fill tm
         | Fnapp(f, args) -> 
             Fnapp(f, map (fol_subst_partial insts) args)
 
@@ -576,12 +575,12 @@ let GEN_MESON_TAC =
             let v =
                 try 
                     if !meson_prefine && pr > 0 then 
-                        failwith "meson_expand"
+                        Choice.failwith "meson_expand"
                     else 
                         let arules = assoc pr ancestors |> Option.getOrFailWith "find"
                         Choice.result <| meson_expand_cont 0 arules newstate cont
                 with
-                | Cut as e -> 
+                | Cut as e ->
                     Choice.nestedFailwith e "meson_expand"
                 | Failure _ -> 
                     try 
@@ -603,31 +602,38 @@ let GEN_MESON_TAC =
     // Ideally this should be changed to Choice<_, _, _> where there is another case for Cut exceptions
     let expand_goal rules = 
         let rec expand_goal depth ((g, _), (insts, offset, size) as state) cont = 
-            if depth < 0 then Choice.failwith "expand_goal: too deep"
-            else 
-                meson_expand rules state (fun apprule (_, (pinsts, _, _) as newstate) -> 
-                        expand_goals (depth - 1) newstate (cacheconts(fun (gs, (newinsts, newoffset, newsize)) -> 
-                            let locin, globin = separate_insts offset pinsts newinsts
-                            let g' = Subgoal(g, gs, apprule, offset, locin)
-                            if globin = insts && gs = [] then 
-                                try 
-                                    cont(g', (globin, newoffset, size))
-                                with
-                                | Failure _ -> raise Cut
-                            else 
-                                try 
-                                    cont(g', (globin, newoffset, newsize))
-                                with
-                                | Cut as e -> nestedFailwith e "expand_goal"
-                                | Failure _ as e -> nestedFailwith e "expand_goal")))
+            if depth < 0 then
+                Choice.failwith "expand_goal: too deep"
+            else
+                meson_expand rules state <| fun apprule (_, (pinsts, _, _) as newstate) -> 
+                    expand_goals (depth - 1) newstate (cacheconts <| fun (gs, (newinsts, newoffset, newsize)) -> 
+                        let locin, globin = separate_insts offset pinsts newinsts
+                        let g' = Subgoal(g, gs, apprule, offset, locin)
+                        if globin = insts && List.isEmpty gs then 
+                            try 
+                                cont(g', (globin, newoffset, size))
+                            with Failure _ ->
+                                raise Cut
+                        else 
+                            try 
+                                cont(g', (globin, newoffset, newsize))
+                            with
+                            | Cut as e ->
+                                nestedFailwith e "expand_goal"
+                            | Failure _ as e ->
+                                nestedFailwith e "expand_goal"
+                    )
 
         and expand_goals depth (gl, (insts, offset, size as tup)) cont = 
             match gl with
-            | [] -> cont([], tup)
-            | [g] -> Choice.toOption <| expand_goal depth (g, tup) (fun (g', stup) -> cont([g'], stup))
+            | [] ->
+                cont ([], tup)
+            | [g] ->
+                expand_goal depth (g, tup) (fun (g', stup) -> cont([g'], stup))
+                |> Choice.toOption
             | gl -> 
                 if size >= !meson_dcutin then 
-                    let lsize = size / (!meson_skew)
+                    let lsize = size / !meson_skew
                     let rsize = size - lsize
                     let lgoals, rgoals = chop_list (length gl / 2) gl
                     try 
@@ -646,48 +652,58 @@ let GEN_MESON_TAC =
                                         else cont(lg' @ rg', ztup)))))
                 else 
                     match gl with
-                    | g :: gs -> 
-                        expand_goal depth (g, tup) 
+                    | g :: gs ->
+                        expand_goal depth (g, tup)
                             (cacheconts
-                                 (fun (g', stup) -> 
-                                 expand_goals depth (gs, stup) (cacheconts(fun (gs', ftup) -> cont(g' :: gs', ftup))))) 
+                                 (fun (g', stup) ->
+                                    expand_goals depth (gs, stup) (cacheconts(fun (gs', ftup) -> cont(g' :: gs', ftup)))))
                         |> Choice.toOption
-                    | _ -> None 
+                    | _ -> None
         
-        fun g maxdep maxinf cont -> expand_goal maxdep (g, ([], 2 * offinc, maxinf)) cont
+        fun g maxdep maxinf cont ->
+            expand_goal maxdep (g, ([], 2 * offinc, maxinf)) cont
 
     (* ----------------------------------------------------------------------- *)
     (* With iterative deepening of inferences or depth.                        *)
     (* ----------------------------------------------------------------------- *)
 
-    let solve_goal rules incdepth min max incsize = 
-        let rec solve n g = 
-            if n > max then 
+    let solve_goal rules incdepth min max incsize =
+        let rec solve n g =
+            if n > max then
                 Choice.failwith "solve_goal: Too deep"
-            else 
-                (if !meson_chatty && !verbose then 
-                     (Format.print_string
-                          ((string(!inferences)) + " inferences so far. " + "Searching with maximum size " + (string n) 
-                           + ".")
-                      Format.print_newline())
-                 elif !verbose then 
-                     (Format.print_string(string(!inferences) + "..")
-                      Format.print_flush())
-                 else ())
+            else
+                if !verbose then
+                    if !meson_chatty then
+                        Format.print_string ((string !inferences) + " inferences so far. " + "Searching with maximum size " + (string n) + ".")
+                        Format.print_newline ()
+                
+                    Format.print_string ((string !inferences) + "..")
+                    Format.print_flush ()
                  
-                let gi = 
-                    if incdepth then expand_goal rules g n 100000 (fun x -> Some x)
-                    else expand_goal rules g 100000 n (fun x -> Some x)
-                if !meson_chatty && !verbose then 
-                        Format.print_string("Goal solved with " + (string(!inferences)) + " inferences.")
-                        Format.print_newline()
-                elif !verbose then 
-                    Format.print_string("solved at " + string(!inferences))
-                    Format.print_newline()
-                else ()
-                gi
-                |> Choice.bindError (fun _ -> solve (n + incsize) g)
-        fun g -> solve min (g, [])
+                let gi =
+                    if incdepth then
+                        expand_goal rules g n 100000 Some
+                    else
+                        expand_goal rules g 100000 n Some
+
+                if !verbose then
+                    if !meson_chatty then
+                        Format.print_string ("Goal solved with " + (string !inferences) + " inferences.")
+                        Format.print_newline ()
+                
+                    Format.print_string ("solved at " + string !inferences)
+                    Format.print_newline ()
+
+                // NOTE : We manually pattern-match on the value of 'gi' here; calling Choice.bindError
+                // to continue recursing would make this function non-tail-recursive.
+                match gi with
+                | Success _ as result ->
+                    result
+                | Error _ ->
+                    solve (n + incsize) g
+
+        fun g ->
+            solve min (g, [])
 
     (* ----------------------------------------------------------------------- *)
     (* Creation of tagged contrapositives from a HOL clause.                   *)
@@ -695,20 +711,20 @@ let GEN_MESON_TAC =
     (* The rules are partitioned into association lists.                       *)
     (* ----------------------------------------------------------------------- *)
 
-    let fol_of_hol_clauses = 
-        let eqt (a1, (b1, c1)) (a2, (b2, c2)) = 
+    let fol_of_hol_clauses =
+        let eqt (a1, (b1, c1)) (a2, (b2, c2)) =
             ((a1 = a2) && (b1 = b2) && (equals_thm c1 c2))
 
         let mk_negated(p, a) = -p, a
 
-        let rec mk_contraposes n th used unused sofar = 
+        let rec mk_contraposes n th used unused sofar =
             match unused with
             | [] -> sofar
-            | h :: t -> 
+            | h :: t ->
                 let nw = (map mk_negated (used @ t), h), (n, th)
                 mk_contraposes (n + 1) th (used @ [h]) t (nw :: sofar)
 
-        let fol_of_hol_clause th = 
+        let fol_of_hol_clause th =
             choice {
                 let! th = th
                 let lconsts = freesl <| hyp th
@@ -716,13 +732,13 @@ let GEN_MESON_TAC =
                 let hlits = disjuncts tm
                 let! flits = Choice.List.map (fol_of_literal [] lconsts) hlits
                 let basics = mk_contraposes 0 (Choice.result th) [] flits []
-                if forall (fun (p, _) -> p < 0) flits then 
+                if forall (fun (p, _) -> p < 0) flits then
                     return ((map mk_negated flits, (1, [])), (-1, Choice.result th)) :: basics
-                else 
+                else
                     return basics
             }
 
-        fun thms -> 
+        fun thms ->
             let rawrules = itlist (union' eqt << Choice.get << fol_of_hol_clause) thms []
             let prs = setify(map (fst << snd << fst) rawrules)
             let prules = map (fun t -> t, filter ((=) t << fst << snd << fst) rawrules) prs
@@ -733,8 +749,8 @@ let GEN_MESON_TAC =
     (* Optimize set of clauses; changing literal order complicates HOL stuff.  *)
     (* ----------------------------------------------------------------------- *)
 
-    let optimize_rules = 
-        let optimize_clause_order cls = 
+    let optimize_rules =
+        let optimize_clause_order cls =
             sort (fun ((l1, _), _) ((l2, _), _) -> length l1 <= length l2) cls
         map(fun (a, b) -> a, optimize_clause_order b)
 
@@ -742,13 +758,13 @@ let GEN_MESON_TAC =
     (* Create a HOL contrapositive on demand, with a cache.                    *)
     (* ----------------------------------------------------------------------- *)
 
-    let clear_contrapos_cache, make_hol_contrapos = 
+    let clear_contrapos_cache, make_hol_contrapos =
         let DISJ_AC = AC DISJ_ACI
         let imp_CONV = REWR_CONV(TAUT(parse_term @"a \/ b <=> ~b ==> a"))
-        let push_CONV = 
+        let push_CONV =
             GEN_REWRITE_CONV TOP_SWEEP_CONV [TAUT (parse_term @"~(a \/ b) <=> ~a /\ ~b");
                                              TAUT (parse_term @"~(~a) <=> a")]
-        let pull_CONV = 
+        let pull_CONV =
             GEN_REWRITE_CONV DEPTH_CONV 
                 [TAUT(parse_term @"~a \/ ~b <=> ~(a /\ b)")]
 
@@ -1137,7 +1153,7 @@ let GEN_MESON_TAC =
                 let! tms2 = Choice.map hyp th
                 let! tys3 = Choice.List.map type_vars_in_term tms2
                 let tvs = subtract tys1 (unions tys3)
-                if tvs = [] then 
+                if List.isEmpty tvs then 
                     return [th]
                 else
                     let! tm1 = Choice.map concl th
@@ -1151,7 +1167,7 @@ let GEN_MESON_TAC =
                                 | _ -> false) 
                             equals_thm 
                             (mapfilter (Choice.toOption << Choice.map Choice.result << C INST_TYPE th) tyins)
-                    if ths' = [] then 
+                    if List.isEmpty ths' then 
                         warn true "No useful-looking instantiations of lemma"
                         return [th]
                     else 
@@ -1228,41 +1244,43 @@ let GEN_MESON_TAC =
                        else NO_TAC)
          |> ORELSE <| ALL_TAC) g
 
-    fun min max step ths -> 
-        REFUTE_THEN ASSUME_TAC
-        |> THEN <| POLY_ASSUME_TAC(map GEN_ALL ths)
-        |> THEN <| W(MAP_EVERY(UNDISCH_TAC << concl << Choice.get << snd) << fst)
-        |> THEN <| SELECT_ELIM_TAC
-        |> THEN <| W(fun (asl, w) -> MAP_EVERY (fun v -> SPEC_TAC(v, v)) (frees w))
-        |> THEN <| CONV_TAC(PRESIMP_CONV
-                            |> THENC <| TOP_DEPTH_CONV BETA_CONV
-                            |> THENC <| LAMBDA_ELIM_CONV
-                            |> THENC <| CONDS_CELIM_CONV
-                            |> THENC <| QUANT_BOOL_CONV)
-        |> THEN <| REPEAT(GEN_TAC
-                          |> ORELSE <| DISCH_TAC)
-        |> THEN <| REFUTE_THEN ASSUME_TAC
-        |> THEN <| RULE_ASSUM_TAC(CONV_RULE(NNF_CONV
-                                            |> THENC <| SKOLEM_CONV))
-        |> THEN <| REPEAT(FIRST_X_ASSUM CHOOSE_TAC)
-        |> THEN <| ASM_FOL_TAC
-        |> THEN <| SPLIT_TAC(!meson_split_limit)
-        |> THEN <| RULE_ASSUM_TAC(CONV_RULE(PRENEX_CONV
-                                            |> THENC <| WEAK_CNF_CONV))
-        |> THEN <| RULE_ASSUM_TAC
-                    (repeat
-                        (fun th -> 
-                            choice {
-                                let! th = th
-                                let! (tm1, _) = dest_forall <| concl th
-                                let! ty1 = type_of tm1
-                                return SPEC (genvar ty1) (Choice.result th)
-                            }
-                            |> Choice.toOption))
-        |> THEN <| REPEAT(FIRST_X_ASSUM(CONJUNCTS_THEN' ASSUME_TAC))
-        |> THEN <| RULE_ASSUM_TAC(CONV_RULE(ASSOC_CONV DISJ_ASSOC))
-        |> THEN <| REPEAT(FIRST_X_ASSUM SUBST_VAR_TAC)
-        |> THEN <| PURE_MESON_TAC min max step
+
+/// First-order proof search with specified search limits and increment.
+let GEN_MESON_TAC min max step ths =
+    REFUTE_THEN ASSUME_TAC
+    |> THEN <| GenMesonTac.POLY_ASSUME_TAC(map GEN_ALL ths)
+    |> THEN <| W(MAP_EVERY(UNDISCH_TAC << concl << Choice.get << snd) << fst)
+    |> THEN <| SELECT_ELIM_TAC
+    |> THEN <| W(fun (asl, w) -> MAP_EVERY (fun v -> SPEC_TAC(v, v)) (frees w))
+    |> THEN <| CONV_TAC(PRESIMP_CONV
+                        |> THENC <| TOP_DEPTH_CONV BETA_CONV
+                        |> THENC <| LAMBDA_ELIM_CONV
+                        |> THENC <| CONDS_CELIM_CONV
+                        |> THENC <| GenMesonTac.QUANT_BOOL_CONV)
+    |> THEN <| REPEAT(GEN_TAC
+                        |> ORELSE <| DISCH_TAC)
+    |> THEN <| REFUTE_THEN ASSUME_TAC
+    |> THEN <| RULE_ASSUM_TAC(CONV_RULE(NNF_CONV
+                                        |> THENC <| SKOLEM_CONV))
+    |> THEN <| REPEAT(FIRST_X_ASSUM CHOOSE_TAC)
+    |> THEN <| ASM_FOL_TAC
+    |> THEN <| GenMesonTac.SPLIT_TAC(!meson_split_limit)
+    |> THEN <| RULE_ASSUM_TAC(CONV_RULE(PRENEX_CONV
+                                        |> THENC <| WEAK_CNF_CONV))
+    |> THEN <| RULE_ASSUM_TAC
+                (repeat
+                    (fun th -> 
+                        choice {
+                            let! th = th
+                            let! (tm1, _) = dest_forall <| concl th
+                            let! ty1 = type_of tm1
+                            return SPEC (genvar ty1) (Choice.result th)
+                        }
+                        |> Choice.toOption))
+    |> THEN <| REPEAT(FIRST_X_ASSUM(GenMesonTac.CONJUNCTS_THEN' ASSUME_TAC))
+    |> THEN <| RULE_ASSUM_TAC(CONV_RULE(ASSOC_CONV DISJ_ASSOC))
+    |> THEN <| REPEAT(FIRST_X_ASSUM SUBST_VAR_TAC)
+    |> THEN <| GenMesonTac.PURE_MESON_TAC min max step
 
 (* ------------------------------------------------------------------------- *)
 (* Common cases.                                                             *)
