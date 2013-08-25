@@ -178,6 +178,19 @@ let testSetup () : unit =
 //    |> assertEqual expected
 
 [<Test>]
+let ``{INSTANTIATE} Apply a higher-order instantiation to conclusion of a theorem``() =
+    let th1:Choice<thm0,exn> = 
+        Choice1Of2 (Sequent ([], parse_term @"p /\ q"))
+
+    let instns:instantiation = 
+            Choice.get (term_match [] (parse_term @"p:bool") (parse_term @"~a:bool"))
+
+    let newTh = INSTANTIATE instns th1
+
+    newTh
+    |> assertEqual (Choice1Of2 (Sequent ([], parse_term @"~a /\ q")))
+
+[<Test>]
 [<Category("Fails")>]
 let ``{BETAS_CONV} Beta conversion over multiple arguments``() =
     let actual = BETAS_CONV <| parse_term @"(\x y. x /\ y) T F"
