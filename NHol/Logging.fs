@@ -144,7 +144,7 @@ module Logging =
                     UseDefaultRowHighlightingRules = true)
 
             config.AddTarget ("UserConsole", consoleTarget)
-            Config.LoggingRule ("*", LogLevel.Trace, consoleTarget)
+            Config.LoggingRule ("*", LogLevel.Info, consoleTarget)
             |> config.LoggingRules.Add
     
         // Return the configuration object.
