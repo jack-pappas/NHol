@@ -366,19 +366,23 @@ let INSTANTIATE : instantiation -> Protected<thm0> -> Protected<thm0> =
                             let! lpat, rpat = dest_comb pat
                             let! ltm, rtm = dest_comb tm
                         
-                            let! lth = HO_BETAS bcs lpat ltm
-                            let! rth = HO_BETAS bcs rpat rtm
                             return!
-                                let lth = Choice.result lth in
-                                let rth = Choice.result rth in
-                                MK_COMB(lth, rth)
-                                |> Choice.bindError (fun _ ->
-                                    AP_THM lth rtm)
-                                |> Choice.bindError (fun _ ->
-                                    choice {
-                                    let! rth = HO_BETAS bcs rpat rtm
-                                    return! AP_TERM ltm (Choice.result rth)
-                                    })
+                                choice {
+                                    let! lth = HO_BETAS bcs lpat ltm
+                                    return!
+                                        choice {
+                                            let! rth = HO_BETAS bcs rpat rtm
+                                            return! MK_COMB(Choice.result lth, Choice.result rth)
+                                        }
+                                        |> Choice.bindError (function Failure _ -> AP_THM (Choice.result lth) rtm | e -> Choice.error e)
+                                }
+                                |> Choice.bindError (function
+                                    | Failure _ ->
+                                        choice {
+                                            let! rth = HO_BETAS bcs rpat rtm
+                                            return! AP_TERM ltm (Choice.result rth)
+                                        }
+                                    | e -> Choice.error e)
                         }
                         | e -> Choice.error e)
                  | e -> Choice.error e)
@@ -406,12 +410,13 @@ let INSTANTIATE : instantiation -> Protected<thm0> -> Protected<thm0> =
                 else
                     let itm = concl ith
                     let ttm = concl tth
-                    let! eth = HO_BETAS bcs itm ttm
+                    
                     return!
-                        let eth = Choice.result eth in
-                        let tth = Choice.result tth in
-                        EQ_MP eth tth
-                        |> Choice.bindError (function Failure _ -> tth | e -> Choice.error e)
+                        choice {
+                            let! eth = HO_BETAS bcs itm ttm
+                            return! EQ_MP (Choice.result eth) (Choice.result tth)
+                        }
+                        |> Choice.bindError (function Failure _ -> Choice.result tth | e -> Choice.error e)
             else 
                 return! Choice.failwith "INSTANTIATE: term or type var free in assumptions"
         }
