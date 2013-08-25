@@ -122,6 +122,8 @@ module internal SystemState =
             ]
 
 
+#if SKIP_MODULE_INIT
+#else
 /// Global setup/teardown for test fixtures in this project.
 [<Sealed>]
 [<NUnit.Framework.SetUpFixture>]
@@ -132,6 +134,7 @@ type NHolTestSetupFixture () =
     member __.NHolTestsInit () =
         // Initialize the NHol modules in the correct order before running any tests.
         SystemState.initialize ()
+#endif
 
 
 /// Functions for resetting mutable state values within each
