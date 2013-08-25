@@ -74,9 +74,37 @@ ITAUT_TAC;;                 // forces itab module evaluation: maybe not needed
 mk_rewrites;;               // forces simp module evaluation
 
 let betaTh:Choice<thm0,exn> = 
-    Choice1Of2 (Sequent ([], parse_term @"(\x. (f:A->B) x) y = f y"));;         // |- (\x. f x) y = f y
+    Choice1Of2 (Sequent ([], parse_term @"(\x:A. (f:A->B) x) (y:A) = (f:A->B) (y:A)"));;         // |- (\x. f x) y = f y
 
 let t1 = REWR_CONV betaTh (parse_term @"(\x. t1) t2");;                         // this in OCaml would be enough to prove ABS_SIMP while here fails
+
+// Trying manual instantiation
+
+let manualInst:instantiation = 
+    (
+        [(1, parse_term @"f:E->C")], 
+        [(parse_term @"\z:E. t1:C", parse_term @"f:E->C"); (parse_term @"t2:E", parse_term @"y:E")], 
+        [(Tyvar "C", Tyvar "B"); (Tyvar "E", Tyvar "A")]
+    );;
+
+let newManualTh = INSTANTIATE manualInst betaTh;; // also this fails while in OCaml succeeds
+
+// Another more simple test on INSTANTIATE function
+
+let th1:Choice<thm0,exn> = 
+    Choice1Of2 (Sequent ([], parse_term @"p /\ q"));;
+
+let instns:instantiation = 
+        Choice.get (term_match [] (parse_term @"p:bool") (parse_term @"~a:bool"))
+
+let newTh = INSTANTIATE instns th1;; // this simple test succeeds
+
+// Another test
+
+let insts2:instantiation = Choice.get (term_match [] (parse_term @"(\x:A. (f:A->B) x) (y:A)") (parse_term @"(\z:E. t1:C) t2"))
+let newManualTh2 = INSTANTIATE manualInst betaTh;; // also this fails while in OCaml succeeds
+
+
 
 let tm = (lhs (parse_term @"(\x. f x) y = f y"))        // `(\x. f x) y`
 let insts = term_match [] (parse_term @"(\x. f x) y") (parse_term @"(\x. t1) t2");;
