@@ -104,10 +104,95 @@ let newTh = INSTANTIATE instns th1;; // this simple test succeeds
 let insts2:instantiation = Choice.get (term_match [] (parse_term @"(\x:A. (f:A->B) x) (y:A)") (parse_term @"(\z:E. t1:C) t2"))
 let newManualTh2 = INSTANTIATE manualInst betaTh;; // also this fails while in OCaml succeeds
 
+// INSTATIATE Analysis
+
+open ExtCore.Control
+open ExtCore.Control.Collections
+
+let rec BETAS_CONV n tm = 
+        if n = 1 then
+            TRY_CONV BETA_CONV tm
+        else
+            THENC (RATOR_CONV(BETAS_CONV(n - 1))) (TRY_CONV BETA_CONV) tm;;
+
+let rec HO_BETAS bcs pat tm =
+        if is_var pat || is_const pat then
+            Choice.fail ()
+        else 
+            choice {
+                let! bv, bod = dest_abs tm
+                let! tm' = body pat
+                let! th1 = HO_BETAS bcs tm' bod
+                return! ABS bv (Choice.result th1)
+            }
+            |> Choice.bindError (function
+                | Failure _ ->
+                choice {
+                    let hop, args = strip_comb pat
+                    let! n = rev_assoc hop bcs
+                             |> Option.toChoiceWithError "find"
+                
+                    if length args = n then
+                        return! BETAS_CONV n tm
+                    else
+                        return! Choice.fail ()
+                }
+                |> Choice.bindError (function
+                    | Failure _ ->
+                        choice {
+                            let! lpat, rpat = dest_comb pat
+                            let! ltm, rtm = dest_comb tm
+                        
+                            let! lth = HO_BETAS bcs lpat ltm
+                            let! rth = HO_BETAS bcs rpat rtm
+                            return!
+                                let lth = Choice.result lth in
+                                let rth = Choice.result rth in
+                                MK_COMB(lth, rth)
+                                |> Choice.bindError (fun _ ->
+                                    AP_THM lth rtm)
+                                |> Choice.bindError (fun _ ->
+                                    choice {
+                                    let! rth = HO_BETAS bcs rpat rtm
+                                    return! AP_TERM ltm (Choice.result rth)
+                                    })
+                        }
+                        | e -> Choice.error e)
+                 | e -> Choice.error e);;
+
+let bcs = [(1, parse_term @"f:E->C")];;
+let tmin = [(parse_term @"\z:E. t1:C", parse_term @"f:E->C"); (parse_term @"t2:E", parse_term @"y:E")];;
+let tyin = [(Tyvar "C", Tyvar "B"); (Tyvar "E", Tyvar "A")];;
+let th:Choice<thm0,exn> = 
+    Choice1Of2 (Sequent ([], parse_term @"(\x:A. (f:A->B) x) (y:A) = (f:A->B) (y:A)"));;
+
+let ith = INST_TYPE tyin th;;
+let tth = INST tmin ith;;
+
+(* let eth = HO_BETAS bcs (concl (ith |> Choice.get)) (concl (tth |> Choice.get));; // the problem is in HO_BETAS: we try it step by step *)
+
+let pat = (concl (ith |> Choice.get));;
+let tm = (concl (tth |> Choice.get));;
+let hop,args = strip_comb pat;;
+let lpat,rpat = (dest_comb pat) |> Choice.get;;
+let ltm,rtm = (dest_comb tm) |> Choice.get;;
+
+(* let lth = HO_BETAS bcs lpat ltm;; // here we have a problem again: so again step by step *)
+let hop1,args1 = strip_comb lpat;;
+let lpat1,rpat1 = (dest_comb lpat) |> Choice.get;;
+let ltm1,rtm1 = (dest_comb ltm) |> Choice.get;;
+let rth1 = HO_BETAS bcs rpat1 rtm1;; // Again from here
+let lth = AP_TERM ltm1 rth1;;
+
+let rth = HO_BETAS bcs rpat rtm;;
+
+let eth = MK_COMB(lth,rth);;
 
 
-let tm = (lhs (parse_term @"(\x. f x) y = f y"))        // `(\x. f x) y`
-let insts = term_match [] (parse_term @"(\x. f x) y") (parse_term @"(\x. t1) t2");;
+let finalTh = EQ_MP eth tth;;
+
+//let tm = (lhs (parse_term @"(\x. f x) y = f y"))        // `(\x. f x) y`
+//let insts = term_match [] (parse_term @"(\x. f x) y") (parse_term @"(\x. t1) t2")
 
 open ExtCore.Control
 open ExtCore.Control.Collections
