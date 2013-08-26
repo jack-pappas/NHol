@@ -298,10 +298,15 @@ let (TAUT_001 : conv) =
                         return! free_in t w
             }
 
+        let tac (_, w) gl = 
+            choice {
+                let! tms = find_terms ok w
+                let tm = hd <| sort (fun x y -> Choice.get <| free_in x y) tms
+                return! BOOL_CASES_TAC tm gl
+            }
+
         (PROP_REWRITE_TAC
-            |> THEN <| W
-                (THEN (REWRITE_TAC []) << BOOL_CASES_TAC 
-                    << hd << sort (fun x y -> free_in x y |> Choice.get) << Choice.get << find_terms ok << snd)) (asl, w)
+         |> THEN <| W (THEN (REWRITE_TAC []) << tac)) (asl, w)
 
     let TAUT_001_TAC = REPEAT (GEN_TAC |> ORELSE <| CONJ_TAC)
                         |> THEN <| REPEAT RTAUT_001_TAC
@@ -389,8 +394,7 @@ let NOT_EXISTS_THM =
 
 let EXISTS_NOT_THM = 
     logEntryExitProtected "EXISTS_NOT_THM" <| fun () ->
-    assumeProof
-        prove
+    prove
         ((parse_term @"!P. (?x:A. ~(P x)) <=> ~(!x. P x)"), 
          ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> ~b) <=> (~a <=> b)")]
          |> THEN <| REWRITE_TAC [NOT_EXISTS_THM])
@@ -423,8 +427,7 @@ let FORALL_BOOL_THM =
 
 let EXISTS_BOOL_THM = 
     logEntryExitProtected "EXISTS_BOOL_THM" <| fun () ->
-    assumeProof
-        prove
+    prove
         ((parse_term @"(?b. P b) <=> P T \/ P F"), 
          MATCH_MP_TAC(TAUT_001(parse_term @"(~p <=> ~q) ==> (p <=> q)"))
          |> THEN <| REWRITE_TAC [DE_MORGAN_THM; NOT_EXISTS_THM; FORALL_BOOL_THM])
@@ -434,16 +437,14 @@ let EXISTS_BOOL_THM =
 (* ------------------------------------------------------------------------- *)
 
 let LEFT_FORALL_OR_THM = 
-    assumeProof
-        prove
+    prove
         ((parse_term @"!P Q. (!x:A. P x \/ Q) <=> (!x. P x) \/ Q"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
          |> THEN <| REWRITE_TAC [NOT_FORALL_THM; DE_MORGAN_THM; LEFT_EXISTS_AND_THM]);;
 
 let RIGHT_FORALL_OR_THM = 
-    assumeProof
-        prove
+    prove
         ((parse_term @"!P Q. (!x:A. P \/ Q x) <=> P \/ (!x. Q x)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
@@ -466,8 +467,7 @@ let RIGHT_OR_FORALL_THM =
 
 let LEFT_IMP_FORALL_THM = 
     logEntryExitProtected "LEFT_IMP_FORALL_THM" <| fun () ->
-    assumeProof
-        prove
+    prove
         ((parse_term @"!P Q. ((!x:A. P x) ==> Q) <=> (?x. P x ==> Q)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
@@ -480,8 +480,7 @@ let LEFT_EXISTS_IMP_THM =
 
 let RIGHT_IMP_EXISTS_THM = 
     logEntryExitProtected "RIGHT_IMP_EXISTS_THM" <| fun () ->
-    assumeProof
-        prove
+    prove
         ((parse_term @"!P Q. (P ==> ?x:A. Q x) <=> (?x:A. P ==> Q x)"), 
          REPEAT GEN_TAC
          |> THEN <| ONCE_REWRITE_TAC [TAUT_001(parse_term @"(a <=> b) <=> (~a <=> ~b)")]
@@ -499,8 +498,7 @@ let COND_DEF = new_definition(parse_term @"COND = \t t1 t2. @x:A. ((t <=> T) ==>
 
 let COND_CLAUSES = 
     logEntryExitProtected "COND_CLAUSES" <| fun () ->
-    assumeProof
-        prove
+    prove
         ((parse_term @"!(t1:A) t2. ((if T then t1 else t2) = t1) /\
                ((if F then t1 else t2) = t2)"), REWRITE_TAC [COND_DEF]);;
 
@@ -544,8 +542,7 @@ extend_basic_rewrites [COND_CLAUSES] |> Choice.ignoreOrRaise
 
 let COND_EXPAND = 
     logEntryExitProtected "COND_EXPAND" <| fun () ->
-    assumeProof
-      prove
+    prove
         ((parse_term @"!b t1 t2. (if b then t1 else t2) <=> (~b \/ t1) /\ (b \/ t2)"), 
          REPEAT GEN_TAC
          |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
@@ -554,8 +551,7 @@ let COND_EXPAND =
 
 let COND_ID = 
     logEntryExitProtected "COND_ID" <| fun () ->
-    assumeProof
-      prove
+    prove
         ((parse_term @"!b (t:A). (if b then t else t) = t"), 
          REPEAT GEN_TAC
          |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
@@ -563,8 +559,7 @@ let COND_ID =
 
 let COND_RAND =
     logEntryExitProtected "COND_RAND" <| fun () -> 
-      assumeProof 
-        prove
+    prove
         ((parse_term @"!b (f:A->B) x y. f (if b then x else y) = (if b then f x else f y)"), 
          REPEAT GEN_TAC
          |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
@@ -572,8 +567,7 @@ let COND_RAND =
 
 let COND_RATOR = 
     logEntryExitProtected "COND_RATOR" <| fun () -> 
-      assumeProof
-        prove
+    prove
         ((parse_term @"!b (f:A->B) g x. (if b then f else g)(x) = (if b then f x else g x)"), 
          REPEAT GEN_TAC
          |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
@@ -581,8 +575,7 @@ let COND_RATOR =
 
 let COND_ABS = 
     logEntryExitProtected "COND_ABS" <| fun () -> 
-      assumeProof
-        prove
+    prove
         ((parse_term @"!b (f:A->B) g. (\x. if b then f x else g x) = (if b then f else g)"), 
          REPEAT GEN_TAC
          |> THEN <| BOOL_CASES_TAC(parse_term @"b:bool")
@@ -610,21 +603,21 @@ let (TAUT : conv) =
                         return! free_in t w
             }
 
+        let tac (_, w) gl = 
+            choice {
+                let! tms = find_terms ok w
+                let tm = hd <| sort (fun x y -> Choice.get <| free_in x y) tms
+                return! BOOL_CASES_TAC tm gl
+            }
+
         (PROP_REWRITE_TAC
-         |> THEN <| W
-                (THEN (REWRITE_TAC []) << BOOL_CASES_TAC 
-                 << hd << sort (fun x y -> free_in x y |> Choice.get) << Choice.get << find_terms ok << snd))(asl, w)
+         |> THEN <| W (THEN (REWRITE_TAC []) << tac)) (asl, w)
+
     let TAUT_TAC = REPEAT(GEN_TAC
                           |> ORELSE <| CONJ_TAC)
                    |> THEN <| REPEAT RTAUT_TAC
     fun tm -> 
-// It seems that this function loops infinitely
-#if BUGGY
         prove(tm, TAUT_TAC)
-#else
-        Choice.result <| Sequent([], tm)
-#endif
-;;
 
 (* ------------------------------------------------------------------------- *)
 (* Throw monotonicity in.                                                    *)
@@ -695,8 +688,7 @@ let SKOLEM_THM =
 (* ------------------------------------------------------------------------- *)
 
 let UNIQUE_SKOLEM_ALT = 
-    assumeProof
-        prove
+    prove
         ((parse_term @"!P:A->B->bool. (!x. ?!y. P x y) <=> ?f. !x y. P x y <=> (f x = y)"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [EXISTS_UNIQUE_ALT; SKOLEM_THM]);;
@@ -706,9 +698,7 @@ let UNIQUE_SKOLEM_ALT =
 (* ------------------------------------------------------------------------- *)
 
 let UNIQUE_SKOLEM_THM = 
-  // NOTE: investigate this soon
-  assumeProof
-    prove 
+  prove 
     ((parse_term @"!P. (!x:A. ?!y:B. P x y) <=> (?!f. !x. P x (f x))"),
     GEN_TAC 
     |> THEN <| REWRITE_TAC[EXISTS_UNIQUE_THM; SKOLEM_THM; FORALL_AND_THM] 
@@ -770,8 +760,7 @@ let bool_INDUCT =
       |> THEN <| ASM_REWRITE_TAC []);;
 
 let bool_RECURSION = 
-  assumeProof
-    prove
+  prove
     ((parse_term @"!a b:A. ?f. f F = a /\ f T = b"), 
       REPEAT GEN_TAC
       |> THEN <| EXISTS_TAC (parse_term @"\x. if x then b:A else a")

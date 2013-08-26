@@ -44,16 +44,6 @@ infof "Entering printer.fs"
 (* Character discrimination.                                                 *)
 (* ------------------------------------------------------------------------- *)
 
-/// Returns the ASCII code for the first (0th) character in a string.
-let inline private charcode (s : string) =
-//    #if DEBUG
-//    if String.length s <> 1 then
-//        logger.Debug ("NHol.printer.charcode: The string should contain exactly one (1) character, but it contains {0} characters. (s = {1})",
-//            String.length s, s)
-//    #endif
-    // Note: In F# 65536 retuns 0, so the max is 65535 in F#.
-    int s.[0]
-
 //
 let private ctable =
     // OPTIMIZE :   Make sure these strings are compiled into literals.
@@ -67,7 +57,7 @@ let private ctable =
     
     let ctable =
         let inline maxAsciiCode str =
-            // OPTIMIZE : Use String.reduce from a future version of ExtCore, instead of String.fold.
+            // OPTIMIZE : Use String.mapReduce from a future version of ExtCore, instead of String.fold.
             String.fold (fun x c -> max x (int c)) 0 str
 
         maxAsciiCode spaces
@@ -76,7 +66,7 @@ let private ctable =
         |> max (maxAsciiCode symbs)
         |> max (maxAsciiCode alphas)
         |> max (maxAsciiCode nums)
-        |> max 256
+        |> max (int System.Byte.MaxValue)
         |> Array.zeroCreate
 
     String.iter (fun c -> Array.set ctable (int c) 1) spaces
@@ -86,6 +76,17 @@ let private ctable =
     String.iter (fun c -> Array.set ctable (int c) 16) alphas
     String.iter (fun c -> Array.set ctable (int c) 32) nums
     ctable
+
+/// Returns the ASCII code for the first (0th) character in a string.
+let inline private charcode (s : string) =
+//    #if DEBUG
+//    if String.length s <> 1 then
+//        logger.Debug ("NHol.printer.charcode: The string should contain exactly one (1) character, but it contains {0} characters. (s = {1})",
+//            String.length s, s)
+//    #endif
+    // Note: In F# 65536 retuns 0, so the max is 65535 in F#.
+    // int <| Checked.byte s.[0]
+    int s.[0]
 
 /// Checks that a string contains exactly one (1) character,
 /// and raises an exception if otherwise.

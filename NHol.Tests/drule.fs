@@ -191,6 +191,42 @@ let ``{INSTANTIATE} Apply a higher-order instantiation to conclusion of a theore
     |> assertEqual (Choice1Of2 (Sequent ([], parse_term @"~a /\ q")))
 
 [<Test>]
+let ``{INSTANTIATE} works on manual instantiation``() =
+    let betaTh:Choice<thm0,exn> = 
+        Choice1Of2 (Sequent ([], parse_term @"(\x:A. (f:A->B) x) (y:A) = (f:A->B) (y:A)"))         // |- (\x. f x) y = f y
+
+    // Trying manual instantiation
+
+    let manualInst:instantiation = 
+        (
+            [(1, parse_term @"f:E->C")], 
+            [(parse_term @"\z:E. t1:C", parse_term @"f:E->C"); (parse_term @"t2:E", parse_term @"y:E")], 
+            [(Tyvar "C", Tyvar "B"); (Tyvar "E", Tyvar "A")]
+        )
+
+    let newManualTh = INSTANTIATE manualInst betaTh
+    let manualTh = Sequent ([], parse_term @"(\x. t1) t2 = t1")
+
+    newManualTh
+    |> evaluate
+    |> string_of_thm
+    |> assertEqual (string_of_thm manualTh)
+
+[<Test>]
+let ``{INSTANTIATE} works on a simple instantiation``() =
+    let betaTh:Choice<thm0,exn> = 
+        Choice1Of2 (Sequent ([], parse_term @"(\x:A. (f:A->B) x) (y:A) = (f:A->B) (y:A)"))         // |- (\x. f x) y = f y
+    let inst : instantiation = Choice.get (term_match [] (parse_term @"(\x:A. (f:A->B) x) (y:A)") (parse_term @"(\z:E. t1:C) t2"))
+
+    let newManualTh = INSTANTIATE inst betaTh
+    let manualTh = Sequent ([], parse_term @"(\x. t1) t2 = t1")
+
+    newManualTh
+    |> evaluate 
+    |> string_of_thm
+    |> assertEqual (string_of_thm manualTh)
+
+[<Test>]
 [<Category("Fails")>]
 let ``{BETAS_CONV} Beta conversion over multiple arguments``() =
     let actual = BETAS_CONV <| parse_term @"(\x y. x /\ y) T F"

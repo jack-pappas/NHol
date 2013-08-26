@@ -102,7 +102,7 @@ let newTh = INSTANTIATE instns th1;; // this simple test succeeds
 // Another test
 
 let insts2:instantiation = Choice.get (term_match [] (parse_term @"(\x:A. (f:A->B) x) (y:A)") (parse_term @"(\z:E. t1:C) t2"))
-let newManualTh2 = INSTANTIATE manualInst betaTh;; // also this fails while in OCaml succeeds
+let newManualTh2 = INSTANTIATE insts2 betaTh;; // also this fails while in OCaml succeeds
 
 // INSTATIATE Analysis
 
