@@ -15,6 +15,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tutorial", "Tutorial", "{BD103954-9542-406C-8550-F77D06821792}"
 	ProjectSection(SolutionItems) = preProject
 		Tutorial\all.fsx = Tutorial\all.fsx
+		Tutorial\choiceWorkflow.fsx = Tutorial\choiceWorkflow.fsx
 		Tutorial\examples.fsx = Tutorial\examples.fsx
 		Tutorial\exploration.fsx = Tutorial\exploration.fsx
 		Tutorial\hol.fsx = Tutorial\hol.fsx
