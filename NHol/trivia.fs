@@ -76,13 +76,11 @@ let o_ASSOC =
          |> THEN <| REFL_TAC)
 
 let I_THM = 
-    assumeProof
-        prove
+    prove
         ((parse_term @"!x:A. I x = x"), REWRITE_TAC [I_DEF])
 
 let I_O_ID = 
-    assumeProof
-        prove
+    prove
         ((parse_term @"!f:A->B. (I o f = f) /\ (f o I = f)"), 
          REPEAT STRIP_TAC
          |> THEN <| REWRITE_TAC [FUN_EQ_THM; o_DEF; I_THM])
@@ -128,9 +126,8 @@ let one_RECURSION =
           |> THEN <| BETA_TAC
           |> THEN <| REFL_TAC)
 
-let one_Axiom = 
-    assumeProof
-        prove
+let one_Axiom =
+    prove
         ((parse_term @"!e:A. ?!fn. fn one = e"), 
          GEN_TAC
          |> THEN <| REWRITE_TAC [ EXISTS_UNIQUE_THM; one_RECURSION ]
