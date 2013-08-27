@@ -49,6 +49,15 @@ open NHol.tactics
 open NHol.itab
 open NHol.simp
 open NHol.theorems
+open NHol.ind_defs
+open NHol.``class``
+open NHol.trivia
+open NHol.canon
+open NHol.meson
+open NHol.quot
+open NHol.pair
+open NHol.nums
+open NHol.recursion
 
 fsi.AddPrinter string_of_type;;
 fsi.AddPrinter string_of_term;;
@@ -162,18 +171,16 @@ e (DISCH_TAC);;
 e (PURE_ASM_REWRITE_TAC []);;
 e REFL_TAC;;
 
-// Analysis of ABS_SIMP
+//
 
-g (parse_term "!(t1:A) (t2:B). (\x. t1) t2 = t1");;
-//e (REPEAT GEN_TAC |> THEN <| REWRITE_TAC [BETA_THM; REFL_CLAUSE]);;
-e (GEN_TAC);;
-//e (REPEAT GEN_TAC);;
-e (REWRITE_TAC [BETA_THM; REFL_CLAUSE]);;
+EXISTS_EQUATION;;           // forces ind_defs module evaluation
+ETA_AX;;                    // forces class module evaluation
+o_DEF;;                     // forces trivia module evaluation
+CONJ_ACI_RULE;;             // forces canon module evaluation
+ASM_MESON_TAC;;             // forces meson module evaluation
+lift_function;;             // forces quot module evaluation
+LET_DEF;;                 // forces pair module evaluation
+ONE_ONE;;                   // forces num module evaluation
 
-open NHol.ind_defs;;
-
-MONO_AND;; // forces ind_defs evaluation
-
-open NHol.``class``;;
-
-ETA_AX;; // forces class evaluation
+let actual = MESON [] <| parse_term @"?!n. n = m";;
+let expected = Sequent ([], parse_term @"?!n. n = m");;

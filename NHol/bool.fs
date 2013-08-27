@@ -623,7 +623,7 @@ let ISPECL tms (th : Protected<thm0>) : Protected<thm0> =
                 fst <| chop_list (length tms) (fst <| strip_forall tm)
             Choice.List.map (Choice.map snd << dest_var) avs
         let! tms' = Choice.List.map type_of tms
-        let! tyins = Choice.List.fold2 (fun acc x y -> type_match x y acc) [] avs tms'
+        let! tyins = Choice.List.foldBack2 type_match avs tms' []
 
         let! foo1 = INST_TYPE tyins (Choice.result th)
         return! SPECL tms (Choice.result foo1)

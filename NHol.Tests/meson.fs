@@ -72,7 +72,7 @@ let testSetup () : unit =
     ModuleReset.canon ()
     ModuleReset.meson ()
 
-//// This crashes VS test runner
+//// This crashes VS test runner due to parsing error
 //[<Test>]
 //let ``{MESON_TAC} Automated first-order proof search tactic``() =
 //    let _ = g <| parse_term @"(!x. x <= x) /\
@@ -84,13 +84,12 @@ let testSetup () : unit =
 //    noSubgoal gs
 //    |> assertEqual true
 
-//// This crashes VS test runner
-//[<Test>]
-//let ``{MESON} doesn't fail on this simple term``() =
-//    let actual = MESON [] <| parse_term @"?!n. n = m"
-//    let expected = Sequent ([], parse_term @"?!n. n = m")
-//
-//    actual
-//    |> evaluate
-//    |> assertEqual expected
+[<Test>]
+let ``{MESON} succeeds on this simple term``() =
+    let actual = MESON [] <| parse_term @"?!n. n = m"
+    let expected = Sequent ([], parse_term @"?!n. n = m")
+
+    actual
+    |> evaluate
+    |> assertEqual expected
 
