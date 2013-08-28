@@ -212,7 +212,7 @@ let ``function many - type string`` idx =
     Assert.AreEqual(current, currentResult)
     Assert.AreEqual(rest, restResult)
 
-// The first sting is what humans expect to read
+// The first string is what humans expect to read
 // and the second lexcode list is what the function reads.
 // Both are shown to make the test easier to comprehend.
 let private manyLexcodeTypeValues : (string * lexcode list * (lexcode list * lexcode list))[] = [|
@@ -561,7 +561,7 @@ let ``function listof - type string`` idx =
     Assert.AreEqual(current, currentResult)
     Assert.AreEqual(rest, restResult)
 
-// The first lexcode is what humans expect to read
+// The first string is what humans expect to read
 // and the second lexcode list is what the function reads.
 // Both are shown to make the test easier to comprehend.
 let private listoflexcodeTypeValues : (string * lexcode list * (lexcode list -> (lexcode * lexcode list)) * lexcode * (lexcode list * lexcode list))[] = [|
@@ -859,7 +859,7 @@ let ``function possibly - type string`` idx =
     Assert.AreEqual(current, currentResult)
     Assert.AreEqual(rest, restResult)
 
-// The first sting is what humans expect to read
+// The first string is what humans expect to read
 // and the second lexcode list is what the function reads.
 // Both are shown to make the test easier to comprehend.
 let private possiblyLexcodeTypeValues : (string * lexcode list * (lexcode list * lexcode list))[] = [|
@@ -1026,7 +1026,7 @@ let ``function some - type string`` idx =
     Assert.AreEqual(current, currentResult)
     Assert.AreEqual(rest, restResult)
 
-// The first sting is what humans expect to read
+// The first string is what humans expect to read
 // and the second lexcode list is what the function reads.
 // Both are shown to make the test easier to comprehend.
 let private someLexcodeTypeValues : (string * lexcode list * (lexcode * lexcode list))[] = [|
@@ -1210,7 +1210,7 @@ let ``function a - type string`` idx =
     Assert.AreEqual(current, currentResult)
     Assert.AreEqual(rest, restResult)
 
-// The first sting is what humans expect to read
+// The first string is what humans expect to read
 // and the second lexcode list is what the function reads.
 // Both are shown to make the test easier to comprehend.
 let private parseraLexcodeTypeValues : (string * lexcode list * lexcode * (lexcode * lexcode list))[] = [|
@@ -1619,7 +1619,7 @@ let ``function atleast - type string`` idx =
     Assert.AreEqual(current, currentResult)
     Assert.AreEqual(rest, restResult)
 
-// The first sting is what humans expect to read
+// The first string is what humans expect to read
 // and the second lexcode list is what the function reads.
 // Both are shown to make the test easier to comprehend.
 let private atleastLexcodeTypeValues : (string * lexcode list * int * (lexcode list * lexcode list))[] = [|
@@ -4541,8 +4541,8 @@ let ``function lex.string`` idx =
 
 let rawtoken : (string list -> lexcode * string list) = (string <|> some NHol.printer.isbra <|> septok <|> ident) |>> (fun x -> Ident x)
 
-// The first rawtoken is what humans expect to read
-// and the second rawtoken list is what the function reads.
+// The first string is what humans expect to read
+// and the second string list is what the function reads.
 // Both are shown to make the test easier to comprehend.
 let private rawtokenValues : (string * string list * (lexcode * string list))[] = [|
     (
@@ -4928,8 +4928,8 @@ let ``function lex.rawtoken`` idx =
 
 let simptoken = many(some NHol.printer.isspace) .>>. rawtoken |>> (reserve << snd)
 
-// The first simptoken is what humans expect to read
-// and the second simptoken list is what the function reads.
+// The first string is what humans expect to read
+// and the second string list is what the function reads.
 // Both are shown to make the test easier to comprehend.
 let private simptokenValues : (string * string list * (lexcode * string list))[] = [|
     (
@@ -5729,8 +5729,8 @@ let rec tokens (i : string list) : (lexcode list * string list) =
             [], i
     tokensResult
 
-// The first tokens is what humans expect to read
-// and the second tokens list is what the function reads.
+// The first string is what humans expect to read
+// and the second string list is what the function reads.
 // Both are shown to make the test easier to comprehend.
 let private tokensValues : (string * string list * (lexcode list * string list))[] = [|
     (

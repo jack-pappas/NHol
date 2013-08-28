@@ -190,7 +190,7 @@ let lex =
     let undertail = stringof(a "_") .>>. possibly simple_ident |>> collect
     let ident = (undertail <|> simple_ident) .>>. many undertail |>> collect
     let septok = stringof(some issep)
-    // escapecode - expects preceeding \ to be removed befor calling.
+    // escapecode - expects preceeding \ to be removed before calling.
     // escaped characters can only appear in a quoted string.
     let escapecode i = 
         match i with
