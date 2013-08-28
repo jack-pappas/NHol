@@ -5724,7 +5724,6 @@ let rec tokens (i : string list) : (lexcode list * string list) =
                             else raise Noparse) .>>. tokens |>> snd) rst
             else
                 let toks, rst1 = tokens rst
-                printfn "(toks, rst1): (%A, %A)" toks rst1
                 t :: toks, rst1
         with Noparse ->
             [], i
