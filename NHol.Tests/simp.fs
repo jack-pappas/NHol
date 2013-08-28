@@ -33,7 +33,8 @@ open NHol.``class``
 
 open NUnit.Framework
 
-
+#if SKIP_MODULE_INIT
+#else
 /// Performs setup for this test fixture.
 /// Executed once prior to running any tests in this fixture.
 [<TestFixtureSetUp>]
@@ -64,7 +65,7 @@ let testSetup () : unit =
     ModuleReset.tactics ()
     ModuleReset.itab ()
     ModuleReset.simp ()
-
+#endif
 
 [<Test>]
 [<Category("Fails")>]

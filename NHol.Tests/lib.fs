@@ -30,7 +30,8 @@ open FSharp.Compatibility.OCaml
 open FSharp.Compatibility.OCaml.Big_int
 open FSharp.Compatibility.OCaml.Num
 
-
+#if SKIP_MODULE_INIT
+#else
 /// Performs setup for this test fixture.
 /// Executed once prior to running any tests in this fixture.
 [<TestFixtureSetUp>]
@@ -49,7 +50,7 @@ let testSetup () : unit =
     // Reset mutable state for this module and those proceeding it before running each unit test.
     // This helps avoid issues with mutable state which arise because unit tests can run in any order.
     ModuleReset.lib ()
-
+#endif
 
 // Almost all functions here have equivalences in FSharp.Core.
 // We use the core functions as models for testing.

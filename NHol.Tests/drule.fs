@@ -33,7 +33,8 @@ open ExtCore.Control
 
 open NUnit.Framework
 
-
+#if SKIP_MODULE_INIT
+#else
 /// Performs setup for this test fixture.
 /// Executed once prior to running any tests in this fixture.
 [<TestFixtureSetUp>]
@@ -61,7 +62,7 @@ let testSetup () : unit =
     ModuleReset.equal ()
     ModuleReset.bool ()
     ModuleReset.drule ()
-
+#endif
 
 (* mk_thm  tests *)
 

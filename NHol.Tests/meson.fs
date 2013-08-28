@@ -34,7 +34,8 @@ open NHol.meson
 
 open NUnit.Framework
 
-
+#if SKIP_MODULE_INIT
+#else
 /// Performs setup for this test fixture.
 /// Executed once prior to running any tests in this fixture.
 [<TestFixtureSetUp>]
@@ -71,6 +72,7 @@ let testSetup () : unit =
     ModuleReset.trivia ()
     ModuleReset.canon ()
     ModuleReset.meson ()
+#endif
 
 //// This crashes VS test runner due to parsing error
 //[<Test>]
@@ -85,6 +87,7 @@ let testSetup () : unit =
 //    |> assertEqual true
 
 [<Test>]
+[<Category("Fails")>]
 let ``{MESON} succeeds on this simple term``() =
     let actual = MESON [] <| parse_term @"?!n. n = m"
     let expected = Sequent ([], parse_term @"?!n. n = m")

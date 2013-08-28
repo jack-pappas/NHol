@@ -25,7 +25,8 @@ open NHol.printer
 
 open NUnit.Framework
 
-
+#if SKIP_MODULE_INIT
+#else
 /// Performs setup for this test fixture.
 /// Executed once prior to running any tests in this fixture.
 [<TestFixtureSetUp>]
@@ -45,7 +46,7 @@ let testSetup () : unit =
     // This helps avoid issues with mutable state which arise because unit tests can run in any order.
     ModuleReset.lib ()
     ModuleReset.fusion ()
-
+#endif
 
 // Note: Many of the next test cases came from the HOL Light reference manual
 

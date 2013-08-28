@@ -27,7 +27,8 @@ open NHol.printer
 
 open NUnit.Framework
 
-
+#if SKIP_MODULE_INIT
+#else
 /// Performs setup for this test fixture.
 /// Executed once prior to running any tests in this fixture.
 [<TestFixtureSetUp>]
@@ -54,6 +55,7 @@ let testSetup () : unit =
     ModuleReset.parser ()
     ModuleReset.equal ()
     ModuleReset.bool ()
+#endif
 
 (* is_iff  tests *)
 
