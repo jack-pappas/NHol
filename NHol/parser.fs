@@ -177,6 +177,7 @@ let comment_token = ref(Resword "//")
 
 /// Lexically analyze an input string.
 let lex = 
+    // collect - collects result of parser into a string, i.e. (string * string list -> string)
     let collect(h, t) = end_itlist (+) (h :: t)
     let reserve = 
         function 
@@ -189,6 +190,8 @@ let lex =
     let undertail = stringof(a "_") .>>. possibly simple_ident |>> collect
     let ident = (undertail <|> simple_ident) .>>. many undertail |>> collect
     let septok = stringof(some issep)
+    // escapecode - expects preceeding \ to be removed befor calling.
+    // escaped characters can only appear in a quoted string.
     let escapecode i = 
         match i with
         | "\\" :: rst -> "\\", rst
@@ -204,11 +207,13 @@ let lex =
         | _ -> failwith "lex:unrecognized OCaml-style escape in string"
     let stringchar = some(fun i -> i <> "\\" && i <> "\"") <|> (a "\\" .>>. escapecode |>> snd)
     let string = a "\"" .>>. many stringchar .>>. a "\"" |>> (fun ((_, s), _) -> "\"" + implode s + "\"")
+    // rawtoken - all tokens are taged with Ident. In simptoken Resword is added as needed.
     let rawtoken = (string <|> some isbra <|> septok <|> ident) |>> (fun x -> Ident x)
     let simptoken = many(some isspace) .>>. rawtoken |>> (reserve << snd)
     let rec tokens i =
         try
             let (t, rst) = simptoken i
+            // This is not read as not comment_token but the contents of the ref comment_token.
             if t = !comment_token then
                 (many(fun i ->
                          if i <> [] && hd i <> "\n" then 1, tl i
@@ -217,6 +222,7 @@ let lex =
                 let toks, rst1 = tokens rst
                 t :: toks, rst1
         with Noparse ->
+            // Noparse exception ends lexing
             [], i
     fst << (tokens .>>. many(some isspace) .>>. finished |>> (fst << fst))
 
