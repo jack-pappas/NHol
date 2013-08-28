@@ -87,10 +87,9 @@ let testSetup () : unit =
 //    |> assertEqual true
 
 [<Test>]
-[<Category("Fails")>]
 let ``{MESON} succeeds on this simple term``() =
-    let actual = MESON [] <| parse_term @"?!n. n = m"
-    let expected = Sequent ([], parse_term @"?!n. n = m")
+    let actual = MESON [] <| parse_term @"?!n:A. n = m"
+    let expected = Sequent ([], parse_term @"?!n:A. n = m")
 
     actual
     |> evaluate
