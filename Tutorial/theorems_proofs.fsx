@@ -178,6 +178,59 @@ ETA_AX;;                    // forces class module evaluation
 o_DEF;;                     // forces trivia module evaluation
 CONJ_ACI_RULE;;             // forces canon module evaluation
 ASM_MESON_TAC;;             // forces meson module evaluation
+
+(* pth *)
+
+g (parse_term @"(!x:Repty. R x x) /\
+     (!x y. R x y <=> R y x) /\
+     (!x y z. R x y /\ R y z ==> R x z) /\
+     (!a. mk(dest a) = a) /\
+     (!r. (?x. r = R x) <=> (dest(mk r) = r))
+     ==> (!x y. R x y <=> (mk(R x) = mk(R y))) /\
+         (!P. (!x. P(mk(R x))) <=> (!x. P x)) /\
+         (!P. (?x. P(mk(R x))) <=> (?x. P x)) /\
+         (!x:Absty. mk(R((@)(dest x))) = x)");;
+
+e STRIP_TAC;;
+
+e (SUBGOAL_THEN (parse_term @"!x y. (mk((R:Repty->Repty->bool) x):Absty = mk(R y)) <=> (R x = R y)") ASSUME_TAC);;
+
+e (ASM_MESON_TAC[]);; // this fails
+
+//The following is the subgoal proved by ASM_MESON_TAC []
+
+(*
+  0 [`!x. R x x`]
+  1 [`!x y. R x y <=> R y x`]
+  2 [`!x y z. R x y /\ R y z ==> R x z`]
+  3 [`!a. mk (dest a) = a`]
+  4 [`!r. (?x. r = R x) <=> dest (mk r) = r`]
+`!x y. mk (R x) = mk (R y) <=> R x = R y`
+*)
+
+// Trying to isolate the problem
+
+let th4:Choice<thm0,exn> = 
+    Choice1Of2 (Sequent ([], (parse_term @"!a. (mk:(Repty->bool)->Absty) ((dest:Absty->Repty->bool) a) = a")));;
+
+let th5:Choice<thm0,exn> = 
+    Choice1Of2 (Sequent ([], (parse_term @" !r. (?x. r = (R:Repty->Repty->bool) x) <=> (dest:Absty->Repty->bool) ((mk:(Repty->bool)->Absty) r) = r")));;
+
+let tmToProve = 
+    parse_term @"!x y. (mk:(Repty->bool)->Absty) ((R:Repty->Repty->bool) x) = (mk:(Repty->bool)->Absty) ((R:Repty->Repty->bool) y) <=> (R:Repty->Repty->bool) x = (R:Repty->Repty->bool) y";;
+
+MESON [th4;th5] tmToProve;; //this fails while in OCaml succeeds
+
+MESON [th4;th5] (parse_term @"!a. (mk:(Repty->bool)->Absty) ((dest:Absty->Repty->bool) a) = a");; //this succeeds
+MESON [th4] (parse_term @"!a. (mk:(Repty->bool)->Absty) ((dest:Absty->Repty->bool) a) = a");; //this succeeds
+MESON [th4;th5] (parse_term @" !r. (?x. r = (R:Repty->Repty->bool) x) <=> (dest:Absty->Repty->bool) ((mk:(Repty->bool)->Absty) r) = r");; //this fails
+MESON [th5] (parse_term @" !r. (?x. r = (R:Repty->Repty->bool) x) <=> (dest:Absty->Repty->bool) ((mk:(Repty->bool)->Absty) r) = r");; //this also fails while should be trivial
+
+g (parse_term @" !r. (?x. r = (R:Repty->Repty->bool) x) <=> (dest:Absty->Repty->bool) ((mk:(Repty->bool)->Absty) r) = r");;
+//e (ASM_MESON_TAC [th5]);;
+e (REFUTE_THEN ASSUME_TAC);;
+
+
 lift_function;;             // forces quot module evaluation
 LET_DEF;;                 // forces pair module evaluation
 ONE_ONE;;                   // forces num module evaluation
