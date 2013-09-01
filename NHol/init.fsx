@@ -16,24 +16,14 @@ limitations under the License.
 
 *)
 
-// Note: To use this with F# Interactive within Visual Studio 2010
-// In Visual Studio menu: Tool -> Options -> F# Tools -> F# Interactive
-// For F# Interactive Options add --define:FSI_VER_2
-#if FSI_VER_2
-#r "./../packages/FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
-#r "./../packages/FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
-#r "./../packages/FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
-#r "./../packages/ExtCore.0.8.33/lib/net40/ExtCore.dll"
-#r @"./../packages/NLog.2.0.1.2/lib/net40/NLog.dll"
-#else
-#I "./../packages"
-
-#r "FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
-#r "FSharp.Compatibility.OCaml.Format.0.1.10/lib/net40/FSharp.Compatibility.OCaml.Format.dll"
-#r "FSharp.Compatibility.OCaml.System.0.1.10/lib/net40/FSharp.Compatibility.OCaml.System.dll"
-#r "ExtCore.0.8.33/lib/net40/ExtCore.dll"
-#r @"NLog.2.0.1.2/lib/net40/NLog.dll"
-#endif
+(*  F# 2.0 interactive doesn't search recursively when resolving references,
+    so we resolve/load our NuGet packages in a slightly clumsy way here for
+    backwards-compatibility. *)
+#r @"..\packages\FSharp.Compatibility.OCaml.0.1.10\lib\net40\FSharp.Compatibility.OCaml.dll"
+#r @"..\packages\FSharp.Compatibility.OCaml.Format.0.1.10\lib\net40\FSharp.Compatibility.OCaml.Format.dll"
+#r @"..\packages\FSharp.Compatibility.OCaml.System.0.1.10\lib\net40\FSharp.Compatibility.OCaml.System.dll"
+#r @"..\packages\ExtCore.0.8.33\lib\net40\ExtCore.dll"
+#r @"..\packages\NLog.2.0.1.2\lib\net40\NLog.dll"
 
 // Disable "Incomplete pattern matches on this expression." warnings.
 // Some of these are true warnings, but should be fixed in the code.
