@@ -25,6 +25,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tutorial", "Tutorial", "{BD
 		Tutorial\theorems_proofs.fsx = Tutorial\theorems_proofs.fsx
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PredicateCalculus", "PredicateCalculus", "{13BB3831-C90A-4C71-882B-62DD56E77169}"
+	ProjectSection(SolutionItems) = preProject
+		PredicateCalculus\Samples.fsx = PredicateCalculus\Samples.fsx
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
