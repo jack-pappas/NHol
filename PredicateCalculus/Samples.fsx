@@ -1,6 +1,6 @@
 (*
 
-Copyright 2013 Anh-Dung Phan, Domenico Masini
+Copyright 2013 Domenico Masini
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -127,6 +127,8 @@ print_term_types tm;;
 g (parse_term @"! t:A. P t ==> ? u:A. P u");;
 e STRIP_TAC;;
 e STRIP_TAC;;
+e (EXISTS_TAC (parse_term @"t:A"));;
+e (ACCEPT_TAC (ASSUME (parse_term @"((P:A->bool) t)")));;
 
 
 
