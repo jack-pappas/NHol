@@ -867,7 +867,7 @@ let pp_print_term =
         fun tm ->
             try
                 print_term 0 tm
-            with Failure s as ex ->
+            with Failure _ as ex ->
                 (* NOTE :   We currently suppress certain exceptions which may be raised during
                             printing; however, we do log them for diagnostics purposes. *)
                 logger.DebugException ("Suppressed exception in 'pp_print_term'.", ex)
@@ -980,6 +980,7 @@ let string_of_list_term = print_to_string pp_print_list_term
 
 /// Prints a ((hol_type * hol_type) list) to formatter.
 let pp_print_list_typtyp fmt (al : (hol_type * hol_type) list) =
+    // CLEAN : Use List.iter instead of a recursive function here.
     let rec pp_print_list_typtypInner fmt al =
         match al with
         | [] -> ()
@@ -1002,6 +1003,38 @@ let print_list_typtyp = pp_print_list_typtyp std_formatter
 
 /// Converts a ((hol_type * hol_type) list) to a string representation.
 let string_of_list_typtyp = print_to_string pp_print_list_typtyp
+
+(* ------------------------------------------------------------------------- *)
+(* Prints the type after each variable.  Useful for "debugging" type issues. *)
+(* This code is from the TipsAndTricks section of the Flyspeck project wiki. *)
+(* ------------------------------------------------------------------------- *)
+
+let print_varandtype tm =
+    choice {
+    let hop, args = strip_comb tm
+    let s = name_of hop
+    let! ty = type_of hop
+    if is_var hop && List.isEmpty args then
+        let fmt = std_formatter
+        pp_print_string fmt "("
+        pp_print_string fmt s
+        pp_print_string fmt ":"
+        pp_print_type fmt ty
+        pp_print_string fmt ")"
+    else
+        return! Choice.failwith "print_varandtype"
+    }
+
+let [<Literal>] private showTypesPrinterName = "Show Types"
+
+let show_types () =
+    install_user_printer (showTypesPrinterName, print_varandtype >> Choice.get)
+
+let hide_types () =
+    try delete_user_printer showTypesPrinterName
+    with Failure _ as e ->
+        nestedFailwith e "hide_types: Types are already hidden."
+
 
 (* ------------------------------------------------------------------------- *)
 (* Install all the printers.                                                 *)
