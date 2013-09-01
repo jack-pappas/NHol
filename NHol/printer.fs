@@ -947,6 +947,7 @@ let string_of_thm = print_to_string pp_print_thm
 
 /// Prints a term list to formatter.
 let pp_print_list_term fmt (al : term list) =
+    // CLEAN : Use List.iter instead of a recursive function here.
     let rec pp_print_list_termInner fmt al =
         match al with
         | [] -> ()
