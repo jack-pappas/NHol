@@ -27,6 +27,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tutorial", "Tutorial", "{BD
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PredicateCalculus", "PredicateCalculus", "{13BB3831-C90A-4C71-882B-62DD56E77169}"
 	ProjectSection(SolutionItems) = preProject
+		PredicateCalculus\MainWindow.xaml = PredicateCalculus\MainWindow.xaml
+		PredicateCalculus\ProofGUI1.fsx = PredicateCalculus\ProofGUI1.fsx
 		PredicateCalculus\Samples.fsx = PredicateCalculus\Samples.fsx
 	EndProjectSection
 EndProject

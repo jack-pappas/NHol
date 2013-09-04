@@ -16,6 +16,8 @@ limitations under the License.
 
 *)
 
+#load @".\ProofGUI1.fsx"
+
 #I "./../packages"
 
 #r "FSharp.Compatibility.OCaml.0.1.10/lib/net40/FSharp.Compatibility.OCaml.dll"
@@ -83,6 +85,10 @@ fsi.AddPrinter string_of_thm_tactical;;
 fsi.AddPrinter string_of_goal;;
 fsi.AddPrinter string_of_goalstack;;
 fsi.AddPrinter string_of_goalstate;;
+
+open ProofGUI1
+
+proofGUI()
 
 // Start Snippet from https://github.com/xcthulhu/flyspeck/emacs/print-types.ml to get term types
 
