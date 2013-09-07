@@ -16,7 +16,7 @@ limitations under the License.
 
 *)
 
-#load @".\ProofGUI1.fsx"
+//#load @".\ProofGUI1.fsx"
 
 #I "./../packages"
 
@@ -86,9 +86,9 @@ fsi.AddPrinter string_of_goal;;
 fsi.AddPrinter string_of_goalstack;;
 fsi.AddPrinter string_of_goalstate;;
 
-open ProofGUI1
-
-proofGUI()
+//open ProofGUI1
+//
+//proofGUI()
 
 // Start Snippet from https://github.com/xcthulhu/flyspeck/emacs/print-types.ml to get term types
 
@@ -136,6 +136,30 @@ e STRIP_TAC;;
 e (EXISTS_TAC (parse_term @"t:A"));;
 e (ACCEPT_TAC (ASSUME (parse_term @"((P:A->bool) t)")));;
 
+//// Meson tests
 
+let goal1 = parse_term @"a:bool /\ b:bool ==> a:bool";;
+let th1 = MESON [] <| goal1;;
+
+let goal2 = parse_term @"a:bool /\ b:bool ==> b:bool";;
+let th2 = MESON [] <| goal2;;
+
+let goal3 = parse_term @"p:bool ==> p:bool = T";;
+let th3 = MESON [] <| goal3;;
+
+let goal4 = parse_term @"p:bool = T ==> p:bool";;
+let th4 = MESON [] <| goal4;;
+
+let goal5 = parse_term @"(p:bool ==> q:bool) /\ p ==> q";;
+let th5 = MESON [] <| goal5;;
+
+let goal6 = parse_term @"(p ==> q) /\ p ==> q";;
+let th6 = MESON [] <| goal6;;
+
+// DISCH
+// UNDISCH
+
+let goal7 = parse_term @"! x. P x ==> P y";;
+let th7 = MESON [] <| goal7;;
 
 

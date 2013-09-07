@@ -95,3 +95,14 @@ let ``{MESON} succeeds on this simple term``() =
     |> evaluate
     |> assertEqual expected
 
+(* qpartition *)
+
+[<Test>]
+let ``{qpartition p l}``() =
+
+    let actual = (GenMesonTac.qpartition (fun x -> x % 2 = 0) (1--10)) [1;2;3;4]
+    let expected = ([2; 4], [1; 3])
+    
+    actual
+    |> assertEqual expected
+
